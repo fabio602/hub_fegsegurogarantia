@@ -1,0 +1,925 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    Plus,
+    Target,
+    TrendingUp,
+    Users,
+    FileText,
+    Download,
+    Edit2,
+    Trash2,
+    ChevronRight,
+    Calendar,
+    DollarSign,
+    Briefcase,
+    AlertCircle,
+    CheckCircle2,
+    Clock,
+    Loader2,
+    Save,
+    X,
+    Search
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { formatCurrency, parseNumber } from '../utils/formatters';
+import { Sale, LeadCost, GoalMonth } from '../types';
+
+// --- Configuration ---
+interface InsurerLimit {
+    seguradora: string;
+    valor: string;
+}
+
+const LIST_DATA = {
+    origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
+    tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
+    vendedor: ["Fábio", "Andréia", "Rafael"],
+    motivoPerda: ["Preço fora do mercado", "Faltou agilidade", "Cliente não retornou", "Serasa", "Tomador sem seguradora disponível para cotação"]
+};
+
+const ANNUAL_TARGETS: Record<string, { name: string; target: number }> = {
+    "01": { name: "Janeiro", target: 20000 },
+    "02": { name: "Fevereiro", target: 25000 },
+    "03": { name: "Março", target: 20000 },
+    "04": { name: "Abril", target: 22000 },
+    "05": { name: "Maio", target: 25000 },
+    "06": { name: "Junho", target: 25000 },
+    "07": { name: "Julho", target: 25000 },
+    "08": { name: "Agosto", target: 25000 },
+    "09": { name: "Setembro", target: 27000 },
+    "10": { name: "Outubro", target: 28000 },
+    "11": { name: "Novembro", target: 28000 },
+    "12": { name: "Dezembro", target: 28000 }
+};
+
+const SELLERS_CONFIG = [
+    { name: "Rafael", share: 0.70, daysPerWeek: 5 },
+    { name: "Andréia", share: 0.30, daysPerWeek: 2 }
+];
+
+type Section = 'sales' | 'goals' | 'annualGoals' | 'leads';
+
+const ResultsDashboard: React.FC = () => {
+    const [activeSection, setActiveSection] = useState<Section>('sales');
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+
+    // Sub-form for Insurer Limits
+    const [limitesArray, setLimitesArray] = useState<InsurerLimit[]>([]);
+    const [currentLimit, setCurrentLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
+
+    // Filters
+    const [salesMonthFilter, setSalesMonthFilter] = useState('');
+    const [salesSearch, setSalesSearch] = useState('');
+    const [goalsMonthSelector, setGoalsMonthSelector] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const [leadsMonthSelector, setLeadsMonthSelector] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+
+    // Form State
+    const [formData, setFormData] = useState<Partial<Sale>>({
+        data: new Date().toISOString().split('T')[0],
+        nome: '',
+        origem: '',
+        qualificado: 'Sim',
+        tipo: '',
+        is: '',
+        seguradora: '',
+        premio: '',
+        dataProposta: '',
+        vendeu: 'Em andamento',
+        motivoPerda: '',
+        comissao: '',
+        vendedor: '',
+        indicacao: 'Não',
+        limites: 'Não',
+        catalogo: 'Não',
+        vigencia_inicio: '',
+        vigencia_fim: ''
+    });
+
+    // Compute sales expiring within 30 days
+    const getExpiringAlerts = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const in30 = new Date(today);
+        in30.setDate(in30.getDate() + 30);
+        return sales.filter(s => {
+            if (!s.vigencia_fim || s.vendeu !== 'Sim') return false;
+            const fim = new Date(s.vigencia_fim);
+            return fim >= today && fim <= in30;
+        }).sort((a, b) => new Date(a.vigencia_fim!).getTime() - new Date(b.vigencia_fim!).getTime());
+    };
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [{ data: salesData }, { data: costsData }] = await Promise.all([
+                supabase.from('sales').select('*').order('data', { ascending: false }),
+                supabase.from('lead_costs').select('*')
+            ]);
+            setSales(salesData || []);
+            setLeadCosts(costsData || []);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, type } = e.target as HTMLInputElement;
+        let value = e.target.value;
+
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            setFormData(prev => ({ ...prev, [id]: checked ? 'Sim' : 'Não' }));
+        } else {
+            if (id === 'is' || id === 'premio' || id === 'comissao') {
+                value = formatCurrency(value);
+            }
+            setFormData(prev => ({ ...prev, [id]: value }));
+        }
+    };
+
+    const handleSaleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setSaveError(null);
+        setSaveSuccess(false);
+
+        // Sanitize: only send columns that exist in the Supabase table
+        const payload = {
+            data: formData.data || null,
+            nome: formData.nome || null,
+            origem: formData.origem || null,
+            qualificado: formData.qualificado || null,
+            tipo: formData.tipo || null,
+            seguradora: formData.seguradora || null,
+            premio: formData.premio || null,
+            vendeu: formData.vendeu || null,
+            comissao: formData.comissao || null,
+            vendedor: formData.vendedor || null,
+            indicacao: formData.indicacao || null,
+            limites: formData.limites || null,
+            catalogo: formData.catalogo || null,
+            vigencia_inicio: formData.vigencia_inicio || null,
+            vigencia_fim: formData.vigencia_fim || null,
+            limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
+        };
+
+        try {
+            if (editingId) {
+                const { error } = await supabase.from('sales').update(payload).eq('id', editingId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('sales').insert([payload]);
+                if (error) throw error;
+            }
+            await fetchData();
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+            resetForm();
+        } catch (error: any) {
+            console.error('Error saving sale:', error);
+            setSaveError(error?.message || 'Erro ao salvar. Tente novamente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const resetForm = () => {
+        setEditingId(null);
+        setLimitesArray([]);
+        setCurrentLimit({ seguradora: '', valor: '' });
+        setFormData({
+            data: new Date().toISOString().split('T')[0],
+            nome: '',
+            origem: '',
+            qualificado: 'Sim',
+            tipo: '',
+            is: '',
+            seguradora: '',
+            premio: '',
+            dataProposta: '',
+            vendeu: 'Em andamento',
+            motivoPerda: '',
+            comissao: '',
+            vendedor: '',
+            indicacao: 'Não',
+            limites: 'Não',
+            catalogo: 'Não',
+            vigencia_inicio: '',
+            vigencia_fim: ''
+        });
+    };
+
+    const handleEdit = (sale: Sale) => {
+        setEditingId(sale.id);
+        setFormData(sale);
+        if (sale.limites_seguradoras) {
+            try {
+                setLimitesArray(JSON.parse(sale.limites_seguradoras));
+            } catch (e) {
+                setLimitesArray([]);
+            }
+        } else {
+            setLimitesArray([]);
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('Deseja realmente excluir este registro?')) return;
+        try {
+            await supabase.from('sales').delete().eq('id', id);
+            await fetchData();
+        } catch (error) {
+            console.error('Error deleting sale:', error);
+        }
+    };
+
+    const updateManualCost = async (key: string, value: number) => {
+        try {
+            await supabase.from('lead_costs').upsert({ key, value }, { onConflict: 'key' });
+            const { data } = await supabase.from('lead_costs').select('*');
+            setLeadCosts(data || []);
+        } catch (error) {
+            console.error('Error updating cost:', error);
+        }
+    };
+
+    const exportToCSV = () => {
+        const filteredSales = salesMonthFilter
+            ? sales.filter(s => s.data.startsWith(salesMonthFilter))
+            : sales;
+
+        if (filteredSales.length === 0) return;
+
+        const headers = ["Data", "Cliente", "Origem", "Qualificado", "Tipo", "IS", "Seguradora", "Premio", "Proposta", "Vendeu", "Comissao", "Vendedor"];
+        const csvContent = [
+            headers.join(","),
+            ...filteredSales.map(s => [
+                s.data,
+                `"${s.nome}"`,
+                s.origem,
+                s.qualificado,
+                s.tipo,
+                s.is || "",
+                s.seguradora || "",
+                s.premio || "",
+                s.dataProposta || "",
+                s.vendeu,
+                s.comissao || "",
+                s.vendedor
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `Vendas_${salesMonthFilter || 'Todas'}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // --- Calculations ---
+    const getWeekdayCount = (year: number, month: number) => {
+        let count = 0;
+        const date = new Date(year, month - 1, 1);
+        while (date.getMonth() === month - 1) {
+            const day = date.getDay();
+            if (day !== 0 && day !== 6) count++;
+            date.setDate(date.getDate() + 1);
+        }
+        return count;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <Loader2 size={40} className="animate-spin mb-4 text-[#C69C6D]" />
+                <p className="font-bold uppercase tracking-widest text-xs">Carregando Dashboard...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+            {/* Sub-Navigation */}
+            <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
+                {(['sales', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
+                    <button
+                        key={section}
+                        onClick={() => setActiveSection(section)}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeSection === section
+                            ? 'bg-[#C69C6D] text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        {section === 'sales' && 'Vendas'}
+                        {section === 'goals' && 'Metas Mensais'}
+                        {section === 'annualGoals' && 'Metas Anuais'}
+                        {section === 'leads' && 'Leads'}
+                    </button>
+                ))}
+            </div>
+
+            {activeSection === 'sales' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    {/* Expiry Alert Banner */}
+                    {(() => {
+                        const alerts = getExpiringAlerts();
+                        if (alerts.length === 0) return null;
+                        return (
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
+                                        <AlertCircle size={18} className="text-amber-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-amber-800 text-sm">⚠️ {alerts.length} apólice{alerts.length > 1 ? 's vencem' : ' vence'} nos próximos 30 dias</p>
+                                        <p className="text-amber-600 text-xs font-medium">Acione o cliente para renovação</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {alerts.map(s => {
+                                        const fim = new Date(s.vigencia_fim!);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        const daysLeft = Math.ceil((fim.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                        return (
+                                            <div key={s.id} className="flex justify-between items-center bg-white rounded-xl px-4 py-3 border border-amber-100 gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-slate-800 text-sm truncate">{s.nome}</p>
+                                                    <p className="text-xs text-slate-500">{s.tipo} • {s.vendedor}</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="font-black text-amber-600 text-sm">{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</p>
+                                                    <p className="text-xs text-slate-400">Vence {fim.toLocaleDateString('pt-BR')}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleEdit(s)}
+                                                    className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-black text-xs px-3 py-2 rounded-lg transition-all"
+                                                    title="Editar este lead"
+                                                >
+                                                    <Edit2 size={13} /> Editar
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-800">Acompanhamento de Vendas</h2>
+                            <p className="text-slate-500 font-medium">Gestão operacional do funil de vendas corporativo.</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="relative flex-1 md:flex-none">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text" placeholder="Buscar lead, origem, seguro..."
+                                    value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
+                                    className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                                />
+                            </div>
+                            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                                <Calendar size={18} className="text-[#C69C6D]" />
+                                <select
+                                    value={salesMonthFilter}
+                                    onChange={(e) => setSalesMonthFilter(e.target.value)}
+                                    className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none"
+                                >
+                                    <option value="">Todos os Meses</option>
+                                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(m => {
+                                        const month = String(m + 1).padStart(2, '0');
+                                        return <option key={m} value={`${new Date().getFullYear()}-${month}`}>
+                                            {ANNUAL_TARGETS[month].name}
+                                        </option>
+                                    })}
+                                </select>
+                            </div>
+                            <button
+                                onClick={exportToCSV}
+                                className="bg-white text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+                            >
+                                <Download size={18} />
+                                Exportar
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Form Card */}
+                    <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                        <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+                            {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}
+                        </h3>
+
+                        {saveError && (
+                            <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-xl text-sm font-bold">
+                                <AlertCircle size={18} />
+                                {saveError}
+                            </div>
+                        )}
+                        {saveSuccess && (
+                            <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-600 px-5 py-4 rounded-xl text-sm font-bold">
+                                <CheckCircle2 size={18} />
+                                Venda salva com sucesso!
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSaleSubmit} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Data</label>
+                                    <input type="date" id="data" value={formData.data} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nome do Lead</label>
+                                    <input type="text" id="nome" value={formData.nome} onChange={handleInputChange} required placeholder="Ex: Empresa XYZ" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Origem</label>
+                                    <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="">Selecione...</option>
+                                        {LIST_DATA.origem.map(o => <option key={o} value={o}>{o}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Qualificado?</label>
+                                    <select id="qualificado" value={formData.qualificado} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="Sim">Sim</option>
+                                        <option value="Não">Não</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo Seguro</label>
+                                    <select id="tipo" value={formData.tipo} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="">Selecione...</option>
+                                        {LIST_DATA.tipoSeguro.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">IS Garantida</label>
+                                    <input type="text" id="is" value={formData.is} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Seguradora</label>
+                                    <input type="text" id="seguradora" value={formData.seguradora} onChange={handleInputChange} placeholder="Nome" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor Prêmio</label>
+                                    <input type="text" id="premio" value={formData.premio} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendeu?</label>
+                                    <select id="vendeu" value={formData.vendeu} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="Sim">Sim</option>
+                                        <option value="Não">Não</option>
+                                        <option value="Em andamento">Em andamento</option>
+                                    </select>
+                                </div>
+                                {formData.vendeu === 'Não' && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Motivo da Perda</label>
+                                        <select id="motivoPerda" value={formData.motivoPerda} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                            <option value="">Selecione...</option>
+                                            {LIST_DATA.motivoPerda.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                                {formData.vendeu === 'Sim' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
+                                            <input type="date" id="vigencia_inicio" value={formData.vigencia_inicio || ''} onChange={handleInputChange} className="w-full bg-emerald-50 border-emerald-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition-all outline-none" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Fim Vigência</label>
+                                            <input type="date" id="vigencia_fim" value={formData.vigencia_fim || ''} onChange={handleInputChange} className="w-full bg-emerald-50 border-emerald-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition-all outline-none" />
+                                        </div>
+                                    </>
+                                )}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor Comissão</label>
+                                    <input type="text" id="comissao" value={formData.comissao} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
+                                    <select id="vendedor" value={formData.vendedor} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="">Selecione...</option>
+                                        {LIST_DATA.vendedor.map(v => <option key={v} value={v}>{v}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" id="indicacao" checked={formData.indicacao === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
+                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Pediu Indicação?</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" id="limites" checked={formData.limites === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
+                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Limites Enviados?</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" id="catalogo" checked={formData.catalogo === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
+                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Catálogo Enviado?</span>
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                {editingId && (
+                                    <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
+                                        <X size={18} /> Cancelar
+                                    </button>
+                                )}
+                                <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                    {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
+                                    {editingId ? 'Salvar Alterações' : 'Adicionar Venda'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Table Card */}
+                    <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-6 py-5">Data</th>
+                                        <th className="px-6 py-5">Lead</th>
+                                        <th className="px-6 py-5">Origem</th>
+                                        <th className="px-6 py-5">Status</th>
+                                        <th className="px-6 py-5">Seguro</th>
+                                        <th className="px-6 py-5">Prêmio</th>
+                                        <th className="px-6 py-5">Comissão</th>
+                                        <th className="px-6 py-5">Vendedor</th>
+                                        <th className="px-6 py-5 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {sales
+                                        .filter(s => salesMonthFilter ? s.data.startsWith(salesMonthFilter) : true)
+                                        .filter(s =>
+                                            s.nome?.toLowerCase().includes(salesSearch.toLowerCase()) ||
+                                            s.origem?.toLowerCase().includes(salesSearch.toLowerCase()) ||
+                                            s.tipo?.toLowerCase().includes(salesSearch.toLowerCase()) ||
+                                            s.seguradora?.toLowerCase().includes(salesSearch.toLowerCase()) ||
+                                            s.vendedor?.toLowerCase().includes(salesSearch.toLowerCase())
+                                        )
+                                        .map((sale) => (
+                                            <tr key={sale.id} className="group hover:bg-slate-50/80 transition-all">
+                                                <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
+                                                <td className="px-6 py-5">
+                                                    <div className="font-black text-slate-800 tracking-tight">{sale.nome}</div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase">{sale.seguradora || 'S/ Seguradora'}</div>
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
+                                                <td className="px-6 py-5">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
+                                                        sale.vendeu === 'Não' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                                        }`}>
+                                                        {sale.vendeu === 'Sim' ? <CheckCircle2 size={12} /> :
+                                                            sale.vendeu === 'Não' ? <AlertCircle size={12} /> : <Clock size={12} />}
+                                                        {sale.vendeu}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-5 text-sm text-slate-700 font-bold">{sale.tipo}</td>
+                                                <td className="px-6 py-5 text-sm text-slate-800 font-black">{sale.premio || '-'}</td>
+                                                <td className="px-6 py-5 text-sm text-[#C69C6D] font-black">{sale.comissao || '-'}</td>
+                                                <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.vendedor}</td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
+                                                        <button onClick={() => handleDelete(sale.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {activeSection === 'goals' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-800">Metas do Mês</h2>
+                            <p className="text-slate-500 font-medium">Acompanhe a performance proporcional por vendedor.</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                            <Calendar size={18} className="text-[#C69C6D]" />
+                            <input type="month" value={goalsMonthSelector} onChange={(e) => setGoalsMonthSelector(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {SELLERS_CONFIG.map((seller) => {
+                            const [year, month] = goalsMonthSelector.split('-');
+                            const monthKey = month;
+                            const totalTarget = ANNUAL_TARGETS[monthKey]?.target || 0;
+                            const sellerTarget = totalTarget * seller.share;
+                            const totalWeekdays = getWeekdayCount(parseInt(year), parseInt(month));
+                            const diasVendedor = seller.daysPerWeek === 5 ? totalWeekdays : (totalWeekdays * (seller.daysPerWeek / 5));
+
+                            const sellerSales = sales.filter(s => s.vendedor === seller.name && s.vendeu === 'Sim' && s.data.startsWith(goalsMonthSelector));
+                            const totalAchieved = sellerSales.reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
+                            const percent = sellerTarget > 0 ? Math.min((totalAchieved / sellerTarget) * 100, 100) : 0;
+
+                            return (
+                                <div key={seller.name} className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                                    <div className="relative z-10 flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-12">
+                                            <div>
+                                                <h3 className="text-4xl font-black tracking-tighter text-[#C69C6D]">{seller.name}</h3>
+                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">{seller.share * 100}% da Meta Total</p>
+                                            </div>
+                                            <div className="bg-[#C69C6D]/20 p-4 rounded-3xl">
+                                                <Target size={32} className="text-[#C69C6D]" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-8 mb-12">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Mensal</p>
+                                                <p className="text-2xl font-black">{formatCurrency(sellerTarget)}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Semanal</p>
+                                                <p className="text-2xl font-black text-slate-300">{formatCurrency(sellerTarget / 4)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-auto pt-10 border-t border-white/5">
+                                            <div className="flex justify-between items-end mb-4">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
+                                                    <p className="text-5xl font-black text-[#C69C6D] tracking-tighter">{formatCurrency(totalAchieved)}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-3xl font-black text-white">{percent.toFixed(1)}%</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="h-4 bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-[#C69C6D] to-white rounded-full transition-all duration-1000"
+                                                    style={{ width: `${percent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#C69C6D] opacity-[0.03] rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
+            {activeSection === 'annualGoals' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div>
+                        <h2 className="text-3xl font-black text-slate-800">Visão Anual {new Date().getFullYear()}</h2>
+                        <p className="text-slate-500 font-medium">Histórico consolidado de performance por mês.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {Object.keys(ANNUAL_TARGETS).sort().map((key) => {
+                            const m = ANNUAL_TARGETS[key];
+                            const currentYear = new Date().getFullYear();
+                            const monthSales = sales.filter(s => s.vendeu === 'Sim' && s.data.startsWith(`${currentYear}-${key}`));
+                            const achieved = monthSales.reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
+                            const percent = Math.min((achieved / m.target) * 100, 100);
+                            const isCurrent = key === String(new Date().getMonth() + 1).padStart(2, '0');
+
+                            return (
+                                <div key={key} className={`p-8 rounded-[2rem] border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-[#1B263B] text-white border-[#C69C6D] shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
+                                    }`}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <h3 className="text-2xl font-black tracking-tight">{m.name}</h3>
+                                        <div className={`w-3 h-3 rounded-full ${isCurrent ? 'bg-[#C69C6D] animate-pulse' : 'bg-slate-200'}`}></div>
+                                    </div>
+
+                                    <div className="space-y-4 mb-8">
+                                        <div>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-slate-400' : 'text-slate-400'}`}>Meta</p>
+                                            <p className="text-lg font-bold">{formatCurrency(m.target)}</p>
+                                        </div>
+                                        <div>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-[#C69C6D]' : 'text-slate-400'}`}>Atingido</p>
+                                            <p className={`text-2xl font-black ${isCurrent ? 'text-[#C69C6D]' : 'text-slate-800'}`}>{formatCurrency(achieved)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[11px] font-black uppercase tracking-wider">
+                                            <span className={isCurrent ? 'text-slate-400' : 'text-slate-400'}>Progresso</span>
+                                            <span className={isCurrent ? 'text-white' : 'text-slate-800'}>{percent.toFixed(0)}%</span>
+                                        </div>
+                                        <div className={`h-2 rounded-full overflow-hidden ${isCurrent ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                            <div
+                                                className={`h-full transition-all duration-1000 ${isCurrent ? 'bg-[#C69C6D]' : 'bg-slate-200'}`}
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
+            {activeSection === 'leads' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-800">Rastreamento de Leads</h2>
+                            <p className="text-slate-500 font-medium">Métricas de investimento e eficiência de conversão.</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                            <Calendar size={18} className="text-[#C69C6D]" />
+                            <input type="month" value={leadsMonthSelector} onChange={(e) => setLeadsMonthSelector(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none" />
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-6 py-5">Item de Controle</th>
+                                        <th className="px-4 py-5">Semana 1</th>
+                                        <th className="px-4 py-5">Semana 2</th>
+                                        <th className="px-4 py-5">Semana 3</th>
+                                        <th className="px-4 py-5">Semana 4</th>
+                                        <th className="px-6 py-5 bg-slate-100/50">Total Mês</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 text-sm">
+                                    {(() => {
+                                        const weeks = [
+                                            { start: 1, end: 7 },
+                                            { start: 8, end: 14 },
+                                            { start: 15, end: 21 },
+                                            { start: 22, end: 31 }
+                                        ];
+                                        const monthlySales = sales.filter(s => s.data.startsWith(leadsMonthSelector));
+
+                                        const getWeekData = (weekIdx: number) => {
+                                            const w = weeks[weekIdx];
+                                            const wSales = monthlySales.filter(s => {
+                                                const day = parseInt(s.data.split('-')[2]);
+                                                return day >= w.start && day <= w.end;
+                                            });
+                                            const cost = leadCosts.find(c => c.key === `${leadsMonthSelector}_w${weekIdx + 1}`)?.value || 0;
+                                            const revenue = wSales.filter(s => s.vendeu === 'Sim').reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
+                                            return {
+                                                leads: wSales.length,
+                                                qual: wSales.filter(s => s.qualificado === 'Sim').length,
+                                                sales: wSales.filter(s => s.vendeu === 'Sim').length,
+                                                cost,
+                                                revenue
+                                            };
+                                        };
+
+                                        const wD = [getWeekData(0), getWeekData(1), getWeekData(2), getWeekData(3)];
+                                        const total = {
+                                            leads: wD.reduce((s, x) => s + x.leads, 0),
+                                            qual: wD.reduce((s, x) => s + x.qual, 0),
+                                            sales: wD.reduce((s, x) => s + x.sales, 0),
+                                            cost: wD.reduce((s, x) => s + x.cost, 0),
+                                            revenue: wD.reduce((s, x) => s + x.revenue, 0)
+                                        };
+
+                                        const rows = [
+                                            { label: 'Leads Recebidos', data: wD.map(x => x.leads), total: total.leads },
+                                            { label: 'Leads Qualificados', data: wD.map(x => x.qual), total: total.qual },
+                                            { label: 'Vendas Fechadas', data: wD.map(x => x.sales), total: total.sales },
+                                            { label: 'Receita (Comissão)', data: wD.map(x => x.revenue), total: total.revenue, isCurrency: true },
+                                            { label: 'Custo Tráfego (R$)', data: wD.map(x => x.cost), total: total.cost, isManual: true },
+                                            { label: 'CPL (Custo/Lead)', data: wD.map(x => x.leads > 0 ? x.cost / x.leads : 0), total: total.leads > 0 ? total.cost / total.leads : 0, isCurrency: true, isKPI: true },
+                                            { label: 'CPV (Custo/Venda)', data: wD.map(x => x.sales > 0 ? x.cost / x.sales : 0), total: total.sales > 0 ? total.cost / total.sales : 0, isCurrency: true, isKPI: true },
+                                            { label: 'Taxa Conversão', data: wD.map(x => x.leads > 0 ? (x.sales / x.leads) * 100 : 0), total: total.leads > 0 ? (total.sales / total.leads) * 100 : 0, isPercent: true, isKPI: true }
+                                        ];
+
+                                        return rows.map((row) => (
+                                            <tr key={row.label} className={row.isKPI ? 'bg-slate-50/30' : ''}>
+                                                <td className={`px-6 py-4 font-bold ${row.isKPI ? 'text-[#C69C6D]' : 'text-slate-700'}`}>{row.label}</td>
+                                                {row.data.map((val, i) => (
+                                                    <td key={i} className="px-4 py-4">
+                                                        {row.isManual ? (
+                                                            <input
+                                                                type="number"
+                                                                value={val}
+                                                                onChange={(e) => updateManualCost(`${leadsMonthSelector}_w${i + 1}`, parseFloat(e.target.value) || 0)}
+                                                                className="w-24 bg-slate-50 border-slate-200 rounded-lg px-2 py-1 outline-none text-xs focus:ring-1 focus:ring-[#C69C6D]"
+                                                            />
+                                                        ) : (
+                                                            <span className="font-medium text-slate-600">
+                                                                {row.isCurrency ? formatCurrency(val) : (row.isPercent ? `${val.toFixed(1)}%` : val)}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                ))}
+                                                <td className="px-6 py-4 bg-slate-100/30 font-black text-slate-800">
+                                                    {row.isCurrency ? formatCurrency(row.total) : (row.isPercent ? `${row.total.toFixed(1)}%` : row.total)}
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Distribution Graph Simulation */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                            <h4 className="text-lg font-black text-slate-800 mb-6">Distribuição por Origem</h4>
+                            <div className="space-y-6">
+                                {(() => {
+                                    const monthlySales = sales.filter(s => s.data.startsWith(leadsMonthSelector));
+                                    const total = monthlySales.length;
+                                    const counts = LIST_DATA.origem.map(o => ({
+                                        name: o,
+                                        count: monthlySales.filter(s => s.origem === o).length
+                                    })).sort((a, b) => b.count - a.count);
+
+                                    return counts.map((item) => {
+                                        const p = total > 0 ? (item.count / total) * 100 : 0;
+                                        return (
+                                            <div key={item.name} className="space-y-2">
+                                                <div className="flex justify-between text-xs font-bold">
+                                                    <span className="text-slate-700">{item.name}</span>
+                                                    <span className="text-slate-400">{item.count} leads ({p.toFixed(1)}%)</span>
+                                                </div>
+                                                <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-[#1B263B] rounded-full" style={{ width: `${p}%` }} />
+                                                </div>
+                                            </div>
+                                        )
+                                    });
+                                })()}
+                            </div>
+                        </div>
+
+                        <div className="bg-[#1B263B] p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden">
+                            <h4 className="text-lg font-black text-[#C69C6D] mb-6">Eficiência de Vendas</h4>
+                            <div className="flex items-center justify-center p-8">
+                                {(() => {
+                                    const monthlySales = sales.filter(s => s.data.startsWith(leadsMonthSelector));
+                                    const total = monthlySales.length;
+                                    const sold = monthlySales.filter(s => s.vendeu === 'Sim').length;
+                                    const p = total > 0 ? (sold / total) * 100 : 0;
+                                    return (
+                                        <div className="relative w-48 h-48">
+                                            <svg className="w-full h-full transform -rotate-90">
+                                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
+                                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={2 * Math.PI * 80} strokeDashoffset={2 * Math.PI * 80 * (1 - p / 100)} className="text-[#C69C6D] transition-all duration-1000" />
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="text-4xl font-black">{p.toFixed(0)}%</span>
+                                                <span className="text-[10px] font-black uppercase text-slate-400">Conversão</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                            </div>
+                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#C69C6D]/10 rounded-full blur-3xl"></div>
+                        </div>
+                    </div>
+                </section>
+            )}
+        </div>
+    );
+};
+
+export default ResultsDashboard;
