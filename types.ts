@@ -49,7 +49,11 @@ export interface Sale {
   catalogo: string;
   vigencia_inicio?: string;
   vigencia_fim?: string;
+  telefone?: string;
+  email?: string;
+  cnpj?: string;
   limites_seguradoras?: string;
+  decisor?: string;
   created_at?: string;
 }
 

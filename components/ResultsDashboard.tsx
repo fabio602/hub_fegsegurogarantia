@@ -18,7 +18,10 @@ import {
     Loader2,
     Save,
     X,
-    Search
+    Search,
+    Shield,
+    Copy,
+    Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
@@ -52,26 +55,58 @@ const ANNUAL_TARGETS: Record<string, { name: string; target: number }> = {
     "12": { name: "Dezembro", target: 28000 }
 };
 
+// --- Helper Components ---
+const CopyButton = ({ text, label }: { text: string; label?: string }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="group/copy flex items-center gap-1.5 hover:text-[#C69C6D] transition-colors focus:outline-none"
+            title={`Copiar ${label || ''}`}
+        >
+            {copied ? (
+                <Check size={10} className="text-green-500 animate-in zoom-in duration-200" />
+            ) : (
+                <Copy size={10} className="text-slate-300 group-hover/copy:text-[#C69C6D] transition-all" />
+            )}
+            {copied && <span className="text-[8px] font-black text-green-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
+        </button>
+    );
+};
+
 const SELLERS_CONFIG = [
     { name: "Rafael", share: 0.70, daysPerWeek: 5 },
     { name: "Andréia", share: 0.30, daysPerWeek: 2 }
 ];
 
-type Section = 'sales' | 'goals' | 'annualGoals' | 'leads';
+type Section = 'sales' | 'goals' | 'annualGoals' | 'leads' | 'carteira';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
+    const [insurers, setInsurers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
-    // Sub-form for Insurer Limits
     const [limitesArray, setLimitesArray] = useState<InsurerLimit[]>([]);
     const [currentLimit, setCurrentLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
+
+    // Client Portfolio Specific States
+    const [editingClientLimits, setEditingClientLimits] = useState<string | null>(null);
+    const [tempClientLimits, setTempClientLimits] = useState<InsurerLimit[]>([]);
+    const [newTempLimit, setNewTempLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
 
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
@@ -104,7 +139,11 @@ const ResultsDashboard: React.FC = () => {
         limites: 'Não',
         catalogo: 'Não',
         vigencia_inicio: '',
-        vigencia_fim: ''
+        vigencia_fim: '',
+        telefone: '',
+        email: '',
+        cnpj: '',
+        decisor: '',
     });
 
     // Compute sales expiring within 30 days
@@ -123,12 +162,14 @@ const ResultsDashboard: React.FC = () => {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [{ data: salesData }, { data: costsData }] = await Promise.all([
+            const [{ data: salesData }, { data: costsData }, { data: insurersData }] = await Promise.all([
                 supabase.from('sales').select('*').order('data', { ascending: false }),
-                supabase.from('lead_costs').select('*')
+                supabase.from('lead_costs').select('*'),
+                supabase.from('insurers').select('*').order('nome')
             ]);
             setSales(salesData || []);
             setLeadCosts(costsData || []);
+            setInsurers(insurersData || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -149,7 +190,17 @@ const ResultsDashboard: React.FC = () => {
             setFormData(prev => ({ ...prev, [id]: checked ? 'Sim' : 'Não' }));
         } else {
             if (id === 'is' || id === 'premio' || id === 'comissao') {
-                value = formatCurrency(value);
+                // Remove everything except digits
+                const digits = value.replace(/\D/g, '');
+                if (digits === '') {
+                    value = '';
+                } else {
+                    // Convert to number (cents / 100) and format using formatNumber (no R$)
+                    // or keep it as string if you want to keep the "R$" prefix.
+                    // But Calculator.tsx uses formatNumber (no prefix in state) or prepends R$ in UI.
+                    // Let's use currency formatting but ensure we pass a number.
+                    value = formatCurrency(parseFloat(digits) / 100);
+                }
             }
             setFormData(prev => ({ ...prev, [id]: value }));
         }
@@ -168,6 +219,7 @@ const ResultsDashboard: React.FC = () => {
             origem: formData.origem || null,
             qualificado: formData.qualificado || null,
             tipo: formData.tipo || null,
+            is: formData.is || null,
             seguradora: formData.seguradora || null,
             premio: formData.premio || null,
             vendeu: formData.vendeu || null,
@@ -178,6 +230,10 @@ const ResultsDashboard: React.FC = () => {
             catalogo: formData.catalogo || null,
             vigencia_inicio: formData.vigencia_inicio || null,
             vigencia_fim: formData.vigencia_fim || null,
+            telefone: formData.telefone || null,
+            email: formData.email || null,
+            cnpj: formData.cnpj || null,
+            decisor: formData.decisor || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
         };
 
@@ -223,7 +279,10 @@ const ResultsDashboard: React.FC = () => {
             limites: 'Não',
             catalogo: 'Não',
             vigencia_inicio: '',
-            vigencia_fim: ''
+            vigencia_fim: '',
+            telefone: '',
+            email: '',
+            cnpj: ''
         });
     };
 
@@ -249,6 +308,29 @@ const ResultsDashboard: React.FC = () => {
             await fetchData();
         } catch (error) {
             console.error('Error deleting sale:', error);
+        }
+    };
+
+    const handleUpdateClientLimits = async (clientName: string, salesIds: number[]) => {
+        setSaving(true);
+        try {
+            const limitesJson = JSON.stringify(tempClientLimits);
+            const { error } = await supabase
+                .from('sales')
+                .update({ limites_seguradoras: limitesJson })
+                .in('id', salesIds);
+
+            if (error) throw error;
+
+            await fetchData();
+            setEditingClientLimits(null);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            console.error('Error updating client limits:', error);
+            setSaveError(error?.message || 'Erro ao atualizar limites.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -323,7 +405,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
+                {(['sales', 'carteira', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -333,6 +415,7 @@ const ResultsDashboard: React.FC = () => {
                             }`}
                     >
                         {section === 'sales' && 'Vendas'}
+                        {section === 'carteira' && 'Carteira de Clientes'}
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
                         {section === 'leads' && 'Leads'}
@@ -451,17 +534,46 @@ const ResultsDashboard: React.FC = () => {
 
                         <form onSubmit={handleSaleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Data</label>
-                                    <input type="date" id="data" value={formData.data} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none" />
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Data</label>
+                                    <div className="relative">
+                                        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input type="date" id="data" value={formData.data} onChange={handleInputChange} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nome do Lead</label>
-                                    <input type="text" id="nome" value={formData.nome} onChange={handleInputChange} required placeholder="Ex: Empresa XYZ" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none" />
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Nome do Cliente / Tomador</label>
+                                    <div className="relative">
+                                        <input type="text" id="nome" value={formData.nome || ''} onChange={handleInputChange} required placeholder="Ex: Empresa XYZ" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Origem</label>
-                                    <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">CNPJ / CPF</label>
+                                    <div className="relative">
+                                        <input type="text" id="cnpj" value={formData.cnpj || ''} onChange={handleInputChange} placeholder="00.000.000/0000-00" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Telefone</label>
+                                    <div className="relative">
+                                        <input type="text" id="telefone" value={formData.telefone || ''} onChange={handleInputChange} placeholder="(00) 00000-0000" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Decisor / Responsável</label>
+                                    <div className="relative">
+                                        <input type="text" id="decisor" value={formData.decisor || ''} onChange={handleInputChange} placeholder="Nome do responsável" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">E-mail</label>
+                                    <div className="relative">
+                                        <input type="email" id="email" value={formData.email || ''} onChange={handleInputChange} placeholder="email@empresa.com" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                </div>
+                                <div className="group/field relative">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Origem</label>
+                                    <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all">
                                         <option value="">Selecione...</option>
                                         {LIST_DATA.origem.map(o => <option key={o} value={o}>{o}</option>)}
                                     </select>
@@ -622,6 +734,305 @@ const ResultsDashboard: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </section>
+            )}
+
+            {activeSection === 'carteira' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-800">Carteira de Clientes</h2>
+                            <p className="text-slate-500 font-medium">Gestão unificada dos seus clientes e apólices emitidas.</p>
+                        </div>
+                        <div className="relative w-full md:w-auto">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                                type="text" placeholder="Buscar cliente..."
+                                value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
+                                className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-72 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {(() => {
+                            // Define the ClientPortfolioItem type
+                            interface ClientPortfolioItem {
+                                nome: string;
+                                cnpj: string;
+                                telefone: string;
+                                email: string;
+                                decisor: string;
+                                seguros: Record<string, { totalIS: number, totalPremio: number }>;
+                                limites: Array<{ seguradora: string, valor: string }>;
+                                totalPremio: number;
+                                totalIS: number;
+                                totalComissao: number;
+                                salesIds: number[];
+                            }
+
+                            // Group sales by client name
+                            const portfolio = sales.reduce((acc, sale) => {
+                                if (!sale.nome) return acc;
+                                const clientName = sale.nome.trim().toUpperCase();
+
+                                if (!acc[clientName]) {
+                                    acc[clientName] = {
+                                        nome: sale.nome,
+                                        cnpj: sale.cnpj || '',
+                                        telefone: sale.telefone || '',
+                                        email: sale.email || '',
+                                        decisor: sale.decisor || '',
+                                        seguros: {},
+                                        limites: [],
+                                        totalPremio: 0,
+                                        totalIS: 0,
+                                        totalComissao: 0,
+                                        salesIds: []
+                                    };
+                                }
+
+                                acc[clientName].salesIds.push(sale.id);
+
+                                // Update contact info if missing
+                                if (!acc[clientName].cnpj && sale.cnpj) acc[clientName].cnpj = sale.cnpj;
+                                if (!acc[clientName].telefone && sale.telefone) acc[clientName].telefone = sale.telefone;
+                                if (!acc[clientName].email && sale.email) acc[clientName].email = sale.email;
+                                if (!acc[clientName].decisor && sale.decisor) acc[clientName].decisor = sale.decisor;
+
+                                // Parse limits
+                                if (sale.limites_seguradoras) {
+                                    try {
+                                        const parsed = JSON.parse(sale.limites_seguradoras);
+                                        if (Array.isArray(parsed)) {
+                                            parsed.forEach(p => {
+                                                // Avoid adding duplicates
+                                                if (!acc[clientName].limites.some((l: any) => l.seguradora === p.seguradora)) {
+                                                    acc[clientName].limites.push(p);
+                                                }
+                                            });
+                                        }
+                                    } catch (e) { }
+                                }
+
+                                if (sale.vendeu === 'Sim') {
+                                    if (sale.tipo) {
+                                        if (!acc[clientName].seguros[sale.tipo]) {
+                                            acc[clientName].seguros[sale.tipo] = { totalIS: 0, totalPremio: 0 };
+                                        }
+                                        acc[clientName].seguros[sale.tipo].totalIS += parseNumber(sale.is || '0');
+                                        acc[clientName].seguros[sale.tipo].totalPremio += parseNumber(sale.premio || '0');
+                                    }
+                                    acc[clientName].totalPremio += parseNumber(sale.premio || '0');
+                                    acc[clientName].totalIS += parseNumber(sale.is || '0');
+                                    acc[clientName].totalComissao += parseNumber(sale.comissao || '0');
+                                }
+
+                                return acc;
+                            }, {} as Record<string, ClientPortfolioItem>);
+
+                            const clients = (Object.values(portfolio) as ClientPortfolioItem[])
+                                .filter(c => c.nome.toLowerCase().includes(salesSearch.toLowerCase()))
+                                .sort((a, b) => a.nome.localeCompare(b.nome));
+
+                            if (clients.length === 0) {
+                                return (
+                                    <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                                            <Users size={32} />
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-700">Nenhum cliente encontrado</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Sua carteira é alimentada pelas vendas registradas com sucesso.</p>
+                                    </div>
+                                );
+                            }
+
+                            return clients.map((client: ClientPortfolioItem, idx: number) => (
+                                <div key={idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#C69C6D]/5 rounded-bl-full -z-0"></div>
+
+                                    <div className="relative z-10 flex-1">
+                                        <div className="flex items-start gap-4 mb-6">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                                                <Briefcase size={20} className="text-[#C69C6D]" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-lg text-slate-800 leading-tight">{client.nome}</h3>
+                                                <div className="mt-1.5 space-y-1">
+                                                    {client.decisor && (
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RESPONSÁVEL: <span className="text-slate-700">{client.decisor}</span></p>
+                                                            <CopyButton text={client.decisor} label="Decisor" />
+                                                        </div>
+                                                    )}
+                                                    {client.cnpj && (
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] font-black text-[#C69C6D]">CNPJ: {client.cnpj}</p>
+                                                            <CopyButton text={client.cnpj} label="CNPJ" />
+                                                        </div>
+                                                    )}
+                                                    {client.telefone && (
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs font-medium text-slate-500 break-all">📞 {client.telefone}</p>
+                                                            <CopyButton text={client.telefone} label="Telefone" />
+                                                        </div>
+                                                    )}
+                                                    {client.email && (
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs font-medium text-slate-500 break-all">✉️ {client.email}</p>
+                                                            <CopyButton text={client.email} label="E-mail" />
+                                                        </div>
+                                                    )}
+                                                    {!client.telefone && !client.email && !client.cnpj && <p className="text-xs text-slate-400 italic">Sem contato ou CNPJ registrado</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">Seguros Contratados</p>
+                                                {Object.keys(client.seguros).length > 0 ? (
+                                                    <div className="space-y-1.5">
+                                                        {Object.entries(client.seguros).map(([tipo, dados]) => (
+                                                            <div key={tipo} className="flex flex-col p-2 bg-slate-50 border border-slate-100 rounded-xl">
+                                                                <span className="text-[10px] font-black text-slate-700 uppercase mb-1">{tipo}</span>
+                                                                <div className="flex justify-between items-center text-[9px] font-bold">
+                                                                    <div className="text-slate-500 uppercase">IS: <span className="text-slate-800">{formatCurrency(dados.totalIS)}</span></div>
+                                                                    <div className="text-slate-500 uppercase">Prêmio: <span className="text-slate-800">{formatCurrency(dados.totalPremio)}</span></div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 italic">Nenhum seguro emitido ainda.</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1 flex justify-between items-center">
+                                                    <span>Crédito Aprovado nas Seguradoras</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingClientLimits(client.nome);
+                                                            setTempClientLimits(client.limites);
+                                                            setNewTempLimit({ seguradora: '', valor: '' });
+                                                        }}
+                                                        className="text-[#C69C6D] hover:text-[#b58a5b] transition-colors p-1"
+                                                    >
+                                                        <Plus size={12} strokeWidth={3} />
+                                                    </button>
+                                                </p>
+
+                                                {editingClientLimits === client.nome ? (
+                                                    <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-[#C69C6D]/20 animate-in fade-in zoom-in-95 duration-200">
+                                                        <div className="space-y-2">
+                                                            {tempClientLimits.map((l, i) => (
+                                                                <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
+                                                                    <span className="font-bold text-slate-700">{l.seguradora}</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-black text-slate-400">{formatCurrency(l.valor)}</span>
+                                                                        <button
+                                                                            onClick={() => setTempClientLimits(prev => prev.filter((_, idx) => idx !== i))}
+                                                                            className="text-red-400 hover:text-red-600"
+                                                                        >
+                                                                            <X size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            <select
+                                                                value={newTempLimit.seguradora}
+                                                                onChange={e => setNewTempLimit(prev => ({ ...prev, seguradora: e.target.value }))}
+                                                                className="flex-1 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D]"
+                                                            >
+                                                                <option value="">Seguradora...</option>
+                                                                {insurers.map(ins => (
+                                                                    <option key={ins.id} value={ins.nome}>{ins.nome}</option>
+                                                                ))}
+                                                            </select>
+                                                            <input
+                                                                type="text" placeholder="R$ 0,00"
+                                                                value={newTempLimit.valor}
+                                                                onChange={e => {
+                                                                    const digits = e.target.value.replace(/\D/g, '');
+                                                                    const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
+                                                                    setNewTempLimit(prev => ({ ...prev, valor: val }));
+                                                                }}
+                                                                className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D]"
+                                                            />
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (newTempLimit.seguradora && newTempLimit.valor) {
+                                                                        setTempClientLimits(prev => [...prev, newTempLimit]);
+                                                                        setNewTempLimit({ seguradora: '', valor: '' });
+                                                                    }
+                                                                }}
+                                                                className="bg-[#C69C6D] text-white p-2 rounded-lg"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex gap-2 pt-1">
+                                                            <button
+                                                                onClick={() => setEditingClientLimits(null)}
+                                                                className="flex-1 text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors"
+                                                            >
+                                                                CANCELAR
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUpdateClientLimits(client.nome, client.salesIds)}
+                                                                disabled={saving}
+                                                                className="flex-1 text-[10px] font-black text-emerald-500 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1"
+                                                            >
+                                                                {saving ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                                                                SALVAR
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        {client.limites && client.limites.length > 0 ? (
+                                                            <div className="flex flex-col gap-2 w-full">
+                                                                {client.limites.map((l: any, i: number) => (
+                                                                    <div key={i} className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Shield size={12} className="text-emerald-500" />
+                                                                            <span className="text-xs font-bold text-slate-700">{l.seguradora}</span>
+                                                                        </div>
+                                                                        <span className="text-xs font-black text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                                                            {formatCurrency(l.valor)}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="group/empty relative">
+                                                                <p className="text-xs text-slate-400 italic">Nenhum limite de crédito aprovado.</p>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingClientLimits(client.nome);
+                                                                        setTempClientLimits([]);
+                                                                        setNewTempLimit({ seguradora: '', valor: '' });
+                                                                    }}
+                                                                    className="mt-2 w-full py-2 border border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:border-[#C69C6D]/30 hover:text-[#C69C6D] transition-all"
+                                                                >
+                                                                    + ADICIONAR LIMITE
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            ));
+                        })()}
                     </div>
                 </section>
             )}

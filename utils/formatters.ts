@@ -1,9 +1,10 @@
 
-export const formatCurrency = (value: number): string => {
+export const formatCurrency = (value: number | string): string => {
+  const numValue = typeof value === 'string' ? parseNumber(value) : value;
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value);
+  }).format(numValue);
 };
 
 export const formatNumber = (value: number, decimals: number = 2): string => {
@@ -15,8 +16,8 @@ export const formatNumber = (value: number, decimals: number = 2): string => {
 
 export const parseNumber = (value: string): number => {
   if (!value) return 0;
-  // Handle PT-BR format (dots as thousand separator, comma as decimal)
-  const clean = value.replace(/\./g, '').replace(',', '.');
+  // Strip everything except digits and comma
+  const clean = value.replace(/[^\d,]/g, '').replace(',', '.');
   return parseFloat(clean) || 0;
 };
 
