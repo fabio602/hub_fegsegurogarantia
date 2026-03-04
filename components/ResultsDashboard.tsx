@@ -99,6 +99,8 @@ const ResultsDashboard: React.FC = () => {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
+    const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
 
     const [limitesArray, setLimitesArray] = useState<InsurerLimit[]>([]);
     const [currentLimit, setCurrentLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
@@ -206,6 +208,48 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
+    const handleCnpjChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        setFormData(prev => ({ ...prev, cnpj: raw }));
+        setAutoFilledFields(new Set());
+
+        // Strip non-digits to check length
+        const digits = raw.replace(/\D/g, '');
+        if (digits.length !== 14) {
+            setCnpjLookupStatus('idle');
+            return;
+        }
+
+        setCnpjLookupStatus('searching');
+        try {
+            const { data } = await supabase
+                .from('sales')
+                .select('nome, telefone, email, decisor')
+                .eq('cnpj', raw)
+                .not('nome', 'is', null)
+                .limit(1);
+
+            if (data && data.length > 0) {
+                const client = data[0];
+                const filled = new Set<string>();
+                setFormData(prev => {
+                    const updated = { ...prev };
+                    if (client.nome) { updated.nome = client.nome; filled.add('nome'); }
+                    if (client.telefone) { updated.telefone = client.telefone; filled.add('telefone'); }
+                    if (client.email) { updated.email = client.email; filled.add('email'); }
+                    if (client.decisor) { updated.decisor = client.decisor; filled.add('decisor'); }
+                    return updated;
+                });
+                setAutoFilledFields(filled);
+                setCnpjLookupStatus('found');
+            } else {
+                setCnpjLookupStatus('not_found');
+            }
+        } catch {
+            setCnpjLookupStatus('idle');
+        }
+    };
+
     const handleSaleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -261,6 +305,8 @@ const ResultsDashboard: React.FC = () => {
         setEditingId(null);
         setLimitesArray([]);
         setCurrentLimit({ seguradora: '', valor: '' });
+        setCnpjLookupStatus('idle');
+        setAutoFilledFields(new Set());
         setFormData({
             data: new Date().toISOString().split('T')[0],
             nome: '',
@@ -282,7 +328,8 @@ const ResultsDashboard: React.FC = () => {
             vigencia_fim: '',
             telefone: '',
             email: '',
-            cnpj: ''
+            cnpj: '',
+            decisor: '',
         });
     };
 
@@ -544,31 +591,90 @@ const ResultsDashboard: React.FC = () => {
                                 <div className="group/field relative">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Nome do Cliente / Tomador</label>
                                     <div className="relative">
-                                        <input type="text" id="nome" value={formData.nome || ''} onChange={handleInputChange} required placeholder="Ex: Empresa XYZ" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input
+                                            type="text" id="nome" value={formData.nome || ''}
+                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('nome'); return s; }); handleInputChange(e); }}
+                                            required placeholder="Ex: Empresa XYZ"
+                                            className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('nome')
+                                                ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                }`}
+                                        />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">CNPJ / CPF</label>
                                     <div className="relative">
-                                        <input type="text" id="cnpj" value={formData.cnpj || ''} onChange={handleInputChange} placeholder="00.000.000/0000-00" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input
+                                            type="text" id="cnpj" value={formData.cnpj || ''}
+                                            onChange={handleCnpjChange}
+                                            placeholder="00.000.000/0000-00"
+                                            className="w-full px-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all"
+                                        />
+                                        {/* CNPJ lookup status icon */}
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            {cnpjLookupStatus === 'searching' && (
+                                                <Loader2 size={16} className="animate-spin text-[#C69C6D]" />
+                                            )}
+                                            {cnpjLookupStatus === 'found' && (
+                                                <span title="Cliente encontrado na base!">
+                                                    <CheckCircle2 size={16} className="text-emerald-500" />
+                                                </span>
+                                            )}
+                                            {cnpjLookupStatus === 'not_found' && (
+                                                <span title="CNPJ não encontrado. Preencha manualmente.">
+                                                    <AlertCircle size={16} className="text-amber-500" />
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
+                                    {cnpjLookupStatus === 'found' && (
+                                        <p className="text-[10px] font-bold text-emerald-600 mt-1">✓ Cliente encontrado — dados preenchidos automaticamente</p>
+                                    )}
+                                    {cnpjLookupStatus === 'not_found' && (
+                                        <p className="text-[10px] font-bold text-amber-600 mt-1">⚠ CNPJ não encontrado na base. Preencha manualmente.</p>
+                                    )}
                                 </div>
                                 <div className="group/field relative">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Telefone</label>
                                     <div className="relative">
-                                        <input type="text" id="telefone" value={formData.telefone || ''} onChange={handleInputChange} placeholder="(00) 00000-0000" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input
+                                            type="text" id="telefone" value={formData.telefone || ''}
+                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('telefone'); return s; }); handleInputChange(e); }}
+                                            placeholder="(00) 00000-0000"
+                                            className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('telefone')
+                                                ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                }`}
+                                        />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Decisor / Responsável</label>
                                     <div className="relative">
-                                        <input type="text" id="decisor" value={formData.decisor || ''} onChange={handleInputChange} placeholder="Nome do responsável" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input
+                                            type="text" id="decisor" value={formData.decisor || ''}
+                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('decisor'); return s; }); handleInputChange(e); }}
+                                            placeholder="Nome do responsável"
+                                            className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('decisor')
+                                                ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                }`}
+                                        />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">E-mail</label>
                                     <div className="relative">
-                                        <input type="email" id="email" value={formData.email || ''} onChange={handleInputChange} placeholder="email@empresa.com" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input
+                                            type="email" id="email" value={formData.email || ''}
+                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('email'); return s; }); handleInputChange(e); }}
+                                            placeholder="email@empresa.com"
+                                            className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('email')
+                                                ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                }`}
+                                        />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
@@ -764,7 +870,7 @@ const ResultsDashboard: React.FC = () => {
                                 telefone: string;
                                 email: string;
                                 decisor: string;
-                                seguros: Record<string, { totalIS: number, totalPremio: number }>;
+                                salesVendidas: Array<{ id: number; data: string; tipo: string; seguradora: string; is: string; premio: string; comissao: string }>;
                                 limites: Array<{ seguradora: string, valor: string }>;
                                 totalPremio: number;
                                 totalIS: number;
@@ -784,7 +890,7 @@ const ResultsDashboard: React.FC = () => {
                                         telefone: sale.telefone || '',
                                         email: sale.email || '',
                                         decisor: sale.decisor || '',
-                                        seguros: {},
+                                        salesVendidas: [],
                                         limites: [],
                                         totalPremio: 0,
                                         totalIS: 0,
@@ -817,13 +923,15 @@ const ResultsDashboard: React.FC = () => {
                                 }
 
                                 if (sale.vendeu === 'Sim') {
-                                    if (sale.tipo) {
-                                        if (!acc[clientName].seguros[sale.tipo]) {
-                                            acc[clientName].seguros[sale.tipo] = { totalIS: 0, totalPremio: 0 };
-                                        }
-                                        acc[clientName].seguros[sale.tipo].totalIS += parseNumber(sale.is || '0');
-                                        acc[clientName].seguros[sale.tipo].totalPremio += parseNumber(sale.premio || '0');
-                                    }
+                                    acc[clientName].salesVendidas.push({
+                                        id: sale.id,
+                                        data: sale.data,
+                                        tipo: sale.tipo || '',
+                                        seguradora: sale.seguradora || '',
+                                        is: sale.is || '',
+                                        premio: sale.premio || '',
+                                        comissao: sale.comissao || '',
+                                    });
                                     acc[clientName].totalPremio += parseNumber(sale.premio || '0');
                                     acc[clientName].totalIS += parseNumber(sale.is || '0');
                                     acc[clientName].totalComissao += parseNumber(sale.comissao || '0');
@@ -892,15 +1000,21 @@ const ResultsDashboard: React.FC = () => {
                                         <div className="space-y-4">
                                             <div>
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">Seguros Contratados</p>
-                                                {Object.keys(client.seguros).length > 0 ? (
+                                                {client.salesVendidas.length > 0 ? (
                                                     <div className="space-y-1.5">
-                                                        {Object.entries(client.seguros).map(([tipo, dados]) => (
-                                                            <div key={tipo} className="flex flex-col p-2 bg-slate-50 border border-slate-100 rounded-xl">
-                                                                <span className="text-[10px] font-black text-slate-700 uppercase mb-1">{tipo}</span>
-                                                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                                                    <div className="text-slate-500 uppercase">IS: <span className="text-slate-800">{formatCurrency(dados.totalIS)}</span></div>
-                                                                    <div className="text-slate-500 uppercase">Prêmio: <span className="text-slate-800">{formatCurrency(dados.totalPremio)}</span></div>
+                                                        {client.salesVendidas.map((sv) => (
+                                                            <div key={sv.id} className="flex flex-col p-2.5 bg-slate-50 border border-slate-100 rounded-xl gap-1">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span className="text-[10px] font-black text-slate-700 uppercase">{sv.tipo || 'Seguro'}</span>
+                                                                    {sv.seguradora && (
+                                                                        <span className="text-[9px] font-bold text-[#C69C6D] bg-[#C69C6D]/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
+                                                                    )}
                                                                 </div>
+                                                                <div className="flex justify-between items-center text-[9px] font-bold">
+                                                                    <div className="text-slate-500 uppercase">IS: <span className="text-slate-800">{sv.is ? formatCurrency(parseNumber(sv.is)) : '-'}</span></div>
+                                                                    <div className="text-slate-500 uppercase">Prêmio: <span className="text-slate-800">{sv.premio ? formatCurrency(parseNumber(sv.premio)) : '-'}</span></div>
+                                                                </div>
+                                                                <div className="text-[9px] text-slate-400">{sv.data.split('-').reverse().join('/')}</div>
                                                             </div>
                                                         ))}
                                                     </div>
