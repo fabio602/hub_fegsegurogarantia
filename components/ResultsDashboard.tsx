@@ -109,6 +109,8 @@ const ResultsDashboard: React.FC = () => {
     const [editingClientLimits, setEditingClientLimits] = useState<string | null>(null);
     const [tempClientLimits, setTempClientLimits] = useState<InsurerLimit[]>([]);
     const [newTempLimit, setNewTempLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
+    const [editingClientName, setEditingClientName] = useState<string | null>(null);
+    const [clientEditForm, setClientEditForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
 
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
@@ -355,6 +357,32 @@ const ResultsDashboard: React.FC = () => {
             await fetchData();
         } catch (error) {
             console.error('Error deleting sale:', error);
+        }
+    };
+
+    const handleSaveClientInfo = async (salesIds: number[]) => {
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const { error } = await supabase
+                .from('sales')
+                .update({
+                    nome: clientEditForm.nome || null,
+                    cnpj: clientEditForm.cnpj || null,
+                    telefone: clientEditForm.telefone || null,
+                    email: clientEditForm.email || null,
+                    decisor: clientEditForm.decisor || null,
+                })
+                .in('id', salesIds);
+            if (error) throw error;
+            await fetchData();
+            setEditingClientName(null);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            setSaveError(error?.message || 'Erro ao atualizar cliente.');
+        } finally {
+            setSaving(false);
         }
     };
 
