@@ -993,35 +993,92 @@ const ResultsDashboard: React.FC = () => {
                                             <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
                                                 <Briefcase size={20} className="text-[#C69C6D]" />
                                             </div>
-                                            <div>
-                                                <h3 className="font-black text-lg text-slate-800 leading-tight">{client.nome}</h3>
-                                                <div className="mt-1.5 space-y-1">
-                                                    {client.decisor && (
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RESPONSÁVEL: <span className="text-slate-700">{client.decisor}</span></p>
-                                                            <CopyButton text={client.decisor} label="Decisor" />
-                                                        </div>
-                                                    )}
-                                                    {client.cnpj && (
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-[10px] font-black text-[#C69C6D]">CNPJ: {client.cnpj}</p>
-                                                            <CopyButton text={client.cnpj} label="CNPJ" />
-                                                        </div>
-                                                    )}
-                                                    {client.telefone && (
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-xs font-medium text-slate-500 break-all">📞 {client.telefone}</p>
-                                                            <CopyButton text={client.telefone} label="Telefone" />
-                                                        </div>
-                                                    )}
-                                                    {client.email && (
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-xs font-medium text-slate-500 break-all">✉️ {client.email}</p>
-                                                            <CopyButton text={client.email} label="E-mail" />
-                                                        </div>
-                                                    )}
-                                                    {!client.telefone && !client.email && !client.cnpj && <p className="text-xs text-slate-400 italic">Sem contato ou CNPJ registrado</p>}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <h3 className="font-black text-lg text-slate-800 leading-tight">{client.nome}</h3>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingClientName(client.nome);
+                                                            setClientEditForm({
+                                                                nome: client.nome,
+                                                                cnpj: client.cnpj,
+                                                                telefone: client.telefone,
+                                                                email: client.email,
+                                                                decisor: client.decisor,
+                                                            });
+                                                        }}
+                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                        title="Editar dados do cliente"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
                                                 </div>
+
+                                                {editingClientName === client.nome ? (
+                                                    <div className="mt-3 space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                                                        {([
+                                                            { label: 'Nome / Razão Social', key: 'nome', type: 'text' },
+                                                            { label: 'CNPJ / CPF', key: 'cnpj', type: 'text' },
+                                                            { label: 'Telefone', key: 'telefone', type: 'text' },
+                                                            { label: 'E-mail', key: 'email', type: 'email' },
+                                                            { label: 'Decisor / Responsável', key: 'decisor', type: 'text' },
+                                                        ] as { label: string; key: string; type: string }[]).map(({ label, key, type }) => (
+                                                            <div key={key}>
+                                                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</label>
+                                                                <input
+                                                                    type={type}
+                                                                    value={(clientEditForm as any)[key]}
+                                                                    onChange={e => setClientEditForm(prev => ({ ...prev, [key]: e.target.value }))}
+                                                                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] transition-all"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                        <div className="flex gap-2 pt-1">
+                                                            <button
+                                                                onClick={() => setEditingClientName(null)}
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 hover:text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-all"
+                                                            >
+                                                                <X size={11} /> CANCELAR
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleSaveClientInfo(client.salesIds)}
+                                                                disabled={saving}
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-[#C69C6D] hover:bg-[#b58a5b] py-2 rounded-lg transition-all disabled:opacity-50"
+                                                            >
+                                                                {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                                                                SALVAR
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-1.5 space-y-1">
+                                                        {client.decisor && (
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RESPONSÁVEL: <span className="text-slate-700">{client.decisor}</span></p>
+                                                                <CopyButton text={client.decisor} label="Decisor" />
+                                                            </div>
+                                                        )}
+                                                        {client.cnpj && (
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-[10px] font-black text-[#C69C6D]">CNPJ: {client.cnpj}</p>
+                                                                <CopyButton text={client.cnpj} label="CNPJ" />
+                                                            </div>
+                                                        )}
+                                                        {client.telefone && (
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-xs font-medium text-slate-500 break-all">📞 {client.telefone}</p>
+                                                                <CopyButton text={client.telefone} label="Telefone" />
+                                                            </div>
+                                                        )}
+                                                        {client.email && (
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-xs font-medium text-slate-500 break-all">✉️ {client.email}</p>
+                                                                <CopyButton text={client.email} label="E-mail" />
+                                                            </div>
+                                                        )}
+                                                        {!client.telefone && !client.email && !client.cnpj && <p className="text-xs text-slate-400 italic">Sem contato ou CNPJ registrado</p>}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
