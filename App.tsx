@@ -110,7 +110,7 @@ const App: React.FC = () => {
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } no-print shadow-2xl border-r border-white/5`}
+          } no-print shadow-2xl border-r border-white/5 h-screen`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           <div className="flex-1 overflow-y-auto p-8 custom-scroll">
