@@ -87,7 +87,7 @@ const SELLERS_CONFIG = [
     { name: "Andréia", share: 0.30, daysPerWeek: 2 }
 ];
 
-type Section = 'sales' | 'goals' | 'annualGoals' | 'leads' | 'carteira';
+type Section = 'sales' | 'prospects' | 'goals' | 'annualGoals' | 'leads' | 'carteira';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
@@ -480,7 +480,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'carteira', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
+                {(['sales', 'prospects', 'carteira', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -490,6 +490,7 @@ const ResultsDashboard: React.FC = () => {
                             }`}
                     >
                         {section === 'sales' && 'Vendas'}
+                        {section === 'prospects' && 'Prospecção'}
                         {section === 'carteira' && 'Carteira de Clientes'}
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
@@ -868,6 +869,29 @@ const ResultsDashboard: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </section>
+            )}
+
+            {activeSection === 'prospects' && (
+                <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 className="text-3xl font-black text-slate-800">Prospecção Ativa</h2>
+                            <p className="text-slate-500 font-medium">Gestão de contatos e captação de novos clientes.</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[2rem] p-12 text-center shadow-sm border border-slate-100 mt-8">
+                        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-400">
+                            <Target size={40} />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-800 mb-4">Módulo de Prospecção</h3>
+                        <p className="text-slate-500 max-w-lg mx-auto mb-8">
+                            A nova aba de prospecção foi adicionada! Para construir o formulário e a tabela,
+                            quais informações você gostaria de controlar aqui? <br /><br />
+                            (Ex: Nome da Empresa, Contato, Telefone, Origem, Status da Negociação, Data de Retorno, etc.)
+                        </p>
                     </div>
                 </section>
             )}
