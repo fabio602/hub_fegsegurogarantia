@@ -26,6 +26,8 @@ import Calculator from './components/Calculator';
 import NominationLetter from './components/NominationLetter';
 import ResultsDashboard from './components/ResultsDashboard';
 import InsuranceDirectory from './components/InsuranceDirectory';
+import BanksDirectory from './components/BanksDirectory';
+import SuretiesDirectory from './components/SuretiesDirectory';
 import InternalProcedures from './components/InternalProcedures';
 import ResidentialInsurance from './components/ResidentialInsurance';
 
@@ -289,8 +291,8 @@ const App: React.FC = () => {
               {activeView === 'goals' && <ResultsDashboard />}
               {activeView === 'residential' && <ResidentialInsurance />}
               {activeView === 'directory' && <InsuranceDirectory tableName="insurers" title="Base de Seguradoras" subtitle="Gerenciamento centralizado de acessos e condições comerciais." itemName="Seguradora" emptyStateText="Adicionar Seguradora" />}
-              {activeView === 'banks' && <InsuranceDirectory tableName="banks" title="Bancos Garantidores" subtitle="Gerenciamento centralizado de acessos e condições comerciais." itemName="Banco" emptyStateText="Adicionar Banco" />}
-              {activeView === 'sureties' && <InsuranceDirectory tableName="sureties" title="Afiançadoras" subtitle="Gerenciamento centralizado de acessos e condições comerciais." itemName="Afiançadora" emptyStateText="Adicionar Afiançadora" />}
+              {activeView === 'banks' && <BanksDirectory />}
+              {activeView === 'sureties' && <SuretiesDirectory />}
               {activeView === 'manual' && <InternalProcedures />}
             </div>
           </div>
