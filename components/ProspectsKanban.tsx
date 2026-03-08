@@ -24,6 +24,7 @@ const ProspectsKanban: React.FC = () => {
     const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
     const [csvRows, setCsvRows] = useState<string[][]>([]);
     const [csvMapping, setCsvMapping] = useState<Record<string, string>>({});
+    const [importStatus, setImportStatus] = useState('Novos Leads');
 
     // New Lead Modal State
     const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
@@ -188,6 +189,8 @@ const ProspectsKanban: React.FC = () => {
                 const rawVal = getVal('lead_value');
                 if (rawVal) leadVal = parseFloat(rawVal.replace(/[^0-9.-]+/g, "")) || 0;
 
+                const statusVal = getVal('status');
+
                 newProspects.push({
                     name: nameVal,
                     company: companyVal || nameVal || 'Sem Empresa',
@@ -196,7 +199,7 @@ const ProspectsKanban: React.FC = () => {
                     phonenumber: getVal('phonenumber'),
                     email: getVal('email'),
                     lead_value: leadVal,
-                    status: getVal('status') || 'Novos Leads',
+                    status: statusVal || importStatus,
                     source: getVal('source'),
                     cnpj: getVal('cnpj'),
                     ramo: getVal('ramo'),
@@ -527,6 +530,28 @@ const ProspectsKanban: React.FC = () => {
                         </div>
 
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
+                            {/* Destination Column Selector */}
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                        <ArrowRight size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-indigo-900">Coluna de Destino</h4>
+                                        <p className="text-xs text-indigo-700/70 font-medium">Os leads serão importados para qual coluna?</p>
+                                    </div>
+                                </div>
+                                <select
+                                    value={importStatus}
+                                    onChange={(e) => setImportStatus(e.target.value)}
+                                    className="px-4 py-2.5 bg-white border border-indigo-200 rounded-xl text-sm font-bold text-indigo-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer shadow-sm min-w-[200px]"
+                                >
+                                    {KANBAN_COLUMNS.map(col => (
+                                        <option key={col.id} value={col.id}>{col.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {/* Warning Card */}
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 flex items-start gap-4 text-amber-800">
                                 <div className="mt-0.5"><Loader2 size={20} className="text-amber-500" /></div>
