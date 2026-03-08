@@ -26,6 +26,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
 import { Sale, LeadCost, GoalMonth } from '../types';
+import ProspectsKanban from './ProspectsKanban';
 
 // --- Configuration ---
 interface InsurerLimit {
@@ -878,20 +879,12 @@ const ResultsDashboard: React.FC = () => {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-800">Prospecção Ativa</h2>
-                            <p className="text-slate-500 font-medium">Gestão de contatos e captação de novos clientes.</p>
+                            <p className="text-slate-500 font-medium">Gestão de contatos e captação de novos clientes no formato Kanban.</p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[2rem] p-12 text-center shadow-sm border border-slate-100 mt-8">
-                        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-400">
-                            <Target size={40} />
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-800 mb-4">Módulo de Prospecção</h3>
-                        <p className="text-slate-500 max-w-lg mx-auto mb-8">
-                            A nova aba de prospecção foi adicionada! Para construir o formulário e a tabela,
-                            quais informações você gostaria de controlar aqui? <br /><br />
-                            (Ex: Nome da Empresa, Contato, Telefone, Origem, Status da Negociação, Data de Retorno, etc.)
-                        </p>
+                    <div className="mt-8">
+                        <ProspectsKanban />
                     </div>
                 </section>
             )}

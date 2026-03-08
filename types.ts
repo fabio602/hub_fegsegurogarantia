@@ -63,3 +63,28 @@ export interface LeadCost {
   value: number;
   created_at?: string;
 }
+
+export interface Prospect {
+  id: string;
+  created_at: string;
+  name?: string;
+  position?: string;
+  company?: string;
+  description?: string;
+  country?: string;
+  zip?: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  status: string;
+  source?: string;
+  email?: string;
+  website?: string;
+  phonenumber?: string;
+  lead_value?: number;
+  tags?: string[];
+  cnpj?: string;
+  ramo?: string;
+  decisor?: string;
+  ult_contato?: string;
+}
