@@ -174,22 +174,26 @@ const ProspectsKanban: React.FC = () => {
         try {
             const newProspects = [];
 
+            const validStatuses = KANBAN_COLUMNS.map(col => col.id);
             for (const row of csvRows) {
                 const getVal = (fieldKey: string) => {
                     const colIndex = csvMapping[fieldKey];
-                    return (colIndex !== undefined && row[Number(colIndex)]) ? row[Number(colIndex)] : null;
+                    if (colIndex === undefined || colIndex === null || colIndex === "") return null;
+                    const val = row[Number(colIndex)];
+                    return val ? val.trim() : null;
                 };
 
                 const companyVal = getVal('company');
                 const nameVal = getVal('name');
 
-                if (!companyVal && !nameVal) continue; // Skip empty/invalid rows
+                if (!companyVal && !nameVal) continue;
 
                 let leadVal = 0;
                 const rawVal = getVal('lead_value');
                 if (rawVal) leadVal = parseFloat(rawVal.replace(/[^0-9.-]+/g, "")) || 0;
 
-                const statusVal = getVal('status');
+                const rawStatus = getVal('status');
+                const status = (rawStatus && validStatuses.includes(rawStatus)) ? rawStatus : importStatus;
 
                 newProspects.push({
                     name: nameVal,
@@ -199,7 +203,7 @@ const ProspectsKanban: React.FC = () => {
                     phonenumber: getVal('phonenumber'),
                     email: getVal('email'),
                     lead_value: leadVal,
-                    status: statusVal || importStatus,
+                    status: status,
                     source: getVal('source'),
                     cnpj: getVal('cnpj'),
                     ramo: getVal('ramo'),
@@ -318,7 +322,13 @@ const ProspectsKanban: React.FC = () => {
             {/* Kanban Board Container */}
             <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start min-h-[600px]">
                 {KANBAN_COLUMNS.map(column => {
-                    const columnProspects = filteredProspects.filter(p => p.status === column.id);
+                    const columnProspects = filteredProspects.filter(p => {
+                        if (column.id === 'Novos Leads') {
+                            const validStatuses = KANBAN_COLUMNS.map(c => c.id);
+                            return p.status === column.id || !validStatuses.includes(p.status);
+                        }
+                        return p.status === column.id;
+                    });
                     const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
 
                     return (
