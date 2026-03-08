@@ -112,8 +112,8 @@ const App: React.FC = () => {
         className={`fixed inset-y-0 left-0 z-50 w-80 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } no-print shadow-2xl border-r border-white/5`}
       >
-        <div className="flex flex-col h-full">
-          <div className="p-8">
+        <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-8 custom-scroll">
             <div className="mb-12">
               <Logo />
             </div>
@@ -148,7 +148,7 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="mt-auto p-8 bg-black/10">
+          <div className="shrink-0 mt-auto p-8 bg-black/10">
             <button
               onClick={handleLogout}
               className="group flex items-center gap-4 text-slate-500 hover:text-red-400 transition-all text-sm font-bold w-full px-6 py-4 rounded-2xl hover:bg-red-500/10"
