@@ -55,6 +55,9 @@ export interface Sale {
   limites_seguradoras?: string;
   decisor?: string;
   created_at?: string;
+  product_type?: string;
+  process_number?: string;
+  court?: string;
 }
 
 
@@ -87,4 +90,7 @@ export interface Prospect {
   ramo?: string;
   decisor?: string;
   ult_contato?: string;
+  product_type?: string;
+  judicial_process_number?: string;
+  judicial_court?: string;
 }

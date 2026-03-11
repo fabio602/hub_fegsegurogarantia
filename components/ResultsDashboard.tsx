@@ -149,6 +149,9 @@ const ResultsDashboard: React.FC = () => {
         email: '',
         cnpj: '',
         decisor: '',
+        product_type: 'Seguro Garantia',
+        process_number: '',
+        court: '',
     });
 
     // Compute sales expiring within 30 days
@@ -281,6 +284,9 @@ const ResultsDashboard: React.FC = () => {
             email: formData.email || null,
             cnpj: formData.cnpj || null,
             decisor: formData.decisor || null,
+            product_type: formData.product_type || 'Seguro Garantia',
+            process_number: formData.process_number || null,
+            court: formData.court || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
         };
 
@@ -333,6 +339,9 @@ const ResultsDashboard: React.FC = () => {
             email: '',
             cnpj: '',
             decisor: '',
+            product_type: 'Seguro Garantia',
+            process_number: '',
+            court: '',
         });
     };
 
@@ -429,6 +438,9 @@ const ResultsDashboard: React.FC = () => {
             email: leadData.email || '',
             decisor: leadData.decisor || '',
             origem: 'Prospecção Ativa',
+            product_type: (leadData as any).product_type || 'Seguro Garantia',
+            process_number: (leadData as any).judicial_process_number || '',
+            court: (leadData as any).judicial_court || '',
         }));
         setActiveSection('sales');
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);

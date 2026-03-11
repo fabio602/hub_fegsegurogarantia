@@ -59,6 +59,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal'>('Seguro Garantia');
     const [isDragging, setIsDragging] = useState(false);
 
     // CSV Import State
@@ -103,6 +104,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         { key: 'ramo', label: 'Ramo de Atividade' },
         { key: 'city', label: 'Cidade' },
         { key: 'state', label: 'Estado (UF)' },
+        { key: 'judicial_process_number', label: 'Nº do Processo (Judicial)' },
+        { key: 'judicial_court', label: 'Tribunal/Vara (Judicial)' },
         { key: 'description', label: 'Observações' },
     ];
 
@@ -437,7 +440,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     ramo: getVal('ramo'),
                     city: getVal('city'),
                     state: getVal('state'),
-                    description: getVal('description')
+                    description: getVal('description'),
+                    product_type: selectedProduct,
+                    judicial_process_number: getVal('judicial_process_number'),
+                    judicial_court: getVal('judicial_court')
                 });
             }
 
@@ -476,7 +482,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         if (!newLeadForm.company && !newLeadForm.name) { alert("É necessário preencher a Empresa ou o Nome do Contato."); return; }
         setSavingLead(true);
         try {
-            const { error } = await supabase.from('prospects').insert([{ ...newLeadForm, company: newLeadForm.company || newLeadForm.name }]);
+            const { error } = await supabase.from('prospects').insert([{ 
+                ...newLeadForm, 
+                company: newLeadForm.company || newLeadForm.name,
+                product_type: selectedProduct // Herda o produto selecionado
+            }]);
             if (error) throw error;
             await fetchProspects();
             setIsNewLeadModalOpen(false);
@@ -485,12 +495,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         finally { setSavingLead(false); }
     };
 
-    const filteredProspects = prospects.filter(p =>
-        (p.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (p.cnpj || '').includes(searchQuery)
-    );
+    const filteredProspects = prospects.filter(p => {
+        const matchesProduct = p.product_type === selectedProduct || (!p.product_type && selectedProduct === 'Seguro Garantia');
+        const matchesSearch = (p.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (p.cnpj || '').includes(searchQuery);
+        return matchesProduct && matchesSearch;
+    });
 
     if (loading) {
         return (
@@ -556,6 +568,23 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 <label className="text-sm font-bold text-slate-700">Origem do Contato</label>
                 <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
             </div>
+            {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
+            {selectedProduct === 'Judicial Depósito Recursal' && (
+                <>
+                    <div className="space-y-4 col-span-2 mt-4">
+                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Dados do Processo</h4>
+                    </div>
+                    <div className="space-y-1.5 col-span-2 md:col-span-1">
+                        <label className="text-sm font-bold text-slate-700">Nº do Processo</label>
+                        <input type="text" value={form.judicial_process_number || ''} onChange={(e) => setForm({ ...form, judicial_process_number: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="0000000-00.0000.0.00.0000" />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 md:col-span-1">
+                        <label className="text-sm font-bold text-slate-700">Tribunal / Vara</label>
+                        <input type="text" value={form.judicial_court || ''} onChange={(e) => setForm({ ...form, judicial_court: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="TRT / Vara do Trabalho" />
+                    </div>
+                </>
+            )}
+
             <div className="space-y-1.5 col-span-2">
                 <label className="text-sm font-bold text-slate-700">Observações</label>
                 <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
@@ -565,6 +594,24 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
     return (
         <div className="space-y-6">
+            {/* Product Switcher */}
+            <div className="flex justify-center mb-6">
+                <div className="bg-slate-100 p-1 rounded-2xl flex gap-1 shadow-sm border border-slate-200">
+                    <button 
+                        onClick={() => setSelectedProduct('Seguro Garantia')}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Seguro Garantia' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                    >
+                        Seguro Garantia
+                    </button>
+                    <button 
+                        onClick={() => setSelectedProduct('Judicial Depósito Recursal')}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                    >
+                        Judicial Depósito Recursal
+                    </button>
+                </div>
+            </div>
+
             {/* Action Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex items-center gap-3 flex-wrap">
