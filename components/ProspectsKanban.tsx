@@ -54,6 +54,94 @@ interface ProspectsKanbanProps {
     onConvertToSale?: (data: { nome: string; cnpj: string; telefone: string; email: string; decisor: string }) => void;
 }
 
+const LeadFormFields = ({ 
+    form, 
+    setForm, 
+    columns, 
+    selectedProduct 
+}: { 
+    form: Partial<Prospect>; 
+    setForm: (v: Partial<Prospect>) => void;
+    columns: KanbanColumn[];
+    selectedProduct: string;
+}) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4 col-span-2">
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Informações Principais</h4>
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Empresa *</label>
+            <input required type="text" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome da Empresa" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">CNPJ</label>
+            <input type="text" value={form.cnpj || ''} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="00.000.000/0001-00" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Nome do Contato</label>
+            <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ciclano da Silva" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Cargo do Contato</label>
+            <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Diretor Financeiro" />
+        </div>
+        <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-slate-700">Decisor / Responsável</label>
+            <input type="text" value={form.decisor || ''} onChange={(e) => setForm({ ...form, decisor: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome do decisor" />
+        </div>
+        <div className="space-y-4 col-span-2 mt-2">
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Contato & Detalhes</h4>
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Telefone / Celular</label>
+            <input type="text" value={form.phonenumber || ''} onChange={(e) => setForm({ ...form, phonenumber: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="(00) 00000-0000" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">E-mail</label>
+            <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="contato@empresa.com.br" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Ramo</label>
+            <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Valor Estimado</label>
+            <input type="number" step="0.01" value={form.lead_value || ''} onChange={(e) => setForm({ ...form, lead_value: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="150000.00" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Fase (Coluna)</label>
+            <select value={form.status || 'Novos Leads'} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all cursor-pointer">
+                {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
+            </select>
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Origem do Contato</label>
+            <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
+        </div>
+        {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
+        {selectedProduct === 'Judicial Depósito Recursal' && (
+            <>
+                <div className="space-y-4 col-span-2 mt-4">
+                    <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Dados do Processo</h4>
+                </div>
+                <div className="space-y-1.5 col-span-2 md:col-span-1">
+                    <label className="text-sm font-bold text-slate-700">Nº do Processo</label>
+                    <input type="text" value={form.judicial_process_number || ''} onChange={(e) => setForm({ ...form, judicial_process_number: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="0000000-00.0000.0.00.0000" />
+                </div>
+                <div className="space-y-1.5 col-span-2 md:col-span-1">
+                    <label className="text-sm font-bold text-slate-700">Tribunal / Vara</label>
+                    <input type="text" value={form.judicial_court || ''} onChange={(e) => setForm({ ...form, judicial_court: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="TRT / Vara do Trabalho" />
+                </div>
+            </>
+        )}
+
+        <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-slate-700">Observações</label>
+            <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
+        </div>
+    </div>
+);
+
 const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
     const [columns, setColumns] = useState<KanbanColumn[]>(loadColumns);
     const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -513,84 +601,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         );
     }
 
-    // Shared form fields
-    const LeadFormFields = ({ form, setForm }: { form: Partial<Prospect>; setForm: (v: Partial<Prospect>) => void }) => (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4 col-span-2">
-                <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Informações Principais</h4>
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Empresa *</label>
-                <input required type="text" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome da Empresa" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">CNPJ</label>
-                <input type="text" value={form.cnpj || ''} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="00.000.000/0001-00" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Nome do Contato</label>
-                <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ciclano da Silva" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Cargo do Contato</label>
-                <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Diretor Financeiro" />
-            </div>
-            <div className="space-y-1.5 col-span-2">
-                <label className="text-sm font-bold text-slate-700">Decisor / Responsável</label>
-                <input type="text" value={form.decisor || ''} onChange={(e) => setForm({ ...form, decisor: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome do decisor" />
-            </div>
-            <div className="space-y-4 col-span-2 mt-2">
-                <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Contato & Detalhes</h4>
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Telefone / Celular</label>
-                <input type="text" value={form.phonenumber || ''} onChange={(e) => setForm({ ...form, phonenumber: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="(00) 00000-0000" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">E-mail</label>
-                <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="contato@empresa.com.br" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Ramo</label>
-                <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Valor Estimado</label>
-                <input type="number" step="0.01" value={form.lead_value || ''} onChange={(e) => setForm({ ...form, lead_value: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="150000.00" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Fase (Coluna)</label>
-                <select value={form.status || 'Novos Leads'} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all cursor-pointer">
-                    {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
-                </select>
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-                <label className="text-sm font-bold text-slate-700">Origem do Contato</label>
-                <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
-            </div>
-            {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
-            {selectedProduct === 'Judicial Depósito Recursal' && (
-                <>
-                    <div className="space-y-4 col-span-2 mt-4">
-                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Dados do Processo</h4>
-                    </div>
-                    <div className="space-y-1.5 col-span-2 md:col-span-1">
-                        <label className="text-sm font-bold text-slate-700">Nº do Processo</label>
-                        <input type="text" value={form.judicial_process_number || ''} onChange={(e) => setForm({ ...form, judicial_process_number: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="0000000-00.0000.0.00.0000" />
-                    </div>
-                    <div className="space-y-1.5 col-span-2 md:col-span-1">
-                        <label className="text-sm font-bold text-slate-700">Tribunal / Vara</label>
-                        <input type="text" value={form.judicial_court || ''} onChange={(e) => setForm({ ...form, judicial_court: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="TRT / Vara do Trabalho" />
-                    </div>
-                </>
-            )}
 
-            <div className="space-y-1.5 col-span-2">
-                <label className="text-sm font-bold text-slate-700">Observações</label>
-                <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
-            </div>
-        </div>
-    );
 
     return (
         <div className="space-y-6">
@@ -871,7 +882,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
                             <form id="new-lead-form" onSubmit={handleCreateNewLead}>
-                                <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} />
+                                <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} selectedProduct={selectedProduct} />
                             </form>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
@@ -898,7 +909,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
                             <form id="edit-lead-form" onSubmit={handleSaveEdit}>
-                                <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} />
+                                <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} />
                             </form>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
