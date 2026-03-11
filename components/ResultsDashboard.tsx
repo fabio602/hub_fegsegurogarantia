@@ -1000,7 +1000,10 @@ const ResultsDashboard: React.FC = () => {
                             }, {} as Record<string, ClientPortfolioItem>);
 
                             const clients = (Object.values(portfolio) as ClientPortfolioItem[])
-                                .filter(c => c.nome.toLowerCase().includes(salesSearch.toLowerCase()))
+                                .filter(c => 
+                                    c.nome.toLowerCase().includes(salesSearch.toLowerCase()) || 
+                                    (c.cnpj && c.cnpj.replace(/\D/g, '').includes(salesSearch.replace(/\D/g, '')))
+                                )
                                 .sort((a, b) => a.nome.localeCompare(b.nome));
 
                             if (clients.length === 0) {
