@@ -258,7 +258,20 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const handleOpenEdit = (prospect: Prospect) => {
         setOpenMenuId(null);
         setEditingLead(prospect);
-        setEditLeadForm({ ...prospect });
+        
+        // Limpa valores 'nan' que vêm da importação do Excel para não atrapalhar a edição
+        const cleanedForm = { ...prospect };
+        Object.keys(cleanedForm).forEach(key => {
+            const val = (cleanedForm as any)[key];
+            if (val === 'nan' || val === 'undefined' || val === null) {
+                (cleanedForm as any)[key] = '';
+            }
+        });
+
+        // Garante que o campo Empresa tenha algum valor se estiver vazio
+        if (!cleanedForm.company) cleanedForm.company = prospect.name || '';
+
+        setEditLeadForm(cleanedForm);
         setIsEditModalOpen(true);
     };
 
@@ -832,7 +845,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-indigo-50/60">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-indigo-500" />Editar Lead</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">{editingLead.company || editingLead.name}</p>
+                                <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
                             </div>
                             <button onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
