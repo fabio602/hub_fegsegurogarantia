@@ -307,8 +307,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const handleConfirmImport = async () => {
         setImporting(true);
         try {
+            // Fetch existing leads to check for duplicates
+            const { data: existingLeads } = await supabase.from('prospects').select('cnpj, email');
+            const existingCnpjs = new Set((existingLeads || []).map(l => l.cnpj?.replace(/\D/g, '')).filter(Boolean));
+            const existingEmails = new Set((existingLeads || []).map(l => l.email?.toLowerCase()).filter(Boolean));
+
             const newProspects: any[] = [];
+            let duplicatesCount = 0;
             const validStatuses = columns.map(col => col.id);
+
             for (const row of csvRows) {
                 const getVal = (fieldKey: string) => {
                     const colIndex = csvMapping[fieldKey];
@@ -316,16 +323,53 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     const val = row[Number(colIndex)];
                     return val ? val.trim() : null;
                 };
+
                 const companyVal = getVal('company');
                 const nameVal = getVal('name');
                 if (!companyVal && !nameVal) continue;
+
+                const emailVal = getVal('email');
+                const cnpjVal = getVal('cnpj');
+                const cleanCnpj = cnpjVal ? cnpjVal.replace(/\D/g, '') : null;
+
+                // Check for duplicates
+                const isDuplicateCNPJ = cleanCnpj && existingCnpjs.has(cleanCnpj);
+                const isDuplicateEmail = emailVal && existingEmails.has(emailVal.toLowerCase());
+
+                if (isDuplicateCNPJ || isDuplicateEmail) {
+                    duplicatesCount++;
+                    continue;
+                }
+
+                // If not duplicate, add to list and also to our local sets to prevent duplicates WITHIN the same CSV
+                if (cleanCnpj) existingCnpjs.add(cleanCnpj);
+                if (emailVal) existingEmails.add(emailVal.toLowerCase());
+
                 let leadVal = 0;
                 const rawVal = getVal('lead_value');
                 if (rawVal) leadVal = parseFloat(rawVal.replace(/[^0-9.-]+/g, "")) || 0;
+
                 const rawStatus = getVal('status');
                 const status = (rawStatus && validStatuses.includes(rawStatus)) ? rawStatus : importStatus;
-                newProspects.push({ name: nameVal, company: companyVal || nameVal || 'Sem Empresa', position: getVal('position'), decisor: getVal('decisor'), phonenumber: getVal('phonenumber'), email: getVal('email'), lead_value: leadVal, status, source: getVal('source'), cnpj: getVal('cnpj'), ramo: getVal('ramo'), city: getVal('city'), state: getVal('state'), description: getVal('description') });
+
+                newProspects.push({
+                    name: nameVal,
+                    company: companyVal || nameVal || 'Sem Empresa',
+                    position: getVal('position'),
+                    decisor: getVal('decisor'),
+                    phonenumber: getVal('phonenumber'),
+                    email: emailVal,
+                    lead_value: leadVal,
+                    status,
+                    source: getVal('source'),
+                    cnpj: cnpjVal,
+                    ramo: getVal('ramo'),
+                    city: getVal('city'),
+                    state: getVal('state'),
+                    description: getVal('description')
+                });
             }
+
             if (newProspects.length > 0) {
                 for (let i = 0; i < newProspects.length; i += 100) {
                     const batch = newProspects.slice(i, i + 100);
@@ -333,11 +377,27 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     if (error) throw error;
                 }
                 await fetchProspects();
-                alert(`${newProspects.length} leads importados com sucesso!`);
+                
+                let msg = `${newProspects.length} leads foram incluídos`;
+                if (duplicatesCount > 0) {
+                    msg += ` e ${duplicatesCount} são repetidos e não foram incluídos.`;
+                } else {
+                    msg += ` com sucesso!`;
+                }
+                alert(msg);
                 setIsImportModalOpen(false);
-            } else { alert('Nenhum dado válido para importar. Verifique se escolheu a coluna de Empresa.'); }
-        } catch (error) { console.error('Import error:', error); alert('Erro ao salvar no banco de dados. Tente novamente.'); }
-        finally { setImporting(false); }
+            } else if (duplicatesCount > 0) {
+                alert(`Nenhum lead novo incluído. Todos os ${duplicatesCount} leads do arquivo já existem no sistema.`);
+                setIsImportModalOpen(false);
+            } else {
+                alert('Nenhum dado válido para importar. Verifique se escolheu a coluna de Empresa.');
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Erro ao salvar no banco de dados. Tente novamente.');
+        } finally {
+            setImporting(false);
+        }
     };
 
     const handleCreateNewLead = async (e: React.FormEvent) => {
