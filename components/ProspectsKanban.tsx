@@ -530,7 +530,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     const headerClass = colorToHeader(column.color);
 
                     return (
-                        <div key={column.id} className="flex-shrink-0 w-80 flex flex-col gap-4" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, column.id)}>
+                        <div key={column.id} className="flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px]" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, column.id)}>
                             {/* Column Header */}
                             <div className={`p-4 rounded-xl shadow-sm flex flex-col gap-1 ${headerClass}`}>
                                 <div className="flex justify-between items-center mb-1">
@@ -557,7 +557,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             </div>
 
                             {/* Cards */}
-                            <div className={`flex-1 flex flex-col gap-3 min-h-[100px] max-h-[calc(100vh-300px)] overflow-y-auto custom-scroll rounded-2xl p-2 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
+                            <div className={`flex-1 flex flex-col gap-3 overflow-y-auto custom-scroll rounded-2xl p-2 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
                                 {columnProspects.map(prospect => (
                                     <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-indigo-200 transition-all flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
