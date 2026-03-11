@@ -627,15 +627,24 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 {columnProspects.map(prospect => (
                                     <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-indigo-200 transition-all flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                                                    <Building size={14} className="text-slate-500" />
+                                            <div className="flex items-center gap-2 min-w-0 group/header">
+                                                <div 
+                                                    onClick={() => handleOpenEdit(prospect)}
+                                                    className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
+                                                >
+                                                    <Building size={14} className="text-slate-500 group-hover/header:text-indigo-600 transition-colors" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h4 className="font-black text-slate-800 text-sm truncate" title={prospect.company || prospect.name}>
+                                                    <h4 
+                                                        onClick={() => handleOpenEdit(prospect)}
+                                                        className="font-black text-slate-800 text-sm truncate cursor-pointer hover:text-indigo-600 transition-colors" 
+                                                        title={prospect.company || prospect.name}
+                                                    >
                                                         {prospect.company || prospect.name || 'Nova Empresa'}
                                                     </h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 truncate">{prospect.ramo || prospect.position || 'Sem Categoria'}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 truncate">
+                                                        {(prospect.ramo && prospect.ramo !== 'nan') ? prospect.ramo : (prospect.position && prospect.position !== 'nan' ? prospect.position : 'Sem Categoria')}
+                                                    </p>
                                                 </div>
                                             </div>
 
@@ -675,9 +684,24 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         </div>
 
                                         <div className="flex flex-col gap-1.5 mt-1">
-                                            {prospect.decisor && <div className="flex items-center gap-2 text-xs text-slate-600"><span className="font-bold text-slate-400 text-[10px] uppercase w-12 shrink-0">Decisor:</span><span className="truncate">{prospect.decisor}</span></div>}
-                                            {prospect.phonenumber && <div className="flex items-center gap-2 text-xs text-slate-600"><Phone size={12} className="text-slate-400 shrink-0" /><span className="truncate">{prospect.phonenumber}</span></div>}
-                                            {prospect.email && <div className="flex items-center gap-2 text-xs text-slate-600"><Mail size={12} className="text-slate-400 shrink-0" /><span className="truncate">{prospect.email}</span></div>}
+                                            {prospect.decisor && prospect.decisor !== 'nan' && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                    <span className="font-bold text-slate-400 text-[10px] uppercase w-12 shrink-0">Decisor:</span>
+                                                    <span className="truncate">{prospect.decisor}</span>
+                                                </div>
+                                            )}
+                                            {prospect.phonenumber && prospect.phonenumber !== 'nan' && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                    <Phone size={12} className="text-slate-400 shrink-0" />
+                                                    <span className="truncate">{prospect.phonenumber}</span>
+                                                </div>
+                                            )}
+                                            {prospect.email && prospect.email !== 'nan' && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                    <Mail size={12} className="text-slate-400 shrink-0" />
+                                                    <span className="truncate">{prospect.email}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100">
