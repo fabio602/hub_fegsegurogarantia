@@ -165,16 +165,60 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         saveColumns(updated);
     };
 
-    // ---- Drag & Drop ----
+    // ---- Drag & Drop for CARDS ----
     const handleDragStart = (e: React.DragEvent, prospectId: string) => {
+        e.stopPropagation();
+        e.dataTransfer.setData('type', 'card');
         e.dataTransfer.setData('prospectId', prospectId);
         setIsDragging(true);
     };
     const handleDragEnd = () => setIsDragging(false);
+    
+    // ---- Drag & Drop for COLUMNS ----
+    const [draggingCol, setDraggingCol] = useState<string | null>(null);
+
+    const handleColDragStart = (e: React.DragEvent, colId: string) => {
+        e.dataTransfer.setData('type', 'column');
+        e.dataTransfer.setData('colId', colId);
+        setDraggingCol(colId);
+    };
+
+    const handleColDragEnd = () => setDraggingCol(null);
+
+    const handleColDrop = (e: React.DragEvent, targetColId: string) => {
+        e.preventDefault();
+        const type = e.dataTransfer.getData('type');
+        if (type !== 'column') return; // let the card drop handler deal with it if it's a card
+
+        const draggedColId = e.dataTransfer.getData('colId');
+        if (!draggedColId || draggedColId === targetColId) return;
+
+        const updatedColumns = [...columns];
+        const draggedIdx = updatedColumns.findIndex(c => c.id === draggedColId);
+        const targetIdx = updatedColumns.findIndex(c => c.id === targetColId);
+
+        if (draggedIdx !== -1 && targetIdx !== -1) {
+            const [draggedCol] = updatedColumns.splice(draggedIdx, 1);
+            updatedColumns.splice(targetIdx, 0, draggedCol);
+            setColumns(updatedColumns);
+            saveColumns(updatedColumns);
+        }
+        setDraggingCol(null);
+    };
+
     const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
     const handleDrop = async (e: React.DragEvent, statusId: string) => {
         e.preventDefault();
+        const type = e.dataTransfer.getData('type');
+        
+        // If it's a column drop, forward to column handler
+        if (type === 'column') {
+            handleColDrop(e, statusId);
+            return;
+        }
+
+        // Otherwise handle card drop
         setIsDragging(false);
         const prospectId = e.dataTransfer.getData('prospectId');
         if (!prospectId) return;
@@ -530,11 +574,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     const headerClass = colorToHeader(column.color);
 
                     return (
-                        <div key={column.id} className="flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px]" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, column.id)}>
+                        <div 
+                            key={column.id} 
+                            draggable 
+                            onDragStart={(e) => handleColDragStart(e, column.id)}
+                            onDragEnd={handleColDragEnd}
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px] transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            onDragOver={handleDragOver} 
+                            onDrop={(e) => handleDrop(e, column.id)}
+                        >
                             {/* Column Header */}
-                            <div className={`p-4 rounded-xl shadow-sm flex flex-col gap-1 ${headerClass}`}>
+                            <div className={`p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
                                 <div className="flex justify-between items-center mb-1">
-                                    <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2">
+                                    <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 select-none">
                                         <GripVertical size={14} className="opacity-50" />
                                         {column.title}
                                     </h3>
