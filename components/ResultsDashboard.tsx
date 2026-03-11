@@ -420,6 +420,20 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
+    const handleConvertToSale = (leadData: { nome: string; cnpj: string; telefone: string; email: string; decisor: string }) => {
+        setFormData(prev => ({
+            ...prev,
+            nome: leadData.nome || '',
+            cnpj: leadData.cnpj || '',
+            telefone: leadData.telefone || '',
+            email: leadData.email || '',
+            decisor: leadData.decisor || '',
+            origem: 'Prospecção Ativa',
+        }));
+        setActiveSection('sales');
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+    };
+
     const exportToCSV = () => {
         const filteredSales = salesMonthFilter
             ? sales.filter(s => s.data.startsWith(salesMonthFilter))
@@ -884,7 +898,7 @@ const ResultsDashboard: React.FC = () => {
                     </div>
 
                     <div className="mt-8">
-                        <ProspectsKanban />
+                        <ProspectsKanban onConvertToSale={handleConvertToSale} />
                     </div>
                 </section>
             )}
