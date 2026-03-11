@@ -93,4 +93,17 @@ export interface Prospect {
   product_type?: string;
   judicial_process_number?: string;
   judicial_court?: string;
+  tasks?: CRMTask[];
+}
+
+export interface CRMTask {
+  id: string;
+  created_at: string;
+  title: string;
+  description?: string;
+  due_date: string;
+  status: 'pending' | 'completed';
+  type: 'task' | 'call' | 'email' | 'meeting' | 'renewal';
+  prospect_id?: string;
+  sale_id?: number;
 }
