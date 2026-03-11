@@ -36,18 +36,20 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
     { id: 'Leads Andréia', title: 'Leads Andréia', color: 'purple' },
 ];
 
-const STORAGE_KEY = 'kanban_columns_v1';
+const STORAGE_KEY_PREFIX = 'kanban_columns_v1';
 
-const loadColumns = (): KanbanColumn[] => {
+const loadColumns = (productType: string): KanbanColumn[] => {
     try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
+        const saved = localStorage.getItem(key);
         if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
     return DEFAULT_COLUMNS;
 };
 
-const saveColumns = (cols: KanbanColumn[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cols));
+const saveColumns = (productType: string, cols: KanbanColumn[]) => {
+    const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
+    localStorage.setItem(key, JSON.stringify(cols));
 };
 
 interface ProspectsKanbanProps {
@@ -143,12 +145,17 @@ const LeadFormFields = ({
 );
 
 const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
-    const [columns, setColumns] = useState<KanbanColumn[]>(loadColumns);
+    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal'>('Seguro Garantia');
+    const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns('Seguro Garantia'));
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal'>('Seguro Garantia');
     const [isDragging, setIsDragging] = useState(false);
+
+    // Sincroniza colunas quando o produto muda
+    useEffect(() => {
+        setColumns(loadColumns(selectedProduct));
+    }, [selectedProduct]);
 
     // CSV Import State
     const [importing, setImporting] = useState(false);
@@ -228,7 +235,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         const id = `col_${Date.now()}`;
         const updated = [...columns, { id, title: newColTitle.trim(), color: newColColor }];
         setColumns(updated);
-        saveColumns(updated);
+        saveColumns(selectedProduct, updated);
         setNewColTitle('');
         setNewColColor('blue');
         setIsAddColumnOpen(false);
@@ -253,7 +260,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
         const updated = columns.filter(c => c.id !== colId);
         setColumns(updated);
-        saveColumns(updated);
+        saveColumns(selectedProduct, updated);
     };
 
     // ---- Drag & Drop for CARDS ----
@@ -292,7 +299,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             const [draggedCol] = updatedColumns.splice(draggedIdx, 1);
             updatedColumns.splice(targetIdx, 0, draggedCol);
             setColumns(updatedColumns);
-            saveColumns(updatedColumns);
+            saveColumns(selectedProduct, updatedColumns);
         }
         setDraggingCol(null);
     };
