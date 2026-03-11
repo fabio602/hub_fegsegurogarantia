@@ -25,8 +25,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
-import { Sale, LeadCost, GoalMonth } from '../types';
+import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
 import ProspectsKanban from './ProspectsKanban';
+import TaskManager from './TaskManager';
 
 // --- Configuration ---
 interface InsurerLimit {
@@ -98,6 +99,21 @@ const ResultsDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [tasks, setTasks] = useState<CRMTask[]>([]);
+    
+    // -- Task Fetching --
+    const fetchTasks = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('crm_tasks')
+                .select('*')
+                .eq('status', 'pending');
+            if (error) throw error;
+            setTasks(data || []);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+        }
+    };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
@@ -187,6 +203,7 @@ const ResultsDashboard: React.FC = () => {
 
     useEffect(() => {
         fetchData();
+        fetchTasks();
     }, [fetchData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1042,6 +1059,19 @@ const ResultsDashboard: React.FC = () => {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <h3 className="font-black text-lg text-slate-800 leading-tight">{client.nome}</h3>
+                                                    {/* Task Indicator */}
+                                                    {(() => {
+                                                        const clientTasks = tasks.filter(t => t.sale_id && client.salesIds.includes(t.sale_id));
+                                                        if (clientTasks.length === 0) return null;
+                                                        const hasOverdue = clientTasks.some(t => t.status === 'pending' && new Date(t.due_date) < new Date());
+                                                        return (
+                                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${clientTasks.length} tarefa(s) pendente(s)`}>
+                                                                <Clock size={10} className={hasOverdue ? 'animate-pulse' : ''} />
+                                                                <span className="text-[10px] font-black">{clientTasks.length}</span>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                    <div className="flex-1"></div>
                                                     <button
                                                         onClick={() => {
                                                             setEditingClientName(client.nome);
@@ -1272,10 +1302,12 @@ const ResultsDashboard: React.FC = () => {
                                                 )}
                                             </div>
                                         </div>
+                                        </div>
+                                        {/* Task Manager for Clients */}
+                                        <div className="mt-6 pt-6 border-t border-slate-100">
+                                            <TaskManager saleIds={client.salesIds} onTaskChange={fetchTasks} />
+                                        </div>
                                     </div>
-
-
-                                </div>
                             ));
                         })()}
                     </div>
