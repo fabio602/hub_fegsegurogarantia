@@ -396,12 +396,26 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 const rawStatus = getVal('status');
                 const status = (rawStatus && validStatuses.includes(rawStatus)) ? rawStatus : importStatus;
 
+                let rawPhone = getVal('phonenumber');
+                let formattedPhone = rawPhone;
+                if (rawPhone) {
+                    let digitsOnly = rawPhone.replace(/\D/g, '');
+                    if ((digitsOnly.length === 12 || digitsOnly.length === 13) && digitsOnly.startsWith('55')) {
+                        digitsOnly = digitsOnly.slice(2);
+                    }
+                    if (digitsOnly.length === 10) {
+                        formattedPhone = `(${digitsOnly.slice(0, 2)}) ${digitsOnly.slice(2, 6)}-${digitsOnly.slice(6)}`;
+                    } else if (digitsOnly.length === 11) {
+                        formattedPhone = `(${digitsOnly.slice(0, 2)}) ${digitsOnly.slice(2, 7)}-${digitsOnly.slice(7)}`;
+                    }
+                }
+
                 newProspects.push({
                     name: nameVal,
                     company: companyVal || nameVal || 'Sem Empresa',
                     position: getVal('position'),
                     decisor: getVal('decisor'),
-                    phonenumber: getVal('phonenumber'),
+                    phonenumber: formattedPhone,
                     email: emailVal,
                     lead_value: leadVal,
                     status,
