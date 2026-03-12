@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CRMTask } from '../types';
-import { Plus, X, Clock, CheckCircle2, Loader2, Phone, Mail, Users, RefreshCw, Check, BookText, ChevronDown } from 'lucide-react';
+import { Plus, X, Clock, CheckCircle2, Loader2, Phone, Mail, Users, RefreshCw, BookText, Save } from 'lucide-react';
 
 interface TaskManagerProps {
     prospectId?: string;
@@ -14,15 +14,15 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
     const [leadTasks, setLeadTasks] = useState<CRMTask[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [newTask, setNewTask] = useState({ title: '', due_date: '', type: 'task' as any });
-    const [isTypeOpen, setIsTypeOpen] = useState(false);
 
-    const TASK_TYPES = [
-        { value: 'task', label: 'Tarefa', icon: <BookText size={14} /> },
-        { value: 'call', label: 'Ligação', icon: <Phone size={14} /> },
-        { value: 'email', label: 'E-mail', icon: <Mail size={14} /> },
-        { value: 'meeting', label: 'Reunião', icon: <Users size={14} /> },
-        { value: 'renewal', label: 'Renovação', icon: <RefreshCw size={14} /> },
+    const TASK_TYPES: { value: string; label: string; icon: any; color: string }[] = [
+        { value: 'task', label: 'Tarefa', icon: <BookText size={14} />, color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+        { value: 'call', label: 'Ligação', icon: <Phone size={14} />, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+        { value: 'email', label: 'E-mail', icon: <Mail size={14} />, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        { value: 'meeting', label: 'Reunião', icon: <Users size={14} />, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+        { value: 'renewal', label: 'Renovação', icon: <RefreshCw size={14} />, color: 'bg-rose-50 text-rose-700 border-rose-200' },
     ];
 
     const load = async () => {
@@ -53,6 +53,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTask.title || !newTask.due_date) return;
+        setSaving(true);
         try {
             const taskData: any = { 
                 ...newTask, 
@@ -70,6 +71,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
             setNewTask({ title: '', due_date: '', type: 'task' });
             onTaskChange(); 
         } catch (err) { alert('Erro ao criar tarefa'); }
+        finally { setSaving(false); }
     };
 
     const toggleStatus = async (task: CRMTask) => {
@@ -100,51 +102,52 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
             </div>
 
             {isAdding && (
-                <form onSubmit={handleAdd} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in slide-in-from-top-2 duration-200">
+                <form onSubmit={handleAdd} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in slide-in-from-top-2 duration-200 space-y-4">
                     <div className="space-y-3">
-                        <input autoFocus type="text" placeholder="O que precisa ser feito?" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                        <div className="flex gap-2">
-                            <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                            
-                            <div className="relative">
-                                <button 
-                                    type="button"
-                                    onClick={() => setIsTypeOpen(!isTypeOpen)}
-                                    className="h-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none flex items-center gap-2 hover:border-indigo-300 transition-all min-w-[120px]"
-                                >
-                                    <span className="text-indigo-600">
-                                        {TASK_TYPES.find(t => t.value === newTask.type)?.icon}
-                                    </span>
-                                    <span className="font-bold text-slate-700">
-                                        {TASK_TYPES.find(t => t.value === newTask.type)?.label}
-                                    </span>
-                                    <ChevronDown size={14} className={`text-slate-400 ml-auto transition-transform ${isTypeOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {isTypeOpen && (
-                                    <div className="absolute right-0 bottom-full mb-2 z-[60] w-48 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                        {TASK_TYPES.map(type => (
-                                            <button
-                                                key={type.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    setNewTask({...newTask, type: type.value});
-                                                    setIsTypeOpen(false);
-                                                }}
-                                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold transition-colors ${newTask.type === type.value ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                                            >
-                                                <span className={newTask.type === type.value ? 'text-indigo-600' : 'text-slate-400'}>
-                                                    {type.icon}
-                                                </span>
-                                                {type.label}
-                                                {newTask.type === type.value && <Check size={14} className="ml-auto" />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">O que fazer?</label>
+                            <input autoFocus type="text" placeholder="Ex: Ligar para confirmar proposta" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quando?</label>
+                                <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo</label>
+                                <div className="flex items-center h-[38px] px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-500 italic">
+                                    Selecione abaixo ↓
+                                </div>
                             </div>
                         </div>
-                        <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">Salvar Lembrete</button>
+
+                        <div className="space-y-2 pt-1">
+                            <div className="flex flex-wrap gap-2">
+                                {TASK_TYPES.map(type => (
+                                    <button
+                                        key={type.value}
+                                        type="button"
+                                        onClick={() => setNewTask({...newTask, type: type.value})}
+                                        className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all gap-1 ${newTask.type === type.value 
+                                            ? `${type.color} ring-2 ring-offset-1 ring-indigo-500/20 scale-105` 
+                                            : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
+                                    >
+                                        {type.icon}
+                                        <span className="text-[9px] font-bold uppercase">{type.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={saving || !newTask.title || !newTask.due_date}
+                            className="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            {saving ? 'Salvando...' : 'Salvar Lembrete'}
+                        </button>
                     </div>
                 </form>
             )}

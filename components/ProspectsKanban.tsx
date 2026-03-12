@@ -676,6 +676,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
     return (
         <div className="space-y-6">
+            <div className="flex justify-end pr-4 -mb-4">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Build v3.0 (Patch Aplicado)</span>
+            </div>
             {/* Product Switcher */}
             <div className="flex justify-center mb-6">
                 <div className="bg-slate-100 p-1 rounded-2xl flex gap-1 shadow-sm border border-slate-200">
