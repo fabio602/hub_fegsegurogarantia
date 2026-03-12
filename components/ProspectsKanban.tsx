@@ -461,16 +461,31 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             setCsvRows(dataRows);
             const initialMapping: Record<string, string> = {};
             const guessMap: Record<string, string[]> = {
-                name: ['name','nome','contato'], company: ['company','empresa','cliente','razao social'],
-                position: ['position','cargo'], decisor: ['decisor','responsável','responsavel'],
-                phonenumber: ['phone','telefone','celular','whatsapp'], email: ['email','e-mail'],
-                lead_value: ['value','valor','valor do lead','premio','prêmio'], status: ['status','fase','etapa'],
-                source: ['source','origem','fonte'], cnpj: ['cnpj','documento'],
-                ramo: ['ramo','segmento','setor'], city: ['city','cidade'], state: ['state','estado','uf']
+                name: ['name', 'nome', 'contato'],
+                company: ['company', 'empresa', 'cliente', 'razao social'],
+                position: ['position', 'cargo'],
+                decisor: ['decisor', 'responsável', 'responsavel'],
+                phonenumber: ['phone', 'telefone', 'celular', 'whatsapp', 'phonenumber'],
+                email: ['email', 'e-mail'],
+                lead_value: ['value', 'valor', 'valor do lead', 'premio', 'prêmio', 'lead value'],
+                status: ['status', 'fase', 'etapa'],
+                source: ['source', 'origem', 'fonte'],
+                cnpj: ['cnpj', 'documento'],
+                ramo: ['ramo', 'segmento', 'setor'],
+                city: ['city', 'cidade', 'municipio'],
+                state: ['state', 'estado', 'uf'],
+                zip: ['zip', 'cep'],
+                address: ['address', 'endereço', 'endereco']
             };
             DB_FIELDS.forEach(field => {
                 const guessArr = guessMap[field.key] || [];
-                const matchedIndex = headers.findIndex(h => guessArr.includes(h.toLowerCase()));
+                // Check for exact key match or label match
+                const matchedIndex = headers.findIndex(h => {
+                    const normalizedHeader = h.toLowerCase().trim();
+                    return normalizedHeader === field.key.toLowerCase() || 
+                           normalizedHeader === field.label.toLowerCase() ||
+                           guessArr.includes(normalizedHeader);
+                });
                 if (matchedIndex >= 0) initialMapping[field.key] = matchedIndex.toString();
             });
             setCsvMapping(initialMapping);
