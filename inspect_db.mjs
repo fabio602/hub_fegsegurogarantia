@@ -6,12 +6,11 @@ const supabase = createClient(
 );
 
 async function checkColumns() {
-    const { data, error } = await supabase.from('insurers').select('*').limit(1);
+    const { data, error } = await supabase.from('prospects').select('*').limit(1);
     if (error) {
         console.error('Error:', error);
     } else {
-        console.log('Columns:', Object.keys(data[0] || {}));
-        console.log('Data:', data[0]);
+        console.log('Columns in prospects:', Object.keys(data[0] || {}));
     }
 }
 

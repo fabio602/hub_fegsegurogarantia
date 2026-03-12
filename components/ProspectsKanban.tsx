@@ -407,15 +407,34 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setSavingLead(true);
         try {
             // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
-            const { id, created_at, tasks, ...dataToUpdate } = editLeadForm;
+            const { id, created_at, tasks, ...rawUpdateData } = editLeadForm;
+
+            // Strict data sanitization to prevent database rejection
+            const dataToUpdate: any = {};
+            Object.entries(rawUpdateData).forEach(([key, value]) => {
+                // 1. Handle numeric fields
+                if (key === 'lead_value') {
+                    dataToUpdate[key] = typeof value === 'string' ? (parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0) : (value || 0);
+                } 
+                // 2. Convert empty strings/excel 'nan' to null for all fields to avoid type issues (especially on dates/virtual fields)
+                else if (value === '' || value === 'nan' || value === 'undefined' || value === null) {
+                    dataToUpdate[key] = null;
+                }
+                // 3. Keep all other fields as is
+                else {
+                    dataToUpdate[key] = value;
+                }
+            });
+
             const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
             setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...editLeadForm } as Prospect : p));
             setIsEditModalOpen(false);
             setEditingLead(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating lead:', error);
-            alert('Erro ao salvar alterações.');
+            const msg = error.message || (typeof error === 'string' ? error : 'Erro desconhecido');
+            alert(`Erro ao salvar alterações: ${msg}`);
         } finally {
             setSavingLead(false);
         }
