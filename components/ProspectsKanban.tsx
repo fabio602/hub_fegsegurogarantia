@@ -108,6 +108,14 @@ const LeadFormFields = ({
             <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">CEP</label>
+            <input type="text" value={form.zip || ''} onChange={(e) => setForm({ ...form, zip: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="00000-000" />
+        </div>
+        <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-slate-700">Endereço</label>
+            <input type="text" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Rua, Número, Bairro" />
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Valor Estimado</label>
             <input type="number" step="0.01" value={form.lead_value || ''} onChange={(e) => setForm({ ...form, lead_value: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="150000.00" />
         </div>
@@ -398,7 +406,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         if (!editingLead) return;
         setSavingLead(true);
         try {
-            const { error } = await supabase.from('prospects').update(editLeadForm).eq('id', editingLead.id);
+            // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
+            const { id, created_at, tasks, ...dataToUpdate } = editLeadForm;
+            const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
             setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...editLeadForm } as Prospect : p));
             setIsEditModalOpen(false);
