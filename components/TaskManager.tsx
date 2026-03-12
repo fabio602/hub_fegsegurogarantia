@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CRMTask } from '../types';
-import { Plus, X, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, X, Clock, CheckCircle2, Loader2, Phone, Mail, Users, RefreshCw, Check, BookText, ChevronDown } from 'lucide-react';
 
 interface TaskManagerProps {
     prospectId?: string;
@@ -15,6 +15,15 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [newTask, setNewTask] = useState({ title: '', due_date: '', type: 'task' as any });
+    const [isTypeOpen, setIsTypeOpen] = useState(false);
+
+    const TASK_TYPES = [
+        { value: 'task', label: 'Tarefa', icon: <BookText size={14} /> },
+        { value: 'call', label: 'Ligação', icon: <Phone size={14} /> },
+        { value: 'email', label: 'E-mail', icon: <Mail size={14} /> },
+        { value: 'meeting', label: 'Reunião', icon: <Users size={14} /> },
+        { value: 'renewal', label: 'Renovação', icon: <RefreshCw size={14} /> },
+    ];
 
     const load = async () => {
         setLoadingTasks(true);
@@ -96,13 +105,44 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                         <input autoFocus type="text" placeholder="O que precisa ser feito?" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" />
                         <div className="flex gap-2">
                             <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                            <select value={newTask.type} onChange={e => setNewTask({...newTask, type: e.target.value as any})} className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none">
-                                <option value="task">Tarefa</option>
-                                <option value="call">Ligação</option>
-                                <option value="email">E-mail</option>
-                                <option value="meeting">Reunião</option>
-                                <option value="renewal">Renovação</option>
-                            </select>
+                            
+                            <div className="relative">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsTypeOpen(!isTypeOpen)}
+                                    className="h-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none flex items-center gap-2 hover:border-indigo-300 transition-all min-w-[120px]"
+                                >
+                                    <span className="text-indigo-600">
+                                        {TASK_TYPES.find(t => t.value === newTask.type)?.icon}
+                                    </span>
+                                    <span className="font-bold text-slate-700">
+                                        {TASK_TYPES.find(t => t.value === newTask.type)?.label}
+                                    </span>
+                                    <ChevronDown size={14} className={`text-slate-400 ml-auto transition-transform ${isTypeOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isTypeOpen && (
+                                    <div className="absolute right-0 bottom-full mb-2 z-[60] w-48 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                        {TASK_TYPES.map(type => (
+                                            <button
+                                                key={type.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setNewTask({...newTask, type: type.value});
+                                                    setIsTypeOpen(false);
+                                                }}
+                                                className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold transition-colors ${newTask.type === type.value ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                                            >
+                                                <span className={newTask.type === type.value ? 'text-indigo-600' : 'text-slate-400'}>
+                                                    {type.icon}
+                                                </span>
+                                                {type.label}
+                                                {newTask.type === type.value && <Check size={14} className="ml-auto" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">Salvar Lembrete</button>
                     </div>
