@@ -21,13 +21,15 @@ import {
     Search,
     Shield,
     Copy,
-    Check
+    Check,
+    Mail
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
 import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
 import ProspectsKanban from './ProspectsKanban';
 import TaskManager from './TaskManager';
+import { generateThankYouEmail } from '../utils/emailTemplates';
 
 // --- Configuration ---
 interface InsurerLimit {
@@ -116,6 +118,7 @@ const ResultsDashboard: React.FC = () => {
     };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [showEmailPrompt, setShowEmailPrompt] = useState<{ email: string; name: string; decisor?: string } | null>(null);
     const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
 
@@ -317,6 +320,16 @@ const ResultsDashboard: React.FC = () => {
             }
             await fetchData();
             setSaveSuccess(true);
+            
+            // If the sale was won, ask to send thank you email
+            if (payload.vendeu === 'Sim' && payload.email) {
+                setShowEmailPrompt({
+                    email: payload.email,
+                    name: payload.nome || '',
+                    decisor: payload.decisor || undefined
+                });
+            }
+
             setTimeout(() => setSaveSuccess(false), 3000);
             resetForm();
         } catch (error: any) {
@@ -646,9 +659,39 @@ const ResultsDashboard: React.FC = () => {
                             </div>
                         )}
                         {saveSuccess && (
-                            <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-600 px-5 py-4 rounded-xl text-sm font-bold">
-                                <CheckCircle2 size={18} />
-                                Venda salva com sucesso!
+                            <div className="mb-6 flex flex-col gap-4 bg-emerald-50 border border-emerald-200 text-emerald-600 px-5 py-4 rounded-xl text-sm font-bold animate-in zoom-in duration-300">
+                                <div className="flex items-center gap-3">
+                                    <CheckCircle2 size={18} />
+                                    Venda salva com sucesso!
+                                </div>
+                                
+                                {showEmailPrompt && (
+                                    <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                        <div>
+                                            <p className="text-slate-800 text-xs">Deseja enviar o e-mail de agradecimento para <strong>{showEmailPrompt.name}</strong>?</p>
+                                            <p className="text-slate-500 text-[10px] font-medium mt-1">O e-mail será aberto no seu aplicativo padrão com os produtos mencionamos.</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    const mailto = generateThankYouEmail(showEmailPrompt.email, showEmailPrompt.name, showEmailPrompt.decisor);
+                                                    window.location.href = mailto;
+                                                    setShowEmailPrompt(null);
+                                                }}
+                                                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-[10px] hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                            >
+                                                <Mail size={14} />
+                                                Sim, Abrir E-mail
+                                            </button>
+                                            <button
+                                                onClick={() => setShowEmailPrompt(null)}
+                                                className="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-[10px] hover:bg-slate-200 transition-colors"
+                                            >
+                                                Agora não
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
