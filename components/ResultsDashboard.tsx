@@ -22,7 +22,8 @@ import {
     Shield,
     Copy,
     Check,
-    Mail
+    Mail,
+    Send
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
@@ -421,6 +422,35 @@ const ResultsDashboard: React.FC = () => {
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
             setSaveError(error?.message || 'Erro ao atualizar cliente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSendLimits = async (client: any) => {
+        if (!client.email) {
+            setSaveError('E-mail do cliente não cadastrado.');
+            return;
+        }
+        
+        setSaving(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('send-limits', {
+                body: {
+                    clientName: client.nome,
+                    clientEmail: client.email,
+                    decisor: client.decisor,
+                    limits: client.limites
+                }
+            });
+
+            if (error) throw error;
+            
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            console.error('Error sending limits:', error);
+            setSaveError(error?.message || 'Erro ao enviar limites.');
         } finally {
             setSaving(false);
         }
@@ -1325,6 +1355,14 @@ const ResultsDashboard: React.FC = () => {
                                                                         </span>
                                                                     </div>
                                                                 ))}
+                                                                <button
+                                                                    onClick={() => handleSendLimits(client)}
+                                                                    disabled={saving}
+                                                                    className="mt-2 w-full py-3 bg-[#1B263B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2c3e50] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                                >
+                                                                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                                                    Enviar p/ Cliente
+                                                                </button>
                                                             </div>
                                                         ) : (
                                                             <div className="group/empty relative">
