@@ -668,8 +668,8 @@ const ResultsDashboard: React.FC = () => {
                                 {showEmailPrompt && (
                                     <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
                                         <div>
-                                            <p className="text-slate-800 text-xs">Deseja enviar o e-mail de agradecimento para <strong>{showEmailPrompt.name}</strong>?</p>
-                                            <p className="text-slate-500 text-[10px] font-medium mt-1">O e-mail será aberto no seu aplicativo padrão com os produtos mencionamos.</p>
+                                            <p className="text-slate-800 text-xs"><strong>Automação Ativa:</strong> O e-mail de agradecimento para {showEmailPrompt.name} será enviado automaticamente pelo servidor.</p>
+                                            <p className="text-slate-500 text-[10px] font-medium mt-1">Deseja abrir uma cópia manual agora no seu e-mail para revisão rápida?</p>
                                         </div>
                                         <div className="flex gap-2">
                                             <button
@@ -678,16 +678,16 @@ const ResultsDashboard: React.FC = () => {
                                                     window.location.href = mailto;
                                                     setShowEmailPrompt(null);
                                                 }}
-                                                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-[10px] hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-[10px] hover:bg-slate-200 transition-colors flex items-center gap-2"
                                             >
                                                 <Mail size={14} />
-                                                Sim, Abrir E-mail
+                                                Abrir Cópia Manual
                                             </button>
                                             <button
                                                 onClick={() => setShowEmailPrompt(null)}
-                                                className="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-[10px] hover:bg-slate-200 transition-colors"
+                                                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-[10px] hover:bg-emerald-700 transition-colors"
                                             >
-                                                Agora não
+                                                Entendido
                                             </button>
                                         </div>
                                     </div>
