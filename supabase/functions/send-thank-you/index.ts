@@ -1,7 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,22 +12,36 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
     const payload = await req.json()
     const { record } = payload
 
-    console.log('Receiving record:', record)
-
     // Only send if 'vendeu' is 'Sim' and there is an email
     if (record.vendeu === 'Sim' && record.email) {
-      const clientName = record.nome || 'Cliente'
+      
+      // Check for repeat customer
+      // Look for other sales marked as 'Sim' for the same CNPJ or Email, excluding the current record
+      const { data: previousSales, error: searchError } = await supabaseClient
+        .from('sales')
+        .select('id')
+        .eq('vendeu', 'Sim')
+        .or(`cnpj.eq.${record.cnpj},email.eq.${record.email}`)
+        .neq('id', record.id)
+        .limit(1)
+
+      const isRepeatClient = previousSales && previousSales.length > 0
+      
       const decisor = record.decisor || ''
       const greeting = decisor ? `Olá ${decisor},` : `Olá,`
+      
+      const welcomeText = isRepeatClient
+        ? "É um prazer tê-lo conosco novamente! Agradecemos por continuar confiando na <strong>F&G Corretora</strong> para a gestão das suas apólices."
+        : "Agradecemos pela parceria e pela confiança na <strong>F&G Corretora</strong> para a contratação da sua primeira apólice. Estamos à total disposição."
 
       const htmlBody = `
         <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
@@ -32,7 +49,7 @@ serve(async (req) => {
           
           <p>${greeting}</p>
           
-          <p>Agradecemos pela parceria e pela confiança na <strong>F&G Corretora</strong> para a contratação da sua apólice. Estamos à total disposição para o que precisar.</p>
+          <p>${welcomeText}</p>
           
           <p>Aproveitamos para lembrar que também atuamos com outras soluções que podem proteger ainda mais a sua empresa:</p>
           
@@ -46,9 +63,17 @@ serve(async (req) => {
           
           <p>Conte conosco para o que for necessário!</p>
           
-          <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <p style="margin-bottom: 0;">Atenciosamente,</p>
-            <p style="font-weight: bold; color: #1B263B; margin-top: 5px;">Equipe F&G Corretora</p>
+          <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
+            <p style="margin-bottom: 10px; font-weight: bold; color: #1B263B;">Siga-nos nas redes sociais:</p>
+            <div style="display: flex; justify-content: center; gap: 20px;">
+              <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-weight: bold; padding: 5px 15px; border: 1px solid #E1306C; border-radius: 5px; font-size: 14px;">Instagram</a>
+              <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-weight: bold; padding: 5px 15px; border: 1px solid #0077B5; border-radius: 5px; font-size: 14px;">LinkedIn</a>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 12px; color: #888;">
+              F&G Corretora de Seguros<br>
+              <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none;">fegsegurogarantia.com.br</a>
+            </p>
           </div>
         </div>
       `
@@ -62,27 +87,24 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
           to: [record.email],
-          subject: 'Agradecimento pela confiança - F&G Corretora',
+          subject: isRepeatClient ? 'Obrigado por confiar novamente na F&G Corretora!' : 'Seja bem-vindo à F&G Corretora!',
           html: htmlBody,
         }),
       })
 
       const result = await res.json()
-      console.log('Resend Response:', result)
-      
       return new Response(JSON.stringify(result), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
 
-    return new Response(JSON.stringify({ message: 'No action needed: vendeu != Sim or no email' }), { 
+    return new Response(JSON.stringify({ message: 'No action needed' }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200 
     })
 
   } catch (error) {
-    console.error('Error in Edge Function:', error.message)
     return new Response(JSON.stringify({ error: error.message }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400 
