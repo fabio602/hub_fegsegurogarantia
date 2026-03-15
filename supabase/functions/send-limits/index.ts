@@ -14,9 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { clientName, clientEmail, decisor, limits } = await req.json()
+    const payload = await req.json()
+    const { clientName, clientEmail, decisor, limits } = payload
+    
+    console.log(`[Send Limits Request] To: ${clientEmail} (Client: ${clientName}), Decisor: ${decisor}`)
+    console.log('Full Received payload:', JSON.stringify(payload))
 
     if (!clientEmail || !limits || !Array.isArray(limits)) {
+      console.error('Invalid payload: email and limits array are required')
       throw new Error('Email and limits are required')
     }
 
@@ -87,7 +92,9 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Function execution error:', errorMessage)
+    return new Response(JSON.stringify({ error: errorMessage }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400 
     })

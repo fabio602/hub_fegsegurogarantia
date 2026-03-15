@@ -17,22 +17,55 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
-    const payload = await req.json()
-    const { record } = payload
+    // Validate environment variables early
+    if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('Missing environment variables')
+    }
 
-    // Only send if 'vendeu' is 'Sim' and there is an email
-    if (record.vendeu === 'Sim' && record.email) {
-      
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const payload = await req.json()
+    console.log('Received payload:', JSON.stringify(payload))
+    
+    const { record, old_record, type } = payload
+
+    if (!record) {
+      throw new Error('No record found in payload')
+    }
+
+    // --- STRATEGIC FILTERING TO PREVENT BULK EMAILS ---
+    // Only proceed if it's a new record with status 'Sim' OR
+    // an update where 'vendeu' CHANGED to 'Sim'.
+    const isNewSale = type === 'INSERT' && record.vendeu === 'Sim'
+    const statusChangedToSim = type === 'UPDATE' && record.vendeu === 'Sim' && old_record?.vendeu !== 'Sim'
+
+    if (!isNewSale && !statusChangedToSim) {
+      console.log(`Skipping: Event type ${type}, Status: ${record.vendeu}, Previous Status: ${old_record?.vendeu}`)
+      return new Response(JSON.stringify({ message: 'No action needed: status did not change to Sim' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      })
+    }
+    // --------------------------------------------------
+
+    if (record.email) {
       // Check for repeat customer
-      // Look for other sales marked as 'Sim' for the same CNPJ or Email, excluding the current record
+      // Build a robust OR filter that avoids errors if CNPJ is missing
+      let orFilter = `email.eq.${record.email}`
+      if (record.cnpj && typeof record.cnpj === 'string' && record.cnpj.trim() !== '') {
+        orFilter = `cnpj.eq.${record.cnpj},${orFilter}`
+      }
+
       const { data: previousSales, error: searchError } = await supabaseClient
         .from('sales')
         .select('id')
         .eq('vendeu', 'Sim')
-        .or(`cnpj.eq.${record.cnpj},email.eq.${record.email}`)
+        .or(orFilter)
         .neq('id', record.id)
         .limit(1)
+
+      if (searchError) {
+        console.error('Error searching previous sales:', searchError)
+      }
 
       const isRepeatClient = previousSales && previousSales.length > 0
       
@@ -92,6 +125,12 @@ serve(async (req) => {
         }),
       })
 
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Error sending email through Resend:', errorText)
+        throw new Error(`Failed to send email: ${res.statusText}`)
+      }
+
       const result = await res.json()
       return new Response(JSON.stringify(result), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,7 +144,9 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Function execution error:', errorMessage)
+    return new Response(JSON.stringify({ error: errorMessage }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400 
     })
