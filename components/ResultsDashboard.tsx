@@ -173,6 +173,8 @@ const ResultsDashboard: React.FC = () => {
         product_type: 'Seguro Garantia',
         process_number: '',
         court: '',
+        valorLote: '',
+        orgaoLicitante: '',
     });
 
     // Compute sales expiring within 30 days
@@ -423,6 +425,40 @@ const ResultsDashboard: React.FC = () => {
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
             setSaveError(error?.message || 'Erro ao atualizar cliente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSendDraft = async () => {
+        if (!formData.email || !formData.nome) {
+            setSaveError('E-mail e Nome do Cliente são obrigatórios para enviar a minuta.');
+            return;
+        }
+        
+        setSaving(true);
+        try {
+            const { error } = await supabase.functions.invoke('send-draft-approval', {
+                body: {
+                    clientName: formData.nome,
+                    clientEmail: formData.email.trim(),
+                    decisor: formData.decisor,
+                    tipoSeguro: formData.tipo,
+                    isGarantida: formData.is,
+                    valorLote: formData.valorLote,
+                    orgaoLicitante: formData.orgaoLicitante,
+                    vigenciaInicio: formData.vigencia_inicio,
+                    vigenciaFim: formData.vigencia_fim
+                }
+            });
+
+            if (error) throw error;
+            
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            console.error('Error sending draft:', error);
+            setSaveError(error?.message || 'Erro ao enviar minuta.');
         } finally {
             setSaving(false);
         }
@@ -914,12 +950,33 @@ const ResultsDashboard: React.FC = () => {
                                 </label>
                             </div>
 
+                            {formData.tipo === 'Licitante' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-amber-50/50 rounded-2xl border border-amber-100">
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Órgão Licitante</label>
+                                        <input type="text" id="orgaoLicitante" value={formData.orgaoLicitante || ''} onChange={handleInputChange} placeholder="Ex: Município de..." className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
+                                    </div>
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Valor do Lote (Estimado)</label>
+                                        <input type="text" id="valorLote" value={formData.valorLote || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-3">
                                 {editingId && (
                                     <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
                                         <X size={18} /> Cancelar
                                     </button>
                                 )}
+                                <button 
+                                    type="button" 
+                                    onClick={handleSendDraft}
+                                    disabled={saving || !formData.email}
+                                    className="bg-slate-800 text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <Mail size={18} /> Enviar Minuta
+                                </button>
                                 <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
                                     {editingId ? 'Salvar Alterações' : 'Adicionar Venda'}
