@@ -26,10 +26,12 @@ serve(async (req) => {
       vigenciaInicio, 
       vigenciaFim,
       seguradora,
-      premio
+      premio,
+      attachment,
+      attachmentName
     } = payload
     
-    console.log(`[Draft Approval Request] To: ${clientEmail} (Client: ${clientName})`)
+    console.log(`[Draft Approval Request] To: ${clientEmail} (Client: ${clientName}) - Attachment: ${attachmentName || 'None'}`)
 
     if (!clientEmail || !clientName) {
       throw new Error('Email e Nome do Cliente são obrigatórios')
@@ -105,18 +107,29 @@ serve(async (req) => {
       </div>
     `
 
+    const resendPayload: any = {
+      from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
+      to: [clientEmail.trim()],
+      subject: `Minuta para Conferência - ${clientName}`,
+      html: htmlBody,
+    }
+
+    if (attachment && attachmentName) {
+      resendPayload.attachments = [
+        {
+          filename: attachmentName,
+          content: attachment,
+        }
+      ]
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify({
-        from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
-        to: [clientEmail.trim()],
-        subject: `Minuta para Conferência - ${clientName}`,
-        html: htmlBody,
-      }),
+      body: JSON.stringify(resendPayload),
     })
 
     const status = res.status

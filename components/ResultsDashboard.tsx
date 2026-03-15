@@ -145,6 +145,7 @@ const ResultsDashboard: React.FC = () => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     });
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
@@ -438,6 +439,22 @@ const ResultsDashboard: React.FC = () => {
         
         setSaving(true);
         try {
+            let attachmentBase64 = null;
+            let attachmentName = null;
+
+            if (selectedFile) {
+                const reader = new FileReader();
+                attachmentBase64 = await new Promise((resolve, reject) => {
+                    reader.onload = () => {
+                        const base64String = (reader.result as string).split(',')[1];
+                        resolve(base64String);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(selectedFile);
+                });
+                attachmentName = selectedFile.name;
+            }
+
             const { error } = await supabase.functions.invoke('send-draft-approval', {
                 body: {
                     clientName: formData.nome,
@@ -450,13 +467,16 @@ const ResultsDashboard: React.FC = () => {
                     vigenciaInicio: formData.vigencia_inicio,
                     vigenciaFim: formData.vigencia_fim,
                     seguradora: formData.seguradora,
-                    premio: formData.premio
+                    premio: formData.premio,
+                    attachment: attachmentBase64,
+                    attachmentName: attachmentName
                 }
             });
 
             if (error) throw error;
             
             setSaveSuccess(true);
+            setSelectedFile(null); // Clear file after send
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
             console.error('Error sending draft:', error);
@@ -965,12 +985,43 @@ const ResultsDashboard: React.FC = () => {
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3">
+                            <div className="flex justify-end items-center gap-3">
                                 {editingId && (
                                     <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
                                         <X size={18} /> Cancelar
                                     </button>
                                 )}
+                                
+                                <div className="relative">
+                                    <input 
+                                        type="file" 
+                                        id="draft-file" 
+                                        accept=".pdf"
+                                        className="hidden" 
+                                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                    />
+                                    <label 
+                                        htmlFor="draft-file"
+                                        className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm border cursor-pointer transition-all ${
+                                            selectedFile 
+                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <FileText size={18} />
+                                        {selectedFile ? selectedFile.name.substring(0, 15) + '...' : 'Anexar Minuta (PDF)'}
+                                        {selectedFile && (
+                                            <button 
+                                                type="button" 
+                                                onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
+                                                className="ml-1 p-0.5 hover:bg-emerald-200 rounded-full"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </label>
+                                </div>
+
                                 <button 
                                     type="button" 
                                     onClick={handleSendDraft}
