@@ -1109,7 +1109,7 @@ const ResultsDashboard: React.FC = () => {
                                     </button>
                                 )}
                                 
-                                {(formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
+                                {formData.vendeu !== 'Sim' && (formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
                                     <div className="relative">
                                         <input 
                                             type="file" 
@@ -1143,12 +1143,13 @@ const ResultsDashboard: React.FC = () => {
 
                                 {(formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
                                     <button 
-                                        type="button" 
-                                        onClick={handleSendDraft}
+                                        type={formData.vendeu === 'Sim' ? 'submit' : 'button'}
+                                        onClick={formData.vendeu === 'Sim' ? undefined : handleSendDraft}
                                         disabled={saving || !formData.email}
-                                        className="bg-slate-800 text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2 disabled:opacity-50"
+                                        className={`${formData.vendeu === 'Sim' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
                                     >
-                                        <Mail size={18} /> Enviar Minuta
+                                        <Mail size={18} /> 
+                                        {formData.vendeu === 'Sim' ? 'Enviar Apólice' : 'Enviar Minuta'}
                                     </button>
                                 )}
 
