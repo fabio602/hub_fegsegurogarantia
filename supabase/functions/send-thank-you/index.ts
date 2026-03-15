@@ -32,19 +32,34 @@ serve(async (req) => {
     }
 
     // --- STRATEGIC FILTERING ---
-    // MANUAL: Triggered from UI with status 'Sim'
+    // MANUAL: Triggered from UI with status 'Sim' (Preferred, carries attachments)
     // INSERT/UPDATE: Webhook when status becomes 'Sim'
     const isManual = type === 'MANUAL'
     const isNewWonSale = type === 'INSERT' && record.vendeu === 'Sim'
     const statusChangedToWon = type === 'UPDATE' && record.vendeu === 'Sim' && old_record?.vendeu !== 'Sim'
 
-    if (!isManual && !isNewWonSale && !statusChangedToWon) {
-      console.log('Skipping: Not a Manual trigger or Status change to Sim')
-      return new Response(JSON.stringify({ message: 'No action needed' }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      })
+    // If it's a webhook for Licitante/Performance, we skip it because the UI handles it manually
+    const isSpecialType = record.tipo === 'Licitante' || record.tipo === 'Performance'
+
+    if (!isManual) {
+      if (isSpecialType && (isNewWonSale || statusChangedToWon)) {
+        console.log(`Skipping Webhook for ${record.tipo}: Waiting for Manual trigger with attachments from UI.`)
+        return new Response(JSON.stringify({ message: 'Skipped: UI will trigger manually with attachments' }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        })
+      }
+
+      if (!isNewWonSale && !statusChangedToWon) {
+        console.log('Skipping: Not a Manual trigger or Status change to Sim')
+        return new Response(JSON.stringify({ message: 'No action needed' }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        })
+      }
     }
+
+    console.log(`Processing ${isManual ? 'MANUAL' : 'WEBHOOK'} send. Attachments: ${attachments?.length || 0}`)
 
     if (record.email) {
       // Check for repeat customer

@@ -148,6 +148,7 @@ const ResultsDashboard: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
+    const [sendingEmail, setSendingEmail] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
@@ -342,31 +343,46 @@ const ResultsDashboard: React.FC = () => {
             
             // If the sale was won, trigger the thank you email manually with attachments
             if (payload.vendeu === 'Sim' && payload.email) {
-                const attachments: any[] = [];
-                
-                const readFile = (file: File) => new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve({
-                        content: (reader.result as string).split(',')[1],
-                        filename: file.name
+                setSendingEmail(true);
+                try {
+                    console.log('[Manual Email] Starting attachment processing...', { selectedApolice: !!selectedApolice, selectedBoleto: !!selectedBoleto });
+                    const attachments: any[] = [];
+                    
+                    const readFile = (file: File) => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve({
+                            content: (reader.result as string).split(',')[1],
+                            filename: file.name
+                        });
+                        reader.onerror = () => reject(new Error(`Erro ao ler arquivo ${file.name}`));
+                        reader.readAsDataURL(file);
                     });
-                    reader.readAsDataURL(file);
-                });
 
-                if (selectedApolice) attachments.push(await readFile(selectedApolice));
-                if (selectedBoleto) attachments.push(await readFile(selectedBoleto));
+                    if (selectedApolice) attachments.push(await readFile(selectedApolice));
+                    if (selectedBoleto) attachments.push(await readFile(selectedBoleto));
 
-                // Manual call to send-thank-you
-                await supabase.functions.invoke('send-thank-you', {
-                    body: {
-                        type: 'MANUAL',
-                        record: {
-                            ...payload,
-                            id: editingId || 0 // Use 0 if it's a new insert, function will handle search
-                        },
-                        attachments
-                    }
-                });
+                    console.log(`[Manual Email] Invoking send-thank-you for ${payload.nome} with ${attachments.length} attachments`);
+                    
+                    // Manual call to send-thank-you
+                    const { data, error: invokeError } = await supabase.functions.invoke('send-thank-you', {
+                        body: {
+                            type: 'MANUAL',
+                            record: {
+                                ...payload,
+                                id: editingId || 0 
+                            },
+                            attachments
+                        }
+                    });
+
+                    if (invokeError) throw invokeError;
+                    console.log('[Manual Email] Success:', data);
+                } catch (emailError: any) {
+                    console.error('[Manual Email] Failed:', emailError);
+                    // We don't block the main save success, but we notify in console
+                } finally {
+                    setSendingEmail(false);
+                }
             }
 
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -1078,7 +1094,11 @@ const ResultsDashboard: React.FC = () => {
                                             {selectedBoleto && <button type="button" onClick={() => setSelectedBoleto(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><X size={16} /></button>}
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-emerald-600/70 font-medium italic text-center">Ao salvar com status "Sim", os arquivos serão enviados automaticamente ao cliente.</p>
+                                    <p className="text-[10px] text-emerald-600/70 font-medium italic text-center">
+                                        {sendingEmail 
+                                            ? "📤 Enviando e-mail com anexos... por favor aguarde." 
+                                            : "Ao salvar com status 'Sim', os arquivos serão enviados automaticamente ao cliente."}
+                                    </p>
                                 </div>
                             )}
 
