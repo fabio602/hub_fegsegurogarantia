@@ -312,6 +312,8 @@ const ResultsDashboard: React.FC = () => {
             product_type: formData.product_type || 'Seguro Garantia',
             process_number: formData.process_number || null,
             court: formData.court || null,
+            valorLote: formData.valorLote || null,
+            orgaoLicitante: formData.orgaoLicitante || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
         };
 
@@ -377,6 +379,8 @@ const ResultsDashboard: React.FC = () => {
             product_type: 'Seguro Garantia',
             process_number: '',
             court: '',
+            valorLote: '',
+            orgaoLicitante: '',
         });
     };
 

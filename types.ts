@@ -58,6 +58,8 @@ export interface Sale {
   product_type?: string;
   process_number?: string;
   court?: string;
+  valorLote?: string;
+  orgaoLicitante?: string;
 }
 
 
