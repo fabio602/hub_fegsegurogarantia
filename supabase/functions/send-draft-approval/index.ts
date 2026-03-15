@@ -42,8 +42,6 @@ serve(async (req) => {
       throw new Error('Email e Nome do Cliente são obrigatórios')
     }
 
-    const greeting = decisor ? `Olá ${decisor}, tudo bem?` : `Olá, tudo bem?`
-    
     const formattedIs = isGarantida || 'R$ 0,00'
     const formattedLote = valorLote || 'R$ 0,00'
     const formattedContrato = valorContrato || 'R$ 0,00'
@@ -54,32 +52,37 @@ serve(async (req) => {
 
     const isPerformance = tipoSeguro === 'Performance'
     
-    // Custom body based on insurance type
+    // Greeting
+    const greeting = decisor ? `Olá ${decisor}, tudo bem?` : `Olá, tudo bem?`
+    const formalGreeting = decisor ? `Prezado(a) <strong>${decisor}</strong>,` : `Prezado(a),`
+
+    // Main Message & Title
+    const emailTitle = isPerformance ? "Minuta para Conferência – Seguro Garantia de Contrato" : "Minuta para Conferência"
     const mainMessage = isPerformance 
-      ? `Segue dados da minuta da <strong>${clientName}</strong> referente ao contrato <strong>${numeroContrato || '---'}</strong> com <strong>${segurado || '---'}</strong>. Se perceber qualquer erro na importância segurada ou objeto, por favor, nos informe imediatamente.`
-      : `Segue dados da minuta da <strong>${clientName}</strong> para participar do pregão do <strong>${orgaoLicitante || 'Órgão Licitante'}</strong>. Se perceber qualquer erro na importância segurada, por favor, nos informe imediatamente.`
+      ? `Encaminhamos a minuta do Seguro Garantia de Contrato referente aos dados abaixo para sua conferência e aprovação.`
+      : `${greeting}<br><br>Segue dados da minuta da <strong>${clientName}</strong> para participar do pregão do <strong>${orgaoLicitante || 'Órgão Licitante'}</strong>. Se perceber qualquer erro na importância segurada, por favor, nos informe imediatamente.`
 
     const summaryTable = isPerformance 
       ? `
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Seguradora:</td>
-          <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${seguradora || 'Não Informada'}</td>
+          <td style="padding: 10px; color: #64748b; font-size: 13px; width: 40%; border: 1px solid #e2e8f0;"><strong>Seguradora</strong></td>
+          <td style="padding: 10px; color: #1B263B; font-size: 14px; border: 1px solid #e2e8f0;">${seguradora || 'Não Informada'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Número do Contrato:</td>
-          <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 14px;">${numeroContrato || '---'}</td>
-        </tr>
-        <tr style="background-color: #f0f9ff;">
-          <td style="padding: 8px 10px; color: #0369a1; font-size: 13px; font-weight: bold;">Segurado:</td>
-          <td style="padding: 8px 10px; color: #0369a1; font-weight: 900; font-size: 15px;">${segurado || '---'}</td>
+          <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Número do Contrato</strong></td>
+          <td style="padding: 10px; color: #1B263B; font-size: 14px; border: 1px solid #e2e8f0;">${numeroContrato || '---'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Objeto:</td>
-          <td style="padding: 8px 0; color: #1B263B; font-size: 13px;">${objetoContrato || '---'}</td>
+          <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Segurado</strong></td>
+          <td style="padding: 10px; color: #1B263B; font-size: 14px; border: 1px solid #e2e8f0;">${segurado || '---'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Valor do Contrato:</td>
-          <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 14px;">${formattedContrato}</td>
+          <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Objeto</strong></td>
+          <td style="padding: 10px; color: #1B263B; font-size: 14px; border: 1px solid #e2e8f0;">${objetoContrato || '---'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Valor do Contrato</strong></td>
+          <td style="padding: 10px; color: #1B263B; font-size: 14px; border: 1px solid #e2e8f0;">${formattedContrato}</td>
         </tr>
       `
       : `
@@ -97,49 +100,72 @@ serve(async (req) => {
         </tr>
       `
 
+    const extraRows = isPerformance ? `
+      <tr>
+        <td style="padding: 10px; color: #64748b; font-size: 13px; width: 40%; border: 1px solid #e2e8f0;"><strong>Valor da Garantia</strong></td>
+        <td style="padding: 10px; color: #C69C6D; font-weight: bold; font-size: 14px; border: 1px solid #e2e8f0;">${formattedIs}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Valor do Prêmio</strong></td>
+        <td style="padding: 10px; color: #1B263B; font-weight: bold; font-size: 14px; border: 1px solid #e2e8f0;">${formattedPremio}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px; color: #64748b; font-size: 13px; border: 1px solid #e2e8f0;"><strong>Vigência</strong></td>
+        <td style="padding: 10px; color: #1B263B; font-weight: bold; font-size: 13px; border: 1px solid #e2e8f0;">${formattedInicio} - ${formattedFim}</td>
+      </tr>
+    ` : `
+      <tr>
+        <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor da Garantia:</td>
+        <td style="padding: 8px 0; color: #C69C6D; font-weight: bold; font-size: 15px;">${formattedIs}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Valor do Prêmio:</td>
+        <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${formattedPremio}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Vigência:</td>
+        <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 14px;">${formattedInicio} - ${formattedFim}</td>
+      </tr>
+    `
+
+    const footerMessage = isPerformance 
+      ? `Solicitamos que verifique as informações contidas na minuta. Caso identifique qualquer divergência, pedimos que nos informe imediatamente para que possamos realizar a correção antes da emissão.<br><br>Aguardamos seu <strong>OK</strong> para darmos sequência à emissão da apólice.`
+      : `No aguardo do OK para emitir a apólice.`
+
     const htmlBody = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 25px;">
-           <h2 style="color: #1B263B; margin: 0; font-size: 22px; border-bottom: 2px solid #C69C6D; display: inline-block; padding-bottom: 5px;">Minuta para Conferência</h2>
+           <h2 style="color: #1B263B; margin: 0; font-size: 20px; border-bottom: 2px solid #C69C6D; display: inline-block; padding-bottom: 5px;">${emailTitle}</h2>
         </div>
         
-        <p style="font-size: 16px;">${greeting}</p>
+        <p style="font-size: 15px;">${isPerformance ? formalGreeting : ''}</p>
         
         <p style="font-size: 15px;">${mainMessage}</p>
         
+        ${!isPerformance ? `
         <div style="background-color: #f8fafc; border-left: 4px solid #C69C6D; padding: 15px; margin: 20px 0; border-radius: 8px;">
            <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Emitimos com data anterior ao pregão/instrumento contratual, pois temos notado que alguns órgãos públicos desclassificam empresas por não entenderem que o seguro já está vigente no momento da disputa, e isso não altera o valor.</p>
         </div>
 
         <p style="font-size: 15px;">Além disso, pedimos que verifique se há necessidade de sigilo do licitante. Se houver, lembre-se de que sua apólice contém os dados da empresa proponente.</p>
+        ` : ''}
 
         <div style="margin: 25px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
           <div style="background-color: #1B263B; color: white; padding: 10px 15px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
             Resumo da Minuta
           </div>
-          <div style="padding: 15px;">
+          <div style="padding: ${isPerformance ? '0' : '15px'};">
             <table style="width: 100%; border-collapse: collapse;">
               ${summaryTable}
-              <tr>
-                <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor da Garantia:</td>
-                <td style="padding: 8px 0; color: #C69C6D; font-weight: bold; font-size: 15px;">${formattedIs}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Valor do Prêmio:</td>
-                <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${formattedPremio}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Vigência:</td>
-                <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 14px;">${formattedInicio} - ${formattedFim}</td>
-              </tr>
+              ${extraRows}
             </table>
           </div>
         </div>
         
-        <p style="font-size: 15px; font-weight: bold; color: #1B263B; text-align: center; margin-top: 30px;">No aguardo do OK para emitir a apólice.</p>
+        <p style="font-size: 15px; font-weight: ${isPerformance ? 'normal' : 'bold'}; color: #1B263B; text-align: ${isPerformance ? 'left' : 'center'}; margin-top: 30px;">${footerMessage}</p>
         
         <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-          <p style="margin-bottom: 5px; font-weight: bold; color: #1B263B; font-size: 14px;">F&G Corretora de Seguros</p>
+          <p style="margin-bottom: 5px; font-weight: bold; color: #1B263B; font-size: 14px;">F&G Seguro Garantia</p>
           <div style="margin-bottom: 15px;">
             <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-size: 12px; font-weight: bold; margin: 0 8px;">Instagram</a>
             <span style="color: #ccc;">|</span>
@@ -155,7 +181,7 @@ serve(async (req) => {
     const resendPayload: any = {
       from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
       to: [clientEmail.trim()],
-      subject: `Minuta para Conferência - ${clientName}`,
+      subject: isPerformance ? `Minuta para Conferência – Seguro Garantia de Contrato - ${clientName}` : `Minuta para Conferência - ${clientName}`,
       html: htmlBody,
     }
 
