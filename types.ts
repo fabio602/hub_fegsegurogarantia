@@ -60,6 +60,7 @@ export interface Sale {
   court?: string;
   valorLote?: string;
   orgaoLicitante?: string;
+  dataPregao?: string;
 }
 
 

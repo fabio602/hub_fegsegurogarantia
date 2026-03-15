@@ -23,6 +23,7 @@ serve(async (req) => {
       isGarantida, 
       valorLote,
       orgaoLicitante,
+      dataPregao,
       vigenciaInicio, 
       vigenciaFim,
       seguradora,
@@ -42,6 +43,7 @@ serve(async (req) => {
     const formattedIs = isGarantida || 'R$ 0,00'
     const formattedLote = valorLote || 'R$ 0,00'
     const formattedPremio = premio || 'R$ 0,00'
+    const formattedPregao = dataPregao ? new Date(dataPregao).toLocaleDateString('pt-BR') : '--/--/----'
     const formattedInicio = vigenciaInicio ? new Date(vigenciaInicio).toLocaleDateString('pt-BR') : '--/--/----'
     const formattedFim = vigenciaFim ? new Date(vigenciaFim).toLocaleDateString('pt-BR') : '--/--/----'
 
@@ -70,6 +72,10 @@ serve(async (req) => {
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Seguradora:</td>
                 <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${seguradora || 'Não Informada'}</td>
+              </tr>
+              <tr style="background-color: #fffbeb;">
+                <td style="padding: 8px 10px; color: #b45309; font-size: 13px; font-weight: bold; width: 40%;">Data do Pregão:</td>
+                <td style="padding: 8px 10px; color: #b45309; font-weight: 900; font-size: 15px;">${formattedPregao}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor do Edital:</td>

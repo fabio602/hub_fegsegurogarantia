@@ -176,6 +176,7 @@ const ResultsDashboard: React.FC = () => {
         court: '',
         valorLote: '',
         orgaoLicitante: '',
+        dataPregao: '',
     });
 
     // Compute sales expiring within 30 days
@@ -314,6 +315,7 @@ const ResultsDashboard: React.FC = () => {
             court: formData.court || null,
             valorLote: formData.valorLote || null,
             orgaoLicitante: formData.orgaoLicitante || null,
+            dataPregao: formData.dataPregao || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
         };
 
@@ -381,6 +383,7 @@ const ResultsDashboard: React.FC = () => {
             court: '',
             valorLote: '',
             orgaoLicitante: '',
+            dataPregao: '',
         });
     };
 
@@ -463,11 +466,12 @@ const ResultsDashboard: React.FC = () => {
                 body: {
                     clientName: formData.nome,
                     clientEmail: formData.email.trim(),
-                    decisor: formData.decisor,
+                    decisor: formData.decisor || undefined,
                     tipoSeguro: formData.tipo,
                     isGarantida: formData.is,
                     valorLote: formData.valorLote,
                     orgaoLicitante: formData.orgaoLicitante,
+                    dataPregao: formData.dataPregao,
                     vigenciaInicio: formData.vigencia_inicio,
                     vigenciaFim: formData.vigencia_fim,
                     seguradora: formData.seguradora,
@@ -985,6 +989,10 @@ const ResultsDashboard: React.FC = () => {
                                     <div className="group/field relative">
                                         <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Valor do Edital</label>
                                         <input type="text" id="valorLote" value={formData.valorLote || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
+                                    </div>
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">📅 Data do Pregão</label>
+                                        <input type="date" id="dataPregao" value={formData.dataPregao || ''} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                 </div>
                             )}
