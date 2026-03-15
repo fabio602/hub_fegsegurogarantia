@@ -135,23 +135,23 @@ serve(async (req) => {
     const htmlBody = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 25px;">
-           <h2 style="color: #1B263B; margin: 0; font-size: 20px; border-bottom: 2px solid #C69C6D; display: inline-block; padding-bottom: 5px;">${emailTitle}</h2>
+           <h2 style="color: #1B263B; margin: 0; font-size: 20px; border-bottom: 3px solid #C69C6D; display: inline-block; padding-bottom: 5px;">${emailTitle}</h2>
         </div>
         
-        <p style="font-size: 15px;">${isPerformance ? formalGreeting : ''}</p>
+        <p style="font-size: 15px; color: #1B263B;">${isPerformance ? formalGreeting : ''}</p>
         
-        <p style="font-size: 15px;">${mainMessage}</p>
+        <p style="font-size: 15px; color: #1B263B;">${mainMessage}</p>
         
         ${!isPerformance ? `
         <div style="background-color: #f8fafc; border-left: 4px solid #C69C6D; padding: 15px; margin: 20px 0; border-radius: 8px;">
-           <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Emitimos com data anterior ao pregão/instrumento contratual, pois temos notado que alguns órgãos públicos desclassificam empresas por não entenderem que o seguro já está vigente no momento da disputa, e isso não altera o valor.</p>
+           <p style="margin: 5px 0; font-size: 14px; color: #1B263B;">Emitimos com data anterior ao pregão/instrumento contratual, pois temos notado que alguns órgãos públicos desclassificam empresas por não entenderem que o seguro já está vigente no momento da disputa, e isso não altera o valor.</p>
         </div>
 
-        <p style="font-size: 15px;">Além disso, pedimos que verifique se há necessidade de sigilo do licitante. Se houver, lembre-se de que sua apólice contém os dados da empresa proponente.</p>
+        <p style="font-size: 15px; color: #1B263B;">Além disso, pedimos que verifique se há necessidade de sigilo do licitante. Se houver, lembre-se de que sua apólice contém os dados da empresa proponente.</p>
         ` : ''}
 
-        <div style="margin: 25px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-          <div style="background-color: #1B263B; color: white; padding: 10px 15px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+        <div style="margin: 25px 0; border: 2px solid #C69C6D; border-radius: 12px; overflow: hidden;">
+          <div style="background-color: #1B263B; color: #C69C6D; padding: 12px 15px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
             Resumo da Minuta
           </div>
           <div style="padding: ${isPerformance ? '0' : '15px'};">
@@ -164,15 +164,14 @@ serve(async (req) => {
         
         <p style="font-size: 15px; font-weight: ${isPerformance ? 'normal' : 'bold'}; color: #1B263B; text-align: ${isPerformance ? 'left' : 'center'}; margin-top: 30px;">${footerMessage}</p>
         
-        <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-          <p style="margin-bottom: 5px; font-weight: bold; color: #1B263B; font-size: 14px;">F&G Seguro Garantia</p>
-          <div style="margin-bottom: 15px;">
-            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-size: 12px; font-weight: bold; margin: 0 8px;">Instagram</a>
-            <span style="color: #ccc;">|</span>
-            <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-size: 12px; font-weight: bold; margin: 0 8px;">LinkedIn</a>
+        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
+          <p style="margin-bottom: 5px; font-weight: 900; color: #1B263B; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">F&G Seguro Garantia</p>
+          <div style="margin-bottom: 20px;">
+            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">Instagram</a>
+            <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">LinkedIn</a>
           </div>
-          <p style="font-size: 11px; color: #94a3b8;">
-            <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none;">fegsegurogarantia.com.br</a>
+          <p style="font-size: 13px;">
+            <a href="https://fegsegurogarantia.com.br" style="color: #1B263B; text-decoration: none; font-weight: bold;">fegsegurogarantia.com.br</a>
           </p>
         </div>
       </div>

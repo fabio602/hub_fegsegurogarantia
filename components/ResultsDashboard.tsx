@@ -1146,7 +1146,7 @@ const ResultsDashboard: React.FC = () => {
                                         type={formData.vendeu === 'Sim' ? 'submit' : 'button'}
                                         onClick={formData.vendeu === 'Sim' ? undefined : handleSendDraft}
                                         disabled={saving || !formData.email}
-                                        className={`${formData.vendeu === 'Sim' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
+                                        className={`${formData.vendeu === 'Sim' ? 'bg-[#1B263B] hover:bg-[#2c3e5a]' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
                                     >
                                         <Mail size={18} /> 
                                         {formData.vendeu === 'Sim' ? 'Enviar Apólice' : 'Enviar Minuta'}

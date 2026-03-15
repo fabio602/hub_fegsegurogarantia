@@ -93,32 +93,38 @@ serve(async (req) => {
       }
 
       const htmlBody = `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 16px; background-color: #ffffff;">
-          <h2 style="color: #1B263B; border-bottom: 2px solid #C69C6D; padding-bottom: 10px; margin-top: 0;">Entrega de Documentos - F&G Corretora</h2>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="color: #1B263B; margin: 0; font-size: 20px; border-bottom: 3px solid #C69C6D; display: inline-block; padding-bottom: 5px;">Entrega de Documentos</h2>
+          </div>
           
-          <p style="font-size: 16px;">${greeting}</p>
+          <p style="font-size: 16px; color: #1B263B;">${greeting}</p>
           
-          <p style="font-size: 15px;">${specificMessage}</p>
+          <p style="font-size: 15px; color: #1B263B;">${specificMessage}</p>
           
-          <p style="font-size: 15px;">Agradecemos por nos escolher, e continuamos à total disposição para as próximas demandas.</p>
+          <p style="font-size: 15px; color: #1B263B;">Agradecemos por nos escolher, e continuamos à total disposição para as próximas demandas.</p>
           
-          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0; border: 1px solid #e2e8f0;">
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0; border: 2px solid #C69C6D;">
             <p style="margin-top: 0; font-weight: bold; color: #1B263B; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">💡 Conheça nossas outras soluções:</p>
             <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
-              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Risco de Obra e Engenharia</strong></li>
-              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro Cyber</strong> (Proteção de dados e sistemas)</li>
-              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro de Crédito</strong></li>
-              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro Garantia Adiantamento</strong></li>
-              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguros Judiciais</strong> (Cível e Trabalhistas)</li>
+              <li style="margin-bottom: 8px; font-size: 14px; color: #1B263B;">✅ <strong>Risco de Obra e Engenharia</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px; color: #1B263B;">✅ <strong>Seguro Cyber</strong> (Proteção de dados e sistemas)</li>
+              <li style="margin-bottom: 8px; font-size: 14px; color: #1B263B;">✅ <strong>Seguro de Crédito</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px; color: #1B263B;">✅ <strong>Seguro Garantia Adiantamento</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px; color: #1B263B;">✅ <strong>Seguros Judiciais</strong> (Cível e Trabalhistas)</li>
             </ul>
           </div>
           
-          <p style="font-size: 15px; font-weight: bold;">Obrigado.</p>
+          <p style="font-size: 15px; font-weight: bold; color: #1B263B;">Obrigado.</p>
           
-          <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-            <p style="margin-top: 20px; font-size: 12px; color: #888;">
-              F&G Corretora de Seguros<br>
-              <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none; font-weight: bold;">fegsegurogarantia.com.br</a>
+          <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
+            <p style="margin-bottom: 5px; font-weight: 900; color: #1B263B; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">F&G Seguro Garantia</p>
+            <div style="margin-bottom: 20px;">
+              <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">Instagram</a>
+              <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">LinkedIn</a>
+            </div>
+            <p style="font-size: 13px;">
+              <a href="https://fegsegurogarantia.com.br" style="color: #1B263B; text-decoration: none; font-weight: bold;">fegsegurogarantia.com.br</a>
             </p>
           </div>
         </div>
