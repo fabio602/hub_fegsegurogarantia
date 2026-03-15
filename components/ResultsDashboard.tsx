@@ -132,6 +132,7 @@ const ResultsDashboard: React.FC = () => {
     const [newTempLimit, setNewTempLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
     const [editingClientName, setEditingClientName] = useState<string | null>(null);
     const [clientEditForm, setClientEditForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
+    const [sendingLimitsTo, setSendingLimitsTo] = useState<string | null>(null);
 
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
@@ -433,12 +434,12 @@ const ResultsDashboard: React.FC = () => {
             return;
         }
         
-        setSaving(true);
+        setSendingLimitsTo(client.nome);
         try {
             const { data, error } = await supabase.functions.invoke('send-limits', {
                 body: {
                     clientName: client.nome,
-                    clientEmail: client.email,
+                    clientEmail: client.email.trim(),
                     decisor: client.decisor,
                     limits: client.limites
                 }
@@ -452,7 +453,7 @@ const ResultsDashboard: React.FC = () => {
             console.error('Error sending limits:', error);
             setSaveError(error?.message || 'Erro ao enviar limites.');
         } finally {
-            setSaving(false);
+            setSendingLimitsTo(null);
         }
     };
 
@@ -1357,10 +1358,10 @@ const ResultsDashboard: React.FC = () => {
                                                                 ))}
                                                                 <button
                                                                     onClick={() => handleSendLimits(client)}
-                                                                    disabled={saving}
+                                                                    disabled={!!sendingLimitsTo}
                                                                     className="mt-2 w-full py-3 bg-[#1B263B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2c3e50] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                                 >
-                                                                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                                                    {sendingLimitsTo === client.nome ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                                                     Enviar p/ Cliente
                                                                 </button>
                                                             </div>

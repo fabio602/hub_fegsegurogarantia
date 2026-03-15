@@ -79,20 +79,28 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
-        to: [clientEmail],
+        to: [clientEmail.trim()],
         subject: `Limites de Crédito Disponíveis - ${clientName}`,
         html: htmlBody,
       }),
     })
 
+    const status = res.status
     const result = await res.json()
+    
+    console.log(`[Resend Response] Status: ${status}`, JSON.stringify(result))
+
+    if (!res.ok) {
+      throw new Error(`Resend error (${status}): ${JSON.stringify(result)}`)
+    }
+
     return new Response(JSON.stringify(result), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200 
     })
 
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+  } catch (error: any) {
+    const errorMessage = error.message || 'Unknown error'
     console.error('Function execution error:', errorMessage)
     return new Response(JSON.stringify({ error: errorMessage }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
