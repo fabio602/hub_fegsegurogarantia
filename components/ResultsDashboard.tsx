@@ -146,6 +146,8 @@ const ResultsDashboard: React.FC = () => {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     });
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
+    const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
@@ -177,6 +179,10 @@ const ResultsDashboard: React.FC = () => {
         valorLote: '',
         orgaoLicitante: '',
         dataPregao: '',
+        numeroContrato: '',
+        objetoContrato: '',
+        segurado: '',
+        valorContrato: '',
     });
 
     // Compute sales expiring within 30 days
@@ -223,7 +229,7 @@ const ResultsDashboard: React.FC = () => {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [id]: checked ? 'Sim' : 'Não' }));
         } else {
-            if (id === 'is' || id === 'premio' || id === 'comissao' || id === 'valorLote') {
+            if (id === 'is' || id === 'premio' || id === 'comissao' || id === 'valorLote' || id === 'valorContrato') {
                 // Remove everything except digits
                 const digits = value.replace(/\D/g, '');
                 if (digits === '') {
@@ -316,6 +322,10 @@ const ResultsDashboard: React.FC = () => {
             valorLote: formData.valorLote || null,
             orgaoLicitante: formData.orgaoLicitante || null,
             dataPregao: formData.dataPregao || null,
+            numeroContrato: formData.numeroContrato || null,
+            objetoContrato: formData.objetoContrato || null,
+            segurado: formData.segurado || null,
+            valorContrato: formData.valorContrato || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
         };
 
@@ -330,12 +340,32 @@ const ResultsDashboard: React.FC = () => {
             await fetchData();
             setSaveSuccess(true);
             
-            // If the sale was won, ask to send thank you email
+            // If the sale was won, trigger the thank you email manually with attachments
             if (payload.vendeu === 'Sim' && payload.email) {
-                setShowEmailPrompt({
-                    email: payload.email,
-                    name: payload.nome || '',
-                    decisor: payload.decisor || undefined
+                const attachments: any[] = [];
+                
+                const readFile = (file: File) => new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve({
+                        content: (reader.result as string).split(',')[1],
+                        filename: file.name
+                    });
+                    reader.readAsDataURL(file);
+                });
+
+                if (selectedApolice) attachments.push(await readFile(selectedApolice));
+                if (selectedBoleto) attachments.push(await readFile(selectedBoleto));
+
+                // Manual call to send-thank-you
+                await supabase.functions.invoke('send-thank-you', {
+                    body: {
+                        type: 'MANUAL',
+                        record: {
+                            ...payload,
+                            id: editingId || 0 // Use 0 if it's a new insert, function will handle search
+                        },
+                        attachments
+                    }
                 });
             }
 
@@ -384,7 +414,14 @@ const ResultsDashboard: React.FC = () => {
             valorLote: '',
             orgaoLicitante: '',
             dataPregao: '',
+            numeroContrato: '',
+            objetoContrato: '',
+            segurado: '',
+            valorContrato: '',
         });
+        setSelectedFile(null);
+        setSelectedApolice(null);
+        setSelectedBoleto(null);
     };
 
     const handleEdit = (sale: Sale) => {
@@ -472,6 +509,10 @@ const ResultsDashboard: React.FC = () => {
                     valorLote: formData.valorLote,
                     orgaoLicitante: formData.orgaoLicitante,
                     dataPregao: formData.dataPregao,
+                    numeroContrato: formData.numeroContrato,
+                    objetoContrato: formData.objetoContrato,
+                    segurado: formData.segurado,
+                    valorContrato: formData.valorContrato,
                     vigenciaInicio: formData.vigencia_inicio,
                     vigenciaFim: formData.vigencia_fim,
                     seguradora: formData.seguradora,
@@ -997,6 +1038,50 @@ const ResultsDashboard: React.FC = () => {
                                 </div>
                             )}
 
+                            {formData.tipo === 'Performance' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Número do Contrato</label>
+                                        <input type="text" id="numeroContrato" value={formData.numeroContrato || ''} onChange={handleInputChange} placeholder="Ex: 001/2024" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                    </div>
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Segurado (Beneficiário)</label>
+                                        <input type="text" id="segurado" value={formData.segurado || ''} onChange={handleInputChange} placeholder="Nome do Segurado" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                    </div>
+                                    <div className="group/field relative md:col-span-2">
+                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Objeto do Contrato</label>
+                                        <input type="text" id="objetoContrato" value={formData.objetoContrato || ''} onChange={handleInputChange} placeholder="Descrição curta do objeto" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                    </div>
+                                    <div className="group/field relative">
+                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Valor do Contrato</label>
+                                        <input type="text" id="valorContrato" value={formData.valorContrato || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {formData.vendeu === 'Sim' && (
+                                <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-4">
+                                    <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest px-1">📎 Documentos de Fechamento</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <input type="file" id="apolice-file" accept=".pdf" onChange={(e) => setSelectedApolice(e.target.files?.[0] || null)} className="hidden" />
+                                            <label htmlFor="apolice-file" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedApolice ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
+                                                <Shield size={16} /> {selectedApolice ? selectedApolice.name.substring(0, 15) : 'Anexar Apólice (PDF)'}
+                                            </label>
+                                            {selectedApolice && <button type="button" onClick={() => setSelectedApolice(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><X size={16} /></button>}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <input type="file" id="boleto-file" accept=".pdf" onChange={(e) => setSelectedBoleto(e.target.files?.[0] || null)} className="hidden" />
+                                            <label htmlFor="boleto-file" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedBoleto ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
+                                                <DollarSign size={16} /> {selectedBoleto ? selectedBoleto.name.substring(0, 15) : 'Anexar Boleto (PDF)'}
+                                            </label>
+                                            {selectedBoleto && <button type="button" onClick={() => setSelectedBoleto(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><X size={16} /></button>}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-emerald-600/70 font-medium italic text-center">Ao salvar com status "Sim", os arquivos serão enviados automaticamente ao cliente.</p>
+                                </div>
+                            )}
+
                             <div className="flex justify-end items-center gap-3">
                                 {editingId && (
                                     <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
@@ -1004,44 +1089,49 @@ const ResultsDashboard: React.FC = () => {
                                     </button>
                                 )}
                                 
-                                <div className="relative">
-                                    <input 
-                                        type="file" 
-                                        id="draft-file" 
-                                        accept=".pdf"
-                                        className="hidden" 
-                                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                    />
-                                    <label 
-                                        htmlFor="draft-file"
-                                        className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm border cursor-pointer transition-all ${
-                                            selectedFile 
-                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <FileText size={18} />
-                                        {selectedFile ? selectedFile.name.substring(0, 15) + '...' : 'Anexar Minuta (PDF)'}
-                                        {selectedFile && (
-                                            <button 
-                                                type="button" 
-                                                onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
-                                                className="ml-1 p-0.5 hover:bg-emerald-200 rounded-full"
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        )}
-                                    </label>
-                                </div>
+                                {(formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
+                                    <div className="relative">
+                                        <input 
+                                            type="file" 
+                                            id="draft-file" 
+                                            accept=".pdf"
+                                            className="hidden" 
+                                            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                        />
+                                        <label 
+                                            htmlFor="draft-file"
+                                            className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm border cursor-pointer transition-all ${
+                                                selectedFile 
+                                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <FileText size={18} />
+                                            {selectedFile ? selectedFile.name.substring(0, 15) + '...' : 'Anexar Minuta (PDF)'}
+                                            {selectedFile && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
+                                                    className="ml-1 p-0.5 hover:bg-emerald-200 rounded-full"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </label>
+                                    </div>
+                                )}
 
-                                <button 
-                                    type="button" 
-                                    onClick={handleSendDraft}
-                                    disabled={saving || !formData.email}
-                                    className="bg-slate-800 text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    <Mail size={18} /> Enviar Minuta
-                                </button>
+                                {(formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleSendDraft}
+                                        disabled={saving || !formData.email}
+                                        className="bg-slate-800 text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Mail size={18} /> Enviar Minuta
+                                    </button>
+                                )}
+
                                 <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
                                     {editingId ? 'Salvar Alterações' : 'Adicionar Venda'}

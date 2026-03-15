@@ -61,6 +61,10 @@ export interface Sale {
   valorLote?: string;
   orgaoLicitante?: string;
   dataPregao?: string;
+  numeroContrato?: string;
+  objetoContrato?: string;
+  segurado?: string;
+  valorContrato?: string;
 }
 
 

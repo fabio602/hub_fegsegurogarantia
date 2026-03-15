@@ -17,45 +17,43 @@ serve(async (req) => {
   }
 
   try {
-    // Validate environment variables early
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error('Missing environment variables')
     }
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const payload = await req.json()
-    console.log('Received payload:', JSON.stringify(payload))
+    const { record, old_record, type, attachments } = payload
     
-    const { record, old_record, type } = payload
+    console.log(`[Thank You Email] Request Type: ${type} - Client: ${record?.nome}`)
 
     if (!record) {
       throw new Error('No record found in payload')
     }
 
-    // --- STRATEGIC FILTERING TO PREVENT BULK EMAILS ---
-    // Only proceed if it's a new record with status 'Sim' OR
-    // an update where 'vendeu' CHANGED to 'Sim'.
-    const isNewSale = type === 'INSERT' && record.vendeu === 'Sim'
-    const statusChangedToSim = type === 'UPDATE' && record.vendeu === 'Sim' && old_record?.vendeu !== 'Sim'
+    // --- STRATEGIC FILTERING ---
+    // MANUAL: Triggered from UI with status 'Sim'
+    // INSERT/UPDATE: Webhook when status becomes 'Sim'
+    const isManual = type === 'MANUAL'
+    const isNewWonSale = type === 'INSERT' && record.vendeu === 'Sim'
+    const statusChangedToWon = type === 'UPDATE' && record.vendeu === 'Sim' && old_record?.vendeu !== 'Sim'
 
-    if (!isNewSale && !statusChangedToSim) {
-      console.log(`Skipping: Event type ${type}, Status: ${record.vendeu}, Previous Status: ${old_record?.vendeu}`)
-      return new Response(JSON.stringify({ message: 'No action needed: status did not change to Sim' }), { 
+    if (!isManual && !isNewWonSale && !statusChangedToWon) {
+      console.log('Skipping: Not a Manual trigger or Status change to Sim')
+      return new Response(JSON.stringify({ message: 'No action needed' }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
-    // --------------------------------------------------
 
     if (record.email) {
       // Check for repeat customer
-      // Build a robust OR filter that avoids errors if CNPJ is missing
       let orFilter = `email.eq.${record.email}`
       if (record.cnpj && typeof record.cnpj === 'string' && record.cnpj.trim() !== '') {
         orFilter = `cnpj.eq.${record.cnpj},${orFilter}`
       }
 
-      const { data: previousSales, error: searchError } = await supabaseClient
+      const { data: previousSales } = await supabaseClient
         .from('sales')
         .select('id')
         .eq('vendeu', 'Sim')
@@ -63,49 +61,49 @@ serve(async (req) => {
         .neq('id', record.id)
         .limit(1)
 
-      if (searchError) {
-        console.error('Error searching previous sales:', searchError)
-      }
-
       const isRepeatClient = previousSales && previousSales.length > 0
-      
       const decisor = record.decisor || ''
       const greeting = decisor ? `Olá ${decisor},` : `Olá,`
       
-      const welcomeText = isRepeatClient
-        ? "É um prazer tê-lo conosco novamente! Agradecemos por continuar confiando na <strong>F&G Corretora</strong> para a gestão das suas apólices."
-        : "Agradecemos pela parceria e pela confiança na <strong>F&G Corretora</strong> para a contratação da sua primeira apólice. Estamos à total disposição."
+      // Personalized message based on bond type
+      let specificMessage = ''
+      if (record.tipo === 'Licitante') {
+        specificMessage = `Segue anexo a apólice e boleto do Seguro Garantia da <strong>${record.nome}</strong> com a <strong>${record.orgaoLicitante || 'Órgão Licitante'}</strong>.`
+      } else if (record.tipo === 'Performance') {
+        specificMessage = `Segue anexo a apólice e boleto do Seguro Garantia da <strong>${record.nome}</strong> com a <strong>${record.segurado || 'Segurado'}</strong>.`
+      } else {
+        specificMessage = isRepeatClient
+          ? "É um prazer tê-lo conosco novamente! Agradecemos por continuar confiando na <strong>F&G Corretora</strong>."
+          : "Agradecemos pela parceria e pela confiança na <strong>F&G Corretora</strong> para a contratação da sua primeira apólice."
+      }
 
       const htmlBody = `
-        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #1B263B; border-bottom: 2px solid #C69C6D; padding-bottom: 10px;">Agradecimento - F&G Corretora</h2>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 16px; background-color: #ffffff;">
+          <h2 style="color: #1B263B; border-bottom: 2px solid #C69C6D; padding-bottom: 10px; margin-top: 0;">Entrega de Documentos - F&G Corretora</h2>
           
-          <p>${greeting}</p>
+          <p style="font-size: 16px;">${greeting}</p>
           
-          <p>${welcomeText}</p>
+          <p style="font-size: 15px;">${specificMessage}</p>
           
-          <p>Aproveitamos para lembrar que também atuamos com outras soluções que podem proteger ainda mais a sua empresa:</p>
+          <p style="font-size: 15px;">Agradecemos por nos escolher, e continuamos à total disposição para as próximas demandas.</p>
           
-          <ul style="list-style-type: none; padding-left: 0;">
-            <li style="margin-bottom: 8px;">✅ <strong>Risco de Obra e Engenharia</strong></li>
-            <li style="margin-bottom: 8px;">✅ <strong>Seguro Cyber</strong></li>
-            <li style="margin-bottom: 8px;">✅ <strong>Seguro de Crédito</strong></li>
-            <li style="margin-bottom: 8px;">✅ <strong>Seguro Garantia Adiantamento de Pagamento</strong></li>
-            <li style="margin-bottom: 8px;">✅ <strong>Seguros Judiciais (Cível e Trabalhistas)</strong></li>
-          </ul>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0; border: 1px solid #e2e8f0;">
+            <p style="margin-top: 0; font-weight: bold; color: #1B263B; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">💡 Conheça nossas outras soluções:</p>
+            <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
+              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Risco de Obra e Engenharia</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro Cyber</strong> (Proteção de dados e sistemas)</li>
+              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro de Crédito</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguro Garantia Adiantamento</strong></li>
+              <li style="margin-bottom: 8px; font-size: 14px;">✅ <strong>Seguros Judiciais</strong> (Cível e Trabalhistas)</li>
+            </ul>
+          </div>
           
-          <p>Conte conosco para o que for necessário!</p>
+          <p style="font-size: 15px; font-weight: bold;">Obrigado.</p>
           
           <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
-            <p style="margin-bottom: 10px; font-weight: bold; color: #1B263B;">Siga-nos nas redes sociais:</p>
-            <div style="display: flex; justify-content: center; gap: 20px;">
-              <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-weight: bold; padding: 5px 15px; border: 1px solid #E1306C; border-radius: 5px; font-size: 14px;">Instagram</a>
-              <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-weight: bold; padding: 5px 15px; border: 1px solid #0077B5; border-radius: 5px; font-size: 14px;">LinkedIn</a>
-            </div>
-            
             <p style="margin-top: 20px; font-size: 12px; color: #888;">
               F&G Corretora de Seguros<br>
-              <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none;">fegsegurogarantia.com.br</a>
+              <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none; font-weight: bold;">fegsegurogarantia.com.br</a>
             </p>
           </div>
         </div>
@@ -120,8 +118,9 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'F&G Corretora <contato@fegsegurogarantia.com.br>',
           to: [record.email],
-          subject: isRepeatClient ? 'Obrigado por confiar novamente na F&G Corretora!' : 'Seja bem-vindo à F&G Corretora!',
+          subject: record.tipo === 'Licitante' ? `Apólice e Boleto - ${record.nome}` : 'Obrigado por escolher a F&G Corretora!',
           html: htmlBody,
+          attachments: attachments || []
         }),
       })
 
@@ -138,7 +137,7 @@ serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ message: 'No action needed' }), { 
+    return new Response(JSON.stringify({ message: 'No email found' }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200 
     })
