@@ -72,7 +72,7 @@ serve(async (req) => {
                 <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${seguradora || 'Não Informada'}</td>
               </tr>
               <tr>
-                <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor do Lote:</td>
+                <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor do Edital:</td>
                 <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${formattedLote}</td>
               </tr>
               <tr>

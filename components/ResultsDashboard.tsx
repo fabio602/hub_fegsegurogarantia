@@ -222,7 +222,7 @@ const ResultsDashboard: React.FC = () => {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [id]: checked ? 'Sim' : 'Não' }));
         } else {
-            if (id === 'is' || id === 'premio' || id === 'comissao') {
+            if (id === 'is' || id === 'premio' || id === 'comissao' || id === 'valorLote') {
                 // Remove everything except digits
                 const digits = value.replace(/\D/g, '');
                 if (digits === '') {
@@ -983,7 +983,7 @@ const ResultsDashboard: React.FC = () => {
                                         <input type="text" id="orgaoLicitante" value={formData.orgaoLicitante || ''} onChange={handleInputChange} placeholder="Ex: Município de..." className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Valor do Lote (Estimado)</label>
+                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Valor do Edital</label>
                                         <input type="text" id="valorLote" value={formData.valorLote || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                 </div>
