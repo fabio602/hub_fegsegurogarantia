@@ -60,9 +60,10 @@ serve(async (req) => {
         
         <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
           <p style="margin-bottom: 10px; font-weight: bold; color: #1B263B;">F&G Corretora de Seguros</p>
-          <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
-            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-size: 13px; font-weight: bold;">Instagram</a>
-            <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-size: 13px; font-weight: bold;">LinkedIn</a>
+          <div style="margin-bottom: 15px;">
+            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-size: 13px; font-weight: bold; margin: 0 10px;">Instagram</a>
+            <span style="color: #ccc;">|</span>
+            <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-size: 13px; font-weight: bold; margin: 0 10px;">LinkedIn</a>
           </div>
           <p style="font-size: 12px; color: #888;">
             <a href="https://fegsegurogarantia.com.br" style="color: #C69C6D; text-decoration: none;">fegsegurogarantia.com.br</a>
