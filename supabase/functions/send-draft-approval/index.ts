@@ -24,7 +24,9 @@ serve(async (req) => {
       valorLote,
       orgaoLicitante,
       vigenciaInicio, 
-      vigenciaFim 
+      vigenciaFim,
+      seguradora,
+      premio
     } = payload
     
     console.log(`[Draft Approval Request] To: ${clientEmail} (Client: ${clientName})`)
@@ -37,6 +39,7 @@ serve(async (req) => {
     
     const formattedIs = isGarantida || 'R$ 0,00'
     const formattedLote = valorLote || 'R$ 0,00'
+    const formattedPremio = premio || 'R$ 0,00'
     const formattedInicio = vigenciaInicio ? new Date(vigenciaInicio).toLocaleDateString('pt-BR') : '--/--/----'
     const formattedFim = vigenciaFim ? new Date(vigenciaFim).toLocaleDateString('pt-BR') : '--/--/----'
 
@@ -63,12 +66,20 @@ serve(async (req) => {
           <div style="padding: 15px;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
+                <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Seguradora:</td>
+                <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${seguradora || 'Não Informada'}</td>
+              </tr>
+              <tr>
                 <td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 40%;">Valor do Lote:</td>
                 <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${formattedLote}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Valor da Garantia:</td>
                 <td style="padding: 8px 0; color: #C69C6D; font-weight: bold; font-size: 15px;">${formattedIs}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Valor do Prêmio:</td>
+                <td style="padding: 8px 0; color: #1B263B; font-weight: bold; font-size: 15px;">${formattedPremio}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-size: 13px;">Vigência:</td>

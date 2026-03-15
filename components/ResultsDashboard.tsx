@@ -448,7 +448,9 @@ const ResultsDashboard: React.FC = () => {
                     valorLote: formData.valorLote,
                     orgaoLicitante: formData.orgaoLicitante,
                     vigenciaInicio: formData.vigencia_inicio,
-                    vigenciaFim: formData.vigencia_fim
+                    vigenciaFim: formData.vigencia_fim,
+                    seguradora: formData.seguradora,
+                    premio: formData.premio
                 }
             });
 
@@ -910,7 +912,7 @@ const ResultsDashboard: React.FC = () => {
                                         </select>
                                     </div>
                                 )}
-                                {formData.vendeu === 'Sim' && (
+                                {(formData.vendeu === 'Sim' || (formData.vendeu === 'Em andamento' && formData.tipo === 'Licitante')) && (
                                     <>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
