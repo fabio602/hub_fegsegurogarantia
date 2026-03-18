@@ -181,6 +181,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [isNewLeadModalOpen, setIsNewLeadModalOpen] = useState(false);
     const [newLeadForm, setNewLeadForm] = useState<Partial<Prospect>>({ status: 'Novos Leads' });
     const [savingLead, setSavingLead] = useState(false);
+    const [newLimitesArray, setNewLimitesArray] = useState<{seguradora: string; valor: string}[]>([]);
+    const [newCurrentLimit, setNewCurrentLimit] = useState<{seguradora: string; valor: string}>({ seguradora: '', valor: '' });
 
     // Edit Lead Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -654,15 +656,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         if (!newLeadForm.company && !newLeadForm.name) { alert("É necessário preencher a Empresa ou o Nome do Contato."); return; }
         setSavingLead(true);
         try {
+            const finalLimites = newLimitesArray.length > 0 ? JSON.stringify(newLimitesArray) : null;
             const { error } = await supabase.from('prospects').insert([{ 
                 ...newLeadForm, 
                 company: newLeadForm.company || newLeadForm.name,
-                product_type: selectedProduct // Herda o produto selecionado
+                product_type: selectedProduct, // Herda o produto selecionado
+                limites_seguradoras: finalLimites
             }]);
             if (error) throw error;
             await fetchProspects();
             setIsNewLeadModalOpen(false);
             setNewLeadForm({ status: 'Novos Leads' });
+            setNewLimitesArray([]);
+            setNewCurrentLimit({ seguradora: '', valor: '' });
         } catch (error) { console.error('Error saving lead:', error); alert('Erro ao salvar o lead.'); }
         finally { setSavingLead(false); }
     };
@@ -713,7 +719,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* Action Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex items-center gap-3 flex-wrap">
-                    <button onClick={() => setIsNewLeadModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
+                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
                         <Plus size={18} /> Novo Lead
                     </button>
                     <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
@@ -1005,6 +1011,59 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <form id="new-lead-form" onSubmit={handleCreateNewLead}>
                                 <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} selectedProduct={selectedProduct} />
                             </form>
+                            
+                            {/* Insurer Limits Section for New Lead */}
+                            <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                {newLimitesArray.length > 0 && (
+                                    <div className="space-y-2">
+                                        {newLimitesArray.map((lim, i) => (
+                                            <div key={i} className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100">
+                                                <span className="flex-1 text-sm font-bold text-indigo-800">{lim.seguradora}</span>
+                                                <span className="text-sm font-black text-indigo-600">{lim.valor}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
+                                                    className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Seguradora"
+                                        value={newCurrentLimit.seguradora}
+                                        onChange={e => setNewCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
+                                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Valor (R$)"
+                                        value={newCurrentLimit.valor}
+                                        onChange={e => {
+                                            let val = e.target.value.replace(/\D/g, '');
+                                            if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
+                                            setNewCurrentLimit(prev => ({ ...prev, valor: val }));
+                                        }}
+                                        className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!newCurrentLimit.seguradora) return;
+                                            setNewLimitesArray(prev => [...prev, newCurrentLimit]);
+                                            setNewCurrentLimit({ seguradora: '', valor: '' });
+                                        }}
+                                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                    >
+                                        <Plus size={16} /> Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button type="button" onClick={() => setIsNewLeadModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
