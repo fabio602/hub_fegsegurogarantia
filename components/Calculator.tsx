@@ -9,12 +9,13 @@ const Calculator: React.FC = () => {
   const [percentualGarantia, setPercentualGarantia] = useState<string>('0,00');
   const [taxaTomador, setTaxaTomador] = useState<string>('0,00');
   const [vigenciaDias, setVigenciaDias] = useState<string>('0');
-  const [somarAdicional, setSomarAdicional] = useState(false);
 
   // Estados para Seguro Adicional
   const [edital, setEdital] = useState<string>('0,00');
   const [lancePregao, setLancePregao] = useState<string>('0,00');
   const [percentualGarantiaContratual, setPercentualGarantiaContratual] = useState<string>('5,00');
+  const [taxaTomadorAdicional, setTaxaTomadorAdicional] = useState<string>('0,00');
+  const [vigenciaDiasAdicional, setVigenciaDiasAdicional] = useState<string>('0');
 
   // Cálculos Automáticos (Lógica baseada no HTML fornecido)
   const numValorContrato = parseNumber(valorContrato);
@@ -33,13 +34,17 @@ const Calculator: React.FC = () => {
   const totalGarantia = garantiaAdicional + garantiaContratual;
 
   // Cálculos Garantia
-  let importanciaSegurada = numValorContrato * (numPercentualGarantia / 100);
-  if (somarAdicional) {
-    importanciaSegurada += garantiaAdicional;
-  }
+  const importanciaSegurada = numValorContrato * (numPercentualGarantia / 100);
 
   const premioAnual = importanciaSegurada * (numTaxaTomador / 100);
   const premioTotal = (premioAnual / 365) * numVigenciaDias;
+
+  // Novos Cálculos Independentes para Adicional
+  const numTaxaTomadorAdicional = parseNumber(taxaTomadorAdicional);
+  const numVigenciaDiasAdicional = parseInt(vigenciaDiasAdicional) || 0;
+  
+  const premioAnualAdicional = totalGarantia * (numTaxaTomadorAdicional / 100);
+  const premioTotalAdicional = (premioAnualAdicional / 365) * numVigenciaDiasAdicional;
 
   const handleInputChange = (value: string, setter: (v: string) => void, isInt: boolean = false) => {
     // Remove tudo que não é dígito
@@ -113,24 +118,6 @@ const Calculator: React.FC = () => {
                     <label className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest">Importância Segurada</label>
                     <span className="text-lg font-black text-[#1B263B]">{formatCurrency(importanciaSegurada)}</span>
                  </div>
-              </div>
-
-              <div className="flex items-center p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                 <label className="flex items-center gap-3 cursor-pointer group w-full">
-                    <div className="relative shrink-0">
-                       <input 
-                        type="checkbox" 
-                        checked={somarAdicional} 
-                        onChange={(e) => setSomarAdicional(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-[#1B263B] transition-colors"></div>
-                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
-                    </div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors leading-tight">
-                      Somar Garantia Adicional à Importância Segurada
-                    </span>
-                 </label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -232,6 +219,38 @@ const Calculator: React.FC = () => {
                  </div>
                  <span className="text-sm font-black text-blue-700">{formatCurrency(garantiaContratual)}</span>
               </div>
+
+              {/* Independent Inputs for Additional Guarantee */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa do Tomador (%)</label>
+                  <input 
+                    type="text" 
+                    value={taxaTomadorAdicional}
+                    onChange={(e) => handleInputChange(e.target.value, setTaxaTomadorAdicional)}
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigência (nº de dias)</label>
+                  <div className="relative">
+                    <Calendar size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={vigenciaDiasAdicional}
+                      onChange={(e) => handleInputChange(e.target.value, setVigenciaDiasAdicional, true)}
+                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <div className="flex justify-between items-center text-slate-400 mb-1">
+                   <span className="text-[10px] font-black uppercase tracking-widest">Prêmio Anual Adicional</span>
+                   <span className="text-sm font-bold">{formatCurrency(premioAnualAdicional)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -239,25 +258,42 @@ const Calculator: React.FC = () => {
 
       {/* Resultados Finais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Resultado Final: Seguro Garantia */}
         <div className="bg-[#1B263B] p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
              <CalcIcon size={80} className="text-[#C69C6D]" />
           </div>
-          <p className="text-[#C69C6D] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final</p>
+          <p className="text-[#C69C6D] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotal)}</h4>
           <div className="mt-8 flex items-center gap-2 text-slate-400">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
              <p className="text-[10px] font-bold uppercase tracking-widest">Cálculo de Vigência Proporcional</p>
           </div>
+          <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-2xl flex items-start gap-3">
+             <Info size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+             <p className="text-[10px] text-slate-300 font-bold leading-relaxed uppercase">
+                ⚠️ MÍNIMO: R$ 150,00 (Verificar Cia)
+             </p>
+          </div>
         </div>
 
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl flex flex-col justify-center">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[4px] mb-2">Total Garantia</p>
-          <h4 className="text-slate-800 text-5xl font-black tracking-tighter">{formatCurrency(totalGarantia)}</h4>
-          <div className="mt-8 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3">
-             <Info size={18} className="text-[#C69C6D] shrink-0 mt-0.5" />
-             <p className="text-[10px] text-orange-700 font-bold leading-relaxed uppercase">
-                ⚠️ OBSERVAÇÃO: Abaixo de R$ 150,00 considerar prêmio mínimo por Seguradora.
+        {/* Resultado Final: Seguro Adicional */}
+        <div className="bg-[#C69C6D] p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:-translate-x-4 transition-transform text-[#1B263B]">
+             <FileText size={80} />
+          </div>
+          <p className="text-[#1B263B] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Adicional)</p>
+          <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotalAdicional)}</h4>
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between items-center bg-[#1B263B]/10 rounded-xl px-4 py-2 border border-[#1B263B]/5">
+              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Total Garantia Base</span>
+              <span className="text-sm font-black text-white">{formatCurrency(totalGarantia)}</span>
+            </div>
+          </div>
+          <div className="mt-8 p-4 bg-[#1B263B]/5 border border-[#1B263B]/10 rounded-2xl flex items-start gap-3">
+             <Info size={18} className="text-[#1B263B] shrink-0 mt-0.5" />
+             <p className="text-[10px] text-[#1B263B] font-bold leading-relaxed uppercase">
+                Calculado sobre o Total da Garantia Adicional de forma independente.
              </p>
           </div>
         </div>
