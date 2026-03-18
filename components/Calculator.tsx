@@ -14,6 +14,7 @@ const Calculator: React.FC = () => {
   // Estados para Seguro Adicional
   const [edital, setEdital] = useState<string>('0,00');
   const [lancePregao, setLancePregao] = useState<string>('0,00');
+  const [percentualGarantiaContratual, setPercentualGarantiaContratual] = useState<string>('5,00');
 
   // Cálculos Automáticos (Lógica baseada no HTML fornecido)
   const numValorContrato = parseNumber(valorContrato);
@@ -25,9 +26,10 @@ const Calculator: React.FC = () => {
   const numLancePregao = parseNumber(lancePregao);
 
   // Cálculos Adicional
+  const numPercentualGarantiaContratual = parseNumber(percentualGarantiaContratual);
   const edital85 = numEdital * 0.85;
   const garantiaAdicional = Math.max(0, edital85 - numLancePregao);
-  const garantiaContratual = numLancePregao * 0.05;
+  const garantiaContratual = numLancePregao * (numPercentualGarantiaContratual / 100);
   const totalGarantia = garantiaAdicional + garantiaContratual;
 
   // Cálculos Garantia
@@ -215,8 +217,19 @@ const Calculator: React.FC = () => {
                  <span className="text-sm font-black text-amber-700">{formatCurrency(garantiaAdicional)}</span>
               </div>
 
-              <div className="flex justify-between items-center p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                 <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Garantia Contratual (5%)</span>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-blue-50/50 rounded-2xl border border-blue-100 gap-4">
+                 <div className="flex items-center gap-3 w-full md:w-auto">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest whitespace-nowrap">Garantia Contratual</span>
+                    <div className="relative w-24">
+                      <Percent size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400" />
+                      <input 
+                        type="text" 
+                        value={percentualGarantiaContratual}
+                        onChange={(e) => handleInputChange(e.target.value, setPercentualGarantiaContratual)}
+                        className="w-full pl-3 pr-8 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none font-bold text-blue-700 text-xs text-center"
+                      />
+                    </div>
+                 </div>
                  <span className="text-sm font-black text-blue-700">{formatCurrency(garantiaContratual)}</span>
               </div>
             </div>
