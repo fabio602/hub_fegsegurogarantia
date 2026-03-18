@@ -586,7 +586,13 @@ const ResultsDashboard: React.FC = () => {
     const handleUpdateClientLimits = async (clientName: string, salesIds: number[]) => {
         setSaving(true);
         try {
-            const limitesJson = JSON.stringify(tempClientLimits);
+            // Auto-append any un-added limit before saving
+            let finalLimits = [...tempClientLimits];
+            if (newTempLimit.seguradora && newTempLimit.valor) {
+                finalLimits.push(newTempLimit);
+            }
+            const limitesJson = JSON.stringify(finalLimits);
+            
             const { error } = await supabase
                 .from('sales')
                 .update({ limites_seguradoras: limitesJson })
