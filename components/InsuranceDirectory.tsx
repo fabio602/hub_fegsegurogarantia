@@ -90,7 +90,8 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
         portal: editForm.portal,
         login: editForm.login,
         senha: editForm.senha,
-        obs: editForm.obs
+        obs: editForm.obs,
+        ccg: editForm.ccg
       });
 
     if (error) {
@@ -110,7 +111,8 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       login: '',
       senha: '',
       portal: '',
-      obs: ''
+      obs: '',
+      ccg: ''
     };
     setInsurers([newIns as Insurer, ...insurers]);
     setEditingId(tempId);
@@ -206,16 +208,42 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
               </div>
 
               <div className="px-8 py-2">
-                {(ins.premioMinimo || ins.premio_minimo) && !isEditing && (
-                  <div className="bg-[#1B263B]/5 text-[#1B263B] px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#C69C6D] animate-pulse"></div>
-                    MÍNIMO {ins.premioMinimo || ins.premio_minimo}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {(ins.premioMinimo || ins.premio_minimo) && !isEditing && (
+                    <div className="bg-[#1B263B]/5 text-[#1B263B] px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#C69C6D] animate-pulse"></div>
+                      MÍNIMO {ins.premioMinimo || ins.premio_minimo}
+                    </div>
+                  )}
+                  {ins.ccg && !isEditing && (
+                    <div className="bg-red-50 text-red-600 px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase border border-red-100">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                      ACIMA DE {ins.ccg} EXIGE CCG
+                    </div>
+                  )}
+                </div>
+                
                 {isEditing && (
-                  <div className="flex flex-col gap-2 mt-4">
-                    <span className="text-xs font-black text-[#C69C6D] uppercase tracking-[2px]">Prêmio Mínimo</span>
-                    <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl focus:border-[#C69C6D]" placeholder="Ex: R$ 150,00" value={editForm.premioMinimo || editForm.premio_minimo || ''} onChange={e => setEditForm({ ...editForm, premioMinimo: e.target.value })} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-black text-[#C69C6D] uppercase tracking-[2px]">Prêmio Mínimo</span>
+                      <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl focus:border-[#C69C6D]" placeholder="Ex: R$ 150,00" value={editForm.premioMinimo || editForm.premio_minimo || ''} onChange={e => setEditForm({ ...editForm, premioMinimo: e.target.value })} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs font-black text-[#C69C6D] uppercase tracking-[2px]">Valor do CCG</span>
+                      <input 
+                        className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl focus:border-[#C69C6D]" 
+                        placeholder="Ex: R$ 1.500,00" 
+                        value={editForm.ccg || ''} 
+                        onChange={e => {
+                          let val = e.target.value.replace(/\D/g, '');
+                          if (val) {
+                            val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
+                          }
+                          setEditForm({ ...editForm, ccg: val });
+                        }} 
+                      />
+                    </div>
                   </div>
                 )}
               </div>

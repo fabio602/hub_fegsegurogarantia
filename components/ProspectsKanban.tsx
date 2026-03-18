@@ -54,7 +54,7 @@ const saveColumns = (productType: string, cols: KanbanColumn[]) => {
 };
 
 interface ProspectsKanbanProps {
-    onConvertToSale?: (data: { nome: string; cnpj: string; telefone: string; email: string; decisor: string }) => void;
+    onConvertToSale?: (data: { nome: string; cnpj: string; telefone: string; email: string; decisor: string; limites_seguradoras?: string }) => void;
 }
 
 const LeadFormFields = ({ 
@@ -186,6 +186,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Prospect | null>(null);
     const [editLeadForm, setEditLeadForm] = useState<Partial<Prospect>>({});
+    const [editLimitesArray, setEditLimitesArray] = useState<{seguradora: string; valor: string}[]>([]);
+    const [editCurrentLimit, setEditCurrentLimit] = useState<{seguradora: string; valor: string}>({ seguradora: '', valor: '' });
 
     // Context Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -398,6 +400,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         if (!cleanedForm.company) cleanedForm.company = prospect.name || '';
 
         setEditLeadForm(cleanedForm);
+        // Parse limits
+        try {
+            const parsed = cleanedForm.limites_seguradoras ? JSON.parse(cleanedForm.limites_seguradoras) : [];
+            setEditLimitesArray(Array.isArray(parsed) ? parsed : []);
+        } catch { setEditLimitesArray([]); }
+        setEditCurrentLimit({ seguradora: '', valor: '' });
         setIsEditModalOpen(true);
     };
 
@@ -408,6 +416,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         try {
             // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
             const { id, created_at, tasks, ...rawUpdateData } = editLeadForm;
+
+            // Merge limits into the form data
+            rawUpdateData.limites_seguradoras = editLimitesArray.length > 0 ? JSON.stringify(editLimitesArray) : null as any;
 
             // Strict data sanitization to prevent database rejection
             const dataToUpdate: any = {};
@@ -428,7 +439,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
-            setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...editLeadForm } as Prospect : p));
+            const updatedLead = { ...editLeadForm, limites_seguradoras: rawUpdateData.limites_seguradoras } as Prospect;
+            setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...updatedLead } : p));
             setIsEditModalOpen(false);
             setEditingLead(null);
         } catch (error: any) {
@@ -449,6 +461,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 telefone: prospect.phonenumber || '',
                 email: prospect.email || '',
                 decisor: prospect.decisor || '',
+                limites_seguradoras: prospect.limites_seguradoras || '',
             });
         }
     };
@@ -849,6 +862,26 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             )}
                                         </div>
 
+                                        {/* Limits display on card */}
+                                        {prospect.limites_seguradoras && (() => {
+                                            try {
+                                                const lims = JSON.parse(prospect.limites_seguradoras);
+                                                if (!Array.isArray(lims) || lims.length === 0) return null;
+                                                return (
+                                                    <div className="mt-2 pt-2 border-t border-slate-100">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Limites</p>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {lims.map((l: any, i: number) => (
+                                                                <span key={i} className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-[120px]">
+                                                                    {l.seguradora}: {l.valor}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } catch { return null; }
+                                        })()}
+
                                         <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100">
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Valor Estimado</span>
@@ -1001,6 +1034,59 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     <form id="edit-lead-form" onSubmit={handleSaveEdit}>
                                         <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} />
                                     </form>
+
+                                    {/* Insurer Limits Section */}
+                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                        {editLimitesArray.length > 0 && (
+                                            <div className="space-y-2">
+                                                {editLimitesArray.map((lim, i) => (
+                                                    <div key={i} className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100">
+                                                        <span className="flex-1 text-sm font-bold text-indigo-800">{lim.seguradora}</span>
+                                                        <span className="text-sm font-black text-indigo-600">{lim.valor}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
+                                                            className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Seguradora"
+                                                value={editCurrentLimit.seguradora}
+                                                onChange={e => setEditCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
+                                                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Valor (R$)"
+                                                value={editCurrentLimit.valor}
+                                                onChange={e => {
+                                                    let val = e.target.value.replace(/\D/g, '');
+                                                    if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
+                                                    setEditCurrentLimit(prev => ({ ...prev, valor: val }));
+                                                }}
+                                                className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!editCurrentLimit.seguradora) return;
+                                                    setEditLimitesArray(prev => [...prev, editCurrentLimit]);
+                                                    setEditCurrentLimit({ seguradora: '', valor: '' });
+                                                }}
+                                                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                            >
+                                                <Plus size={16} /> Add
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="lg:col-span-2 border-l border-slate-100 pl-8">
                                     <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />

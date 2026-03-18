@@ -119,6 +119,7 @@ const ResultsDashboard: React.FC = () => {
     };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [emailSuccess, setEmailSuccess] = useState(false);
     const [showEmailPrompt, setShowEmailPrompt] = useState<{ email: string; name: string; decisor?: string } | null>(null);
     const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
@@ -377,6 +378,8 @@ const ResultsDashboard: React.FC = () => {
 
                     if (invokeError) throw invokeError;
                     console.log('[Manual Email] Success:', data);
+                    setEmailSuccess(true);
+                    setTimeout(() => setEmailSuccess(false), 3000);
                 } catch (emailError: any) {
                     console.error('[Manual Email] Failed:', emailError);
                     // We don't block the main save success, but we notify in console
@@ -540,9 +543,9 @@ const ResultsDashboard: React.FC = () => {
 
             if (error) throw error;
             
-            setSaveSuccess(true);
+            setEmailSuccess(true);
+            setTimeout(() => setEmailSuccess(false), 3000);
             setSelectedFile(null); // Clear file after send
-            setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
             console.error('Error sending draft:', error);
             setSaveError(error?.message || 'Erro ao enviar minuta.');
@@ -570,8 +573,8 @@ const ResultsDashboard: React.FC = () => {
 
             if (error) throw error;
             
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
+            setEmailSuccess(true);
+            setTimeout(() => setEmailSuccess(false), 3000);
         } catch (error: any) {
             console.error('Error sending limits:', error);
             setSaveError(error?.message || 'Erro ao enviar limites.');
@@ -613,7 +616,7 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
-    const handleConvertToSale = (leadData: { nome: string; cnpj: string; telefone: string; email: string; decisor: string }) => {
+    const handleConvertToSale = (leadData: { nome: string; cnpj: string; telefone: string; email: string; decisor: string; limites_seguradoras?: string }) => {
         setFormData(prev => ({
             ...prev,
             nome: leadData.nome || '',
@@ -626,6 +629,15 @@ const ResultsDashboard: React.FC = () => {
             process_number: (leadData as any).judicial_process_number || '',
             court: (leadData as any).judicial_court || '',
         }));
+        // Port limits from the lead into the new sale form
+        if (leadData.limites_seguradoras) {
+            try {
+                const parsed = JSON.parse(leadData.limites_seguradoras);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setLimitesArray(parsed);
+                }
+            } catch { /* ignore */ }
+        }
         setActiveSection('sales');
         setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
     };
@@ -688,7 +700,13 @@ const ResultsDashboard: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
+            {emailSuccess && (
+                <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-bottom-8 fade-in duration-300 font-bold">
+                    <CheckCircle2 size={24} className="text-white" />
+                    <span>Email enviado com sucesso!</span>
+                </div>
+            )}
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
                 {(['sales', 'prospects', 'carteira', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
@@ -1001,11 +1019,57 @@ const ResultsDashboard: React.FC = () => {
                                     <>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
-                                            <input type="date" id="vigencia_inicio" value={formData.vigencia_inicio || ''} onChange={handleInputChange} className="w-full bg-emerald-50 border-emerald-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition-all outline-none" />
+                                            <input
+                                                type="date"
+                                                id="vigencia_inicio"
+                                                value={formData.vigencia_inicio || ''}
+                                                onChange={(e) => {
+                                                    const inicio = e.target.value;
+                                                    setFormData(prev => {
+                                                        const dias = parseInt((prev as any)._vigencia_dias || '0');
+                                                        let fim = prev.vigencia_fim || '';
+                                                        if (inicio && dias > 0) {
+                                                            const d = new Date(inicio);
+                                                            d.setDate(d.getDate() + dias);
+                                                            fim = d.toISOString().split('T')[0];
+                                                        }
+                                                        return { ...prev, vigencia_inicio: inicio, vigencia_fim: fim };
+                                                    });
+                                                }}
+                                                className="w-full bg-[#C69C6D]/5 border border-[#C69C6D]/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">⏱ Dias de Vigência</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                placeholder="Ex: 365"
+                                                value={(formData as any)._vigencia_dias || ''}
+                                                onChange={(e) => {
+                                                    const dias = parseInt(e.target.value) || 0;
+                                                    setFormData(prev => {
+                                                        let fim = prev.vigencia_fim || '';
+                                                        if (prev.vigencia_inicio && dias > 0) {
+                                                            const d = new Date(prev.vigencia_inicio);
+                                                            d.setDate(d.getDate() + dias);
+                                                            fim = d.toISOString().split('T')[0];
+                                                        }
+                                                        return { ...prev, _vigencia_dias: e.target.value, vigencia_fim: fim } as any;
+                                                    });
+                                                }}
+                                                className="w-full bg-[#1B263B]/5 border border-[#1B263B]/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none font-bold text-[#1B263B]"
+                                            />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Fim Vigência</label>
-                                            <input type="date" id="vigencia_fim" value={formData.vigencia_fim || ''} onChange={handleInputChange} className="w-full bg-emerald-50 border-emerald-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition-all outline-none" />
+                                            <input
+                                                type="date"
+                                                id="vigencia_fim"
+                                                value={formData.vigencia_fim || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full bg-[#C69C6D]/5 border border-[#C69C6D]/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none"
+                                            />
                                         </div>
                                     </>
                                 )}
@@ -1022,20 +1086,8 @@ const ResultsDashboard: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" id="indicacao" checked={formData.indicacao === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
-                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Pediu Indicação?</span>
-                                </label>
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" id="limites" checked={formData.limites === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
-                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Limites Enviados?</span>
-                                </label>
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" id="catalogo" checked={formData.catalogo === 'Sim'} onChange={handleInputChange} className="w-5 h-5 rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]" />
-                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Catálogo Enviado?</span>
-                                </label>
-                            </div>
+
+
 
                             {formData.tipo === 'Licitante' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-amber-50/50 rounded-2xl border border-amber-100">
@@ -1336,10 +1388,17 @@ const ResultsDashboard: React.FC = () => {
                             }, {} as Record<string, ClientPortfolioItem>);
 
                             const clients = (Object.values(portfolio) as ClientPortfolioItem[])
-                                .filter(c => 
-                                    c.nome.toLowerCase().includes(salesSearch.toLowerCase()) || 
-                                    (c.cnpj && c.cnpj.replace(/\D/g, '').includes(salesSearch.replace(/\D/g, '')))
-                                )
+                                .filter(c => {
+                                    const term = salesSearch.toLowerCase();
+                                    if (!term) return true;
+                                    
+                                    const termDigits = salesSearch.replace(/\D/g, '');
+                                    const matchNome = c.nome.toLowerCase().includes(term);
+                                    const matchDecisor = c.decisor ? c.decisor.toLowerCase().includes(term) : false;
+                                    const matchCnpj = termDigits.length > 0 && c.cnpj ? c.cnpj.replace(/\D/g, '').includes(termDigits) : false;
+                                    
+                                    return matchNome || matchDecisor || matchCnpj;
+                                })
                                 .sort((a, b) => a.nome.localeCompare(b.nome));
 
                             if (clients.length === 0) {

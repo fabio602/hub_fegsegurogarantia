@@ -1,17 +1,15 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, MapPin, Phone, Mail, UserCheck, Loader2, CheckCircle2, ShieldCheck, Printer } from 'lucide-react';
 import { formatDateExtenso } from '../utils/formatters';
-
-const seguradorasDisponiveis = [
-  "PORTO SEGURO", "JUNTO SEGUROS", "JNS SEGUROS", "NEWE SEGUROS", 
-  "POTTENCIAL SEGURADORA", "AVLA SEGURADORA", "BERKLEY SEGUROS", "SANCOR SEGUROS", "ALLSEG", "AKAD"
-];
+import { supabase } from '../lib/supabase';
 
 declare var html2pdf: any;
 
 const NominationLetter: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
+  const [loadingInsurers, setLoadingInsurers] = useState(true);
+  const [seguradorasDisponiveis, setSeguradorasDisponiveis] = useState<string[]>([]);
   const pdfRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState({
     razaoSocial: '',
@@ -21,9 +19,27 @@ const NominationLetter: React.FC = () => {
     email: '',
     cidade: 'Icém',
     dataExtenso: formatDateExtenso(new Date()),
-    seguradoras: ["PORTO SEGURO", "JUNTO SEGUROS", "AVLA SEGURADORA"],
+    seguradoras: [] as string[],
     nomeAssinatura: ''
   });
+
+  useEffect(() => {
+    const fetchInsurers = async () => {
+      setLoadingInsurers(true);
+      const { data: rows } = await supabase
+        .from('insurers')
+        .select('nome')
+        .order('nome', { ascending: true });
+      if (rows) {
+        const nomes = rows.map(r => r.nome.toUpperCase());
+        setSeguradorasDisponiveis(nomes);
+        // Pre-select the first 3 by default
+        setData(prev => ({ ...prev, seguradoras: nomes.slice(0, 3) }));
+      }
+      setLoadingInsurers(false);
+    };
+    fetchInsurers();
+  }, []);
 
   const handleToggleSeguradora = (seg: string) => {
     setData(prev => ({
@@ -173,20 +189,27 @@ const NominationLetter: React.FC = () => {
                   Seleção Cias
                </h3>
                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scroll">
-                 {seguradorasDisponiveis.map(seg => (
-                   <button
-                     key={seg}
-                     onClick={() => handleToggleSeguradora(seg)}
-                     className={`flex items-center justify-between p-3 rounded-xl border transition-all text-[10px] font-black tracking-tight ${
-                       data.seguradoras.includes(seg) 
-                       ? 'bg-[#1B263B] border-[#1B263B] text-white' 
-                       : 'bg-white border-slate-200 text-slate-500'
-                     }`}
-                   >
-                     {seg}
-                     {data.seguradoras.includes(seg) && <CheckCircle2 size={14} className="text-[#C69C6D]" />}
-                   </button>
-                 ))}
+                 {loadingInsurers ? (
+                   <div className="flex items-center justify-center py-8 text-slate-400">
+                     <Loader2 size={20} className="animate-spin text-[#C69C6D] mr-2" />
+                     <span className="text-xs font-bold">Carregando...</span>
+                   </div>
+                 ) : (
+                   seguradorasDisponiveis.map(seg => (
+                     <button
+                       key={seg}
+                       onClick={() => handleToggleSeguradora(seg)}
+                       className={`flex items-center justify-between p-3 rounded-xl border transition-all text-[10px] font-black tracking-tight ${
+                         data.seguradoras.includes(seg) 
+                         ? 'bg-[#1B263B] border-[#1B263B] text-white' 
+                         : 'bg-white border-slate-200 text-slate-500'
+                       }`}
+                     >
+                       {seg}
+                       {data.seguradoras.includes(seg) && <CheckCircle2 size={14} className="text-[#C69C6D]" />}
+                     </button>
+                   ))
+                 )}
                </div>
             </div>
           </div>

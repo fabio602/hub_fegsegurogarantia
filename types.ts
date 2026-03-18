@@ -11,6 +11,7 @@ export interface Insurer {
   contato?: string;
   email?: string;
   obs?: string;
+  ccg?: string;
 }
 
 export interface GoalMonth {
@@ -100,6 +101,7 @@ export interface Prospect {
   product_type?: string;
   judicial_process_number?: string;
   judicial_court?: string;
+  limites_seguradoras?: string;
   tasks?: CRMTask[];
 }
 
