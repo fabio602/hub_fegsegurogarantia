@@ -37,7 +37,7 @@ const EMPTY_FORM: Partial<ResidentialClient> = {
 
 const PRODUTOS = ['Residencial', 'Locatícia', 'Residencial + Locatícia', 'Condomínio'];
 const FORMAS_PAGAMENTO = ['Boleto Mensal', 'Boleto Anual', 'Cartão de Crédito', 'Débito Automático', 'PIX'];
-const SITUACOES = ['Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação'];
+const SITUACOES = ['Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação'];
 
 // Funções de Máscara e Formatação
 const formatCPF = (value: string) => {
