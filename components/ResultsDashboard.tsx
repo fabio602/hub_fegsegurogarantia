@@ -92,7 +92,7 @@ const SELLERS_CONFIG = [
     { name: "Andréia", share: 0.30, daysPerWeek: 2 }
 ];
 
-type Section = 'sales' | 'prospects' | 'goals' | 'annualGoals' | 'leads' | 'carteira';
+type Section = 'sales' | 'prospects' | 'goals' | 'annualGoals' | 'carteira';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
@@ -715,7 +715,7 @@ const ResultsDashboard: React.FC = () => {
             )}
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'prospects', 'carteira', 'goals', 'annualGoals', 'leads'] as Section[]).map((section) => (
+                {(['sales', 'prospects', 'carteira', 'goals', 'annualGoals'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -729,7 +729,6 @@ const ResultsDashboard: React.FC = () => {
                         {section === 'carteira' && 'Carteira de Clientes'}
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
-                        {section === 'leads' && 'Leads'}
                     </button>
                 ))}
             </div>
