@@ -265,16 +265,7 @@ const Calculator: React.FC = () => {
           </div>
           <p className="text-[#C69C6D] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotal)}</h4>
-          <div className="mt-8 flex items-center gap-2 text-slate-400">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             <p className="text-[10px] font-bold uppercase tracking-widest">Cálculo de Vigência Proporcional</p>
-          </div>
-          <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-2xl flex items-start gap-3">
-             <Info size={18} className="text-emerald-400 shrink-0 mt-0.5" />
-             <p className="text-[10px] text-slate-300 font-bold leading-relaxed uppercase">
-                ⚠️ MÍNIMO: R$ 150,00 (Verificar Cia)
-             </p>
-          </div>
+
         </div>
 
         {/* Resultado Final: Seguro Adicional */}
