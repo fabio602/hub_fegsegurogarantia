@@ -39,15 +39,9 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
 
 const STORAGE_KEY_PREFIX = 'kanban_columns_v1';
 
-const productToColumnsKey = (productType: string) => {
-    // "Energia" deve funcionar igual a "Seguro Garantia" (mesmos cartões/colunas Kanban)
-    if (productType === 'Energia') return 'Seguro Garantia';
-    return productType;
-};
-
 const loadColumns = (productType: string): KanbanColumn[] => {
     try {
-        const key = `${STORAGE_KEY_PREFIX}_${productToColumnsKey(productType).replace(/\s+/g, '_')}`;
+        const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
         const saved = localStorage.getItem(key);
         if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
@@ -55,7 +49,7 @@ const loadColumns = (productType: string): KanbanColumn[] => {
 };
 
 const saveColumns = (productType: string, cols: KanbanColumn[]) => {
-    const key = `${STORAGE_KEY_PREFIX}_${productToColumnsKey(productType).replace(/\s+/g, '_')}`;
+    const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
     localStorage.setItem(key, JSON.stringify(cols));
 };
 
