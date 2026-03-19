@@ -162,10 +162,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+    const [editingColId, setEditingColId] = useState<string | null>(null);
+    const [editingColTitle, setEditingColTitle] = useState('');
 
     // Sincroniza colunas quando o produto muda
     useEffect(() => {
         setColumns(loadColumns(selectedProduct));
+        setEditingColId(null);
+        setEditingColTitle('');
     }, [selectedProduct]);
 
     // CSV Import State
@@ -337,6 +341,32 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     };
 
     const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+
+    const beginRenameColumn = (col: KanbanColumn) => {
+        setEditingColId(col.id);
+        setEditingColTitle(col.title);
+    };
+
+    const cancelRenameColumn = () => {
+        setEditingColId(null);
+        setEditingColTitle('');
+    };
+
+    const commitRenameColumn = () => {
+        const colId = editingColId;
+        if (!colId) return;
+        const nextTitle = editingColTitle.trim();
+        if (!nextTitle) {
+            cancelRenameColumn();
+            return;
+        }
+        setColumns(prev => {
+            const updated = prev.map(c => (c.id === colId ? { ...c, title: nextTitle } : c));
+            saveColumns(selectedProduct, updated);
+            return updated;
+        });
+        cancelRenameColumn();
+    };
 
     const handleDrop = async (e: React.DragEvent, statusId: string) => {
         e.preventDefault();
@@ -762,8 +792,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     return (
                         <div 
                             key={column.id} 
-                            draggable 
-                            onDragStart={(e) => handleColDragStart(e, column.id)}
+                            draggable={editingColId !== column.id}
+                            onDragStart={(e) => {
+                                if (editingColId === column.id) return;
+                                handleColDragStart(e, column.id);
+                            }}
                             onDragEnd={handleColDragEnd}
                             className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px] transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
                             onDragOver={handleDragOver} 
@@ -772,9 +805,38 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             {/* Column Header */}
                             <div className={`p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
                                 <div className="flex justify-between items-center mb-1">
-                                    <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 select-none">
+                                    <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 min-w-0">
                                         <GripVertical size={14} className="opacity-50" />
-                                        {column.title}
+                                        {editingColId === column.id ? (
+                                            <input
+                                                autoFocus
+                                                value={editingColTitle}
+                                                onChange={(e) => setEditingColTitle(e.target.value)}
+                                                onBlur={commitRenameColumn}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        commitRenameColumn();
+                                                    } else if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        cancelRenameColumn();
+                                                    }
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-full max-w-[190px] px-2 py-1 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-black tracking-wider uppercase text-sm"
+                                            />
+                                        ) : (
+                                            <span
+                                                onDoubleClick={(e) => {
+                                                    e.stopPropagation();
+                                                    beginRenameColumn(column);
+                                                }}
+                                                title="Duplo clique para renomear"
+                                                className="truncate select-none cursor-text"
+                                            >
+                                                {column.title}
+                                            </span>
+                                        )}
                                     </h3>
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white/20 text-white">
