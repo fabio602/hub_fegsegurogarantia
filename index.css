@@ -1,0 +1,40 @@
+/*
+ * Escala global da interface para equivaler ao visual de 80% de zoom.
+ *
+ * O Tailwind usa `rem` para espaçamentos, tamanhos e fontes padrão.
+ * Reduzindo o font-size da raiz para 80%, todos esses valores escalam
+ * automaticamente (p-4, w-80, h-24, text-xl, gap-6, etc.).
+ *
+ * Para os tamanhos de fonte definidos em px arbitrário (text-[10px], etc.),
+ * aplicamos overrides explícitos com !important para garantir a escala.
+ */
+
+html {
+  font-size: 80%; /* 1rem = 12.8px em vez de 16px */
+}
+
+/* --- Tailwind arbitrary font sizes (px → escala ×0.8) --- */
+.text-\[7px\]  { font-size: 5.6px  !important; }
+.text-\[8px\]  { font-size: 6.4px  !important; }
+.text-\[9px\]  { font-size: 7.2px  !important; }
+.text-\[10px\] { font-size: 8px    !important; }
+.text-\[11px\] { font-size: 8.8px  !important; }
+.text-\[12px\] { font-size: 9.6px  !important; }
+.text-\[13px\] { font-size: 10.4px !important; }
+.text-\[14px\] { font-size: 11.2px !important; }
+.text-\[15px\] { font-size: 12px   !important; }
+
+/* --- Scrollbar (mantém proporção original) --- */
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 8px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
