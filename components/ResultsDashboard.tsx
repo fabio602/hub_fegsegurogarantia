@@ -41,7 +41,11 @@ interface InsurerLimit {
 const LIST_DATA = {
     origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
     tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
-    vendedor: ["Fábio", "Andréia", "Rafael"],
+    vendedor: [
+        { name: "Fábio", email: "fabio@fegsegurogarantia.com.br" },
+        { name: "Andréia", email: "andreia@fegsegurogarantia.com.br" },
+        { name: "Rafael", email: "rafael@fegsegurogarantia.com.br" }
+    ],
     motivoPerda: ["Preço fora do mercado", "Faltou agilidade", "Cliente não retornou", "Serasa", "Tomador sem seguradora disponível para cotação"]
 };
 
@@ -156,7 +160,6 @@ const ResultsDashboard: React.FC = () => {
         data: new Date().toISOString().split('T')[0],
         nome: '',
         origem: '',
-        qualificado: 'Sim',
         tipo: '',
         is: '',
         seguradora: '',
@@ -301,7 +304,6 @@ const ResultsDashboard: React.FC = () => {
             data: formData.data || null,
             nome: formData.nome || null,
             origem: formData.origem || null,
-            qualificado: formData.qualificado || null,
             tipo: formData.tipo || null,
             is: formData.is || null,
             seguradora: formData.seguradora || null,
@@ -408,7 +410,6 @@ const ResultsDashboard: React.FC = () => {
             data: new Date().toISOString().split('T')[0],
             nome: '',
             origem: '',
-            qualificado: 'Sim',
             tipo: '',
             is: '',
             seguradora: '',
@@ -978,13 +979,6 @@ const ResultsDashboard: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Qualificado?</label>
-                                    <select id="qualificado" value={formData.qualificado} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
-                                        <option value="Sim">Sim</option>
-                                        <option value="Não">Não</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo Seguro</label>
                                     <select id="tipo" value={formData.tipo} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Selecione...</option>
@@ -1086,7 +1080,7 @@ const ResultsDashboard: React.FC = () => {
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
                                     <select id="vendedor" value={formData.vendedor} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Selecione...</option>
-                                        {LIST_DATA.vendedor.map(v => <option key={v} value={v}>{v}</option>)}
+                                        {LIST_DATA.vendedor.map(v => <option key={v.email} value={v.name}>{v.name}</option>)}
                                     </select>
                                 </div>
                             </div>
