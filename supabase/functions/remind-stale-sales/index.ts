@@ -42,6 +42,38 @@ const daysSince = (value: any) => {
   }
 }
 
+const isoDateFromBrtNow = (now = new Date()) => {
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+  return brt.toISOString().slice(0, 10)
+}
+
+const shouldSendOncePerDay = async (supabase: any, args: { saleId: number; reminderKey: string; reminderDate: string; audience: "seller"; toEmail: string }) => {
+  const { saleId, reminderKey, reminderDate, audience, toEmail } = args
+
+  const { data: existing, error: selectError } = await supabase
+    .from("email_reminder_logs")
+    .select("id")
+    .eq("sale_id", saleId)
+    .eq("reminder_key", reminderKey)
+    .eq("reminder_date", reminderDate)
+    .eq("to_email", toEmail)
+    .limit(1)
+
+  if (selectError) throw selectError
+  if (existing && existing.length > 0) return false
+
+  const { error: insertError } = await supabase.from("email_reminder_logs").insert([{
+    sale_id: saleId,
+    reminder_key: reminderKey,
+    reminder_date: reminderDate,
+    audience,
+    to_email: toEmail,
+  }])
+
+  if (insertError) throw insertError
+  return true
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -69,11 +101,24 @@ serve(async (req) => {
 
     let sent = 0
     const skipped: any[] = []
+    const todayBrt = isoDateFromBrtNow()
 
     for (const s of stale) {
       const sellerEmail = sellerEmailByName(s.vendedor)
       if (!sellerEmail) {
         skipped.push({ id: s.id, reason: "seller_email_not_found", vendedor: s.vendedor })
+        continue
+      }
+      const toEmail = String(sellerEmail).trim()
+      const canSend = await shouldSendOncePerDay(supabase, {
+        saleId: Number(s.id),
+        reminderKey: "stale_sales",
+        reminderDate: todayBrt,
+        audience: "seller",
+        toEmail,
+      })
+      if (!canSend) {
+        skipped.push({ id: s.id, reason: "already_sent_today", to: toEmail })
         continue
       }
 
@@ -134,7 +179,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           from: "F&G Corretora <contato@fegsegurogarantia.com.br>",
-          to: [sellerEmail],
+          to: [toEmail],
           subject: `Follow-up pendente - ${clientName}`,
           html: htmlBody,
         }),
