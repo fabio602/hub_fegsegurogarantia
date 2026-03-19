@@ -39,9 +39,15 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
 
 const STORAGE_KEY_PREFIX = 'kanban_columns_v1';
 
+const productToColumnsKey = (productType: string) => {
+    // "Energia" deve funcionar igual a "Seguro Garantia" (mesmos cartões/colunas Kanban)
+    if (productType === 'Energia') return 'Seguro Garantia';
+    return productType;
+};
+
 const loadColumns = (productType: string): KanbanColumn[] => {
     try {
-        const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
+        const key = `${STORAGE_KEY_PREFIX}_${productToColumnsKey(productType).replace(/\s+/g, '_')}`;
         const saved = localStorage.getItem(key);
         if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
@@ -49,7 +55,7 @@ const loadColumns = (productType: string): KanbanColumn[] => {
 };
 
 const saveColumns = (productType: string, cols: KanbanColumn[]) => {
-    const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
+    const key = `${STORAGE_KEY_PREFIX}_${productToColumnsKey(productType).replace(/\s+/g, '_')}`;
     localStorage.setItem(key, JSON.stringify(cols));
 };
 
@@ -155,7 +161,7 @@ const LeadFormFields = ({
 
 const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
 
-    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal'>('Seguro Garantia');
+    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal' | 'Energia'>('Seguro Garantia');
     const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns('Seguro Garantia'));
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
@@ -674,7 +680,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     };
 
     const filteredProspects = prospects.filter(p => {
-        const matchesProduct = p.product_type === selectedProduct || (!p.product_type && selectedProduct === 'Seguro Garantia');
+        const matchesProduct =
+            p.product_type === selectedProduct ||
+            (!p.product_type && selectedProduct === 'Seguro Garantia');
         const matchesSearch = (p.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -712,6 +720,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Judicial Depósito Recursal
+                    </button>
+                    <button 
+                        onClick={() => setSelectedProduct('Energia')}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Energia' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                    >
+                        Energia
                     </button>
                 </div>
             </div>
