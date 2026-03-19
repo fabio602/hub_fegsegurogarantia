@@ -13,28 +13,38 @@ interface KanbanColumn {
 }
 
 const COLOR_OPTIONS = [
-    { key: 'slate', label: 'Cinza', header: 'bg-slate-800 text-white' },
-    { key: 'rose', label: 'Vermelho', header: 'bg-rose-500 text-white' },
-    { key: 'emerald', label: 'Verde', header: 'bg-emerald-500 text-white' },
-    { key: 'purple', label: 'Roxo', header: 'bg-purple-500 text-white' },
-    { key: 'blue', label: 'Azul', header: 'bg-blue-500 text-white' },
-    { key: 'amber', label: 'Laranja', header: 'bg-amber-500 text-white' },
-    { key: 'indigo', label: 'Índigo', header: 'bg-indigo-600 text-white' },
-    { key: 'pink', label: 'Rosa', header: 'bg-pink-500 text-white' },
-    { key: 'cyan', label: 'Ciano', header: 'bg-cyan-500 text-white' },
-    { key: 'teal', label: 'Teal', header: 'bg-teal-500 text-white' },
+    { key: 'fg_blue_1', label: 'Azul F&G 1', header: 'bg-[#1B263B] text-white' },
+    { key: 'fg_blue_2', label: 'Azul F&G 2', header: 'bg-[#243347] text-white' },
+    { key: 'fg_blue_3', label: 'Azul F&G 3', header: 'bg-[#2E3F56] text-white' },
+    { key: 'fg_gold_1', label: 'Dourado F&G 1', header: 'bg-[#C69C6D] text-[#1B263B]' },
+    { key: 'fg_gold_2', label: 'Dourado F&G 2', header: 'bg-[#B8895A] text-white' },
+    { key: 'fg_gold_3', label: 'Dourado F&G 3', header: 'bg-[#A07848] text-white' },
 ];
 
+const LEGACY_COLOR_MAP: Record<string, string> = {
+    slate: 'fg_blue_1',
+    indigo: 'fg_blue_2',
+    blue: 'fg_blue_3',
+    rose: 'fg_gold_1',
+    amber: 'fg_gold_2',
+    emerald: 'fg_gold_2',
+    purple: 'fg_gold_3',
+    pink: 'fg_gold_3',
+    cyan: 'fg_blue_3',
+    teal: 'fg_blue_2',
+};
+
 const colorToHeader = (colorKey: string) => {
-    const found = COLOR_OPTIONS.find(c => c.key === colorKey);
-    return found ? found.header : 'bg-slate-700 text-white';
+    const normalizedKey = LEGACY_COLOR_MAP[colorKey] || colorKey;
+    const found = COLOR_OPTIONS.find(c => c.key === normalizedKey);
+    return found ? found.header : 'bg-[#1B263B] text-white';
 };
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-    { id: 'Novos Leads', title: 'Novos Leads', color: 'slate', protected: true },
-    { id: 'Leads Sem demanda', title: 'Sem Demanda', color: 'rose' },
-    { id: 'Leads Rafael', title: 'Leads Rafael', color: 'emerald' },
-    { id: 'Leads Andréia', title: 'Leads Andréia', color: 'purple' },
+    { id: 'Novos Leads', title: 'Novos Leads', color: 'fg_blue_1', protected: true },
+    { id: 'Leads Sem demanda', title: 'Sem Demanda', color: 'fg_blue_2' },
+    { id: 'Leads Rafael', title: 'Leads Rafael', color: 'fg_gold_1' },
+    { id: 'Leads Andréia', title: 'Leads Andréia', color: 'fg_gold_2' },
 ];
 
 const STORAGE_KEY_PREFIX = 'kanban_columns_v1';
@@ -202,7 +212,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     // Add Column Modal
     const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
     const [newColTitle, setNewColTitle] = useState('');
-    const [newColColor, setNewColColor] = useState('blue');
+    const [newColColor, setNewColColor] = useState('fg_blue_2');
 
     const DB_FIELDS = [
         { key: 'name', label: 'Nome do Contato' },
@@ -273,7 +283,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setColumns(updated);
         saveColumns(selectedProduct, updated);
         setNewColTitle('');
-        setNewColColor('blue');
+        setNewColColor('fg_blue_2');
         setIsAddColumnOpen(false);
     };
 
