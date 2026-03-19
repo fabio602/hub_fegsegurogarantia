@@ -449,8 +449,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
             const { id, created_at, tasks, ...rawUpdateData } = editLeadForm;
 
+            // Auto-add pending insurer limit if user filled it but didn't click "Add"
+            const pendingSeguradora = (editCurrentLimit.seguradora || '').trim();
+            const pendingValor = (editCurrentLimit.valor || '').trim();
+            const finalEditLimitsArray = pendingSeguradora && pendingValor
+                ? [...editLimitesArray, { seguradora: pendingSeguradora, valor: pendingValor }]
+                : editLimitesArray;
+
             // Merge limits into the form data
-            rawUpdateData.limites_seguradoras = editLimitesArray.length > 0 ? JSON.stringify(editLimitesArray) : null as any;
+            rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
 
             // Strict data sanitization to prevent database rejection
             const dataToUpdate: any = {};
