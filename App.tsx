@@ -92,14 +92,14 @@ const App: React.FC = () => {
         setActiveView(view);
         if (window.innerWidth < 1024) setIsSidebarOpen(false);
       }}
-      className={`flex items-center justify-between w-full px-5 py-3 rounded-2xl transition-all duration-400 group ${activeView === view
+        className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-400 group ${activeView === view
         ? 'bg-[#C69C6D] text-white shadow-2xl shadow-[#C69C6D]/30'
         : 'text-slate-400 hover:bg-white/5 hover:text-white'
         }`}
     >
       <div className="flex items-center gap-3">
         <span className={`${activeView === view ? 'text-white' : 'text-slate-500 group-hover:text-[#C69C6D]'} transition-colors duration-300`}>{icon}</span>
-        <span className="font-bold text-[13px] tracking-tight">{label}</span>
+        <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
       </div>
       {activeView === view && <ChevronRight size={12} className="opacity-70" />}
     </button>
@@ -109,7 +109,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex bg-slate-50 font-sans selection:bg-[#C69C6D]/30">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } no-print shadow-2xl border-r border-white/5 h-screen`}
       >
         <div className="flex flex-col h-full overflow-hidden">
