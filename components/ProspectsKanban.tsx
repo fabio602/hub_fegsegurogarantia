@@ -852,7 +852,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 handleColDragStart(e, column.id);
                             }}
                             onDragEnd={handleColDragEnd}
-                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-220px)] min-h-[400px] max-h-[calc(100vh-220px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-180px)] min-h-[400px] max-h-[calc(100vh-180px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
                             onDragOver={handleDragOver} 
                             onDrop={(e) => handleDrop(e, column.id)}
                         >
@@ -911,9 +911,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             </div>
 
                             {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
-                            <div className={`flex-1 min-h-0 flex flex-col gap-2 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-2 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
+                            <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
                                 {columnProspects.map(prospect => (
-                                    <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#C69C6D]/30 transition-all flex flex-col gap-2">
+                                    <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-2.5 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#C69C6D]/30 transition-all flex flex-col gap-1">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2 min-w-0 group/header">
                                                 <div 
