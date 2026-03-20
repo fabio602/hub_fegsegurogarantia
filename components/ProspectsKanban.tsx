@@ -84,60 +84,60 @@ const LeadFormFields = ({
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Empresa *</label>
-            <input required type="text" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome da Empresa" />
+            <input required type="text" value={form.company || ''} onChange={(e) => setForm({ ...form, company: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Nome da Empresa" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">CNPJ</label>
-            <input type="text" value={form.cnpj || ''} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="00.000.000/0001-00" />
+            <input type="text" value={form.cnpj || ''} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="00.000.000/0001-00" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Nome do Contato</label>
-            <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ciclano da Silva" />
+            <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Ciclano da Silva" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Cargo do Contato</label>
-            <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Diretor Financeiro" />
+            <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Diretor Financeiro" />
         </div>
         <div className="space-y-1.5 col-span-2">
             <label className="text-sm font-bold text-slate-700">Decisor / Responsável</label>
-            <input type="text" value={form.decisor || ''} onChange={(e) => setForm({ ...form, decisor: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Nome do decisor" />
+            <input type="text" value={form.decisor || ''} onChange={(e) => setForm({ ...form, decisor: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Nome do decisor" />
         </div>
         <div className="space-y-4 col-span-2 mt-2">
             <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Contato & Detalhes</h4>
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Telefone / Celular</label>
-            <input type="text" value={form.phonenumber || ''} onChange={(e) => setForm({ ...form, phonenumber: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="(00) 00000-0000" />
+            <input type="text" value={form.phonenumber || ''} onChange={(e) => setForm({ ...form, phonenumber: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="(00) 00000-0000" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">E-mail</label>
-            <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="contato@empresa.com.br" />
+            <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="contato@empresa.com.br" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Ramo</label>
-            <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
+            <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">CEP</label>
-            <input type="text" value={form.zip || ''} onChange={(e) => setForm({ ...form, zip: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="00000-000" />
+            <input type="text" value={form.zip || ''} onChange={(e) => setForm({ ...form, zip: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="00000-000" />
         </div>
         <div className="space-y-1.5 col-span-2">
             <label className="text-sm font-bold text-slate-700">Endereço</label>
-            <input type="text" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Rua, Número, Bairro" />
+            <input type="text" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Rua, Número, Bairro" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Valor Estimado</label>
-            <input type="number" step="0.01" value={form.lead_value || ''} onChange={(e) => setForm({ ...form, lead_value: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="150000.00" />
+            <input type="number" step="0.01" value={form.lead_value || ''} onChange={(e) => setForm({ ...form, lead_value: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="150000.00" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Fase (Coluna)</label>
-            <select value={form.status || 'Novos Leads'} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all cursor-pointer">
+            <select value={form.status || 'Novos Leads'} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all cursor-pointer">
                 {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
             </select>
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Origem do Contato</label>
-            <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
+            <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
         </div>
         {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
         {selectedProduct === 'Judicial Depósito Recursal' && (
@@ -147,18 +147,18 @@ const LeadFormFields = ({
                 </div>
                 <div className="space-y-1.5 col-span-2 md:col-span-1">
                     <label className="text-sm font-bold text-slate-700">Nº do Processo</label>
-                    <input type="text" value={form.judicial_process_number || ''} onChange={(e) => setForm({ ...form, judicial_process_number: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="0000000-00.0000.0.00.0000" />
+                    <input type="text" value={form.judicial_process_number || ''} onChange={(e) => setForm({ ...form, judicial_process_number: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="0000000-00.0000.0.00.0000" />
                 </div>
                 <div className="space-y-1.5 col-span-2 md:col-span-1">
                     <label className="text-sm font-bold text-slate-700">Tribunal / Vara</label>
-                    <input type="text" value={form.judicial_court || ''} onChange={(e) => setForm({ ...form, judicial_court: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all" placeholder="TRT / Vara do Trabalho" />
+                    <input type="text" value={form.judicial_court || ''} onChange={(e) => setForm({ ...form, judicial_court: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="TRT / Vara do Trabalho" />
                 </div>
             </>
         )}
 
         <div className="space-y-1.5 col-span-2">
             <label className="text-sm font-bold text-slate-700">Observações</label>
-            <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
+            <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
         </div>
     </div>
 );
@@ -820,18 +820,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         {importing ? 'Importando...' : 'Importar Leads (CSV)'}
                     </button>
                     <div className="h-8 w-[1px] bg-slate-200 mx-1 hidden md:block" />
-                    <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
+                    <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 text-slate-600 hover:text-[#1B263B] px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
                         <LayoutGrid size={16} /> Nova Coluna
                     </button>
                 </div>
                 <div className="relative w-full md:w-64">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-sm transition-all" />
+                    <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] shadow-sm transition-all" />
                 </div>
             </div>
 
             {/* Kanban Board */}
-            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start min-h-[600px]">
+            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-stretch min-h-[600px]">
                 {columns.map(column => {
                     const columnProspects = filteredProspects.filter(p => {
                         if (column.id === 'Novos Leads') {
@@ -852,12 +852,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 handleColDragStart(e, column.id);
                             }}
                             onDragEnd={handleColDragEnd}
-                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px] transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-320px)] min-h-[400px] max-h-[calc(100vh-320px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
                             onDragOver={handleDragOver} 
                             onDrop={(e) => handleDrop(e, column.id)}
                         >
                             {/* Column Header */}
-                            <div className={`p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
+                            <div className={`shrink-0 p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
                                 <div className="flex justify-between items-center mb-1">
                                     <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 min-w-0">
                                         <GripVertical size={14} className="opacity-50" />
@@ -910,22 +910,22 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
                             </div>
 
-                            {/* Cards */}
-                            <div className={`flex-1 flex flex-col gap-3 overflow-y-auto custom-scroll rounded-2xl p-2 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
+                            {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
+                            <div className={`flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-2 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
                                 {columnProspects.map(prospect => (
-                                    <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-indigo-200 transition-all flex flex-col gap-3">
+                                    <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#C69C6D]/30 transition-all flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2 min-w-0 group/header">
                                                 <div 
                                                     onClick={() => handleOpenEdit(prospect)}
-                                                    className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
+                                                    className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer hover:bg-white hover:border-[#C69C6D]/40 hover:shadow-sm transition-all"
                                                 >
-                                                    <Building size={14} className="text-slate-500 group-hover/header:text-indigo-600 transition-colors" />
+                                                    <Building size={14} className="text-slate-500 group-hover/header:text-[#C69C6D] transition-colors" />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h4 
                                                         onClick={() => handleOpenEdit(prospect)}
-                                                        className="font-black text-slate-800 text-sm truncate cursor-pointer hover:text-indigo-600 transition-colors" 
+                                                        className="font-black text-slate-800 text-sm truncate cursor-pointer hover:text-[#1B263B] transition-colors" 
                                                         title={prospect.company || prospect.name}
                                                     >
                                                         {prospect.company || prospect.name || 'Nova Empresa'}
@@ -943,8 +943,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 </button>
                                                 {openMenuId === prospect.id && (
                                                     <div className="absolute right-0 top-8 z-50 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                        <button onClick={() => handleOpenEdit(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
-                                                            <Edit2 size={15} className="text-indigo-500" /> Editar Lead
+                                                        <button onClick={() => handleOpenEdit(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#C69C6D]/10 hover:text-[#1B263B] transition-colors">
+                                                            <Edit2 size={15} className="text-[#C69C6D]" /> Editar Lead
                                                         </button>
                                                         <div className="border-t border-slate-100">
                                                             <p className="px-4 pt-2 pb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mover para</p>
@@ -956,8 +956,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         </div>
                                                         {onConvertToSale && (
                                                             <div className="border-t border-slate-100">
-                                                                <button onClick={() => handleConvertToSale(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 transition-colors">
-                                                                    <TrendingUp size={15} className="text-emerald-500" /> Converter em Venda
+                                                                <button onClick={() => handleConvertToSale(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#1B263B] hover:bg-[#C69C6D]/12 transition-colors">
+                                                                    <TrendingUp size={15} className="text-[#C69C6D]" /> Converter em Venda
                                                                 </button>
                                                             </div>
                                                         )}
@@ -1002,7 +1002,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Limites</p>
                                                         <div className="flex flex-wrap gap-1">
                                                             {lims.map((l: any, i: number) => (
-                                                                <span key={i} className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md border border-indigo-100 truncate max-w-[120px]">
+                                                                <span key={i} className="text-[9px] font-black bg-[#C69C6D]/12 text-[#1B263B] px-2 py-0.5 rounded-md border border-[#C69C6D]/25 truncate max-w-[120px]">
                                                                     {l.seguradora}: {l.valor}
                                                                 </span>
                                                             ))}
@@ -1015,7 +1015,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100">
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Valor Estimado</span>
-                                                <span className="text-xs font-black text-emerald-600">{formatCurrency(prospect.lead_value || 0)}</span>
+                                                <span className="text-xs font-black text-[#1B263B]">{formatCurrency(prospect.lead_value || 0)}</span>
                                             </div>
                                             {prospect.source && <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-md max-w-[80px] truncate">{prospect.source}</span>}
                                             
@@ -1035,11 +1035,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         </div>
 
                                         <div className="flex gap-2 pt-1">
-                                            <button onClick={() => handleOpenEdit(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg py-1.5 transition-colors">
+                                            <button onClick={() => handleOpenEdit(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/12 hover:bg-[#C69C6D]/22 rounded-lg py-1.5 transition-colors">
                                                 <Edit2 size={11} /> Editar
                                             </button>
                                             {onConvertToSale && (
-                                                <button onClick={() => handleConvertToSale(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg py-1.5 transition-colors">
+                                                <button onClick={() => handleConvertToSale(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/25 rounded-lg py-1.5 transition-colors">
                                                     <TrendingUp size={11} /> Venda
                                                 </button>
                                             )}
@@ -1061,7 +1061,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                 {/* Add Column inline button */}
                 <div className="flex-shrink-0 w-64 flex items-start pt-1">
-                    <button onClick={() => setIsAddColumnOpen(true)} className="w-full flex items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all font-bold text-sm">
+                    <button onClick={() => setIsAddColumnOpen(true)} className="w-full flex items-center justify-center gap-2 p-5 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-[#C69C6D]/45 hover:text-[#1B263B] hover:bg-[#C69C6D]/8 transition-all font-bold text-sm">
                         <Plus size={18} /> Nova Coluna
                     </button>
                 </div>
@@ -1073,7 +1073,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden">
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
-                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LayoutGrid size={20} className="text-indigo-500" /> Nova Coluna</h3>
+                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LayoutGrid size={20} className="text-[#C69C6D]" /> Nova Coluna</h3>
                                 <p className="text-sm text-slate-500 font-medium mt-1">Crie uma nova fase no seu funil de prospecção.</p>
                             </div>
                             <button onClick={() => setIsAddColumnOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm">
@@ -1089,7 +1089,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     value={newColTitle}
                                     onChange={(e) => setNewColTitle(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn(); }}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all font-medium"
                                     placeholder="Ex: Em negociação, Aguardando proposta..."
                                 />
                             </div>
@@ -1101,7 +1101,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             key={opt.key}
                                             onClick={() => setNewColColor(opt.key)}
                                             title={opt.label}
-                                            className={`h-10 rounded-xl ${opt.header} transition-all font-black text-[10px] flex items-center justify-center ${newColColor === opt.key ? 'ring-4 ring-offset-2 ring-indigo-400 scale-105' : 'opacity-70 hover:opacity-100'}`}
+                                            className={`h-10 rounded-xl ${opt.header} transition-all font-black text-[10px] flex items-center justify-center ${newColColor === opt.key ? 'ring-4 ring-offset-2 ring-[#C69C6D] scale-105' : 'opacity-70 hover:opacity-100'}`}
                                         >
                                             {newColColor === opt.key ? '✓' : ''}
                                         </button>
@@ -1112,7 +1112,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button onClick={() => setIsAddColumnOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleAddColumn} disabled={!newColTitle.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-40">
+                            <button onClick={handleAddColumn} disabled={!newColTitle.trim()} className="bg-[#1B263B] hover:bg-[#243347] text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-[#1B263B]/25 disabled:opacity-40">
                                 <Plus size={18} /> Criar Coluna
                             </button>
                         </div>
@@ -1142,9 +1142,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 {newLimitesArray.length > 0 && (
                                     <div className="space-y-2">
                                         {newLimitesArray.map((lim, i) => (
-                                            <div key={i} className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100">
-                                                <span className="flex-1 text-sm font-bold text-indigo-800">{lim.seguradora}</span>
-                                                <span className="text-sm font-black text-indigo-600">{lim.valor}</span>
+                                            <div key={i} className="flex items-center gap-2 bg-[#C69C6D]/10 px-3 py-2 rounded-xl border border-[#C69C6D]/25">
+                                                <span className="flex-1 text-sm font-bold text-[#1B263B]">{lim.seguradora}</span>
+                                                <span className="text-sm font-black text-[#B8895A]">{lim.valor}</span>
                                                 <button
                                                     type="button"
                                                     onClick={() => setNewLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
@@ -1162,7 +1162,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         placeholder="Seguradora"
                                         value={newCurrentLimit.seguradora}
                                         onChange={e => setNewCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
-                                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
                                     />
                                     <input
                                         type="text"
@@ -1173,7 +1173,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
                                             setNewCurrentLimit(prev => ({ ...prev, valor: val }));
                                         }}
-                                        className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
                                     />
                                     <button
                                         type="button"
@@ -1182,7 +1182,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             setNewLimitesArray(prev => [...prev, newCurrentLimit]);
                                             setNewCurrentLimit({ seguradora: '', valor: '' });
                                         }}
-                                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                        className="px-3 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
                                     >
                                         <Plus size={16} /> Add
                                     </button>
@@ -1191,7 +1191,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button type="button" onClick={() => setIsNewLeadModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button type="submit" form="new-lead-form" disabled={savingLead} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50">
+                            <button type="submit" form="new-lead-form" disabled={savingLead} className="bg-[#1B263B] hover:bg-[#243347] text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-[#1B263B]/25 disabled:opacity-50">
                                 {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                 {savingLead ? 'Salvando...' : 'Salvar Lead'}
                             </button>
@@ -1204,9 +1204,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {isEditModalOpen && editingLead && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-indigo-50/60">
+                        <div className="flex justify-between items-center p-6 border-b border-[#C69C6D]/20 bg-[#C69C6D]/10">
                             <div>
-                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-indigo-500" />Editar Lead</h3>
+                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-[#C69C6D]" />Editar Lead</h3>
                                 <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
                             </div>
                             <button onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
@@ -1224,9 +1224,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         {editLimitesArray.length > 0 && (
                                             <div className="space-y-2">
                                                 {editLimitesArray.map((lim, i) => (
-                                                    <div key={i} className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100">
-                                                        <span className="flex-1 text-sm font-bold text-indigo-800">{lim.seguradora}</span>
-                                                        <span className="text-sm font-black text-indigo-600">{lim.valor}</span>
+                                                    <div key={i} className="flex items-center gap-2 bg-[#C69C6D]/10 px-3 py-2 rounded-xl border border-[#C69C6D]/25">
+                                                        <span className="flex-1 text-sm font-bold text-[#1B263B]">{lim.seguradora}</span>
+                                                        <span className="text-sm font-black text-[#B8895A]">{lim.valor}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
@@ -1244,7 +1244,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 placeholder="Seguradora"
                                                 value={editCurrentLimit.seguradora}
                                                 onChange={e => setEditCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
-                                                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
                                             />
                                             <input
                                                 type="text"
@@ -1255,7 +1255,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
                                                     setEditCurrentLimit(prev => ({ ...prev, valor: val }));
                                                 }}
-                                                className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
                                             />
                                             <button
                                                 type="button"
@@ -1264,7 +1264,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     setEditLimitesArray(prev => [...prev, editCurrentLimit]);
                                                     setEditCurrentLimit({ seguradora: '', valor: '' });
                                                 }}
-                                                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                                className="px-3 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
                                             >
                                                 <Plus size={16} /> Add
                                             </button>
@@ -1278,7 +1278,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button type="submit" form="edit-lead-form" disabled={savingLead} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50">
+                            <button type="submit" form="edit-lead-form" disabled={savingLead} className="bg-[#1B263B] hover:bg-[#243347] text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-[#1B263B]/25 disabled:opacity-50">
                                 {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                 {savingLead ? 'Salvando...' : 'Salvar Alterações'}
                             </button>
@@ -1294,20 +1294,20 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800">Mapear Colunas do CSV</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">Nós encontramos <strong className="text-indigo-600">{csvRows.length}</strong> leads no arquivo.</p>
+                                <p className="text-sm text-slate-500 font-medium mt-1">Nós encontramos <strong className="text-[#1B263B]">{csvRows.length}</strong> leads no arquivo.</p>
                             </div>
                             <button onClick={() => setIsImportModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="bg-[#F5F1EA] border border-[#C69C6D]/25 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><ArrowRight size={20} /></div>
+                                    <div className="w-10 h-10 bg-[#1B263B] rounded-xl flex items-center justify-center text-[#C69C6D] shadow-lg"><ArrowRight size={20} /></div>
                                     <div>
-                                        <h4 className="font-black text-indigo-900">Coluna de Destino</h4>
-                                        <p className="text-xs text-indigo-700/70 font-medium">Os leads serão importados para qual coluna?</p>
+                                        <h4 className="font-black text-[#1B263B]">Coluna de Destino</h4>
+                                        <p className="text-xs text-[#1B263B]/70 font-medium">Os leads serão importados para qual coluna?</p>
                                     </div>
                                 </div>
-                                <select value={importStatus} onChange={(e) => setImportStatus(e.target.value)} className="px-4 py-2.5 bg-white border border-indigo-200 rounded-xl text-sm font-bold text-indigo-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer shadow-sm min-w-[200px]">
+                                <select value={importStatus} onChange={(e) => setImportStatus(e.target.value)} className="px-4 py-2.5 bg-white border border-[#C69C6D]/30 rounded-xl text-sm font-bold text-[#1B263B] outline-none focus:ring-4 focus:ring-[#C69C6D]/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
                                     {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
                                 </select>
                             </div>
@@ -1316,7 +1316,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     <div key={field.key} className="flex flex-col gap-1.5 p-3 rounded-xl hover:bg-slate-50 border-2 border-transparent hover:border-slate-100 transition-colors">
                                         <label className="text-sm font-bold text-slate-700">{field.label}</label>
                                         <div className="relative">
-                                            <select value={csvMapping[field.key] || ''} onChange={(e) => setCsvMapping({ ...csvMapping, [field.key]: e.target.value })} className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer appearance-none shadow-sm font-medium">
+                                            <select value={csvMapping[field.key] || ''} onChange={(e) => setCsvMapping({ ...csvMapping, [field.key]: e.target.value })} className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all cursor-pointer appearance-none shadow-sm font-medium">
                                                 <option value="">-- Ignorar --</option>
                                                 {csvHeaders.map((h, i) => <option key={i} value={i.toString()}>Coluna: {h}</option>)}
                                             </select>
@@ -1328,7 +1328,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         </div>
                         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button type="button" onClick={() => setIsImportModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleConfirmImport} disabled={importing} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50">
+                            <button onClick={handleConfirmImport} disabled={importing} className="bg-[#1B263B] hover:bg-[#243347] text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-[#1B263B]/25 disabled:opacity-50">
                                 {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                                 {importing ? 'Importando...' : 'Confirmar Importação'}
                             </button>
