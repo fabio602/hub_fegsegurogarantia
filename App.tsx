@@ -73,7 +73,7 @@ const App: React.FC = () => {
 
   const Logo = () => (
     <div className="flex items-center justify-center">
-      <img src="/logo.svg" alt="F&G Corretora" className="h-12 w-auto object-contain" />
+      <img src="/logo.svg" alt="F&G Corretora" className="h-20 w-auto object-contain" />
     </div>
   );
 
@@ -84,12 +84,12 @@ const App: React.FC = () => {
         if (window.innerWidth < 1024) setIsSidebarOpen(false);
       }}
         className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-400 group ${activeView === view
-        ? 'bg-[#C69C6D] text-white shadow-2xl shadow-[#C69C6D]/30'
-        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+        ? 'bg-[#C69C6D] text-[#1B263B] shadow-2xl shadow-[#C69C6D]/25'
+        : 'text-slate-300 hover:bg-[#243347] hover:text-[#F5F1EA]'
         }`}
     >
       <div className="flex items-center gap-3">
-        <span className={`${activeView === view ? 'text-white' : 'text-slate-500 group-hover:text-[#C69C6D]'} transition-colors duration-300`}>{icon}</span>
+        <span className={`${activeView === view ? 'text-[#1B263B]' : 'text-slate-400 group-hover:text-[#C69C6D]'} transition-colors duration-300`}>{icon}</span>
         <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
       </div>
       {activeView === view && <ChevronRight size={12} className="opacity-70" />}
@@ -97,20 +97,20 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen flex bg-slate-50 font-sans selection:bg-[#C69C6D]/30">
+    <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } no-print shadow-2xl border-r border-white/5 h-screen`}
+          } no-print shadow-2xl border-r border-[#C69C6D]/20 h-screen`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 custom-scroll">
-            <div className="mb-8">
+            <div className="mb-8 flex justify-center">
               <Logo />
             </div>
 
             <nav className="space-y-1">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[4px] px-5 mb-4 opacity-40">Módulos do Sistema</p>
+              <p className="text-[10px] font-black text-[#C69C6D]/60 uppercase tracking-[4px] px-5 mb-4">Módulos do Sistema</p>
               <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Visão Geral" />
               <NavItem view="calculator" icon={<CalcIcon size={16} />} label="Cálculo de Garantia" />
               <NavItem view="letter" icon={<FileText size={16} />} label="Carta de Nomeação" />
@@ -122,15 +122,15 @@ const App: React.FC = () => {
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
 
               <div className="pt-6 mt-6 border-t border-white/5">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[4px] px-5 mb-4 opacity-40">Acessos Externos</p>
+                <p className="text-[10px] font-black text-[#C69C6D]/60 uppercase tracking-[4px] px-5 mb-4">Acessos Externos</p>
                 <a
                   href="https://crm-perfexcrm.a1dttr.easypanel.host/admin/authentication"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between w-full px-5 py-3 rounded-2xl transition-all duration-300 group text-slate-400 hover:bg-white/5 border border-transparent hover:border-white/10"
+                  className="flex items-center justify-between w-full px-5 py-3 rounded-2xl transition-all duration-300 group text-slate-300 hover:bg-[#243347] border border-transparent hover:border-[#C69C6D]/20"
                 >
                   <div className="flex items-center gap-3">
-                    <ExternalLinkIcon size={16} className="text-slate-500 group-hover:text-[#C69C6D]" />
+                    <ExternalLinkIcon size={16} className="text-slate-400 group-hover:text-[#C69C6D]" />
                     <span className="font-bold text-[13px] tracking-tight">Portal CRM Perfex</span>
                   </div>
                   <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-70 transition-opacity" />
@@ -139,10 +139,10 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="shrink-0 mt-auto p-6 bg-black/10">
+          <div className="shrink-0 mt-auto p-6 bg-[#162033]">
             <button
               onClick={handleLogout}
-              className="group flex items-center gap-3 text-slate-500 hover:text-red-400 transition-all text-sm font-bold w-full px-5 py-3 rounded-2xl hover:bg-red-500/10"
+              className="group flex items-center gap-3 text-slate-300 hover:text-[#C69C6D] transition-all text-sm font-bold w-full px-5 py-3 rounded-2xl hover:bg-[#243347]"
             >
               <LogOut size={14} className="group-hover:rotate-12 transition-transform" />
               <span>Encerrar Acesso</span>
@@ -153,7 +153,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 lg:px-8 no-print shrink-0 z-30">
+        <header className="h-16 bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-6 lg:px-8 no-print shrink-0 z-30">
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
@@ -162,7 +162,7 @@ const App: React.FC = () => {
               {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
             <div>
-              <h2 className="text-slate-800 font-black text-xl tracking-tight">
+              <h2 className="text-[#1B263B] font-black text-xl tracking-tight">
                 {activeView === 'dashboard' && 'Bem-vindo ao Hub F&G'}
                 {activeView === 'calculator' && 'Calculadora de Seguros'}
                 {activeView === 'letter' && 'Gerador de Nomeação'}
@@ -173,20 +173,20 @@ const App: React.FC = () => {
                 {activeView === 'sureties' && 'Afiançadoras'}
                 {activeView === 'manual' && 'Manual de Procedimentos Internos'}
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
+              <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Servidor Online</span>
+            <div className="hidden md:flex items-center gap-2 bg-[#EFE7DB] px-3 py-1.5 rounded-xl border border-[#C69C6D]/25">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#C69C6D] animate-pulse"></div>
+              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Servidor Online</span>
             </div>
             <button className="p-2 text-slate-400 hover:text-[#C69C6D] transition-all relative">
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
             </button>
-            <div className="h-8 w-[1px] bg-slate-200"></div>
+            <div className="h-8 w-[1px] bg-[#C69C6D]/30"></div>
             <div className="flex items-center gap-3 group cursor-pointer">
               <div className="w-9 h-9 rounded-xl bg-[#1B263B] flex items-center justify-center text-[#C69C6D] shadow-md group-hover:scale-105 transition-transform">
                 <User size={18} />
@@ -195,7 +195,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scroll bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
           <div className="max-w-[1400px] mx-auto pb-16">
             {activeView === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
