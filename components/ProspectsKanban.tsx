@@ -1182,9 +1182,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             setNewLimitesArray(prev => [...prev, newCurrentLimit]);
                                             setNewCurrentLimit({ seguradora: '', valor: '' });
                                         }}
-                                        className="px-3 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                        className="px-4 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
                                     >
-                                        <Plus size={16} /> Add
+                                        Adicionar
                                     </button>
                                 </div>
                             </div>
@@ -1264,9 +1264,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     setEditLimitesArray(prev => [...prev, editCurrentLimit]);
                                                     setEditCurrentLimit({ seguradora: '', valor: '' });
                                                 }}
-                                                className="px-3 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center gap-1 shadow-md"
+                                                className="px-4 py-2 bg-[#1B263B] hover:bg-[#243347] text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
                                             >
-                                                <Plus size={16} /> Add
+                                                Adicionar
                                             </button>
                                         </div>
                                     </div>
