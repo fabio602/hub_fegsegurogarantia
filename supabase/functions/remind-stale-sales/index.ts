@@ -16,9 +16,17 @@ const SELLERS = [
   { name: "Rafael", email: "rafael@fegsegurogarantia.com.br" },
 ]
 
+const normalizeName = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+
 const sellerEmailByName = (name: string | null | undefined) => {
   if (!name) return null
-  const found = SELLERS.find(s => s.name.toLowerCase() === name.toLowerCase().trim())
+  const normalized = normalizeName(name)
+  const found = SELLERS.find(s => normalizeName(s.name) === normalized)
   return found?.email || null
 }
 
