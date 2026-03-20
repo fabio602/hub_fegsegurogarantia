@@ -171,6 +171,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [tasks, setTasks] = useState<CRMTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    // Ordenação por "tempo na coluna" (aproximação via `created_at`).
+    const [leadAgeSort, setLeadAgeSort] = useState<'recent' | 'oldest'>('recent');
+    // Guarda quando o lead "entrou" na coluna (atualizado quando você move o card).
+    // Se recarregar a página, cai para `created_at` (fallback) até você mover novamente.
+    const [leadEnteredAtMs, setLeadEnteredAtMs] = useState<Record<string, number>>({});
     const [isDragging, setIsDragging] = useState(false);
     const [editingColId, setEditingColId] = useState<string | null>(null);
     const [editingColTitle, setEditingColTitle] = useState('');
@@ -254,6 +259,20 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             const { data, error } = await supabase.from('prospects').select('*').order('created_at', { ascending: false });
             if (error) throw error;
             setProspects(data || []);
+            // Fallback: quando não há "tempo na coluna" salvo em memória,
+            // usamos `status_entered_at` (quando existir) senão `created_at` apenas para não ficar vazio.
+            setLeadEnteredAtMs(prev => {
+                const next = { ...prev };
+                (data || []).forEach(p => {
+                    if (!next[p.id]) {
+                        const raw = p.status_entered_at || p.created_at;
+                        if (!raw) return;
+                        const parsed = Date.parse(raw);
+                        if (!Number.isNaN(parsed)) next[p.id] = parsed;
+                    }
+                });
+                return next;
+            });
         } catch (error) {
             console.error('Error fetching prospects:', error);
         } finally {
@@ -273,6 +292,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         } catch (error) {
             console.error('Error fetching tasks:', error);
         }
+    };
+
+    const getLeadEnteredAtMs = (prospect: Prospect) => {
+        const mem = leadEnteredAtMs[prospect.id];
+        if (typeof mem === 'number') return mem;
+        const raw = prospect.status_entered_at || prospect.created_at;
+        if (raw) {
+            const parsed = Date.parse(raw);
+            if (!Number.isNaN(parsed)) return parsed;
+        }
+        return null;
+    };
+
+    const formatLeadAge = (enteredAtMs?: number | null) => {
+        if (!enteredAtMs) return null;
+        const days = Math.floor((Date.now() - enteredAtMs) / (1000 * 60 * 60 * 24));
+        if (days <= 0) return 'incluído hoje';
+        if (days === 1) return 'há 1 dia';
+        if (days === 2) return 'há 2 dias';
+        if (days === 3) return 'há 3 dias';
+        if (days === 4) return 'há 4 dias';
+        if (days <= 6) return `há ${days} dias`;
+        if (days <= 13) return 'há 1 semana';
+        return 'há mais de 1 semana';
     };
 
     // ---- Column management ----
@@ -301,6 +344,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         // Move leads to Novos Leads
         if (leadsInCol > 0) {
             await supabase.from('prospects').update({ status: 'Novos Leads' }).eq('status', colId);
+            // Atualiza "tempo na coluna" para a nova coluna (em memória).
+            const affectedIds = prospects.filter(p => p.status === colId).map(p => p.id);
+            setLeadEnteredAtMs(prev => {
+                const next = { ...prev };
+                const now = Date.now();
+                affectedIds.forEach(id => { next[id] = now; });
+                return next;
+            });
             setProspects(prev => prev.map(p => p.status === colId ? { ...p, status: 'Novos Leads' } : p));
         }
 
@@ -392,6 +443,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setIsDragging(false);
         const prospectId = e.dataTransfer.getData('prospectId');
         if (!prospectId) return;
+        const movedLead = prospects.find(p => p.id === prospectId);
+        if (movedLead && movedLead.status !== statusId) {
+            setLeadEnteredAtMs(prev => ({ ...prev, [prospectId]: Date.now() }));
+        }
         setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, status: statusId } : p));
         try {
             const { error } = await supabase.from('prospects').update({ status: statusId }).eq('id', prospectId);
@@ -404,6 +459,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
     const handleMoveToColumn = async (prospectId: string, newStatus: string) => {
         setOpenMenuId(null);
+        const movedLead = prospects.find(p => p.id === prospectId);
+        if (movedLead && movedLead.status !== newStatus) {
+            setLeadEnteredAtMs(prev => ({ ...prev, [prospectId]: Date.now() }));
+        }
         setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, status: newStatus } : p));
         try {
             await supabase.from('prospects').update({ status: newStatus }).eq('id', prospectId);
@@ -458,6 +517,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         try {
             // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
             const { id, created_at, tasks, ...rawUpdateData } = editLeadForm;
+            const nextStatus = (rawUpdateData as any).status;
+            const statusChanged = typeof nextStatus === 'string' && nextStatus !== editingLead.status;
+            if (statusChanged) {
+                // Mudança de fase via modal: reinicia "tempo na coluna" a partir de agora.
+                setLeadEnteredAtMs(prev => ({ ...prev, [editingLead.id]: Date.now() }));
+            }
 
             // Auto-add pending insurer limit if user filled it but didn't click "Add"
             const pendingSeguradora = (editCurrentLimit.seguradora || '').trim();
@@ -824,9 +889,22 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         <LayoutGrid size={16} /> Nova Coluna
                     </button>
                 </div>
-                <div className="relative w-full md:w-64">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] shadow-sm transition-all" />
+                <div className="w-full md:w-64 flex flex-col gap-2">
+                    <div className="relative w-full">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] shadow-sm transition-all" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
+                        <select
+                            value={leadAgeSort}
+                            onChange={(e) => setLeadAgeSort(e.target.value === 'oldest' ? 'oldest' : 'recent')}
+                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] shadow-sm transition-all cursor-pointer"
+                        >
+                            <option value="recent">Menor tempo primeiro</option>
+                            <option value="oldest">Maior tempo primeiro</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -839,6 +917,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             return p.status === column.id || !validIds.includes(p.status);
                         }
                         return p.status === column.id;
+                    }).sort((a, b) => {
+                        // 'recent' => maior data primeiro (menor tempo na coluna primeiro)
+                        // 'oldest' => menor data primeiro (maior tempo na coluna primeiro)
+                        const ta = getLeadEnteredAtMs(a);
+                        const tb = getLeadEnteredAtMs(b);
+                        if (!ta && !tb) return 0;
+                        if (!ta) return 1;
+                        if (!tb) return -1;
+                        return leadAgeSort === 'recent' ? (tb - ta) : (ta - tb);
                     });
                     const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
                     const headerClass = colorToHeader(column.color);
@@ -933,6 +1020,16 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     <p className="text-[10px] font-bold text-slate-400 truncate">
                                                         {(prospect.ramo && prospect.ramo !== 'nan') ? prospect.ramo : (prospect.position && prospect.position !== 'nan' ? prospect.position : 'Sem Categoria')}
                                                     </p>
+                                                    {(() => {
+                                                        const enteredAtMs = getLeadEnteredAtMs(prospect);
+                                                        const ageLabel = formatLeadAge(enteredAtMs);
+                                                        if (!ageLabel) return null;
+                                                        return (
+                                                            <p className="text-[10px] font-black text-[#C69C6D] truncate mt-1">
+                                                                {ageLabel}
+                                                            </p>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 

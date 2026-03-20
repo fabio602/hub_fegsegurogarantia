@@ -81,6 +81,8 @@ export interface LeadCost {
 export interface Prospect {
   id: string;
   created_at: string;
+  // Data em que o lead entrou na fase/coluna atual (mantida por trigger quando `status` muda).
+  status_entered_at?: string;
   name?: string;
   position?: string;
   company?: string;
