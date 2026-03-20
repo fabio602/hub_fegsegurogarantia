@@ -110,7 +110,6 @@ const App: React.FC = () => {
             </div>
 
             <nav className="space-y-1">
-              <p className="text-[10px] font-black text-[#C69C6D]/60 uppercase tracking-[4px] px-5 mb-4">Módulos do Sistema</p>
               <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Visão Geral" />
               <NavItem view="calculator" icon={<CalcIcon size={16} />} label="Cálculo de Garantia" />
               <NavItem view="letter" icon={<FileText size={16} />} label="Carta de Nomeação" />
