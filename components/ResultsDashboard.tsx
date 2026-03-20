@@ -38,6 +38,16 @@ interface InsurerLimit {
     valor: string;
 }
 
+/** Unifica nomes de coluna da tabela `sales` (Postgres pode usar vigencia_* ou fim_vigencia / inicio_vigencia). */
+function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
+    const r = row as any;
+    return {
+        ...(row as Sale),
+        vigencia_inicio: r.vigencia_inicio ?? r.inicio_vigencia ?? '',
+        vigencia_fim: r.vigencia_fim ?? r.fim_vigencia ?? '',
+    };
+}
+
 const LIST_DATA = {
     origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
     tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
@@ -211,7 +221,7 @@ const ResultsDashboard: React.FC = () => {
                 supabase.from('lead_costs').select('*'),
                 supabase.from('insurers').select('*').order('nome')
             ]);
-            setSales(salesData || []);
+            setSales((salesData || []).map((row) => normalizeSaleFromDb(row as Record<string, unknown>)));
             setLeadCosts(costsData || []);
             setInsurers(insurersData || []);
         } catch (error) {
@@ -315,7 +325,8 @@ const ResultsDashboard: React.FC = () => {
             limites: formData.limites || null,
             catalogo: formData.catalogo || null,
             vigencia_inicio: formData.vigencia_inicio || null,
-            vigencia_fim: formData.vigencia_fim || null,
+            // Coluna no Supabase costuma ser `fim_vigencia` (label na tela: Fim Vigência)
+            fim_vigencia: formData.vigencia_fim || null,
             telefone: formData.telefone || null,
             email: formData.email || null,
             cnpj: formData.cnpj || null,

@@ -49,7 +49,10 @@ export interface Sale {
   limites: string;
   catalogo: string;
   vigencia_inicio?: string;
+  /** Fim da vigência (UI / legado) */
   vigencia_fim?: string;
+  /** Alguns projetos Supabase usam este nome na tabela `sales` em vez de `vigencia_fim`. */
+  fim_vigencia?: string;
   telefone?: string;
   email?: string;
   cnpj?: string;
