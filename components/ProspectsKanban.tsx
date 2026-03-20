@@ -789,19 +789,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 <div className="bg-slate-100 p-1 rounded-2xl flex gap-1 shadow-sm border border-slate-200">
                     <button 
                         onClick={() => setSelectedProduct('Seguro Garantia')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Seguro Garantia' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Seguro Garantia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Seguro Garantia
                     </button>
                     <button 
                         onClick={() => setSelectedProduct('Judicial Depósito Recursal')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Judicial Depósito Recursal
                     </button>
                     <button 
                         onClick={() => setSelectedProduct('Energia')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Energia' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Energia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Energia
                     </button>
@@ -811,11 +811,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* Action Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex items-center gap-3 flex-wrap">
-                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
+                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-[#1B263B] hover:bg-[#243347] text-[#F5F1EA] border border-[#C69C6D]/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
                         <Plus size={18} /> Novo Lead
                     </button>
                     <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-[#1B263B] hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
+                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-[#243347] hover:bg-[#1B263B] text-[#F5F1EA] border border-[#C69C6D]/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
                         {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         {importing ? 'Importando...' : 'Importar Leads (CSV)'}
                     </button>
