@@ -72,17 +72,8 @@ const App: React.FC = () => {
   }
 
   const Logo = () => (
-    <div className="flex items-center gap-3">
-      <div className="relative w-10 h-10 flex items-center justify-center">
-        <div className="absolute inset-0 bg-[#C69C6D] rounded-2xl rotate-6 opacity-20"></div>
-        <div className="absolute inset-0 bg-[#1B263B] rounded-2xl shadow-lg flex items-center justify-center border border-[#C69C6D]/30">
-          <span className="text-[#C69C6D] font-black text-base">FG</span>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <span className="text-white font-black leading-none text-xl tracking-tighter">F&G</span>
-        <span className="text-[#C69C6D] text-[10px] font-bold uppercase tracking-[3px] mt-0.5">Corretora</span>
-      </div>
+    <div className="flex items-center justify-center">
+      <img src="/logo.svg" alt="F&G Corretora" className="h-12 w-auto object-contain" />
     </div>
   );
 
