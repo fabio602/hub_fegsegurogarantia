@@ -325,8 +325,8 @@ const ResultsDashboard: React.FC = () => {
             limites: formData.limites || null,
             catalogo: formData.catalogo || null,
             vigencia_inicio: formData.vigencia_inicio || null,
-            // Coluna no Supabase costuma ser `fim_vigencia` (label na tela: Fim Vigência)
-            fim_vigencia: formData.vigencia_fim || null,
+            // Coluna na tabela `sales`: `vigencia_fim` (UI: Fim Vigência)
+            vigencia_fim: formData.vigencia_fim || null,
             telefone: formData.telefone || null,
             email: formData.email || null,
             cnpj: formData.cnpj || null,
