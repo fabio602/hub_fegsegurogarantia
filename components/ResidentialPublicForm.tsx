@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Home, Loader2, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const ORIGEM_MARKER = '[origem:formulario-publico]';
-
 const TIPO_SEGURO = [
     'Apenas Garantia Locatícia',
     'Apenas Seguro Residencial',
@@ -61,9 +59,6 @@ const formatCurrency = (value: string) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(numericValue) / 100);
 };
 
-/** Mantém RLS (`002_rls_residential_public_lead.sql`); dados estruturados vão em colunas próprias. */
-const publicLeadObs = () => `${ORIGEM_MARKER}\nEnviado em: ${new Date().toISOString()}`;
-
 const ResidentialPublicForm: React.FC = () => {
     const [tipoSeguro, setTipoSeguro] = useState<string>(TIPO_SEGURO[0]);
     const [nomeCompleto, setNomeCompleto] = useState('');
@@ -106,7 +101,8 @@ const ResidentialPublicForm: React.FC = () => {
                 fim_vigencia: null as string | null,
                 forma_pagamento: null as string | null,
                 situacao: 'Lead (site)',
-                obs: publicLeadObs(),
+                origem_publica: true,
+                obs: null as string | null,
                 estado_civil: estadoCivil || null,
                 cep_imovel: cep.trim() || null,
                 numero_imovel: numeroImovel.trim() || null,

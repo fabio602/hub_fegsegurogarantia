@@ -35,6 +35,8 @@ interface ResidentialClient {
     garantia_fim?: string;
     garantia_valor?: string;
     created_at?: string;
+    /** true = formulário público (RLS anon); legado: obs com marcador */
+    origem_publica?: boolean | null;
 }
 
 const EMPTY_FORM: Partial<ResidentialClient> = {
@@ -44,7 +46,8 @@ const EMPTY_FORM: Partial<ResidentialClient> = {
     forma_pagamento: '', situacao: 'Ativo', obs: '',
     estado_civil: '', cep_imovel: '', numero_imovel: '', tipo_imovel: '',
     valor_imovel: '', valor_aluguel: '', data_primeiro_pag_aluguel: '', valor_iptu_condominio: '',
-    tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: ''
+    tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: '',
+    origem_publica: false,
 };
 
 const ESTADO_CIVIL_OPTS = ['Casado(a)', 'Solteiro(a)', 'Separado(a)', 'Viúvo(a)'] as const;
@@ -81,6 +84,13 @@ function parseStructuredObs(obs: string | null | undefined): Partial<Pick<Reside
 function pickDbOrParsed(db: string | null | undefined, fromObs: string | undefined): string {
     if (db != null && String(db).trim() !== '') return String(db);
     return (fromObs ?? '').trim();
+}
+
+function formatEntrada(iso?: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const PRODUTOS = [
@@ -208,6 +218,7 @@ const ResidentialInsurance: React.FC = () => {
             garantia_inicio: formData.tem_garantia === 'Sim' ? (formData.garantia_inicio || null) : null,
             garantia_fim: formData.tem_garantia === 'Sim' ? (formData.garantia_fim || null) : null,
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
+            origem_publica: !!formData.origem_publica,
         };
 
         try {
@@ -239,6 +250,7 @@ const ResidentialInsurance: React.FC = () => {
         const fromObs = parseStructuredObs(client.obs);
         setFormData({
             ...client,
+            origem_publica: client.origem_publica === true || (client.obs || '').includes(ORIGEM_PUBLIC),
             telefone_2: pickDbOrParsed(client.telefone_2, fromObs.telefone_2),
             estado_civil: pickDbOrParsed(client.estado_civil, fromObs.estado_civil),
             cep_imovel: pickDbOrParsed(client.cep_imovel, fromObs.cep_imovel),
@@ -309,7 +321,9 @@ const ResidentialInsurance: React.FC = () => {
     }
 
     const isPublicLead = (c: ResidentialClient) =>
-        (c.obs || '').includes(ORIGEM_PUBLIC) || c.situacao === 'Lead (site)';
+        c.origem_publica === true || (c.obs || '').includes(ORIGEM_PUBLIC);
+
+    const isNovoLead = (c: ResidentialClient) => c.situacao === 'Lead (site)';
 
     const situacaoColor = (s: string) => {
         if (s === 'Lead (site)') return 'bg-[#C69C6D]/15 text-[#1B263B] border border-[#C69C6D]/40';
@@ -410,6 +424,21 @@ const ResidentialInsurance: React.FC = () => {
                     <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
                     {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                 </h3>
+
+                {editingId && (formData.created_at || formData.origem_publica) && (
+                    <div className="mb-6 flex flex-wrap gap-3 items-center text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-[#1B263B]">
+                            <Calendar size={14} className="text-[#C69C6D]" />
+                            Entrada no sistema:
+                            <span className="font-black text-slate-800">{formatEntrada(formData.created_at)}</span>
+                        </span>
+                        {formData.origem_publica && (
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-[#1B263B] text-[#C69C6D] px-2 py-1 rounded-md">
+                                Formulário do site
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {saveError && (
                     <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-xl text-sm font-bold">
@@ -582,7 +611,7 @@ const ResidentialInsurance: React.FC = () => {
                     {/* Block 4: Obs */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Observações</label>
-                        <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Informações adicionais..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                        <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Anotações internas opcionais — dados do site ficam nos campos acima." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
                     </div>
 
                     <div className="flex justify-end gap-3">
@@ -606,6 +635,7 @@ const ResidentialInsurance: React.FC = () => {
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
                                 <th className="px-6 py-5">Cliente</th>
+                                <th className="px-6 py-5">Entrada</th>
                                 <th className="px-6 py-5">Produto</th>
                                 <th className="px-6 py-5">Apólice</th>
                                 <th className="px-6 py-5">Prêmio</th>
@@ -620,7 +650,7 @@ const ResidentialInsurance: React.FC = () => {
                         <tbody className="divide-y divide-slate-50">
                             {filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center text-slate-400 font-bold text-sm">
+                                    <td colSpan={11} className="px-6 py-16 text-center text-slate-400 font-bold text-sm">
                                         {search ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
                                     </td>
                                 </tr>
@@ -639,6 +669,11 @@ const ResidentialInsurance: React.FC = () => {
                                                         Site
                                                     </span>
                                                 )}
+                                                {isNovoLead(c) && (
+                                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
+                                                        Novo lead
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-[10px] text-slate-400 font-bold mt-0.5">
                                                 {c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'}
@@ -647,6 +682,9 @@ const ResidentialInsurance: React.FC = () => {
                                                 {c.telefone_2 ? ` • ${c.telefone_2.includes('(') ? c.telefone_2 : formatPhone(c.telefone_2)}` : ''}
                                                 {c.cep_imovel ? ` • CEP ${c.cep_imovel.includes('-') ? c.cep_imovel : formatCEP(c.cep_imovel)}` : ''}
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-5 text-xs font-bold text-slate-600 whitespace-nowrap align-top">
+                                            {formatEntrada(c.created_at)}
                                         </td>
                                         <td className="px-6 py-5 text-sm font-bold text-slate-700 whitespace-nowrap">{c.produto || '-'}</td>
                                         <td className="px-6 py-5 text-sm text-slate-600 whitespace-nowrap">{c.apolice || '-'}</td>
