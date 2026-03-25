@@ -71,12 +71,14 @@ const LeadFormFields = ({
     form, 
     setForm, 
     columns, 
-    selectedProduct 
+    selectedProduct,
+    observationHistory
 }: { 
     form: Partial<Prospect>; 
     setForm: (v: Partial<Prospect>) => void;
     columns: KanbanColumn[];
     selectedProduct: string;
+    observationHistory?: string;
 }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4 col-span-2">
@@ -157,8 +159,14 @@ const LeadFormFields = ({
         )}
 
         <div className="space-y-1.5 col-span-2">
-            <label className="text-sm font-bold text-slate-700">Observações</label>
-            <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all resize-none" placeholder="Anotações sobre este lead..." />
+            <label className="text-sm font-bold text-slate-700">{observationHistory ? 'Nova Observação' : 'Observações'}</label>
+            <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all resize-none" placeholder={observationHistory ? "Digite a nova atualização. Será adicionada ao histórico com data/hora." : "Anotações sobre este lead..."} />
+            {observationHistory && (
+                <div className="mt-2 bg-white border border-slate-200 rounded-xl p-3">
+                    <p className="text-[11px] uppercase tracking-wider font-black text-slate-400 mb-2">Histórico de observações</p>
+                    <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words font-sans">{observationHistory}</pre>
+                </div>
+            )}
         </div>
     </div>
 );
@@ -219,11 +227,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [newColTitle, setNewColTitle] = useState('');
     const [newColColor, setNewColColor] = useState('fg_blue_2');
 
-    const stampObservation = (newText: string | null | undefined, oldText: string | null | undefined) => {
+    const buildObservationHistory = (newText: string | null | undefined, oldText: string | null | undefined) => {
         const next = (newText || '').trim();
-        const prev = (oldText || '').trim();
-        if (!next) return null;
-        if (next === prev) return next;
+        const previousHistory = (oldText || '').trim();
+        if (!next) return previousHistory || null;
         const timestamp = new Date().toLocaleString('pt-BR', {
             day: '2-digit',
             month: '2-digit',
@@ -231,7 +238,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             hour: '2-digit',
             minute: '2-digit',
         });
-        return `[${timestamp}] ${next}`;
+        const entry = `[${timestamp}] ${next}`;
+        if (!previousHistory) return entry;
+        return `${previousHistory}\n${entry}`;
     };
 
     const extractObservationTimestamp = (text: string | null | undefined): string | null => {
@@ -520,6 +529,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
         // Garante que o campo Empresa tenha algum valor se estiver vazio
         if (!cleanedForm.company) cleanedForm.company = prospect.name || '';
+        // No modal de edição, este campo recebe apenas a nova observação.
+        // O histórico completo é exibido em bloco separado.
+        cleanedForm.description = '';
 
         setEditLeadForm(cleanedForm);
         // Parse limits
@@ -554,7 +566,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             // Merge limits into the form data
             rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
-            rawUpdateData.description = stampObservation(
+            rawUpdateData.description = buildObservationHistory(
                 rawUpdateData.description as string,
                 editingLead.description as string
             ) as any;
@@ -835,7 +847,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setSavingLead(true);
         try {
             const finalLimites = newLimitesArray.length > 0 ? JSON.stringify(newLimitesArray) : null;
-            const stampedDescription = stampObservation(newLeadForm.description as string, null);
+            const stampedDescription = buildObservationHistory(newLeadForm.description as string, null);
             const { error } = await supabase.from('prospects').insert([{ 
                 ...newLeadForm, 
                 company: newLeadForm.company || newLeadForm.name,
@@ -1260,8 +1272,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <button onClick={() => setIsNewLeadModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                            <form id="new-lead-form" onSubmit={handleCreateNewLead}>
-                                <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} selectedProduct={selectedProduct} />
+                                    <form id="new-lead-form" onSubmit={handleCreateNewLead}>
+                                        <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} selectedProduct={selectedProduct} />
                             </form>
                             
                             {/* Insurer Limits Section for New Lead */}
@@ -1348,7 +1360,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                                 <div className="lg:col-span-3">
                                     <form id="edit-lead-form" onSubmit={handleSaveEdit}>
-                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} />
+                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} observationHistory={editingLead.description || ''} />
                                     </form>
 
                                     {/* Insurer Limits Section */}
