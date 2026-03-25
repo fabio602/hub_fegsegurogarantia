@@ -171,7 +171,7 @@ const ResidentialPublicForm: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F5F1EA] text-slate-800">
+        <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-[#F5F1EA] text-slate-800 custom-scroll">
             <header className="bg-[#1B263B] text-white border-b-4 border-[#C69C6D]">
                 <div className="max-w-3xl mx-auto px-5 py-8 flex flex-col sm:flex-row sm:items-center gap-6">
                     <img src="/logo.svg" alt="F&G Corretora" className="h-16 w-auto object-contain" />

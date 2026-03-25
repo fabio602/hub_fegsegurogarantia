@@ -12,10 +12,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+      /* Rolagem da página — formulário público e telas longas (sobrescreve cache/HTML antigo) */
+      html {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
+        min-height: 100%;
+      }
       body {
         font-family: 'Inter', sans-serif;
         background-color: #f8fafc;
         scroll-behavior: smooth;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+      #root {
+        min-height: 100%;
       }
 
       .glass-card {
@@ -53,7 +67,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 text-slate-900 antialiased overflow-hidden">
+  <body class="bg-slate-50 text-slate-900 antialiased min-h-screen overflow-x-hidden overflow-y-auto">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
