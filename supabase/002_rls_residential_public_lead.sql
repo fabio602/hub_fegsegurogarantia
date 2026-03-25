@@ -2,6 +2,7 @@
 -- Rode no SQL Editor do Supabase.
 --
 -- O app envia: situacao = 'Lead (site)' e obs com '[origem:formulario-publico]'.
+-- Dados extras do formulário público: colunas dedicadas (migration 003); obs pode ser só o carimbo.
 --
 -- Se `situacao` tiver CHECK constraint, inclua 'Lead (site)' nos valores permitidos.
 

@@ -61,31 +61,8 @@ const formatCurrency = (value: string) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(numericValue) / 100);
 };
 
-function buildObs(fields: {
-    telefone2: string;
-    estadoCivil: string;
-    cep: string;
-    numeroImovel: string;
-    tipoImovel: string;
-    valorImovel: string;
-    valorAluguel: string;
-    dataPrimeiroPagamento: string;
-    valorIptuCondominio: string;
-}) {
-    return [
-        ORIGEM_MARKER,
-        `Telefone / Celular 2: ${fields.telefone2.trim() || '—'}`,
-        `Estado civil: ${fields.estadoCivil}`,
-        `CEP do imóvel: ${fields.cep.trim() || '—'}`,
-        `Número do imóvel: ${fields.numeroImovel.trim() || '—'}`,
-        `Tipo de imóvel: ${fields.tipoImovel}`,
-        `Valor do imóvel: ${fields.valorImovel.trim() || '—'}`,
-        `Valor do aluguel: ${fields.valorAluguel.trim() || '—'}`,
-        `Data do 1º pagamento do aluguel: ${fields.dataPrimeiroPagamento || '—'}`,
-        `Valor IPTU e/ou condomínio: ${fields.valorIptuCondominio.trim() || '—'}`,
-        `Enviado em: ${new Date().toISOString()}`,
-    ].join('\n');
-}
+/** Mantém RLS (`002_rls_residential_public_lead.sql`); dados estruturados vão em colunas próprias. */
+const publicLeadObs = () => `${ORIGEM_MARKER}\nEnviado em: ${new Date().toISOString()}`;
 
 const ResidentialPublicForm: React.FC = () => {
     const [tipoSeguro, setTipoSeguro] = useState<string>(TIPO_SEGURO[0]);
@@ -115,22 +92,11 @@ const ResidentialPublicForm: React.FC = () => {
         setError(null);
         setSubmitting(true);
         try {
-            const obs = buildObs({
-                telefone2,
-                estadoCivil,
-                cep,
-                numeroImovel,
-                tipoImovel,
-                valorImovel,
-                valorAluguel,
-                dataPrimeiroPagamento,
-                valorIptuCondominio,
-            });
-
             const payload = {
                 nome: nomeCompleto.trim(),
                 cpf: cpfCnpj.trim() || null,
                 telefone: telefone1.trim() || null,
+                telefone_2: telefone2.trim() || null,
                 email: email.trim() || null,
                 produto: tipoSeguro,
                 apolice: null as string | null,
@@ -140,7 +106,15 @@ const ResidentialPublicForm: React.FC = () => {
                 fim_vigencia: null as string | null,
                 forma_pagamento: null as string | null,
                 situacao: 'Lead (site)',
-                obs,
+                obs: publicLeadObs(),
+                estado_civil: estadoCivil || null,
+                cep_imovel: cep.trim() || null,
+                numero_imovel: numeroImovel.trim() || null,
+                tipo_imovel: tipoImovel || null,
+                valor_imovel: valorImovel.trim() || null,
+                valor_aluguel: valorAluguel.trim() || null,
+                data_primeiro_pag_aluguel: dataPrimeiroPagamento.trim() || null,
+                valor_iptu_condominio: valorIptuCondominio.trim() || null,
                 tem_garantia: temGarantiaLocaticia ? 'Sim' : 'Não',
                 garantia_inicio: null as string | null,
                 garantia_fim: null as string | null,

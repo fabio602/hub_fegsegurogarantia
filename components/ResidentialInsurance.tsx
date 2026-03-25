@@ -11,6 +11,7 @@ interface ResidentialClient {
     nome: string;
     cpf: string;
     telefone: string;
+    telefone_2?: string | null;
     email: string;
     produto: string;
     apolice: string;
@@ -21,6 +22,14 @@ interface ResidentialClient {
     forma_pagamento: string;
     situacao: string;
     obs: string;
+    estado_civil?: string | null;
+    cep_imovel?: string | null;
+    numero_imovel?: string | null;
+    tipo_imovel?: string | null;
+    valor_imovel?: string | null;
+    valor_aluguel?: string | null;
+    data_primeiro_pag_aluguel?: string | null;
+    valor_iptu_condominio?: string | null;
     tem_garantia: string;
     garantia_inicio?: string;
     garantia_fim?: string;
@@ -29,12 +38,50 @@ interface ResidentialClient {
 }
 
 const EMPTY_FORM: Partial<ResidentialClient> = {
-    nome: '', cpf: '', telefone: '', email: '',
+    nome: '', cpf: '', telefone: '', telefone_2: '', email: '',
     produto: '', apolice: '', premio_total: '',
     comissao: '', data_emissao: '', fim_vigencia: '',
     forma_pagamento: '', situacao: 'Ativo', obs: '',
+    estado_civil: '', cep_imovel: '', numero_imovel: '', tipo_imovel: '',
+    valor_imovel: '', valor_aluguel: '', data_primeiro_pag_aluguel: '', valor_iptu_condominio: '',
     tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: ''
 };
+
+const ESTADO_CIVIL_OPTS = ['Casado(a)', 'Solteiro(a)', 'Separado(a)', 'Viúvo(a)'] as const;
+const TIPO_IMOVEL_OPTS = ['Casa', 'Apartamento', 'Casa em condomínio', 'Comercial'] as const;
+
+const ORIGEM_PUBLIC = '[origem:formulario-publico]';
+
+/** Preenche campos a partir de leads antigos que tinham tudo em `obs`. */
+function parseStructuredObs(obs: string | null | undefined): Partial<Pick<ResidentialClient,
+    'telefone_2' | 'estado_civil' | 'cep_imovel' | 'numero_imovel' | 'tipo_imovel' | 'valor_imovel' | 'valor_aluguel' | 'data_primeiro_pag_aluguel' | 'valor_iptu_condominio'
+>> {
+    if (!obs?.includes(ORIGEM_PUBLIC)) return {};
+    const line = (prefix: string): string => {
+        const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`^${esc}:\\s*(.+)$`, 'm');
+        const m = obs.match(re);
+        if (!m) return '';
+        const v = m[1].trim();
+        return v === '—' ? '' : v;
+    };
+    return {
+        telefone_2: line('Telefone / Celular 2'),
+        estado_civil: line('Estado civil'),
+        cep_imovel: line('CEP do imóvel'),
+        numero_imovel: line('Número do imóvel'),
+        tipo_imovel: line('Tipo de imóvel'),
+        valor_imovel: line('Valor do imóvel'),
+        valor_aluguel: line('Valor do aluguel'),
+        data_primeiro_pag_aluguel: line('Data do 1º pagamento do aluguel'),
+        valor_iptu_condominio: line('Valor IPTU e/ou condomínio'),
+    };
+}
+
+function pickDbOrParsed(db: string | null | undefined, fromObs: string | undefined): string {
+    if (db != null && String(db).trim() !== '') return String(db);
+    return (fromObs ?? '').trim();
+}
 
 const PRODUTOS = [
     'Apenas Garantia Locatícia',
@@ -64,6 +111,11 @@ const formatPhone = (value: string) => {
         .replace(/(\d{2})(\d)/, '($1) $2')
         .replace(/(\d{5})(\d)/, '$1-$2')
         .replace(/(-\d{4})\d+?$/, '$1');
+};
+
+const formatCEP = (value: string) => {
+    const d = value.replace(/\D/g, '').slice(0, 8);
+    return d.replace(/(\d{5})(\d)/, '$1-$2');
 };
 
 const formatCurrency = (value: string) => {
@@ -113,8 +165,10 @@ const ResidentialInsurance: React.FC = () => {
 
         // Aplicar máscaras
         if (id === 'cpf') value = formatCPF(value);
-        if (id === 'telefone') value = formatPhone(value);
-        if (id === 'premio_total' || id === 'comissao' || id === 'garantia_valor') {
+        if (id === 'telefone' || id === 'telefone_2') value = formatPhone(value);
+        if (id === 'cep_imovel') value = formatCEP(value);
+        if (id === 'premio_total' || id === 'comissao' || id === 'garantia_valor'
+            || id === 'valor_imovel' || id === 'valor_aluguel' || id === 'valor_iptu_condominio') {
             value = formatCurrency(value);
         }
 
@@ -131,6 +185,7 @@ const ResidentialInsurance: React.FC = () => {
             nome: formData.nome || null,
             cpf: formData.cpf || null,
             telefone: formData.telefone || null,
+            telefone_2: formData.telefone_2?.trim() || null,
             email: formData.email || null,
             produto: formData.produto || null,
             apolice: formData.apolice || null,
@@ -141,6 +196,14 @@ const ResidentialInsurance: React.FC = () => {
             forma_pagamento: formData.forma_pagamento || null,
             situacao: formData.situacao || null,
             obs: formData.obs || null,
+            estado_civil: formData.estado_civil?.trim() || null,
+            cep_imovel: formData.cep_imovel?.trim() || null,
+            numero_imovel: formData.numero_imovel?.trim() || null,
+            tipo_imovel: formData.tipo_imovel?.trim() || null,
+            valor_imovel: formData.valor_imovel?.trim() || null,
+            valor_aluguel: formData.valor_aluguel?.trim() || null,
+            data_primeiro_pag_aluguel: formData.data_primeiro_pag_aluguel?.trim() || null,
+            valor_iptu_condominio: formData.valor_iptu_condominio?.trim() || null,
             tem_garantia: formData.tem_garantia || 'Não',
             garantia_inicio: formData.tem_garantia === 'Sim' ? (formData.garantia_inicio || null) : null,
             garantia_fim: formData.tem_garantia === 'Sim' ? (formData.garantia_fim || null) : null,
@@ -173,7 +236,19 @@ const ResidentialInsurance: React.FC = () => {
 
     const handleEdit = (client: ResidentialClient) => {
         setEditingId(client.id);
-        setFormData(client);
+        const fromObs = parseStructuredObs(client.obs);
+        setFormData({
+            ...client,
+            telefone_2: pickDbOrParsed(client.telefone_2, fromObs.telefone_2),
+            estado_civil: pickDbOrParsed(client.estado_civil, fromObs.estado_civil),
+            cep_imovel: pickDbOrParsed(client.cep_imovel, fromObs.cep_imovel),
+            numero_imovel: pickDbOrParsed(client.numero_imovel, fromObs.numero_imovel),
+            tipo_imovel: pickDbOrParsed(client.tipo_imovel, fromObs.tipo_imovel),
+            valor_imovel: pickDbOrParsed(client.valor_imovel, fromObs.valor_imovel),
+            valor_aluguel: pickDbOrParsed(client.valor_aluguel, fromObs.valor_aluguel),
+            data_primeiro_pag_aluguel: pickDbOrParsed(client.data_primeiro_pag_aluguel, fromObs.data_primeiro_pag_aluguel),
+            valor_iptu_condominio: pickDbOrParsed(client.valor_iptu_condominio, fromObs.valor_iptu_condominio),
+        });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -208,11 +283,19 @@ const ResidentialInsurance: React.FC = () => {
         a.download = 'Clientes_Residencial.csv'; a.click();
     };
 
-    const filtered = clients.filter(c =>
-        c.nome?.toLowerCase().includes(search.toLowerCase()) ||
-        c.cpf?.includes(search) ||
-        c.apolice?.includes(search)
-    );
+    const filtered = clients.filter(c => {
+        const q = search.toLowerCase();
+        const qDigits = search.replace(/\D/g, '');
+        const cepDigits = (c.cep_imovel || '').replace(/\D/g, '');
+        const cepMatch = qDigits.length > 0 && cepDigits.includes(qDigits);
+        return (
+            c.nome?.toLowerCase().includes(q) ||
+            c.cpf?.includes(search) ||
+            c.apolice?.includes(search) ||
+            (c.telefone_2 && c.telefone_2.includes(search)) ||
+            cepMatch
+        );
+    });
 
     const expiringAlerts = getExpiringAlerts();
 
@@ -226,7 +309,7 @@ const ResidentialInsurance: React.FC = () => {
     }
 
     const isPublicLead = (c: ResidentialClient) =>
-        (c.obs || '').includes('[origem:formulario-publico]') || c.situacao === 'Lead (site)';
+        (c.obs || '').includes(ORIGEM_PUBLIC) || c.situacao === 'Lead (site)';
 
     const situacaoColor = (s: string) => {
         if (s === 'Lead (site)') return 'bg-[#C69C6D]/15 text-[#1B263B] border border-[#C69C6D]/40';
@@ -286,7 +369,7 @@ const ResidentialInsurance: React.FC = () => {
                     <div className="relative flex-1 md:flex-none">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
-                            type="text" placeholder="Buscar nome, CPF, apólice..."
+                            type="text" placeholder="Buscar nome, CPF, apólice, CEP..."
                             value={search} onChange={e => setSearch(e.target.value)}
                             className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20"
                         />
@@ -348,6 +431,7 @@ const ResidentialInsurance: React.FC = () => {
                                 { id: 'nome', label: 'Nome do Cliente', placeholder: 'Nome completo', required: true },
                                 { id: 'cpf', label: 'CPF', placeholder: '000.000.000-00' },
                                 { id: 'telefone', label: 'Telefone', placeholder: '(00) 00000-0000' },
+                                { id: 'telefone_2', label: 'Telefone / Celular 2', placeholder: '(00) 00000-0000' },
                                 { id: 'email', label: 'E-mail', placeholder: 'cliente@email.com' },
                             ].map(f => (
                                 <div key={f.id} className="space-y-2">
@@ -362,6 +446,56 @@ const ResidentialInsurance: React.FC = () => {
                                     />
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Block 1b: Lead site / imóvel (preenchido pelo formulário público ou manualmente) */}
+                    <div className="p-6 bg-[#F5F1EA]/80 rounded-2xl border border-[#C69C6D]/20">
+                        <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest mb-4">Cotação e imóvel (formulário do site)</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Estado civil</label>
+                                <select
+                                    id="estado_civil"
+                                    value={formData.estado_civil || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {ESTADO_CIVIL_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">CEP do imóvel</label>
+                                <input type="text" id="cep_imovel" value={formData.cep_imovel || ''} onChange={handleInputChange} placeholder="00000-000" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Número do imóvel</label>
+                                <input type="text" id="numero_imovel" value={formData.numero_imovel || ''} onChange={handleInputChange} placeholder="Nº, bloco, apto..." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo de imóvel</label>
+                                <select id="tipo_imovel" value={formData.tipo_imovel || ''} onChange={handleInputChange} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                    <option value="">Selecione...</option>
+                                    {TIPO_IMOVEL_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor do imóvel</label>
+                                <input type="text" id="valor_imovel" value={formData.valor_imovel || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor do aluguel</label>
+                                <input type="text" id="valor_aluguel" value={formData.valor_aluguel || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">1º pagamento do aluguel</label>
+                                <input type="date" id="data_primeiro_pag_aluguel" value={formData.data_primeiro_pag_aluguel || ''} onChange={handleInputChange} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">IPTU / condomínio</label>
+                                <input type="text" id="valor_iptu_condominio" value={formData.valor_iptu_condominio || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
                         </div>
                     </div>
 
@@ -506,7 +640,13 @@ const ResidentialInsurance: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-400 font-bold mt-0.5">{c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'} • {c.telefone ? (c.telefone.includes('(') ? c.telefone : formatPhone(c.telefone)) : '-'}</div>
+                                            <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                {c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'}
+                                                {' • '}
+                                                {c.telefone ? (c.telefone.includes('(') ? c.telefone : formatPhone(c.telefone)) : '-'}
+                                                {c.telefone_2 ? ` • ${c.telefone_2.includes('(') ? c.telefone_2 : formatPhone(c.telefone_2)}` : ''}
+                                                {c.cep_imovel ? ` • CEP ${c.cep_imovel.includes('-') ? c.cep_imovel : formatCEP(c.cep_imovel)}` : ''}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-5 text-sm font-bold text-slate-700 whitespace-nowrap">{c.produto || '-'}</td>
                                         <td className="px-6 py-5 text-sm text-slate-600 whitespace-nowrap">{c.apolice || '-'}</td>
