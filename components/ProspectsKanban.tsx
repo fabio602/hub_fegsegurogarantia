@@ -234,6 +234,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         return `[${timestamp}] ${next}`;
     };
 
+    const extractObservationTimestamp = (text: string | null | undefined): string | null => {
+        const value = (text || '').trim();
+        const m = value.match(/^\[(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})\]/);
+        return m ? m[1] : null;
+    };
+
     const DB_FIELDS = [
         { key: 'name', label: 'Nome do Contato' },
         { key: 'company', label: 'Empresa (Obrigatório)' },
@@ -1330,6 +1336,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-[#C69C6D]" />Editar Lead</h3>
                                 <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
+                                {extractObservationTimestamp(editLeadForm.description as string) && (
+                                    <p className="text-xs text-slate-500 font-bold mt-1 px-1">
+                                        Ultima atualizacao da observacao: {extractObservationTimestamp(editLeadForm.description as string)}
+                                    </p>
+                                )}
                             </div>
                             <button onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
