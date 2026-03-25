@@ -67,18 +67,25 @@ interface ProspectsKanbanProps {
     onConvertToSale?: (data: { nome: string; cnpj: string; telefone: string; email: string; decisor: string; limites_seguradoras?: string }) => void;
 }
 
+interface ObservationEntry {
+    timestamp: string; // dd/MM/yyyy HH:mm
+    text: string;
+}
+
 const LeadFormFields = ({ 
     form, 
     setForm, 
     columns, 
     selectedProduct,
-    observationHistory
+    observationHistory,
+    hideObservation
 }: { 
     form: Partial<Prospect>; 
     setForm: (v: Partial<Prospect>) => void;
     columns: KanbanColumn[];
     selectedProduct: string;
     observationHistory?: string;
+    hideObservation?: boolean;
 }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4 col-span-2">
@@ -158,7 +165,7 @@ const LeadFormFields = ({
             </>
         )}
 
-        <div className="space-y-1.5 col-span-2">
+        {!hideObservation && <div className="space-y-1.5 col-span-2">
             <label className="text-sm font-bold text-slate-700">{observationHistory ? 'Nova Observação' : 'Observações'}</label>
             <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all resize-none" placeholder={observationHistory ? "Digite a nova atualização. Será adicionada ao histórico com data/hora." : "Anotações sobre este lead..."} />
             {observationHistory && (
@@ -167,7 +174,7 @@ const LeadFormFields = ({
                     <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words font-sans">{observationHistory}</pre>
                 </div>
             )}
-        </div>
+        </div>}
     </div>
 );
 
@@ -217,6 +224,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [editLeadForm, setEditLeadForm] = useState<Partial<Prospect>>({});
     const [editLimitesArray, setEditLimitesArray] = useState<{seguradora: string; valor: string}[]>([]);
     const [editCurrentLimit, setEditCurrentLimit] = useState<{seguradora: string; valor: string}>({ seguradora: '', valor: '' });
+    const [editObservationEntries, setEditObservationEntries] = useState<ObservationEntry[]>([]);
+    const [editObservationText, setEditObservationText] = useState('');
+    const [editObservationDateTime, setEditObservationDateTime] = useState('');
+    const [editingObservationIndex, setEditingObservationIndex] = useState<number | null>(null);
 
     // Context Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -227,26 +238,81 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [newColTitle, setNewColTitle] = useState('');
     const [newColColor, setNewColColor] = useState('fg_blue_2');
 
+    const nowDateTimeLocal = () => {
+        const d = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    /** Formato canônico salvo no banco (sem vírgula — evita quebra do parser). */
+    const formatBrTimestamp = (d: Date) => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const localToBrDateTime = (value: string) => {
+        if (!value) return '';
+        const [date, time] = value.split('T');
+        if (!date || !time) return '';
+        const [y, m, d] = date.split('-');
+        const hhmm = time.slice(0, 5);
+        return `${d}/${m}/${y} ${hhmm}`;
+    };
+
+    const brToLocalDateTime = (value: string) => {
+        const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*|\s+)(\d{2}:\d{2})$/);
+        if (!m) return nowDateTimeLocal();
+        return `${m[3]}-${m[2]}-${m[1]}T${m[4]}`;
+    };
+
+    /** Remove carimbo legado do início do texto (ex.: colado no corpo). */
+    const stripLeadingObservationStamp = (body: string) =>
+        (body || '').replace(/^\[\d{2}\/\d{2}\/\d{4}(?:,\s*|\s+)\d{2}:\d{2}\]\s*/u, '').trim();
+
+    const parseObservationHistory = (historyText: string | null | undefined): ObservationEntry[] => {
+        const raw = (historyText || '').trim();
+        if (!raw) return [];
+        const stampAtLineStart = /\n(?=\[\d{2}\/\d{2}\/\d{4}(?:,\s*|\s+)\d{2}:\d{2}\]\s*)/g;
+        const chunks = raw.split(stampAtLineStart);
+        const lineStamp = /^\[(\d{2})\/(\d{2})\/(\d{4})(?:,\s*|\s+)(\d{2}:\d{2})\]\s*([\s\S]*)$/;
+        const entries: ObservationEntry[] = [];
+        chunks.forEach((chunk) => {
+            const line = chunk.trim();
+            if (!line) return;
+            const m = line.match(lineStamp);
+            if (m) {
+                const timestamp = `${m[1]}/${m[2]}/${m[3]} ${m[4]}`;
+                const text = stripLeadingObservationStamp(m[5].trim());
+                entries.push({ timestamp, text });
+                return;
+            }
+            const loose = line.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+            if (loose) {
+                const innerNorm = loose[1].replace(/\s*,\s*/, ' ').trim();
+                const sm = innerNorm.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}:\d{2})$/);
+                const timestamp = sm ? `${sm[1]}/${sm[2]}/${sm[3]} ${sm[4]}` : innerNorm;
+                entries.push({ timestamp, text: stripLeadingObservationStamp(loose[2].trim()) });
+                return;
+            }
+            entries.push({ timestamp: formatBrTimestamp(new Date()), text: stripLeadingObservationStamp(line) });
+        });
+        return entries;
+    };
+
+    const serializeObservationHistory = (entries: ObservationEntry[]) => {
+        const valid = entries.filter(e => e.text.trim() && e.timestamp.trim());
+        if (valid.length === 0) return null;
+        return valid.map(e => `[${e.timestamp}] ${stripLeadingObservationStamp(e.text.trim())}`).join('\n');
+    };
+
     const buildObservationHistory = (newText: string | null | undefined, oldText: string | null | undefined) => {
-        const next = (newText || '').trim();
+        const next = stripLeadingObservationStamp((newText || '').trim());
         const previousHistory = (oldText || '').trim();
         if (!next) return previousHistory || null;
-        const timestamp = new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+        const timestamp = formatBrTimestamp(new Date());
         const entry = `[${timestamp}] ${next}`;
         if (!previousHistory) return entry;
         return `${previousHistory}\n${entry}`;
-    };
-
-    const extractObservationTimestamp = (text: string | null | undefined): string | null => {
-        const value = (text || '').trim();
-        const m = value.match(/^\[(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})\]/);
-        return m ? m[1] : null;
     };
 
     const DB_FIELDS = [
@@ -529,11 +595,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
         // Garante que o campo Empresa tenha algum valor se estiver vazio
         if (!cleanedForm.company) cleanedForm.company = prospect.name || '';
-        // No modal de edição, este campo recebe apenas a nova observação.
-        // O histórico completo é exibido em bloco separado.
+        // Observações são gerenciadas em histórico separado neste modal.
         cleanedForm.description = '';
 
         setEditLeadForm(cleanedForm);
+        const parsedObs = parseObservationHistory(prospect.description);
+        setEditObservationEntries(parsedObs);
+        setEditObservationText('');
+        setEditObservationDateTime(nowDateTimeLocal());
+        setEditingObservationIndex(null);
         // Parse limits
         try {
             const parsed = cleanedForm.limites_seguradoras ? JSON.parse(cleanedForm.limites_seguradoras) : [];
@@ -541,6 +611,37 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         } catch { setEditLimitesArray([]); }
         setEditCurrentLimit({ seguradora: '', valor: '' });
         setIsEditModalOpen(true);
+    };
+
+    const handleAddOrUpdateObservation = () => {
+        const text = editObservationText.trim();
+        const timestamp = localToBrDateTime(editObservationDateTime);
+        if (!text || !timestamp) return;
+        const entry: ObservationEntry = { text, timestamp };
+        setEditObservationEntries(prev => {
+            if (editingObservationIndex === null) return [...prev, entry];
+            return prev.map((item, idx) => (idx === editingObservationIndex ? entry : item));
+        });
+        setEditObservationText('');
+        setEditObservationDateTime(nowDateTimeLocal());
+        setEditingObservationIndex(null);
+    };
+
+    const handleEditObservation = (index: number) => {
+        const entry = editObservationEntries[index];
+        if (!entry) return;
+        setEditObservationText(entry.text);
+        setEditObservationDateTime(brToLocalDateTime(entry.timestamp));
+        setEditingObservationIndex(index);
+    };
+
+    const handleDeleteObservation = (index: number) => {
+        setEditObservationEntries(prev => prev.filter((_, idx) => idx !== index));
+        if (editingObservationIndex === index) {
+            setEditingObservationIndex(null);
+            setEditObservationText('');
+            setEditObservationDateTime(nowDateTimeLocal());
+        }
     };
 
     const handleSaveEdit = async (e: React.FormEvent) => {
@@ -566,10 +667,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             // Merge limits into the form data
             rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
-            rawUpdateData.description = buildObservationHistory(
-                rawUpdateData.description as string,
-                editingLead.description as string
-            ) as any;
+            const pendingText = editObservationText.trim();
+            const pendingTs = localToBrDateTime(editObservationDateTime);
+            const finalObsEntries = pendingText && pendingTs
+                ? [...editObservationEntries, { text: pendingText, timestamp: pendingTs }]
+                : editObservationEntries;
+            rawUpdateData.description = serializeObservationHistory(finalObsEntries) as any;
 
             // Strict data sanitization to prevent database rejection
             const dataToUpdate: any = {};
@@ -1348,9 +1451,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-[#C69C6D]" />Editar Lead</h3>
                                 <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
-                                {extractObservationTimestamp(editLeadForm.description as string) && (
+                                {editObservationEntries.length > 0 && (
                                     <p className="text-xs text-slate-500 font-bold mt-1 px-1">
-                                        Ultima atualizacao da observacao: {extractObservationTimestamp(editLeadForm.description as string)}
+                                        Ultima atualizacao da observacao: {editObservationEntries[editObservationEntries.length - 1].timestamp}
                                     </p>
                                 )}
                             </div>
@@ -1360,8 +1463,97 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                                 <div className="lg:col-span-3">
                                     <form id="edit-lead-form" onSubmit={handleSaveEdit}>
-                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} observationHistory={editingLead.description || ''} />
+                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} hideObservation />
                                     </form>
+
+                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Observacoes do Lead</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div className="md:col-span-1 space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-600">Data da observacao</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={editObservationDateTime}
+                                                    onChange={(e) => setEditObservationDateTime(e.target.value)}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2 space-y-1.5">
+                                                <label className="text-xs font-bold text-slate-600">{editingObservationIndex === null ? 'Nova observacao' : 'Editar observacao'}</label>
+                                                <textarea
+                                                    value={editObservationText}
+                                                    onChange={(e) => setEditObservationText(e.target.value)}
+                                                    rows={3}
+                                                    placeholder="Digite a observacao..."
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] resize-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            {editingObservationIndex !== null && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingObservationIndex(null);
+                                                        setEditObservationText('');
+                                                        setEditObservationDateTime(nowDateTimeLocal());
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                                                >
+                                                    Cancelar Edicao
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={handleAddOrUpdateObservation}
+                                                className="px-4 py-2 rounded-xl bg-[#1B263B] text-white font-bold text-sm hover:bg-[#243347]"
+                                            >
+                                                {editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-5">
+                                            <h5 className="text-xs font-black text-[#1B263B] uppercase tracking-widest mb-2">Histórico de observações</h5>
+                                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
+                                                {editObservationEntries.length === 0 ? (
+                                                    <div className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                                        Nenhuma observacao registrada ainda.
+                                                    </div>
+                                                ) : editObservationEntries.map((entry, idx) => (
+                                                    <div
+                                                        key={`${entry.timestamp}-${idx}`}
+                                                        className="rounded-xl border border-[#C69C6D]/30 bg-white shadow-sm overflow-hidden"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-2 px-3 py-2 bg-[#1B263B]">
+                                                            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#243347] px-2 py-1 text-[11px] font-bold tabular-nums text-[#C69C6D] ring-1 ring-[#C69C6D]/40">
+                                                                <Clock size={12} className="shrink-0 text-[#C69C6D]/90" aria-hidden />
+                                                                {entry.timestamp}
+                                                            </span>
+                                                            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditObservation(idx)}
+                                                                    className="text-[11px] font-bold text-[#C69C6D] hover:text-white transition-colors"
+                                                                >
+                                                                    Editar
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteObservation(idx)}
+                                                                    className="text-[11px] font-bold text-rose-300 hover:text-rose-100 transition-colors"
+                                                                >
+                                                                    Excluir
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words px-3 py-2.5 leading-relaxed">
+                                                            {entry.text}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     {/* Insurer Limits Section */}
                                     <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
