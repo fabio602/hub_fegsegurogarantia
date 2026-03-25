@@ -18,9 +18,11 @@ import {
   ArrowUpRight,
   Home,
   Landmark,
-  Scale
+  Scale,
+  Copy
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
+import { getPublicResidentialFormUrl } from './utils/publicUrls';
 import Auth from './components/Auth';
 import Calculator from './components/Calculator';
 import NominationLetter from './components/NominationLetter';
@@ -38,6 +40,15 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [publicFormCopied, setPublicFormCopied] = useState(false);
+
+  const copyPublicFormUrl = () => {
+    const url = getPublicResidentialFormUrl();
+    if (!url) return;
+    void navigator.clipboard.writeText(url);
+    setPublicFormCopied(true);
+    window.setTimeout(() => setPublicFormCopied(false), 2000);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -236,6 +247,31 @@ const App: React.FC = () => {
                   {/* Decorative Elements */}
                   <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
                   <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
+                </div>
+
+                {/* Link público: mesmo build em hub.fegsegurogarantia.com ou qualquer domínio */}
+                <div className="bg-white border border-[#C69C6D]/30 rounded-2xl p-5 lg:p-6 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest mb-1">Formulário público (clientes)</p>
+                    <p className="text-sm text-slate-600 font-medium mb-2">Seguro Residencial / Locatícia — sem login. Use o link do domínio onde o Hub está publicado.</p>
+                    <p className="text-xs text-[#1B263B] font-mono break-all bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">{getPublicResidentialFormUrl()}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => window.open(getPublicResidentialFormUrl(), '_blank', 'noopener,noreferrer')}
+                      className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#243347] transition-all"
+                    >
+                      <ExternalLinkIcon size={14} /> Abrir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyPublicFormUrl}
+                      className="inline-flex items-center gap-2 bg-[#C69C6D] text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#b58a5b] transition-all"
+                    >
+                      <Copy size={14} /> {publicFormCopied ? 'Copiado!' : 'Copiar link'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Quick Access Grid */}

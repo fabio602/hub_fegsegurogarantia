@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, LogIn, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, LogIn, Loader2, AlertCircle, ShieldCheck, ExternalLink } from 'lucide-react';
+import { getPublicResidentialFormPath } from '../utils/publicUrls';
 
 interface AuthProps {
   onSessionUpdate: () => void;
@@ -98,6 +99,16 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
               {loading ? 'Autenticando...' : 'Entrar no Sistema'}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <a
+              href={getPublicResidentialFormPath()}
+              className="inline-flex items-center gap-2 text-[#C69C6D] text-xs font-bold hover:underline"
+            >
+              <ExternalLink size={14} className="shrink-0" />
+              É cliente? Solicite cotação de Seguro Residencial / Locatícia
+            </a>
+          </div>
 
           <div className="mt-8 pt-8 border-t border-white/5">
             <p className="text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed">

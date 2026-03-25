@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
-    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home
+    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
 
 interface ResidentialClient {
     id: number;
@@ -84,6 +85,15 @@ const ResidentialInsurance: React.FC = () => {
     const [search, setSearch] = useState('');
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [publicFormCopied, setPublicFormCopied] = useState(false);
+
+    const copyPublicFormUrl = () => {
+        const url = getPublicResidentialFormUrl();
+        if (!url) return;
+        void navigator.clipboard.writeText(url);
+        setPublicFormCopied(true);
+        window.setTimeout(() => setPublicFormCopied(false), 2000);
+    };
 
     const fetchClients = useCallback(async () => {
         setLoading(true);
@@ -283,6 +293,30 @@ const ResidentialInsurance: React.FC = () => {
                     </div>
                     <button onClick={exportCSV} className="bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Download size={16} /> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-[#1B263B]/[0.04] border border-[#C69C6D]/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest">Link para o cliente (site público)</p>
+                    <p className="text-xs text-slate-600 truncate font-mono mt-1" title={getPublicResidentialFormUrl()}>{getPublicResidentialFormUrl()}</p>
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                    <a
+                        href={getPublicResidentialFormPath()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#243347] transition-all"
+                    >
+                        <ExternalLink size={14} /> Abrir
+                    </a>
+                    <button
+                        type="button"
+                        onClick={copyPublicFormUrl}
+                        className="inline-flex items-center gap-2 bg-white text-[#1B263B] px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 hover:border-[#C69C6D]/40 transition-all"
+                    >
+                        <Copy size={14} /> {publicFormCopied ? 'Copiado!' : 'Copiar'}
                     </button>
                 </div>
             </div>
