@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Plus,
     Target,
@@ -133,7 +134,14 @@ const ResultsDashboard: React.FC = () => {
     };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    const [emailSuccess, setEmailSuccess] = useState(false);
+    /** Toast global (portal em document.body) — evita recorte por overflow no layout do App */
+    const [emailToast, setEmailToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
+
+    useEffect(() => {
+        if (!emailToast) return;
+        const id = window.setTimeout(() => setEmailToast(null), 5000);
+        return () => clearTimeout(id);
+    }, [emailToast]);
     const [showEmailPrompt, setShowEmailPrompt] = useState<{ email: string; name: string; decisor?: string } | null>(null);
     const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
@@ -513,6 +521,7 @@ const ResultsDashboard: React.FC = () => {
         }
         
         setSaving(true);
+        setSaveError(null);
         try {
             let attachmentBase64 = null;
             let attachmentName = null;
@@ -554,13 +563,14 @@ const ResultsDashboard: React.FC = () => {
             });
 
             if (error) throw error;
-            
-            setEmailSuccess(true);
-            setTimeout(() => setEmailSuccess(false), 3000);
+
+            setEmailToast({ variant: 'success', message: 'E-mail enviado com sucesso!' });
             setSelectedFile(null); // Clear file after send
         } catch (error: any) {
             console.error('Error sending draft:', error);
-            setSaveError(error?.message || 'Erro ao enviar minuta.');
+            const msg = error?.message || 'Erro ao enviar minuta.';
+            setSaveError(msg);
+            setEmailToast({ variant: 'error', message: msg });
         } finally {
             setSaving(false);
         }
@@ -573,8 +583,9 @@ const ResultsDashboard: React.FC = () => {
         }
         
         setSendingLimitsTo(client.nome);
+        setSaveError(null);
         try {
-            const { data, error } = await supabase.functions.invoke('send-limits', {
+            const { error } = await supabase.functions.invoke('send-limits', {
                 body: {
                     clientName: client.nome,
                     clientEmail: client.email.trim(),
@@ -584,12 +595,13 @@ const ResultsDashboard: React.FC = () => {
             });
 
             if (error) throw error;
-            
-            setEmailSuccess(true);
-            setTimeout(() => setEmailSuccess(false), 3000);
+
+            setEmailToast({ variant: 'success', message: 'Limites enviados por e-mail com sucesso!' });
         } catch (error: any) {
             console.error('Error sending limits:', error);
-            setSaveError(error?.message || 'Erro ao enviar limites.');
+            const msg = error?.message || 'Erro ao enviar limites.';
+            setSaveError(msg);
+            setEmailToast({ variant: 'error', message: msg });
         } finally {
             setSendingLimitsTo(null);
         }
@@ -718,13 +730,25 @@ const ResultsDashboard: React.FC = () => {
     }
 
     return (
+        <>
+            {emailToast &&
+                createPortal(
+                    <div
+                        role="status"
+                        className={`fixed top-6 left-1/2 z-[99999] flex max-w-[min(100vw-2rem,28rem)] -translate-x-1/2 items-center gap-3 rounded-2xl px-5 py-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200 font-bold text-sm text-white ${
+                            emailToast.variant === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
+                        }`}
+                    >
+                        {emailToast.variant === 'success' ? (
+                            <CheckCircle2 size={22} className="shrink-0 text-white" />
+                        ) : (
+                            <AlertCircle size={22} className="shrink-0 text-white" />
+                        )}
+                        <span className="text-left leading-snug">{emailToast.message}</span>
+                    </div>,
+                    document.body
+                )}
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
-            {emailSuccess && (
-                <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-bottom-8 fade-in duration-300 font-bold">
-                    <CheckCircle2 size={24} className="text-white" />
-                    <span>Email enviado com sucesso!</span>
-                </div>
-            )}
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
                 {(['sales', 'prospects', 'carteira', 'goals', 'annualGoals'] as Section[]).map((section) => (
@@ -1991,6 +2015,7 @@ const ResultsDashboard: React.FC = () => {
                 </section>
             )}
         </div>
+        </>
     );
 };
 

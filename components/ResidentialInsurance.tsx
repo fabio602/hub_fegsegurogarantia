@@ -35,9 +35,17 @@ const EMPTY_FORM: Partial<ResidentialClient> = {
     tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: ''
 };
 
-const PRODUTOS = ['Residencial', 'Locatícia', 'Residencial + Locatícia', 'Condomínio'];
+const PRODUTOS = [
+    'Apenas Garantia Locatícia',
+    'Apenas Seguro Residencial',
+    'Garantia Locatícia & Seguro Residencial',
+    'Residencial',
+    'Locatícia',
+    'Residencial + Locatícia',
+    'Condomínio',
+];
 const FORMAS_PAGAMENTO = ['Boleto Mensal', 'Boleto Anual', 'Cartão de Crédito', 'Débito Automático', 'PIX'];
-const SITUACOES = ['Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação'];
+const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação'];
 
 // Funções de Máscara e Formatação
 const formatCPF = (value: string) => {
@@ -82,7 +90,7 @@ const ResidentialInsurance: React.FC = () => {
         const { data, error } = await supabase
             .from('residential_clients')
             .select('*')
-            .order('nome', { ascending: true });
+            .order('id', { ascending: false });
         if (error) console.error('Erro ao buscar clientes:', error);
         setClients(data || []);
         setLoading(false);
@@ -207,7 +215,11 @@ const ResidentialInsurance: React.FC = () => {
         );
     }
 
+    const isPublicLead = (c: ResidentialClient) =>
+        (c.obs || '').includes('[origem:formulario-publico]') || c.situacao === 'Lead (site)';
+
     const situacaoColor = (s: string) => {
+        if (s === 'Lead (site)') return 'bg-[#C69C6D]/15 text-[#1B263B] border border-[#C69C6D]/40';
         if (s === 'Ativo') return 'bg-emerald-50 text-emerald-600';
         if (s === 'Vencido') return 'bg-red-50 text-red-600';
         if (s === 'Cancelado') return 'bg-slate-100 text-slate-500';
@@ -452,7 +464,14 @@ const ResidentialInsurance: React.FC = () => {
                                 return (
                                     <tr key={c.id} className={`group hover:bg-slate-50/80 transition-all ${nearExpiry ? 'bg-amber-50/40' : ''}`}>
                                         <td className="px-6 py-5 min-w-[200px] max-w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
-                                            <div className="font-black text-slate-800 text-sm">{c.nome}</div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-black text-slate-800 text-sm truncate">{c.nome}</span>
+                                                {isPublicLead(c) && (
+                                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-[#1B263B] text-[#C69C6D] px-2 py-0.5 rounded-md">
+                                                        Site
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[10px] text-slate-400 font-bold mt-0.5">{c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'} • {c.telefone ? (c.telefone.includes('(') ? c.telefone : formatPhone(c.telefone)) : '-'}</div>
                                         </td>
                                         <td className="px-6 py-5 text-sm font-bold text-slate-700 whitespace-nowrap">{c.produto || '-'}</td>
@@ -468,7 +487,7 @@ const ResidentialInsurance: React.FC = () => {
                                         <td className="px-6 py-5 text-sm text-slate-600">{c.forma_pagamento || '-'}</td>
                                         <td className="px-6 py-5">
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${situacaoColor(c.situacao)}`}>
-                                                {c.situacao === 'Ativo' ? <CheckCircle2 size={12} /> : c.situacao === 'Vencido' ? <AlertCircle size={12} /> : <Clock size={12} />}
+                                                {c.situacao === 'Lead (site)' ? <Home size={12} /> : c.situacao === 'Ativo' ? <CheckCircle2 size={12} /> : c.situacao === 'Vencido' ? <AlertCircle size={12} /> : <Clock size={12} />}
                                                 {c.situacao}
                                             </span>
                                         </td>
