@@ -219,6 +219,21 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [newColTitle, setNewColTitle] = useState('');
     const [newColColor, setNewColColor] = useState('fg_blue_2');
 
+    const stampObservation = (newText: string | null | undefined, oldText: string | null | undefined) => {
+        const next = (newText || '').trim();
+        const prev = (oldText || '').trim();
+        if (!next) return null;
+        if (next === prev) return next;
+        const timestamp = new Date().toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        return `[${timestamp}] ${next}`;
+    };
+
     const DB_FIELDS = [
         { key: 'name', label: 'Nome do Contato' },
         { key: 'company', label: 'Empresa (Obrigatório)' },
@@ -533,6 +548,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             // Merge limits into the form data
             rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
+            rawUpdateData.description = stampObservation(
+                rawUpdateData.description as string,
+                editingLead.description as string
+            ) as any;
 
             // Strict data sanitization to prevent database rejection
             const dataToUpdate: any = {};
@@ -553,7 +572,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
-            const updatedLead = { ...editLeadForm, limites_seguradoras: rawUpdateData.limites_seguradoras } as Prospect;
+            const updatedLead = {
+                ...editLeadForm,
+                limites_seguradoras: rawUpdateData.limites_seguradoras,
+                description: rawUpdateData.description,
+            } as Prospect;
             setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...updatedLead } : p));
             setIsEditModalOpen(false);
             setEditingLead(null);
@@ -806,11 +829,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setSavingLead(true);
         try {
             const finalLimites = newLimitesArray.length > 0 ? JSON.stringify(newLimitesArray) : null;
+            const stampedDescription = stampObservation(newLeadForm.description as string, null);
             const { error } = await supabase.from('prospects').insert([{ 
                 ...newLeadForm, 
                 company: newLeadForm.company || newLeadForm.name,
                 product_type: selectedProduct, // Herda o produto selecionado
-                limites_seguradoras: finalLimites
+                limites_seguradoras: finalLimites,
+                description: stampedDescription
             }]);
             if (error) throw error;
             await fetchProspects();
