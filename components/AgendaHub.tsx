@@ -447,7 +447,7 @@ const AgendaHub: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Funcionários</h4>
+              <div />
               <button
                 type="button"
                 onClick={() => {

@@ -47,13 +47,21 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
         const avatarBg = uniqueColorByLetter(initial);
 
         return (
-          <button
+          <div
             key={s.id}
-            type="button"
             onClick={() => onSelect?.(s.id)}
-            className={`group relative text-left rounded-2xl border bg-white p-4 transition-all
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect?.(s.id);
+              }
+            }}
+            className={`group relative text-left rounded-2xl border bg-white p-4 transition-all cursor-pointer select-none outline-none
               ${selected ? 'border-[#C69C6D] ring-2 ring-[#C69C6D]/25' : 'border-slate-200 hover:border-[#C69C6D]/40'}
             `}
+            aria-pressed={selected}
           >
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50">
@@ -137,7 +145,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
                 <Trash2 size={16} />
               </button>
             </div>
-          </button>
+          </div>
         );
       })}
     </div>
