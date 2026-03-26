@@ -459,7 +459,11 @@ const AgendaHub: React.FC = () => {
           <div className="flex items-center gap-2 self-start lg:self-center">
             <button
               type="button"
-              onClick={() => setWeekAnchorUtc(prev => addDaysUtc(prev, -7))}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setWeekAnchorUtc(prev => addDaysUtc(prev, -7));
+              }}
               className="p-2 rounded-xl border border-slate-200 hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 transition-all"
               aria-label="Semana anterior"
             >
@@ -467,7 +471,11 @@ const AgendaHub: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setWeekAnchorUtc(brtMondayOf(ymdFromDateInBrt(new Date())))}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setWeekAnchorUtc(brtMondayOf(ymdFromDateInBrt(new Date())));
+              }}
               className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-center hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 transition-all"
               aria-label="Ir para a semana atual"
             >
@@ -478,7 +486,11 @@ const AgendaHub: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setWeekAnchorUtc(prev => addDaysUtc(prev, 7))}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setWeekAnchorUtc(prev => addDaysUtc(prev, 7));
+              }}
               className="p-2 rounded-xl border border-slate-200 hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 transition-all"
               aria-label="Próxima semana"
             >
