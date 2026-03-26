@@ -156,6 +156,9 @@ const ResultsDashboard: React.FC = () => {
     const [editingClientName, setEditingClientName] = useState<string | null>(null);
     const [clientEditForm, setClientEditForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
     const [sendingLimitsTo, setSendingLimitsTo] = useState<string | null>(null);
+    const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+    const [newManualClientForm, setNewManualClientForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
+    const [addingManualClient, setAddingManualClient] = useState(false);
 
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
@@ -511,6 +514,61 @@ const ResultsDashboard: React.FC = () => {
             setSaveError(error?.message || 'Erro ao atualizar cliente.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const closeAddClientModal = () => {
+        setIsAddClientModalOpen(false);
+        setSaveError(null);
+        setNewManualClientForm({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
+        setAddingManualClient(false);
+    };
+
+    /** Cadastro na carteira sem venda: mesma linha de raciocínio do import CRM legado (007). */
+    const handleSaveManualClient = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        const nome = newManualClientForm.nome.trim();
+        if (!nome) {
+            setSaveError('Informe o nome ou razão social do cliente.');
+            return;
+        }
+        setAddingManualClient(true);
+        setSaveError(null);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const payload = {
+                data: today,
+                nome,
+                origem: 'Cadastro manual — Carteira',
+                tipo: null,
+                is: null,
+                seguradora: null,
+                premio: null,
+                vendeu: 'Em andamento',
+                comissao: null,
+                vendedor: null,
+                indicacao: 'Não',
+                limites: 'Não',
+                catalogo: 'Não',
+                vigencia_inicio: null,
+                vigencia_fim: null,
+                telefone: newManualClientForm.telefone.trim() || null,
+                email: newManualClientForm.email.trim() || null,
+                cnpj: newManualClientForm.cnpj.trim() || null,
+                decisor: newManualClientForm.decisor.trim() || null,
+                product_type: 'Seguro Garantia',
+                limites_seguradoras: null,
+            };
+            const { error } = await supabase.from('sales').insert([payload]);
+            if (error) throw error;
+            await fetchData();
+            closeAddClientModal();
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            setSaveError(error?.message || 'Erro ao cadastrar cliente.');
+        } finally {
+            setAddingManualClient(false);
         }
     };
 
@@ -1327,18 +1385,33 @@ const ResultsDashboard: React.FC = () => {
 
             {activeSection === 'carteira' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-800">Carteira de Clientes</h2>
                             <p className="text-slate-500 font-medium">Gestão unificada dos seus clientes e apólices emitidas.</p>
                         </div>
-                        <div className="relative w-full md:w-auto">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text" placeholder="Buscar cliente..."
-                                value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
-                                className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-72 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
-                            />
+                        <div className="flex flex-col w-full lg:w-auto gap-3 sm:flex-row sm:items-center sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSaveError(null);
+                                    setIsAddClientModalOpen(true);
+                                }}
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm shadow-md shadow-[#C69C6D]/25 border border-[#b8895a]/60 hover:bg-[#b8895a] hover:border-[#a87d50] transition-all order-2 sm:order-1 whitespace-nowrap"
+                            >
+                                <Plus size={18} strokeWidth={2.5} className="shrink-0" aria-hidden />
+                                Novo cliente
+                            </button>
+                            <div className="relative w-full sm:w-72 order-1 sm:order-2">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar cliente..."
+                                    value={salesSearch}
+                                    onChange={e => setSalesSearch(e.target.value)}
+                                    className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -1436,13 +1509,20 @@ const ResultsDashboard: React.FC = () => {
                                 .sort((a, b) => a.nome.localeCompare(b.nome));
 
                             if (clients.length === 0) {
+                                const filteredOut = salesSearch.trim().length > 0;
                                 return (
                                     <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
                                         <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
                                             <Users size={32} />
                                         </div>
-                                        <h3 className="text-lg font-black text-slate-700">Nenhum cliente encontrado</h3>
-                                        <p className="text-sm text-slate-500 mt-1">Sua carteira é alimentada pelas vendas registradas com sucesso.</p>
+                                        <h3 className="text-lg font-black text-slate-700">
+                                            {filteredOut ? 'Nenhum cliente encontrado' : 'Sua carteira ainda está vazia'}
+                                        </h3>
+                                        <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+                                            {filteredOut
+                                                ? 'Tente outro termo na busca ou limpe o campo de pesquisa.'
+                                                : 'Inclua um card com o botão Novo cliente ou registre vendas concluídas na aba Vendas.'}
+                                        </p>
                                     </div>
                                 );
                             }
@@ -2015,6 +2095,96 @@ const ResultsDashboard: React.FC = () => {
                 </section>
             )}
         </div>
+        {isAddClientModalOpen &&
+            createPortal(
+                <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm border-0 cursor-default"
+                        aria-label="Fechar"
+                        disabled={addingManualClient}
+                        onClick={() => !addingManualClient && closeAddClientModal()}
+                    />
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="add-client-modal-title"
+                        className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[#C69C6D]/25 animate-in zoom-in-95 duration-200"
+                    >
+                        <div className="flex items-start justify-between gap-3 p-6 border-b border-[#C69C6D]/20 bg-[#1B263B] text-white rounded-t-[2rem]">
+                            <div>
+                                <h3 id="add-client-modal-title" className="text-lg font-black tracking-tight flex items-center gap-2">
+                                    <Briefcase size={22} className="text-[#C69C6D] shrink-0" aria-hidden />
+                                    Novo cliente na carteira
+                                </h3>
+                                <p className="text-xs text-white/70 font-medium mt-1">
+                                    O cliente aparece na grade; você pode registrar seguros e limites depois.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={addingManualClient}
+                                onClick={() => closeAddClientModal()}
+                                className="shrink-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveManualClient} className="p-6 space-y-4">
+                            {saveError && (
+                                <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-800 font-medium">
+                                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                                    {saveError}
+                                </div>
+                            )}
+                            {[
+                                { label: 'Nome / Razão social', key: 'nome' as const, type: 'text', required: true, placeholder: 'Obrigatório' },
+                                { label: 'CNPJ / CPF', key: 'cnpj' as const, type: 'text', required: false, placeholder: 'Opcional' },
+                                { label: 'Telefone', key: 'telefone' as const, type: 'text', required: false, placeholder: 'Opcional' },
+                                { label: 'E-mail', key: 'email' as const, type: 'email', required: false, placeholder: 'Opcional' },
+                                { label: 'Decisor / Responsável', key: 'decisor' as const, type: 'text', required: false, placeholder: 'Opcional' },
+                            ].map((field) => (
+                                <div key={field.key}>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                        {field.label}
+                                        {field.required ? ' *' : ''}
+                                    </label>
+                                    <input
+                                        type={field.type}
+                                        required={field.required}
+                                        autoComplete="off"
+                                        placeholder={field.placeholder}
+                                        value={newManualClientForm[field.key]}
+                                        onChange={(e) =>
+                                            setNewManualClientForm((prev) => ({ ...prev, [field.key]: e.target.value }))
+                                        }
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                            ))}
+                            <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    disabled={addingManualClient}
+                                    onClick={() => closeAddClientModal()}
+                                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addingManualClient}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm hover:bg-[#b8895a] transition-colors disabled:opacity-50 shadow-md"
+                                >
+                                    {addingManualClient ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                    Salvar cliente
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };
