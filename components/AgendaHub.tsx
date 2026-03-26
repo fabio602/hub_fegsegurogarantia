@@ -36,6 +36,26 @@ function ymdFromDateInBrt(d: Date) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ_BR }).format(d); // YYYY-MM-DD
 }
 
+function safeYmdFromIsoInBrt(iso: string): string | null {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return ymdFromDateInBrt(d);
+  } catch {
+    return null;
+  }
+}
+
+function safeTimeFromIsoInBrt(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '--:--';
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: TZ_BR, hour: '2-digit', minute: '2-digit' }).format(d);
+  } catch {
+    return '--:--';
+  }
+}
+
 function brtIsoFromYmdAndTime(ymd: string, hour = 12, minute = 0) {
   // BRT = UTC-3
   const [yy, mm, dd] = ymd.split('-').map(Number);
@@ -211,13 +231,14 @@ const AgendaHub: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStaffId, mondayYmd, weekStartIso, weekEndExclusiveIso]);
 
-  const dayKeyForDueDate = (due: string) => ymdFromDateInBrt(new Date(due));
+  const dayKeyForDueDate = (due: string) => safeYmdFromIsoInBrt(due);
 
   const tasksByDay = useMemo(() => {
     const map: Record<string, AgendaTask[]> = {};
     weekDaysYmd.forEach(d => (map[d] = []));
     tasks.forEach(t => {
       const key = dayKeyForDueDate(t.due_date);
+      if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(t);
     });
@@ -601,7 +622,7 @@ const AgendaHub: React.FC = () => {
                                   </span>
                                   <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                                     <Clock size={10} />
-                                    {new Intl.DateTimeFormat('pt-BR', { timeZone: TZ_BR, hour: '2-digit', minute: '2-digit' }).format(new Date(t.due_date))}
+                                    {safeTimeFromIsoInBrt(t.due_date)}
                                   </span>
                                 </div>
                               </button>
