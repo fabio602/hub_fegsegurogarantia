@@ -63,8 +63,20 @@ const saveColumns = (productType: string, cols: KanbanColumn[]) => {
     localStorage.setItem(key, JSON.stringify(cols));
 };
 
+type ProspectProductTab = 'Seguro Garantia' | 'Judicial Depósito Recursal' | 'Energia' | 'Seguro de crédito';
+
 interface ProspectsKanbanProps {
-    onConvertToSale?: (data: { nome: string; cnpj: string; telefone: string; email: string; decisor: string; limites_seguradoras?: string }) => void;
+    onConvertToSale?: (data: {
+        nome: string;
+        cnpj: string;
+        telefone: string;
+        email: string;
+        decisor: string;
+        limites_seguradoras?: string;
+        product_type?: string;
+        judicial_process_number?: string;
+        judicial_court?: string;
+    }) => void;
 }
 
 interface ObservationEntry {
@@ -180,7 +192,7 @@ const LeadFormFields = ({
 
 const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
 
-    const [selectedProduct, setSelectedProduct] = useState<'Seguro Garantia' | 'Judicial Depósito Recursal' | 'Energia'>('Seguro Garantia');
+    const [selectedProduct, setSelectedProduct] = useState<ProspectProductTab>('Seguro Garantia');
     const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns('Seguro Garantia'));
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
@@ -720,6 +732,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 email: prospect.email || '',
                 decisor: prospect.decisor || '',
                 limites_seguradoras: prospect.limites_seguradoras || '',
+                product_type: prospect.product_type || undefined,
+                judicial_process_number: prospect.judicial_process_number || undefined,
+                judicial_court: prospect.judicial_court || undefined,
             });
         }
     };
@@ -996,25 +1011,35 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Build v3.0 (Patch Aplicado)</span>
             </div>
             {/* Product Switcher */}
-            <div className="flex justify-center mb-6">
-                <div className="bg-slate-100 p-1 rounded-2xl flex gap-1 shadow-sm border border-slate-200">
-                    <button 
+            <div className="flex justify-center mb-6 px-2">
+                <div className="bg-slate-100 p-1 rounded-2xl flex flex-wrap justify-center gap-1 shadow-sm border border-slate-200 max-w-full">
+                    <button
+                        type="button"
                         onClick={() => setSelectedProduct('Seguro Garantia')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Seguro Garantia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Seguro Garantia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Seguro Garantia
                     </button>
-                    <button 
+                    <button
+                        type="button"
                         onClick={() => setSelectedProduct('Judicial Depósito Recursal')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Judicial Depósito Recursal
                     </button>
-                    <button 
+                    <button
+                        type="button"
                         onClick={() => setSelectedProduct('Energia')}
-                        className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${selectedProduct === 'Energia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Energia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                     >
                         Energia
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedProduct('Seguro de crédito')}
+                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Seguro de crédito' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+                    >
+                        Seguro de crédito
                     </button>
                 </div>
             </div>
