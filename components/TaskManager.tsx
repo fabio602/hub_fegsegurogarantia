@@ -15,7 +15,8 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [newTask, setNewTask] = useState({ title: '', due_date: '', type: 'task' as any });
+    const [staffOptions, setStaffOptions] = useState<Array<{ id: string; name: string }>>([]);
+    const [newTask, setNewTask] = useState({ title: '', due_date: '', type: 'task' as any, assigned_staff_id: '' as string });
 
     const TASK_TYPES: { value: string; label: string; icon: any; color: string }[] = [
         { value: 'task', label: 'Tarefa', icon: <BookText size={14} />, color: 'bg-[#C69C6D]/15 text-[#1B263B] border-[#C69C6D]/35' },
@@ -24,6 +25,16 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
         { value: 'meeting', label: 'Reunião', icon: <Users size={14} />, color: 'bg-amber-50 text-amber-700 border-amber-200' },
         { value: 'renewal', label: 'Renovação', icon: <RefreshCw size={14} />, color: 'bg-rose-50 text-rose-700 border-rose-200' },
     ];
+
+    const loadStaff = async () => {
+        const { data, error } = await supabase.from('agenda_staff').select('id, name').order('name');
+        if (error) throw error;
+        const list = data || [];
+        setStaffOptions(list);
+        if (!newTask.assigned_staff_id && list.length > 0) {
+            setNewTask(prev => ({ ...prev, assigned_staff_id: list[0].id }));
+        }
+    };
 
     const load = async () => {
         setLoadingTasks(true);
@@ -50,6 +61,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
         load();
     }, [prospectId, saleId, saleIds]);
 
+    useEffect(() => {
+        void loadStaff().catch(() => { /* ignore */ });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTask.title || !newTask.due_date) return;
@@ -59,6 +75,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                 ...newTask, 
                 status: 'pending' 
             };
+            if (!taskData.assigned_staff_id) {
+                taskData.assigned_staff_id = null;
+            }
             if (prospectId) taskData.prospect_id = prospectId;
             else if (saleId) taskData.sale_id = saleId;
             else if (saleIds && saleIds.length > 0) taskData.sale_id = saleIds[0]; // Anchor to first sale
@@ -68,7 +87,8 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
             
             await load();
             setIsAdding(false);
-            setNewTask({ title: '', due_date: '', type: 'task' });
+            const fallbackStaffId = staffOptions[0]?.id || '';
+            setNewTask({ title: '', due_date: '', type: 'task', assigned_staff_id: fallbackStaffId });
             onTaskChange(); 
         } catch (err) { alert('Erro ao criar tarefa'); }
         finally { setSaving(false); }
@@ -122,6 +142,20 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                             </div>
                         </div>
 
+                        <div className="space-y-1 pt-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Responsável (Agenda)</label>
+                            <select
+                                value={newTask.assigned_staff_id || ''}
+                                onChange={(e) => setNewTask(prev => ({ ...prev, assigned_staff_id: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#C69C6D]/25"
+                            >
+                                <option value="">Sem responsável</option>
+                                {staffOptions.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="space-y-2 pt-1">
                             <div className="flex flex-wrap gap-2">
                                 {TASK_TYPES.map(type => (
@@ -173,6 +207,14 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                                         <Clock size={10} /> {new Date(task.due_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
+
+                                {task.assigned_staff_id && (
+                                    <div className="mt-2">
+                                        <span className="text-[10px] font-bold text-[#1B263B] bg-[#C69C6D]/15 border border-[#C69C6D]/25 px-2 py-0.5 rounded-full">
+                                            Resp.: {staffOptions.find(s => s.id === task.assigned_staff_id)?.name || '—'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <button onClick={() => deleteTask(task)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all">
                                 <X size={14} />

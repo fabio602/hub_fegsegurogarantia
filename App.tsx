@@ -32,8 +32,9 @@ import BanksDirectory from './components/BanksDirectory';
 import SuretiesDirectory from './components/SuretiesDirectory';
 import InternalProcedures from './components/InternalProcedures';
 import ResidentialInsurance from './components/ResidentialInsurance';
+import AgendaHub from './components/AgendaHub';
 
-type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'banks' | 'sureties';
+type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'banks' | 'sureties' | 'agenda';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -130,6 +131,7 @@ const App: React.FC = () => {
               <NavItem view="banks" icon={<Landmark size={16} />} label="Bancos Garantidores" />
               <NavItem view="sureties" icon={<Scale size={16} />} label="Afiançadoras" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
+              <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
 
               <div className="pt-6 mt-6 border-t border-white/5">
                 <p className="text-[10px] font-black text-[#C69C6D]/60 uppercase tracking-[4px] px-5 mb-4">Acessos Externos</p>
@@ -182,6 +184,7 @@ const App: React.FC = () => {
                 {activeView === 'banks' && 'Bancos Garantidores'}
                 {activeView === 'sureties' && 'Afiançadoras'}
                 {activeView === 'manual' && 'Manual de Procedimentos Internos'}
+              {activeView === 'agenda' && 'Agenda Semanal'}
               </h2>
               <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
@@ -320,6 +323,7 @@ const App: React.FC = () => {
               {activeView === 'banks' && <BanksDirectory />}
               {activeView === 'sureties' && <SuretiesDirectory />}
               {activeView === 'manual' && <InternalProcedures />}
+              {activeView === 'agenda' && <AgendaHub />}
             </div>
           </div>
         </div>

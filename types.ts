@@ -120,4 +120,9 @@ export interface CRMTask {
   type: 'task' | 'call' | 'email' | 'meeting' | 'renewal';
   prospect_id?: string;
   sale_id?: number;
+  /**
+   * Vínculo opcional com a Agenda (assignee por nome/função).
+   * Usado pela integração automática para espelhar tarefas em `agenda_tasks`.
+   */
+  assigned_staff_id?: string;
 }
