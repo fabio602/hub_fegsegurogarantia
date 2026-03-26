@@ -49,52 +49,47 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
         return (
           <div
             key={s.id}
-            onClick={() => onSelect?.(s.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelect?.(s.id);
-              }
-            }}
-            className={`group relative text-left rounded-2xl border bg-white p-4 transition-all cursor-pointer select-none outline-none
+            className={`group relative rounded-2xl border bg-white transition-all
               ${selected ? 'border-[#C69C6D] ring-2 ring-[#C69C6D]/25' : 'border-slate-200 hover:border-[#C69C6D]/40'}
             `}
-            aria-pressed={selected}
           >
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50">
-                {s.fotoUrl ? (
-                  <img
-                    src={s.fotoUrl}
-                    alt={s.nome}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    draggable={false}
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onDragStart={(e) => e.preventDefault()}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '';
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center"
-                    style={{ backgroundColor: avatarBg }}
-                    aria-hidden
-                  >
-                    <span className="text-white font-black text-sm">{initial}</span>
-                  </div>
-                )}
-              </div>
+            <button
+              type="button"
+              onClick={() => onSelect?.(s.id)}
+              className="w-full text-left p-4 rounded-2xl outline-none"
+              aria-pressed={selected}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50">
+                  {s.fotoUrl ? (
+                    <img
+                      src={s.fotoUrl}
+                      alt={s.nome}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '';
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{ backgroundColor: avatarBg }}
+                      aria-hidden
+                    >
+                      <span className="text-white font-black text-sm">{initial}</span>
+                    </div>
+                  )}
+                </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="font-black text-sm text-[#1B263B] truncate">{s.nome}</div>
-                <div className="text-xs text-slate-500 font-bold mt-1 truncate">{s.cargo}</div>
+                <div className="min-w-0 flex-1 pr-12">
+                  <div className="font-black text-sm text-[#1B263B] truncate">{s.nome}</div>
+                  <div className="text-xs text-slate-500 font-bold mt-1 truncate">{s.cargo}</div>
+                </div>
               </div>
-            </div>
+            </button>
 
             {/* actions: sempre visíveis no mobile; hover no desktop */}
             <div className="absolute top-3 right-3 flex items-center gap-2 opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto transition-opacity">
@@ -107,7 +102,6 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
                 className="hidden"
                 onChange={(e) => {
                   const f = e.currentTarget.files?.[0];
-                  // permite selecionar a mesma foto novamente
                   e.currentTarget.value = '';
                   if (!f) return;
                   onUploadPhoto(s.id, f);
@@ -115,10 +109,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
               />
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  inputByIdRef.current[s.id]?.click();
-                }}
+                onClick={() => inputByIdRef.current[s.id]?.click()}
                 className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#1B263B] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
                 aria-label={`Enviar foto de ${s.nome}`}
                 title="Enviar foto"
@@ -127,10 +118,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
               </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(s.id);
-                }}
+                onClick={() => onEdit(s.id)}
                 className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#C69C6D] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
                 aria-label={`Editar ${s.nome}`}
               >
@@ -139,10 +127,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
 
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(s.id);
-                }}
+                onClick={() => onDelete(s.id)}
                 className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-500 hover:bg-rose-50 transition-colors"
                 aria-label={`Excluir ${s.nome}`}
               >
