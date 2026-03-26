@@ -71,6 +71,10 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
                     alt={s.nome}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    draggable={false}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onDragStart={(e) => e.preventDefault()}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src = '';
                     }}
@@ -92,8 +96,8 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
               </div>
             </div>
 
-            {/* hover-only actions */}
-            <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
+            {/* actions: sempre visíveis no mobile; hover no desktop */}
+            <div className="absolute top-3 right-3 flex items-center gap-2 opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto transition-opacity">
               <input
                 ref={(el) => {
                   inputByIdRef.current[s.id] = el;

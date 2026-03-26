@@ -328,20 +328,45 @@ const AgendaHub: React.FC = () => {
     setCardItemModal({ open: true, taskId, text: '' });
   };
 
-  const editStaff = async (staffId: string) => {
-    const current = staff.find((s) => s.id === staffId)?.name || '';
-    const currentCargo = staff.find((s) => s.id === staffId)?.cargo || 'Responsável';
-    const name = prompt('Editar nome do funcionário', current)?.trim();
+  const [editStaffModal, setEditStaffModal] = useState<{
+    open: boolean;
+    staffId: string;
+    name: string;
+    cargo: string;
+    saving: boolean;
+  }>({ open: false, staffId: '', name: '', cargo: 'Responsável', saving: false });
+
+  const openEditStaffModal = (staffId: string) => {
+    const s = staff.find(x => x.id === staffId);
+    if (!s) return;
+    setEditStaffModal({
+      open: true,
+      staffId,
+      name: s.name || '',
+      cargo: s.cargo || 'Responsável',
+      saving: false,
+    });
+  };
+
+  const saveEditStaffModal = async () => {
+    const name = editStaffModal.name.trim();
+    const cargo = editStaffModal.cargo.trim() || 'Responsável';
     if (!name) return;
-    const cargo = prompt('Editar cargo/função', currentCargo)?.trim();
-    if (!cargo) return;
-    if (name === current && cargo === currentCargo) return;
-    const { error } = await supabase.from('agenda_staff').update({ name, cargo }).eq('id', staffId);
-    if (error) {
-      alert(error.message || 'Erro ao salvar funcionário.');
-      return;
+
+    setEditStaffModal(prev => ({ ...prev, saving: true }));
+    try {
+      const { error } = await supabase
+        .from('agenda_staff')
+        .update({ name, cargo })
+        .eq('id', editStaffModal.staffId);
+      if (error) throw error;
+
+      setEditStaffModal({ open: false, staffId: '', name: '', cargo: 'Responsável', saving: false });
+      await refreshStaff();
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao salvar funcionário.');
+      setEditStaffModal(prev => ({ ...prev, saving: false }));
     }
-    await refreshStaff();
   };
 
   const deleteStaff = async (staffId: string) => {
@@ -496,7 +521,7 @@ const AgendaHub: React.FC = () => {
                 items={staffCards}
                 selectedId={selectedStaffId}
                 onSelect={(id) => setSelectedStaffId(id)}
-                onEdit={(id) => void editStaff(id)}
+                onEdit={(id) => openEditStaffModal(id)}
                 onDelete={(id) => void deleteStaff(id)}
                 onUploadPhoto={(id, file) => void uploadStaffAvatar(id, file)}
               />
@@ -753,6 +778,69 @@ const AgendaHub: React.FC = () => {
                 >
                   <Plus size={16} />
                   Adicionar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {/* Edit staff modal */}
+      {editStaffModal.open && createPortal(
+        <div className="fixed inset-0 z-[100002] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => !editStaffModal.saving && setEditStaffModal({ open: false, staffId: '', name: '', cargo: 'Responsável', saving: false })}
+            aria-label="Fechar"
+          />
+          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-[#C69C6D]/25">
+            <div className="p-6 border-b border-[#C69C6D]/20 bg-[#1B263B] text-white rounded-t-[2rem]">
+              <h3 className="text-lg font-black">Editar funcionário</h3>
+              <p className="text-xs text-white/70 font-medium mt-1">Atualize o nome e a função exibida no card.</p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveEditStaffModal();
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome</label>
+                <input
+                  value={editStaffModal.name}
+                  onChange={(e) => setEditStaffModal(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargo/Função</label>
+                <input
+                  value={editStaffModal.cargo}
+                  onChange={(e) => setEditStaffModal(prev => ({ ...prev, cargo: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={editStaffModal.saving}
+                  onClick={() => setEditStaffModal({ open: false, staffId: '', name: '', cargo: 'Responsável', saving: false })}
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editStaffModal.saving}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black hover:bg-[#b58a5b] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {editStaffModal.saving ? <Loader2 size={18} className="animate-spin" /> : null}
+                  Salvar
                 </button>
               </div>
             </form>
