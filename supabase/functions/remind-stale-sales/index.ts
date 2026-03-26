@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+/** Opcional: recebe lembretes de vendas com vendedor não listado em SELLERS (ex.: Larissa, Equipe). */
+const STALE_REMINDERS_FALLBACK_EMAIL = Deno.env.get("STALE_REMINDERS_FALLBACK_EMAIL")?.trim() || null
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,24 +42,39 @@ const toPtBrDateTime = (value: any) => {
   }
 }
 
-const daysSince = (value: any) => {
+const TZ_BR = "America/Sao_Paulo"
+
+/** Data civil (YYYY-MM-DD). Campo `data` tipo date: usa o dia literal; timestamps usam fuso America/Sao_Paulo. */
+const calendarYmdInSaoPaulo = (value: any): string | null => {
   try {
+    if (value == null) return null
+    if (typeof value === "string") {
+      const m = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})(?!\d)/)
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`
+    }
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return null
-    return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)
+    return new Intl.DateTimeFormat("en-CA", { timeZone: TZ_BR }).format(d)
   } catch {
     return null
   }
 }
 
-const isoDateFromBrtNow = (now = new Date()) => {
-  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-  return brt.toISOString().slice(0, 10)
+/** True se a última atualização é de um dia civil anterior ao de hoje em BRT (≥ 1 dia “em aberto”). */
+const isStaleByCalendarDayBrt = (lastRaw: any, now = new Date()) => {
+  const lastYmd = calendarYmdInSaoPaulo(lastRaw)
+  const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: TZ_BR }).format(now)
+  if (!lastYmd) return false
+  return lastYmd < todayYmd
 }
 
-const shouldSendOncePerDay = async (supabase: any, args: { saleId: number; reminderKey: string; reminderDate: string; audience: "seller"; toEmail: string }) => {
-  const { saleId, reminderKey, reminderDate, audience, toEmail } = args
+const todayBrtYmd = () => new Intl.DateTimeFormat("en-CA", { timeZone: TZ_BR }).format(new Date())
 
+const alreadySentToday = async (
+  supabase: any,
+  args: { saleId: number; reminderKey: string; reminderDate: string; toEmail: string },
+) => {
+  const { saleId, reminderKey, reminderDate, toEmail } = args
   const { data: existing, error: selectError } = await supabase
     .from("email_reminder_logs")
     .select("id")
@@ -68,8 +85,14 @@ const shouldSendOncePerDay = async (supabase: any, args: { saleId: number; remin
     .limit(1)
 
   if (selectError) throw selectError
-  if (existing && existing.length > 0) return false
+  return !!(existing && existing.length > 0)
+}
 
+const recordReminderSent = async (
+  supabase: any,
+  args: { saleId: number; reminderKey: string; reminderDate: string; audience: "seller"; toEmail: string },
+) => {
+  const { saleId, reminderKey, reminderDate, audience, toEmail } = args
   const { error: insertError } = await supabase.from("email_reminder_logs").insert([{
     sale_id: saleId,
     reminder_key: reminderKey,
@@ -77,9 +100,7 @@ const shouldSendOncePerDay = async (supabase: any, args: { saleId: number; remin
     audience,
     to_email: toEmail,
   }])
-
   if (insertError) throw insertError
-  return true
 }
 
 serve(async (req) => {
@@ -103,29 +124,31 @@ serve(async (req) => {
 
     const stale = (sales || []).filter((s: any) => {
       const last = s.updated_at ?? s.created_at ?? s.data
-      const d = daysSince(last)
-      return d !== null && d >= 1
+      return isStaleByCalendarDayBrt(last)
     })
 
     let sent = 0
     const skipped: any[] = []
-    const todayBrt = isoDateFromBrtNow()
+    const todayBrt = todayBrtYmd()
 
     for (const s of stale) {
-      const sellerEmail = sellerEmailByName(s.vendedor)
-      if (!sellerEmail) {
-        skipped.push({ id: s.id, reason: "seller_email_not_found", vendedor: s.vendedor })
+      const mapped = sellerEmailByName(s.vendedor)
+      const toEmail = (mapped || STALE_REMINDERS_FALLBACK_EMAIL || "").trim()
+      if (!toEmail) {
+        skipped.push({
+          id: s.id,
+          reason: "seller_email_not_found",
+          vendedor: s.vendedor,
+          hint: "Defina STALE_REMINDERS_FALLBACK_EMAIL na edge function ou inclua o vendedor em SELLERS",
+        })
         continue
       }
-      const toEmail = String(sellerEmail).trim()
-      const canSend = await shouldSendOncePerDay(supabase, {
+      if (await alreadySentToday(supabase, {
         saleId: Number(s.id),
         reminderKey: "stale_sales",
         reminderDate: todayBrt,
-        audience: "seller",
         toEmail,
-      })
-      if (!canSend) {
+      })) {
         skipped.push({ id: s.id, reason: "already_sent_today", to: toEmail })
         continue
       }
@@ -142,7 +165,7 @@ serve(async (req) => {
           </div>
           
           <p style="font-size: 14px; color: #1B263B;">
-            Esta venda está com status <strong>Em andamento</strong> há <strong>1 dia ou mais</strong> sem atualização.
+            Esta venda está com status <strong>Em andamento</strong> há <strong>pelo menos um dia civil</strong> (calendário Brasil) sem alteração no registro.
             Por favor, faça o follow-up com o cliente e atualize o registro.
           </p>
           
@@ -199,6 +222,13 @@ serve(async (req) => {
         continue
       }
 
+      await recordReminderSent(supabase, {
+        saleId: Number(s.id),
+        reminderKey: "stale_sales",
+        reminderDate: todayBrt,
+        audience: "seller",
+        toEmail,
+      })
       sent++
     }
 
