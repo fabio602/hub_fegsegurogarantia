@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit2, X, CheckCircle2, ListChecks, Clock, Loader2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, X, ListChecks, Clock, Loader2 } from 'lucide-react';
+import AgendaStaffGrid, { AgendaStaffGridItem } from './AgendaStaffGrid';
 
 type AgendaStatus = 'pending' | 'completed';
 const TZ_BR = 'America/Sao_Paulo';
@@ -101,9 +102,6 @@ const AgendaHub: React.FC = () => {
   const [itemsByTaskId, setItemsByTaskId] = useState<Record<string, AgendaTaskItem[]>>({});
   const [loadingTasks, setLoadingTasks] = useState(false);
 
-  // Staff editing states
-  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState<string>('');
   const [addingStaff, setAddingStaff] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
 
@@ -122,6 +120,15 @@ const AgendaHub: React.FC = () => {
   });
 
   const selectedStaff = useMemo(() => staff.find(s => s.id === selectedStaffId) || null, [staff, selectedStaffId]);
+  const staffCards = useMemo<AgendaStaffGridItem[]>(
+    () =>
+      staff.map((s) => ({
+        id: s.id,
+        nome: s.name,
+        cargo: 'Responsável',
+      })),
+    [staff],
+  );
 
   const refreshStaff = async () => {
     const { data, error } = await supabase.from('agenda_staff').select('id, name').order('name');
@@ -317,16 +324,15 @@ const AgendaHub: React.FC = () => {
     setCardItemModal({ open: true, taskId, text: '' });
   };
 
-  const saveStaffName = async (staffId: string) => {
-    const name = editingName.trim();
-    if (!name) return;
+  const editStaffName = async (staffId: string) => {
+    const current = staff.find((s) => s.id === staffId)?.name || '';
+    const name = prompt('Editar nome do funcionário', current)?.trim();
+    if (!name || name === current) return;
     const { error } = await supabase.from('agenda_staff').update({ name }).eq('id', staffId);
     if (error) {
       alert(error.message || 'Erro ao salvar funcionário.');
       return;
     }
-    setEditingStaffId(null);
-    setEditingName('');
     await refreshStaff();
   };
 
@@ -441,81 +447,17 @@ const AgendaHub: React.FC = () => {
               </form>
             )}
 
-            <div className="space-y-2">
-              {staff.map(s => {
-                const isActive = s.id === selectedStaffId;
-                const isEditing = editingStaffId === s.id;
-                return (
-                  <div
-                    key={s.id}
-                    className={`flex items-center justify-between gap-2 p-3 rounded-2xl border transition-all ${isActive ? 'bg-[#1B263B] border-[#C69C6D]/35' : 'bg-slate-50 border-slate-200 hover:border-[#C69C6D]/30'}`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      {isEditing ? (
-                        <input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveStaffName(s.id);
-                            if (e.key === 'Escape') {
-                              setEditingStaffId(null);
-                              setEditingName('');
-                            }
-                          }}
-                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
-                          autoFocus
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStaffId(s.id)}
-                          className="w-full text-left font-black text-sm truncate"
-                        >
-                          <span className={isActive ? 'text-[#C69C6D]' : 'text-[#1B263B]'}>{s.name}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isEditing ? (
-                        <button
-                          type="button"
-                          onClick={() => saveStaffName(s.id)}
-                          className="p-2 rounded-xl bg-[#C69C6D] text-[#1B263B] hover:bg-[#b58a5b] transition-colors"
-                          aria-label="Salvar nome"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingStaffId(s.id);
-                            setEditingName(s.name);
-                          }}
-                          className="p-2 rounded-xl text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 transition-colors"
-                          aria-label="Editar funcionário"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => deleteStaff(s.id)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                        aria-label="Excluir funcionário"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {staff.length === 0 && (
-                <div className="text-xs text-slate-500 italic">Nenhum funcionário cadastrado.</div>
-              )}
-            </div>
+            {staff.length === 0 ? (
+              <div className="text-xs text-slate-500 italic">Nenhum funcionário cadastrado.</div>
+            ) : (
+              <AgendaStaffGrid
+                items={staffCards}
+                selectedId={selectedStaffId}
+                onSelect={(id) => setSelectedStaffId(id)}
+                onEdit={(id) => void editStaffName(id)}
+                onDelete={(id) => void deleteStaff(id)}
+              />
+            )}
           </div>
         </div>
 

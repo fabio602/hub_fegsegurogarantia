@@ -1,0 +1,102 @@
+import React from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
+
+export type AgendaStaffGridItem = {
+  id: string;
+  nome: string;
+  cargo: string;
+};
+
+type AgendaStaffGridProps = {
+  items: AgendaStaffGridItem[];
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+};
+
+const letterOfName = (name: string) => {
+  const n = (name || '').trim();
+  if (!n) return '?';
+  return n[0].toUpperCase();
+};
+
+const uniqueColorByLetter = (letter: string) => {
+  const l = (letter || '?').charCodeAt(0);
+  const hue = (l * 37) % 360;
+  return `hsl(${hue} 75% 45%)`;
+};
+
+const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
+  items,
+  selectedId,
+  onSelect,
+  onEdit,
+  onDelete,
+}) => {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {items.map((s) => {
+        const initial = letterOfName(s.nome);
+        const selected = selectedId === s.id;
+        const avatarBg = uniqueColorByLetter(initial);
+
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => onSelect?.(s.id)}
+            className={`group relative text-left rounded-2xl border bg-white p-4 transition-all
+              ${selected ? 'border-[#C69C6D] ring-2 ring-[#C69C6D]/25' : 'border-slate-200 hover:border-[#C69C6D]/40'}
+            `}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: avatarBg }}
+                aria-hidden
+              >
+                <span className="text-white font-black text-sm">{initial}</span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="font-black text-sm text-[#1B263B] truncate">{s.nome}</div>
+                <div className="text-xs text-slate-500 font-bold mt-1 truncate">{s.cargo}</div>
+              </div>
+            </div>
+
+            {/* hover-only actions */}
+            <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(s.id);
+                }}
+                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#C69C6D] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
+                aria-label={`Editar ${s.nome}`}
+              >
+                <Edit2 size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(s.id);
+                }}
+                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-500 hover:bg-rose-50 transition-colors"
+                aria-label={`Excluir ${s.nome}`}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+export default AgendaStaffGrid;
+
