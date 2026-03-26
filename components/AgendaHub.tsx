@@ -363,8 +363,10 @@ const AgendaHub: React.FC = () => {
             <div className="inline-flex items-center gap-2 bg-[#C69C6D]/15 text-[#C69C6D] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#C69C6D]/25">
               <Calendar size={12} /> Agenda (Hub)
             </div>
-            <h3 className="text-2xl font-black text-[#1B263B] mt-3">Agenda semanal por funcionário</h3>
-            <p className="text-sm text-slate-500 font-medium mt-1">Estilo Trello: cada dia é uma coluna (Segunda a Sexta).</p>
+            <h3 className="text-2xl font-black text-[#1B263B] mt-3">Agenda Semanal</h3>
+            <p className="text-sm text-slate-500 font-medium mt-1">
+              Organização é um dos segredos do sucesso: planeje sua semana com clareza e execute com foco.
+            </p>
           </div>
 
           <div className="flex items-center gap-2 self-start lg:self-center">
@@ -399,9 +401,9 @@ const AgendaHub: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="space-y-6">
         {/* Staff list */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="space-y-4">
           <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Funcionários</h4>
@@ -518,7 +520,7 @@ const AgendaHub: React.FC = () => {
         </div>
 
         {/* Trello board */}
-        <div className="lg:col-span-3">
+        <div>
           <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div className="min-w-0">
