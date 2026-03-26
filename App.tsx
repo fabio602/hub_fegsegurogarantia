@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Calculator as CalcIcon,
   FileText,
+  Calendar,
   Target,
   ShieldCheck,
   LayoutDashboard,
