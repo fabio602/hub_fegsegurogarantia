@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, ChevronLeft, ChevronRight, Plus, X, ListChecks, Clock, Loader2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, X, ListChecks, Clock, Loader2, Trash2 } from 'lucide-react';
 import AgendaStaffGrid, { AgendaStaffGridItem } from './AgendaStaffGrid';
 
 type AgendaStatus = 'pending' | 'completed';
