@@ -1,10 +1,11 @@
-import React from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Camera, Edit2, Trash2 } from 'lucide-react';
 
 export type AgendaStaffGridItem = {
   id: string;
   nome: string;
   cargo: string;
+  fotoUrl?: string | null;
 };
 
 type AgendaStaffGridProps = {
@@ -13,6 +14,7 @@ type AgendaStaffGridProps = {
   onSelect?: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onUploadPhoto: (id: string, file: File) => void;
 };
 
 const letterOfName = (name: string) => {
@@ -33,7 +35,10 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
   onSelect,
   onEdit,
   onDelete,
+  onUploadPhoto,
 }) => {
+  const inputByIdRef = useRef<Record<string, HTMLInputElement | null>>({});
+
   return (
     <div className="grid grid-cols-2 gap-3">
       {items.map((s) => {
@@ -51,12 +56,26 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
             `}
           >
             <div className="flex items-start gap-3">
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: avatarBg }}
-                aria-hidden
-              >
-                <span className="text-white font-black text-sm">{initial}</span>
+              <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50">
+                {s.fotoUrl ? (
+                  <img
+                    src={s.fotoUrl}
+                    alt={s.nome}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '';
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center"
+                    style={{ backgroundColor: avatarBg }}
+                    aria-hidden
+                  >
+                    <span className="text-white font-black text-sm">{initial}</span>
+                  </div>
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -67,6 +86,33 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
 
             {/* hover-only actions */}
             <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
+              <input
+                ref={(el) => {
+                  inputByIdRef.current[s.id] = el;
+                }}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.currentTarget.files?.[0];
+                  // permite selecionar a mesma foto novamente
+                  e.currentTarget.value = '';
+                  if (!f) return;
+                  onUploadPhoto(s.id, f);
+                }}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  inputByIdRef.current[s.id]?.click();
+                }}
+                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#1B263B] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
+                aria-label={`Enviar foto de ${s.nome}`}
+                title="Enviar foto"
+              >
+                <Camera size={16} />
+              </button>
               <button
                 type="button"
                 onClick={(e) => {

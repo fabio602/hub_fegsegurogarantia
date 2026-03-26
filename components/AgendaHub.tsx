@@ -10,6 +10,8 @@ const TZ_BR = 'America/Sao_Paulo';
 interface AgendaStaff {
   id: string;
   name: string;
+  avatar_url?: string | null;
+  cargo?: string | null;
 }
 
 interface AgendaTask {
@@ -104,6 +106,7 @@ const AgendaHub: React.FC = () => {
 
   const [addingStaff, setAddingStaff] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffCargo, setNewStaffCargo] = useState('Responsável');
 
   // Create task modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -125,13 +128,14 @@ const AgendaHub: React.FC = () => {
       staff.map((s) => ({
         id: s.id,
         nome: s.name,
-        cargo: 'Responsável',
+        cargo: s.cargo || 'Responsável',
+        fotoUrl: s.avatar_url || null,
       })),
     [staff],
   );
 
   const refreshStaff = async () => {
-    const { data, error } = await supabase.from('agenda_staff').select('id, name').order('name');
+    const { data, error } = await supabase.from('agenda_staff').select('id, name, cargo, avatar_url').order('name');
     if (error) throw error;
     setStaff(data || []);
   };
@@ -324,11 +328,15 @@ const AgendaHub: React.FC = () => {
     setCardItemModal({ open: true, taskId, text: '' });
   };
 
-  const editStaffName = async (staffId: string) => {
+  const editStaff = async (staffId: string) => {
     const current = staff.find((s) => s.id === staffId)?.name || '';
+    const currentCargo = staff.find((s) => s.id === staffId)?.cargo || 'Responsável';
     const name = prompt('Editar nome do funcionário', current)?.trim();
-    if (!name || name === current) return;
-    const { error } = await supabase.from('agenda_staff').update({ name }).eq('id', staffId);
+    if (!name) return;
+    const cargo = prompt('Editar cargo/função', currentCargo)?.trim();
+    if (!cargo) return;
+    if (name === current && cargo === currentCargo) return;
+    const { error } = await supabase.from('agenda_staff').update({ name, cargo }).eq('id', staffId);
     if (error) {
       alert(error.message || 'Erro ao salvar funcionário.');
       return;
@@ -347,16 +355,43 @@ const AgendaHub: React.FC = () => {
     }
   };
 
+  const uploadStaffAvatar = async (staffId: string, file: File) => {
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeExt = ext.replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = `${staffId}/avatar.${safeExt}`;
+
+      const { error: upErr } = await supabase.storage.from('agenda-avatars').upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+
+      const { data } = supabase.storage.from('agenda-avatars').getPublicUrl(path);
+      const url = `${data.publicUrl}?v=${Date.now()}`; // cache-bust
+
+      const { error: dbErr } = await supabase.from('agenda_staff').update({ avatar_url: url }).eq('id', staffId);
+      if (dbErr) throw dbErr;
+
+      await refreshStaff();
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.message || 'Erro ao enviar foto.');
+    }
+  };
+
   const addStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = newStaffName.trim();
     if (!name) return;
-    const { error } = await supabase.from('agenda_staff').insert([{ name }]);
+    const cargo = (newStaffCargo || '').trim() || 'Responsável';
+    const { error } = await supabase.from('agenda_staff').insert([{ name, cargo }]);
     if (error) {
       alert(error.message || 'Erro ao adicionar funcionário.');
       return;
     }
     setNewStaffName('');
+    setNewStaffCargo('Responsável');
     setAddingStaff(false);
     await refreshStaff();
   };
@@ -418,6 +453,7 @@ const AgendaHub: React.FC = () => {
                 onClick={() => {
                   setAddingStaff(true);
                   setNewStaffName('');
+                  setNewStaffCargo('Responsável');
                 }}
                 className="text-xs font-black text-[#C69C6D] hover:text-[#b58a5b] transition-colors"
               >
@@ -428,13 +464,19 @@ const AgendaHub: React.FC = () => {
 
             {addingStaff && (
               <form onSubmit={addStaff} className="mb-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     value={newStaffName}
                     onChange={(e) => setNewStaffName(e.target.value)}
                     placeholder="Nome do funcionário"
                     className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
                     autoFocus
+                  />
+                  <input
+                    value={newStaffCargo}
+                    onChange={(e) => setNewStaffCargo(e.target.value)}
+                    placeholder="Cargo/Função"
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
                   />
                   <button
                     type="button"
@@ -454,8 +496,9 @@ const AgendaHub: React.FC = () => {
                 items={staffCards}
                 selectedId={selectedStaffId}
                 onSelect={(id) => setSelectedStaffId(id)}
-                onEdit={(id) => void editStaffName(id)}
+                onEdit={(id) => void editStaff(id)}
                 onDelete={(id) => void deleteStaff(id)}
+                onUploadPhoto={(id, file) => void uploadStaffAvatar(id, file)}
               />
             )}
           </div>
