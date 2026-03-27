@@ -29,7 +29,8 @@ insert into public.agenda_staff (name) values
   ('Andréia'),
   ('Helena'),
   ('Grace'),
-  ('Geisa')
+  ('Geisa'),
+  ('Fábio')
 on conflict (name) do nothing;
 
 -- =========================
