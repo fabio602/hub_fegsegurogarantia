@@ -13,30 +13,30 @@ jobs:
       - name: Call Edge Function (stale sales)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "Missing secrets SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY"
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Missing secrets SUPABASE_URL and/or SUPABASE_ANON_KEY"
             exit 1
           fi
           curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/remind-stale-sales" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Content-Type: application/json" \
             --data '{}' | tee /dev/stderr
 
       - name: Call Edge Function (pregão reminders)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "Missing secrets SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY"
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Missing secrets SUPABASE_URL and/or SUPABASE_ANON_KEY"
             exit 1
           fi
           curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/pregao-reminders" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Content-Type: application/json" \
             --data '{}' | tee /dev/stderr
 
