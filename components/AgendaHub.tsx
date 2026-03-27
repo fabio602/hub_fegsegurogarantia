@@ -981,6 +981,11 @@ const AgendaHub: React.FC = () => {
                               e.stopPropagation();
                               void handleDropOnTask(t.id);
                             }}
+                            onDoubleClick={(e) => {
+                              const target = e.target as HTMLElement;
+                              if (target.closest('button, input, label, textarea, select, a')) return;
+                              openEditTaskModal(t);
+                            }}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <button
