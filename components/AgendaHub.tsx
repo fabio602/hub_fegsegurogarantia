@@ -193,6 +193,9 @@ const AgendaHub: React.FC = () => {
   const [tasks, setTasks] = useState<AgendaTask[]>([]);
   const [itemsByTaskId, setItemsByTaskId] = useState<Record<string, AgendaTaskItem[]>>({});
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dragOverDayYmd, setDragOverDayYmd] = useState<string | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
 
   const [addingStaff, setAddingStaff] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
@@ -216,8 +219,9 @@ const AgendaHub: React.FC = () => {
     open: boolean;
     mode: 'copy' | 'move';
     task: AgendaTask | null;
+    targetYmd: string;
     busy: boolean;
-  }>({ open: false, mode: 'copy', task: null, busy: false });
+  }>({ open: false, mode: 'copy', task: null, targetYmd: '', busy: false });
 
   const [editTaskModal, setEditTaskModal] = useState<{
     open: boolean;
@@ -456,10 +460,7 @@ const AgendaHub: React.FC = () => {
     }
   };
 
-  const moveTaskToDay = async (task: AgendaTask, targetYmd: string) => {
-    const { h, m } = brtHourMinuteFromIso(task.due_date);
-    const newDue = brtIsoFromYmdAndTime(targetYmd, h, m);
-
+  const persistTaskDueDate = async (task: AgendaTask, newDue: string) => {
     if (task.source_crm_task_id) {
       const { error } = await supabase
         .from('crm_tasks')
@@ -470,6 +471,41 @@ const AgendaHub: React.FC = () => {
       const { error } = await supabase.from('agenda_tasks').update({ due_date: newDue }).eq('id', task.id);
       if (error) throw error;
     }
+  };
+
+  const moveTaskToDay = async (task: AgendaTask, targetYmd: string) => {
+    const { h, m } = brtHourMinuteFromIso(task.due_date);
+    const newDue = brtIsoFromYmdAndTime(targetYmd, h, m);
+    await persistTaskDueDate(task, newDue);
+  };
+
+  const reorderTaskBeforeTarget = async (dragTask: AgendaTask, targetTask: AgendaTask) => {
+    if (dragTask.id === targetTask.id) return;
+
+    const targetYmd = dayKeyForDueDate(targetTask.due_date);
+    if (!targetYmd) return;
+
+    const sameDayTasks = tasks
+      .filter((t) => dayKeyForDueDate(t.due_date) === targetYmd)
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+
+    const withoutDragged = sameDayTasks.filter((t) => t.id !== dragTask.id);
+    const targetIndex = withoutDragged.findIndex((t) => t.id === targetTask.id);
+    if (targetIndex < 0) return;
+
+    const reordered = [
+      ...withoutDragged.slice(0, targetIndex),
+      dragTask,
+      ...withoutDragged.slice(targetIndex),
+    ];
+
+    // Reatribui horários do dia em passos de 30 min para refletir a nova ordem visual.
+    const updates = reordered.map((task, idx) => {
+      const hour = 8 + Math.floor(idx / 2);
+      const minute = idx % 2 === 0 ? 0 : 30;
+      return persistTaskDueDate(task, brtIsoFromYmdAndTime(targetYmd, hour, minute));
+    });
+    await Promise.all(updates);
   };
 
   const applyDayPickerChoice = async (targetYmd: string) => {
@@ -485,7 +521,7 @@ const AgendaHub: React.FC = () => {
       } else {
         await moveTaskToDay(task, targetYmd);
       }
-      setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false });
+      setDayPickerModal({ open: false, mode: 'copy', task: null, targetYmd: '', busy: false });
       await refreshTasks();
     } catch (e: any) {
       alert(e?.message || 'Não foi possível concluir a ação.');
@@ -494,7 +530,44 @@ const AgendaHub: React.FC = () => {
   };
 
   const openDayPicker = (mode: 'copy' | 'move', task: AgendaTask) => {
-    setDayPickerModal({ open: true, mode, task, busy: false });
+    const preferredYmd = dayKeyForDueDate(task.due_date) || weekDaysYmd[0];
+    setDayPickerModal({ open: true, mode, task, targetYmd: preferredYmd, busy: false });
+  };
+
+  const handleDropOnDay = async (targetYmd: string) => {
+    if (!draggingTaskId) return;
+    const task = tasks.find(t => t.id === draggingTaskId);
+    setDragOverDayYmd(null);
+    setDragOverTaskId(null);
+    setDraggingTaskId(null);
+    if (!task) return;
+
+    const currentYmd = dayKeyForDueDate(task.due_date);
+    if (currentYmd === targetYmd) return;
+
+    try {
+      await moveTaskToDay(task, targetYmd);
+      await refreshTasks();
+    } catch (e: any) {
+      alert(e?.message || 'Não foi possível mover o cartão.');
+    }
+  };
+
+  const handleDropOnTask = async (targetTaskId: string) => {
+    if (!draggingTaskId || draggingTaskId === targetTaskId) return;
+    const dragTask = tasks.find((t) => t.id === draggingTaskId);
+    const targetTask = tasks.find((t) => t.id === targetTaskId);
+    setDragOverDayYmd(null);
+    setDragOverTaskId(null);
+    setDraggingTaskId(null);
+    if (!dragTask || !targetTask) return;
+
+    try {
+      await reorderTaskBeforeTarget(dragTask, targetTask);
+      await refreshTasks();
+    } catch (e: any) {
+      alert(e?.message || 'Não foi possível reordenar o cartão.');
+    }
   };
 
   const openEditTaskModal = (task: AgendaTask) => {
@@ -805,7 +878,29 @@ const AgendaHub: React.FC = () => {
                 const title = `${dayNamePtShort(dayYmd)} ${dayYmd.split('-').reverse().join('/')}`;
 
                 return (
-                  <div key={dayYmd} className="min-w-[280px] max-w-[280px]">
+                  <div
+                    key={dayYmd}
+                    className={`min-w-[280px] max-w-[280px] rounded-2xl transition-colors ${
+                      dragOverDayYmd === dayYmd ? 'bg-[#C69C6D]/8 ring-1 ring-[#C69C6D]/35' : ''
+                    }`}
+                    onDragOver={(e) => {
+                      if (!draggingTaskId) return;
+                      e.preventDefault();
+                      setDragOverDayYmd(dayYmd);
+                    }}
+                    onDragEnter={(e) => {
+                      if (!draggingTaskId) return;
+                      e.preventDefault();
+                      setDragOverDayYmd(dayYmd);
+                    }}
+                    onDragLeave={() => {
+                      if (dragOverDayYmd === dayYmd) setDragOverDayYmd(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      void handleDropOnDay(dayYmd);
+                    }}
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div className="px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50">
                         <div className="text-xs font-black text-slate-500 uppercase tracking-widest">{title}</div>
@@ -834,7 +929,38 @@ const AgendaHub: React.FC = () => {
                         return (
                           <div
                             key={t.id}
-                            className={`rounded-[1.4rem] border p-3 overflow-hidden transition-all ${isDone ? 'bg-slate-50 border-slate-200' : 'bg-white border-[#C69C6D]/25'}`}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', t.id);
+                              e.dataTransfer.effectAllowed = 'move';
+                              setDraggingTaskId(t.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggingTaskId(null);
+                              setDragOverDayYmd(null);
+                              setDragOverTaskId(null);
+                            }}
+                            className={`rounded-[1.4rem] border p-3 overflow-hidden transition-all cursor-grab active:cursor-grabbing ${
+                              draggingTaskId === t.id
+                                ? 'opacity-70 scale-[0.995]'
+                                : dragOverTaskId === t.id
+                                  ? 'ring-1 ring-[#C69C6D]/45 bg-[#C69C6D]/5'
+                                : isDone
+                                  ? 'bg-slate-50 border-slate-200'
+                                  : 'bg-white border-[#C69C6D]/25'
+                            }`}
+                            onDragOver={(e) => {
+                              if (!draggingTaskId || draggingTaskId === t.id) return;
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragOverTaskId(t.id);
+                            }}
+                            onDrop={(e) => {
+                              if (!draggingTaskId || draggingTaskId === t.id) return;
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void handleDropOnTask(t.id);
+                            }}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <button
@@ -1153,7 +1279,7 @@ const AgendaHub: React.FC = () => {
             type="button"
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() =>
-              !dayPickerModal.busy && setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false })
+              !dayPickerModal.busy && setDayPickerModal({ open: false, mode: 'copy', task: null, targetYmd: '', busy: false })
             }
             aria-label="Fechar"
           />
@@ -1168,7 +1294,7 @@ const AgendaHub: React.FC = () => {
                 {dayPickerModal.mode === 'copy' ? 'Copiar cartão para…' : 'Mover cartão para…'}
               </h3>
               <p className="text-xs text-white/70 font-medium mt-1">
-                Escolha o dia na semana que está visível. O horário do cartão é mantido.
+                Você pode usar os atalhos da semana atual ou escolher qualquer data. O horário do cartão é mantido.
               </p>
             </div>
             <div className="p-6 space-y-3">
@@ -1186,11 +1312,13 @@ const AgendaHub: React.FC = () => {
                       key={dayYmd}
                       type="button"
                       disabled={dayPickerModal.busy || isCurrentDay}
-                      onClick={() => void applyDayPickerChoice(dayYmd)}
+                      onClick={() => setDayPickerModal(prev => ({ ...prev, targetYmd: dayYmd }))}
                       className={`px-4 py-3 rounded-xl text-left text-sm font-bold border transition-colors ${
                         isCurrentDay
                           ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
-                          : 'border-slate-200 hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 text-[#1B263B]'
+                          : dayPickerModal.targetYmd === dayYmd
+                            ? 'border-[#C69C6D] bg-[#C69C6D]/15 text-[#1B263B]'
+                            : 'border-slate-200 hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 text-[#1B263B]'
                       }`}
                     >
                       {label}
@@ -1201,10 +1329,33 @@ const AgendaHub: React.FC = () => {
                   );
                 })}
               </div>
+              <div className="space-y-2 pt-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ou escolha qualquer data</label>
+                <input
+                  type="date"
+                  value={dayPickerModal.targetYmd}
+                  onChange={(e) => setDayPickerModal(prev => ({ ...prev, targetYmd: e.target.value }))}
+                  disabled={dayPickerModal.busy}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={
+                  dayPickerModal.busy ||
+                  !dayPickerModal.targetYmd ||
+                  (dayPickerModal.mode === 'move' &&
+                    dayKeyForDueDate(dayPickerModal.task.due_date) === dayPickerModal.targetYmd)
+                }
+                onClick={() => void applyDayPickerChoice(dayPickerModal.targetYmd)}
+                className="w-full px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black hover:bg-[#b58a5b] transition-colors disabled:opacity-60"
+              >
+                {dayPickerModal.mode === 'copy' ? 'Copiar para data selecionada' : 'Mover para data selecionada'}
+              </button>
               <button
                 type="button"
                 disabled={dayPickerModal.busy}
-                onClick={() => setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false })}
+                onClick={() => setDayPickerModal({ open: false, mode: 'copy', task: null, targetYmd: '', busy: false })}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
               >
                 Cancelar
