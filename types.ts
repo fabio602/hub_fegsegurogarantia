@@ -101,6 +101,7 @@ export interface Prospect {
   tags?: string[];
   cnpj?: string;
   ramo?: string;
+  segmento?: string;
   decisor?: string;
   ult_contato?: string;
   product_type?: string;

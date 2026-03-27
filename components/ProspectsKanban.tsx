@@ -139,6 +139,21 @@ const LeadFormFields = ({
             <input type="text" value={form.ramo || ''} onChange={(e) => setForm({ ...form, ramo: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Engenharia / Construtora" />
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Segmento</label>
+            <select
+                value={form.segmento || ''}
+                onChange={(e) => setForm({ ...form, segmento: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all cursor-pointer"
+            >
+                <option value="">Selecione</option>
+                <option value="Advogado">Advogado</option>
+                <option value="Indústria">Indústria</option>
+                <option value="Consultoria">Consultoria</option>
+                <option value="Energia">Energia</option>
+                <option value="Distribuidora">Distribuidora</option>
+            </select>
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">CEP</label>
             <input type="text" value={form.zip || ''} onChange={(e) => setForm({ ...form, zip: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="00000-000" />
         </div>
@@ -339,6 +354,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         { key: 'source', label: 'Origem' },
         { key: 'cnpj', label: 'CNPJ' },
         { key: 'ramo', label: 'Ramo de Atividade' },
+        { key: 'segmento', label: 'Segmento' },
         { key: 'city', label: 'Cidade' },
         { key: 'state', label: 'Estado (UF)' },
         { key: 'judicial_process_number', label: 'Nº do Processo (Judicial)' },
@@ -824,6 +840,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 source: ['source', 'origem', 'fonte'],
                 cnpj: ['cnpj', 'documento'],
                 ramo: ['ramo', 'segmento', 'setor'],
+                segmento: ['segmento', 'setor'],
                 city: ['city', 'cidade', 'municipio'],
                 state: ['state', 'estado', 'uf'],
                 zip: ['zip', 'cep'],
@@ -920,6 +937,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     source: getVal('source'),
                     cnpj: cnpjVal,
                     ramo: getVal('ramo'),
+                    segmento: getVal('segmento'),
                     city: getVal('city'),
                     state: getVal('state'),
                     description: getVal('description'),
@@ -1191,6 +1209,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     <p className="text-[10px] font-bold text-slate-400 truncate">
                                                         {(prospect.ramo && prospect.ramo !== 'nan') ? prospect.ramo : (prospect.position && prospect.position !== 'nan' ? prospect.position : 'Sem Categoria')}
                                                     </p>
+                                                {prospect.segmento && prospect.segmento !== 'nan' ? (
+                                                    <span className="mt-1 inline-flex text-[9px] font-black bg-[#C69C6D]/12 text-[#1B263B] px-2 py-0.5 rounded-md border border-[#C69C6D]/25 truncate max-w-[140px]">
+                                                        {prospect.segmento}
+                                                    </span>
+                                                ) : null}
                                                     {(() => {
                                                         const enteredAtMs = getLeadEnteredAtMs(prospect);
                                                         const ageLabel = formatLeadAge(enteredAtMs);
