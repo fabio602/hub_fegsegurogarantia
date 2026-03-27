@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, ChevronLeft, ChevronRight, Plus, X, ListChecks, Clock, Loader2, Trash2 } from 'lucide-react';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  ListChecks,
+  Clock,
+  Loader2,
+  Trash2,
+  Copy,
+  ArrowRightLeft,
+  Pencil,
+} from 'lucide-react';
 import AgendaStaffGrid, { AgendaStaffGridItem } from './AgendaStaffGrid';
 
 type AgendaStatus = 'pending' | 'completed';
@@ -20,6 +33,9 @@ interface AgendaTask {
   title: string;
   due_date: string;
   status: AgendaStatus;
+  source_crm_task_id?: string | null;
+  prospect_id?: string | null;
+  sale_id?: number | null;
 }
 
 interface AgendaTaskItem {
@@ -61,6 +77,36 @@ function brtIsoFromYmdAndTime(ymd: string, hour = 12, minute = 0) {
   const [yy, mm, dd] = ymd.split('-').map(Number);
   const utcHour = hour + 3;
   return new Date(Date.UTC(yy, mm - 1, dd, utcHour, minute, 0)).toISOString();
+}
+
+/** Preserva o horário do cartão ao mover/copiar para outro dia (calendário BRT). */
+function brtHourMinuteFromIso(iso: string): { h: number; m: number } {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { h: 12, m: 0 };
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: TZ_BR,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const parts = fmt.formatToParts(d);
+    const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '12');
+    const minute = Number(parts.find(p => p.type === 'minute')?.value ?? '0');
+    return { h: hour, m: minute };
+  } catch {
+    return { h: 12, m: 0 };
+  }
+}
+
+function brtIsoFromYmdAndTimeInput(ymd: string, timeStr: string) {
+  const t = timeStr.trim();
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return brtIsoFromYmdAndTime(ymd, 12, 0);
+  const hour = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const minute = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return brtIsoFromYmdAndTime(ymd, 12, 0);
+  return brtIsoFromYmdAndTime(ymd, hour, minute);
 }
 
 function brtMondayOf(ymd: string) {
@@ -142,6 +188,29 @@ const AgendaHub: React.FC = () => {
     text: '',
   });
 
+  const [dayPickerModal, setDayPickerModal] = useState<{
+    open: boolean;
+    mode: 'copy' | 'move';
+    task: AgendaTask | null;
+    busy: boolean;
+  }>({ open: false, mode: 'copy', task: null, busy: false });
+
+  const [editTaskModal, setEditTaskModal] = useState<{
+    open: boolean;
+    task: AgendaTask | null;
+    title: string;
+    dayYmd: string;
+    timeStr: string;
+    saving: boolean;
+  }>({
+    open: false,
+    task: null,
+    title: '',
+    dayYmd: '',
+    timeStr: '12:00',
+    saving: false,
+  });
+
   const selectedStaff = useMemo(() => staff.find(s => s.id === selectedStaffId) || null, [staff, selectedStaffId]);
   const staffCards = useMemo<AgendaStaffGridItem[]>(
     () =>
@@ -182,7 +251,7 @@ const AgendaHub: React.FC = () => {
     try {
       const { data: tData, error: tErr } = await supabase
         .from('agenda_tasks')
-        .select('id, staff_id, title, due_date, status')
+        .select('id, staff_id, title, due_date, status, source_crm_task_id, prospect_id, sale_id')
         .eq('staff_id', selectedStaffId)
         .gte('due_date', weekStartIso)
         .lt('due_date', weekEndExclusiveIso)
@@ -324,6 +393,133 @@ const AgendaHub: React.FC = () => {
     if (!confirm('Excluir esta tarefa da Agenda?')) return;
     await supabase.from('agenda_tasks').delete().eq('id', task.id);
     await refreshTasks();
+  };
+
+  const copyTaskToDay = async (task: AgendaTask, targetYmd: string) => {
+    const { h, m } = brtHourMinuteFromIso(task.due_date);
+    const due = brtIsoFromYmdAndTime(targetYmd, h, m);
+    const items = itemsByTaskId[task.id] || [];
+
+    const { data: inserted, error: insErr } = await supabase
+      .from('agenda_tasks')
+      .insert([
+        {
+          staff_id: task.staff_id,
+          title: task.title,
+          due_date: due,
+          status: 'pending' as AgendaStatus,
+          prospect_id: task.prospect_id ?? null,
+          sale_id: task.sale_id ?? null,
+          source_crm_task_id: null,
+        },
+      ])
+      .select('id')
+      .single();
+
+    if (insErr) throw insErr;
+    const newId = inserted!.id as string;
+
+    if (items.length > 0) {
+      const rows = items.map((it, idx) => ({
+        task_id: newId,
+        text: it.text,
+        done: false,
+        sort_order: idx,
+      }));
+      const { error: itemErr } = await supabase.from('agenda_task_items').insert(rows);
+      if (itemErr) throw itemErr;
+    }
+  };
+
+  const moveTaskToDay = async (task: AgendaTask, targetYmd: string) => {
+    const { h, m } = brtHourMinuteFromIso(task.due_date);
+    const newDue = brtIsoFromYmdAndTime(targetYmd, h, m);
+
+    if (task.source_crm_task_id) {
+      const { error } = await supabase
+        .from('crm_tasks')
+        .update({ due_date: newDue })
+        .eq('id', task.source_crm_task_id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('agenda_tasks').update({ due_date: newDue }).eq('id', task.id);
+      if (error) throw error;
+    }
+  };
+
+  const applyDayPickerChoice = async (targetYmd: string) => {
+    const task = dayPickerModal.task;
+    if (!task) return;
+    const currentYmd = dayKeyForDueDate(task.due_date);
+    if (dayPickerModal.mode === 'move' && currentYmd === targetYmd) return;
+
+    setDayPickerModal(prev => ({ ...prev, busy: true }));
+    try {
+      if (dayPickerModal.mode === 'copy') {
+        await copyTaskToDay(task, targetYmd);
+      } else {
+        await moveTaskToDay(task, targetYmd);
+      }
+      setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false });
+      await refreshTasks();
+    } catch (e: any) {
+      alert(e?.message || 'Não foi possível concluir a ação.');
+      setDayPickerModal(prev => ({ ...prev, busy: false }));
+    }
+  };
+
+  const openDayPicker = (mode: 'copy' | 'move', task: AgendaTask) => {
+    setDayPickerModal({ open: true, mode, task, busy: false });
+  };
+
+  const openEditTaskModal = (task: AgendaTask) => {
+    const ymd = dayKeyForDueDate(task.due_date) || weekDaysYmd[0];
+    const { h, m } = brtHourMinuteFromIso(task.due_date);
+    setEditTaskModal({
+      open: true,
+      task,
+      title: task.title,
+      dayYmd: ymd,
+      timeStr: `${pad2(h)}:${pad2(m)}`,
+      saving: false,
+    });
+  };
+
+  const saveEditTaskModal = async () => {
+    const task = editTaskModal.task;
+    if (!task) return;
+    const title = editTaskModal.title.trim();
+    if (!title) return;
+    const due = brtIsoFromYmdAndTimeInput(editTaskModal.dayYmd, editTaskModal.timeStr);
+
+    setEditTaskModal(prev => ({ ...prev, saving: true }));
+    try {
+      if (task.source_crm_task_id) {
+        const { error } = await supabase
+          .from('crm_tasks')
+          .update({ title, due_date: due })
+          .eq('id', task.source_crm_task_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('agenda_tasks')
+          .update({ title, due_date: due })
+          .eq('id', task.id);
+        if (error) throw error;
+      }
+      setEditTaskModal({
+        open: false,
+        task: null,
+        title: '',
+        dayYmd: '',
+        timeStr: '12:00',
+        saving: false,
+      });
+      await refreshTasks();
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao salvar o cartão.');
+      setEditTaskModal(prev => ({ ...prev, saving: false }));
+    }
   };
 
   const addCardItem = async (taskId: string, text: string) => {
@@ -588,7 +784,6 @@ const AgendaHub: React.FC = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50">
                         <div className="text-xs font-black text-slate-500 uppercase tracking-widest">{title}</div>
-                        <div className="text-[11px] font-black text-[#C69C6D] mt-1">{list.length} card(s)</div>
                       </div>
                       <button
                         type="button"
@@ -639,14 +834,59 @@ const AgendaHub: React.FC = () => {
                                 </div>
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={() => deleteTask(t)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                                aria-label="Excluir tarefa"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openEditTaskModal(t);
+                                  }}
+                                  className="p-2 rounded-xl text-slate-400 hover:text-[#1B263B] hover:bg-[#C69C6D]/15 transition-colors"
+                                  title="Editar cartão"
+                                  aria-label="Editar cartão"
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openDayPicker('copy', t);
+                                  }}
+                                  className="p-2 rounded-xl text-slate-400 hover:text-[#1B263B] hover:bg-[#C69C6D]/15 transition-colors"
+                                  title="Copiar para outro dia"
+                                  aria-label="Copiar cartão para outro dia"
+                                >
+                                  <Copy size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openDayPicker('move', t);
+                                  }}
+                                  className="p-2 rounded-xl text-slate-400 hover:text-[#1B263B] hover:bg-[#C69C6D]/15 transition-colors"
+                                  title="Mover para outro dia"
+                                  aria-label="Mover cartão para outro dia"
+                                >
+                                  <ArrowRightLeft size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void deleteTask(t);
+                                  }}
+                                  className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                  aria-label="Excluir tarefa"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </div>
 
                             <div className="mt-3 space-y-2">
@@ -873,6 +1113,196 @@ const AgendaHub: React.FC = () => {
                   className="flex-1 px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black hover:bg-[#b58a5b] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {editStaffModal.saving ? <Loader2 size={18} className="animate-spin" /> : null}
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {dayPickerModal.open && dayPickerModal.task && createPortal(
+        <div className="fixed inset-0 z-[100003] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() =>
+              !dayPickerModal.busy && setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false })
+            }
+            aria-label="Fechar"
+          />
+          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-[#C69C6D]/25">
+            <div className="p-6 border-b border-[#C69C6D]/20 bg-[#1B263B] text-white rounded-t-[2rem]">
+              <h3 className="text-lg font-black flex items-center gap-2">
+                {dayPickerModal.mode === 'copy' ? (
+                  <Copy size={18} className="text-[#C69C6D]" />
+                ) : (
+                  <ArrowRightLeft size={18} className="text-[#C69C6D]" />
+                )}
+                {dayPickerModal.mode === 'copy' ? 'Copiar cartão para…' : 'Mover cartão para…'}
+              </h3>
+              <p className="text-xs text-white/70 font-medium mt-1">
+                Escolha o dia na semana que está visível. O horário do cartão é mantido.
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-xs text-slate-600 font-medium line-clamp-3">
+                <span className="font-black text-[#1B263B]">{dayPickerModal.task.title}</span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {weekDaysYmd.map(dayYmd => {
+                  const isCurrentDay =
+                    dayPickerModal.mode === 'move' &&
+                    dayKeyForDueDate(dayPickerModal.task!.due_date) === dayYmd;
+                  const label = `${dayNamePtShort(dayYmd)} ${dayYmd.split('-').reverse().join('/')}`;
+                  return (
+                    <button
+                      key={dayYmd}
+                      type="button"
+                      disabled={dayPickerModal.busy || isCurrentDay}
+                      onClick={() => void applyDayPickerChoice(dayYmd)}
+                      className={`px-4 py-3 rounded-xl text-left text-sm font-bold border transition-colors ${
+                        isCurrentDay
+                          ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+                          : 'border-slate-200 hover:border-[#C69C6D]/50 hover:bg-[#C69C6D]/10 text-[#1B263B]'
+                      }`}
+                    >
+                      {label}
+                      {isCurrentDay ? (
+                        <span className="block text-[10px] font-medium text-slate-400 mt-0.5">Dia atual</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                disabled={dayPickerModal.busy}
+                onClick={() => setDayPickerModal({ open: false, mode: 'copy', task: null, busy: false })}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              {dayPickerModal.busy ? (
+                <div className="flex justify-center pt-1">
+                  <Loader2 size={20} className="animate-spin text-[#C69C6D]" />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {editTaskModal.open && editTaskModal.task && createPortal(
+        <div className="fixed inset-0 z-[100004] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() =>
+              !editTaskModal.saving &&
+              setEditTaskModal({
+                open: false,
+                task: null,
+                title: '',
+                dayYmd: '',
+                timeStr: '12:00',
+                saving: false,
+              })
+            }
+            aria-label="Fechar"
+          />
+          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-[#C69C6D]/25">
+            <div className="p-6 border-b border-[#C69C6D]/20 bg-[#1B263B] text-white rounded-t-[2rem]">
+              <h3 className="text-lg font-black flex items-center gap-2">
+                <Pencil size={18} className="text-[#C69C6D]" />
+                Editar cartão
+              </h3>
+              <p className="text-xs text-white/70 font-medium mt-1">
+                Título, dia da semana visível e horário (referência em horário de Brasília).
+              </p>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveEditTaskModal();
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Título</label>
+                <input
+                  value={editTaskModal.title}
+                  onChange={(e) => setEditTaskModal(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dia</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {weekDaysYmd.map(dayYmd => {
+                    const selected = editTaskModal.dayYmd === dayYmd;
+                    const label = `${dayNamePtShort(dayYmd)} ${dayYmd.split('-').reverse().join('/')}`;
+                    return (
+                      <button
+                        key={dayYmd}
+                        type="button"
+                        disabled={editTaskModal.saving}
+                        onClick={() => setEditTaskModal(prev => ({ ...prev, dayYmd }))}
+                        className={`px-3 py-2 rounded-xl text-left text-xs font-bold border transition-colors ${
+                          selected
+                            ? 'border-[#C69C6D] bg-[#C69C6D]/15 text-[#1B263B]'
+                            : 'border-slate-200 hover:border-[#C69C6D]/40 text-slate-700'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horário (24h)</label>
+                <input
+                  type="time"
+                  value={editTaskModal.timeStr}
+                  onChange={(e) => setEditTaskModal(prev => ({ ...prev, timeStr: e.target.value || '12:00' }))}
+                  disabled={editTaskModal.saving}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
+                />
+              </div>
+              {editTaskModal.task?.source_crm_task_id ? (
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Este cartão está ligado à Prospecção; alterações sincronizam com a tarefa do lead.
+                </p>
+              ) : null}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={editTaskModal.saving}
+                  onClick={() =>
+                    setEditTaskModal({
+                      open: false,
+                      task: null,
+                      title: '',
+                      dayYmd: '',
+                      timeStr: '12:00',
+                      saving: false,
+                    })
+                  }
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editTaskModal.saving}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black hover:bg-[#b58a5b] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {editTaskModal.saving ? <Loader2 size={18} className="animate-spin" /> : null}
                   Salvar
                 </button>
               </div>
