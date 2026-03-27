@@ -229,6 +229,7 @@ const AgendaHub: React.FC = () => {
     title: string;
     dayYmd: string;
     timeStr: string;
+    checklistRaw: string;
     saving: boolean;
   }>({
     open: false,
@@ -236,6 +237,7 @@ const AgendaHub: React.FC = () => {
     title: '',
     dayYmd: '',
     timeStr: '12:00',
+    checklistRaw: '',
     saving: false,
   });
 
@@ -573,12 +575,14 @@ const AgendaHub: React.FC = () => {
   const openEditTaskModal = (task: AgendaTask) => {
     const ymd = dayKeyForDueDate(task.due_date) || weekDaysYmd[0];
     const { h, m } = brtHourMinuteFromIso(task.due_date);
+    const checklistRaw = (itemsByTaskId[task.id] || []).map((it) => `- ${it.text}`).join('\n');
     setEditTaskModal({
       open: true,
       task,
       title: task.title,
       dayYmd: ymd,
       timeStr: `${pad2(h)}:${pad2(m)}`,
+      checklistRaw,
       saving: false,
     });
   };
@@ -605,12 +609,28 @@ const AgendaHub: React.FC = () => {
           .eq('id', task.id);
         if (error) throw error;
       }
+
+      const checklistItems = parseBulletLines(editTaskModal.checklistRaw);
+      const { error: delErr } = await supabase.from('agenda_task_items').delete().eq('task_id', task.id);
+      if (delErr) throw delErr;
+      if (checklistItems.length > 0) {
+        const rows = checklistItems.map((text, idx) => ({
+          task_id: task.id,
+          text,
+          done: false,
+          sort_order: idx,
+        }));
+        const { error: insItemsErr } = await supabase.from('agenda_task_items').insert(rows);
+        if (insItemsErr) throw insItemsErr;
+      }
+
       setEditTaskModal({
         open: false,
         task: null,
         title: '',
         dayYmd: '',
         timeStr: '12:00',
+        checklistRaw: '',
         saving: false,
       });
       await refreshTasks();
@@ -1060,14 +1080,24 @@ const AgendaHub: React.FC = () => {
                               )}
 
                               <div className="pt-1">
-                                <button
-                                  type="button"
-                                  onClick={() => openAddItemModal(t.id)}
-                                  className="text-[11px] font-bold text-[#C69C6D] hover:text-[#b58a5b] transition-colors flex items-center gap-2"
-                                >
-                                  <ListChecks size={14} />
-                                  Adicionar item
-                                </button>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => openAddItemModal(t.id)}
+                                    className="text-[11px] font-bold text-[#C69C6D] hover:text-[#b58a5b] transition-colors flex items-center gap-2"
+                                  >
+                                    <ListChecks size={14} />
+                                    Adicionar item
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditTaskModal(t)}
+                                    className="text-[11px] font-bold text-slate-500 hover:text-[#1B263B] transition-colors flex items-center gap-2"
+                                  >
+                                    <Pencil size={13} />
+                                    Editar tarefa
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1384,6 +1414,7 @@ const AgendaHub: React.FC = () => {
                 title: '',
                 dayYmd: '',
                 timeStr: '12:00',
+                checklistRaw: '',
                 saving: false,
               })
             }
@@ -1450,6 +1481,17 @@ const AgendaHub: React.FC = () => {
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D]"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Checklist (1 item por linha)</label>
+                <textarea
+                  value={editTaskModal.checklistRaw}
+                  onChange={(e) => setEditTaskModal(prev => ({ ...prev, checklistRaw: e.target.value }))}
+                  rows={6}
+                  placeholder={'- item 1\n- item 2\n- item 3'}
+                  disabled={editTaskModal.saving}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25 focus:border-[#C69C6D] resize-none"
+                />
+              </div>
               {editTaskModal.task?.source_crm_task_id ? (
                 <p className="text-[11px] text-slate-500 font-medium">
                   Este cartão está ligado à Prospecção; alterações sincronizam com a tarefa do lead.
@@ -1466,6 +1508,7 @@ const AgendaHub: React.FC = () => {
                       title: '',
                       dayYmd: '',
                       timeStr: '12:00',
+                      checklistRaw: '',
                       saving: false,
                     })
                   }
