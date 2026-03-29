@@ -1,4 +1,5 @@
-﻿import React, { useMemo, useState, useCallback } from 'react';
+// -*- coding: utf-8 -*-
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
     Search,
     Loader2,
@@ -21,8 +22,11 @@ import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/formatters';
 import type { EmpresaAquiParsed, PncpContratoNormalizado, PncpProbabilidadeSg, PncpTipoLeadEnviado } from '../types';
 
-const PNCP_PROXY = 'https://darkslategray-turtle-936446.hostingersite.com/proxy_pncp.php';
-const EMPRESAQUI_PROXY = 'https://darkslategray-turtle-936446.hostingersite.com/proxy_empresaqui.php';
+const FALLBACK_PROXY_PNCP = 'https://darkslategray-turtle-936446.hostingersite.com/proxy_pncp.php';
+const FALLBACK_PROXY_EQ = 'https://darkslategray-turtle-936446.hostingersite.com/proxy_empresaqui.php';
+
+const PROXY_PNCP = String(import.meta.env.VITE_PROXY_PNCP_URL ?? '').trim() || FALLBACK_PROXY_PNCP;
+const PROXY_EQ = String(import.meta.env.VITE_PROXY_EQ_URL ?? '').trim() || FALLBACK_PROXY_EQ;
 
 const PNCP_TOTAL_CONTRATOS = 461_000;
 const PNCP_PAGE_SIZE = 10;
@@ -38,14 +42,14 @@ const TIPO_LEAD_OPTIONS: PncpTipoLeadEnviado[] = [
     'Seguro Garantia',
     'Judicial',
     'Energia',
-    'Seguro de CrÃ©dito',
+    'Seguro de Crédito',
 ];
 
 const RE_OBRAS =
-    /obra|obras|engenharia|constru(c|Ã§)(a|Ã£)o|reforma|infraestrutura|civil\b|pavimenta|ponte|viaduto|drenagem|aterro|supervis(a|Ã£)o de obra|empreitada|edifica(c|Ã§)(a|Ã£)o|pavimento/i;
+    /obra|obras|engenharia|constru(c|ç)(a|ã)o|reforma|infraestrutura|civil\b|pavimenta|ponte|viaduto|drenagem|aterro|supervis(a|ã)o de obra|empreitada|edifica(c|ç)(a|ã)o|pavimento/i;
 
 const RE_CONTINUADOS =
-    /manuten(c|Ã§)(a|Ã£)o|limpeza|vigil(Ã¢|a)ncia|seguran(c|Ã§)a patrimonial|terceiriza|outsourcing|continuado|fornecimento continuado|loca(c|Ã§)(a|Ã£)o de m(a|Ã£)o de obra|servi(c|Ã§)o continuad|conservaÃ§Ã£o|zona escolar|recep(c|Ã§)(a|Ã£)o/i;
+    /manuten(c|ç)(a|ã)o|limpeza|vigil(â|a)ncia|seguran(c|ç)a patrimonial|terceiriza|outsourcing|continuado|fornecimento continuado|loca(c|ç)(a|ã)o de m(a|ã)o de obra|servi(c|ç)o continuad|conservação|zona escolar|recep(c|ç)(a|ã)o/i;
 
 function cleanCnpj(ni: string): string {
     return (ni || '').replace(/\D/g, '').slice(0, 14);
@@ -70,7 +74,7 @@ function probabilidadeSg(objeto: string, valor: number): PncpProbabilidadeSg {
 
 function isLikelyContador(razao: string): boolean {
     const n = (razao || '').toLowerCase();
-    return /contÃ¡bil|contabil|contador|contabilidade|escrit[oÃ³]rio cont|ecac\b|crc\b/.test(n);
+    return /contábil|contabil|contador|contabilidade|escrit[oó]rio cont|ecac\b|crc\b/.test(n);
 }
 
 function randomDistinctPages(count: number, maxPage: number): number[] {
@@ -127,7 +131,7 @@ function mapPncpItem(raw: Record<string, unknown>): PncpContratoNormalizado | nu
 
     return {
         dedupKey,
-        nomeRazaoSocialFornecedor: nome || 'â€”',
+        nomeRazaoSocialFornecedor: nome || '\u2014',
         niFornecedor: ni,
         objetoContrato: objeto,
         valorGlobal: valor,
@@ -233,7 +237,7 @@ function normalizeSite(s: string): string {
 }
 
 function formatAssinatura(raw: string): string {
-    if (!raw) return 'â€”';
+    if (!raw) return '\u2014';
     if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
         const [y, m, d] = raw.slice(0, 10).split('-');
         return `${d}/${m}/${y}`;
@@ -249,7 +253,7 @@ function probBadgeClasses(p: PncpProbabilidadeSg): string {
 
 function probLabel(p: PncpProbabilidadeSg): string {
     if (p === 'alta') return 'Seguro Garantia: alta';
-    if (p === 'media') return 'Seguro Garantia: mÃ©dia';
+    if (p === 'media') return 'Seguro Garantia: média';
     return 'Seguro Garantia: verificar';
 }
 
@@ -261,18 +265,18 @@ function qualityEvaluation(
 ): { ok: boolean; reasons: string[] } {
     const reasons: string[] = [];
     if (!contact) {
-        reasons.push('Contato nÃ£o consultado');
+        reasons.push('Contato não consultado');
         return { ok: false, reasons };
     }
     if (hideContador && isLikelyContador(empresaNome)) {
-        reasons.push('Perfil sugere serviÃ§os contÃ¡beis');
+        reasons.push('Perfil sugere serviços contábeis');
     }
     if (onlyWithSite && !contact.site) {
         reasons.push('Sem site cadastrado');
     }
     const hasChannel = !!(contact.telefone?.replace(/\D/g, '') || contact.email);
     if (!hasChannel) {
-        reasons.push('Sem telefone nem e-mail Ãºteis');
+        reasons.push('Sem telefone nem e-mail úteis');
     }
     if (reasons.length === 0) return { ok: true, reasons: [] };
     return { ok: false, reasons };
@@ -300,6 +304,10 @@ const PncpProspection: React.FC = () => {
 
     const token = import.meta.env.VITE_EMPRESAQUI_TOKEN as string | undefined;
 
+    useEffect(() => {
+        console.log('TOKEN:', import.meta.env.VITE_EMPRESAQUI_TOKEN);
+    }, []);
+
     const dateRange = useMemo(() => {
         const end = new Date();
         const start = new Date();
@@ -324,7 +332,7 @@ const PncpProspection: React.FC = () => {
 
     const fetchPncpPage = useCallback(async (pagina: number) => {
         const { dataInicial, dataFinal } = dateRange;
-        const url = `${PNCP_PROXY}?dataInicial=${encodeURIComponent(dataInicial)}&dataFinal=${encodeURIComponent(
+        const url = `${PROXY_PNCP}?dataInicial=${encodeURIComponent(dataInicial)}&dataFinal=${encodeURIComponent(
             dataFinal
         )}&pagina=${pagina}`;
         const res = await fetch(url);
@@ -357,7 +365,7 @@ const PncpProspection: React.FC = () => {
             }
 
             if (merged.length === 0 && results.every((r) => r.status === 'rejected')) {
-                throw new Error('NÃ£o foi possÃ­vel obter contratos do PNCP. Verifique o proxy e o perÃ­odo.');
+                throw new Error('Não foi possível obter contratos do PNCP. Verifique o proxy e o período.');
             }
 
             setRawContracts(merged);
@@ -371,7 +379,7 @@ const PncpProspection: React.FC = () => {
     const fetchContact = async (c: PncpContratoNormalizado) => {
         const cnpj = cleanCnpj(c.niFornecedor);
         if (!cnpj || cnpj.length < 8) {
-            setError('CNPJ invÃ¡lido para consulta.');
+            setError('CNPJ inválido para consulta.');
             return;
         }
         if (!token) {
@@ -381,7 +389,7 @@ const PncpProspection: React.FC = () => {
         setContactLoad((m) => ({ ...m, [cnpj]: true }));
         setError(null);
         try {
-            const url = `${EMPRESAQUI_PROXY}?token=${encodeURIComponent(token)}&cnpj=${encodeURIComponent(cnpj)}`;
+            const url = `${PROXY_EQ}?token=${encodeURIComponent(token)}&cnpj=${encodeURIComponent(cnpj)}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Empresas Aqui HTTP ${res.status}`);
             const json = await res.json();
@@ -476,7 +484,7 @@ const PncpProspection: React.FC = () => {
             setSentCnpjs((prev) => new Set(prev).add(cnpj));
             setLeadModal(null);
         } catch (e: any) {
-            setError(e?.message || 'Falha ao enviar lead. Rode o SQL 013 no Supabase se a tabela nÃ£o existir.');
+            setError(e?.message || 'Falha ao enviar lead. Rode o SQL 013 no Supabase se a tabela não existir.');
         } finally {
             setSendingLead(false);
         }
@@ -486,9 +494,9 @@ const PncpProspection: React.FC = () => {
         <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col lg:flex-row justify-between gap-4 items-start">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-800">ProspecÃ§Ã£o PNCP</h2>
+                    <h2 className="text-3xl font-black text-slate-800">Prospecção PNCP</h2>
                     <p className="text-slate-500 font-medium">
-                        Amostragem aleatÃ³ria de contratos (30 pÃ¡ginas em paralelo) no perÃ­odo escolhido.
+                        Amostragem aleatória de contratos (30 páginas em paralelo) no período escolhido.
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2 items-center">
@@ -525,7 +533,7 @@ const PncpProspection: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                            Valor mÃ­nimo (R$)
+                            Valor mínimo (R$)
                         </label>
                         <input
                             type="number"
@@ -538,16 +546,16 @@ const PncpProspection: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                            PerÃ­odo (dias)
+                            Período (dias)
                         </label>
                         <select
                             value={periodDays}
                             onChange={(e) => setPeriodDays(Number(e.target.value) as 15 | 30 | 60)}
                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
                         >
-                            <option value={15}>Ãšltimos 15 dias</option>
-                            <option value={30}>Ãšltimos 30 dias</option>
-                            <option value={60}>Ãšltimos 60 dias</option>
+                            <option value={15}>Últimos 15 dias</option>
+                            <option value={30}>Últimos 30 dias</option>
+                            <option value={60}>Últimos 60 dias</option>
                         </select>
                     </div>
                     <div className="flex flex-col justify-end gap-3">
@@ -567,7 +575,7 @@ const PncpProspection: React.FC = () => {
                                 onChange={(e) => setHideContador(e.target.checked)}
                                 className="rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]"
                             />
-                            Ocultar contador / contÃ¡bil
+                            Ocultar contador / contábil
                         </label>
                     </div>
                 </div>
@@ -595,8 +603,8 @@ const PncpProspection: React.FC = () => {
                 )}
 
                 <p className="text-xs text-slate-500 font-medium">
-                    Exibindo <strong>{filtered.length}</strong> contratos (apÃ³s filtros) â€”{' '}
-                    <strong>{rawContracts.length}</strong> Ãºnicos na amostra.
+                    Exibindo <strong>{filtered.length}</strong> contratos (após filtros) {'\u2014'}{' '}
+                    <strong>{rawContracts.length}</strong> únicos na amostra.
                 </p>
             </div>
 
@@ -633,7 +641,7 @@ const PncpProspection: React.FC = () => {
                                 </span>
                             </div>
 
-                            <p className="text-sm text-slate-700 leading-relaxed">{c.objetoContrato || 'â€”'}</p>
+                            <p className="text-sm text-slate-700 leading-relaxed">{c.objetoContrato || '\u2014'}</p>
 
                             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                                 <div className="flex items-start gap-2">
@@ -646,8 +654,8 @@ const PncpProspection: React.FC = () => {
                                 <div className="flex items-start gap-2">
                                     <Briefcase size={16} className="text-[#C69C6D] mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-[10px] font-black uppercase text-slate-400">Ã“rgÃ£o</p>
-                                        <p className="font-bold text-slate-800 leading-snug">{c.orgaoRazaoSocial || 'â€”'}</p>
+                                        <p className="text-[10px] font-black uppercase text-slate-400">Órgão</p>
+                                        <p className="font-bold text-slate-800 leading-snug">{c.orgaoRazaoSocial || '\u2014'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
@@ -655,7 +663,7 @@ const PncpProspection: React.FC = () => {
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400">Local</p>
                                         <p className="font-bold text-slate-800">
-                                            {c.municipioNome || 'â€”'} / {c.ufSigla || 'â€”'}
+                                            {c.municipioNome || '\u2014'} / {c.ufSigla || '\u2014'}
                                         </p>
                                     </div>
                                 </div>
@@ -676,11 +684,11 @@ const PncpProspection: React.FC = () => {
                                     <div className="grid sm:grid-cols-2 gap-3 text-sm">
                                         <div className="flex items-center gap-2">
                                             <Phone size={14} className="text-[#C69C6D]" />
-                                            <span className="font-medium text-slate-800">{contact.telefone || 'â€”'}</span>
+                                            <span className="font-medium text-slate-800">{contact.telefone || '\u2014'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Mail size={14} className="text-[#C69C6D]" />
-                                            <span className="font-medium text-slate-800 break-all">{contact.email || 'â€”'}</span>
+                                            <span className="font-medium text-slate-800 break-all">{contact.email || '\u2014'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Globe size={14} className="text-[#C69C6D]" />
@@ -694,20 +702,20 @@ const PncpProspection: React.FC = () => {
                                                     {contact.site}
                                                 </a>
                                             ) : (
-                                                <span className="text-slate-500">â€”</span>
+                                                <span className="text-slate-500">{'\u2014'}</span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <User size={14} className="text-[#C69C6D]" />
-                                            <span className="font-medium text-slate-800">{contact.socioResponsavel || 'â€”'}</span>
+                                            <span className="font-medium text-slate-800">{contact.socioResponsavel || '\u2014'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Briefcase size={14} className="text-[#C69C6D]" />
-                                            <span className="text-slate-700">Porte: {contact.porte || 'â€”'}</span>
+                                            <span className="text-slate-700">Porte: {contact.porte || '\u2014'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <DollarSign size={14} className="text-[#C69C6D]" />
-                                            <span className="text-slate-700">Faturamento est.: {contact.faturamentoEstimado || 'â€”'}</span>
+                                            <span className="text-slate-700">Faturamento est.: {contact.faturamentoEstimado || '\u2014'}</span>
                                         </div>
                                     </div>
                                     <div
@@ -723,7 +731,7 @@ const PncpProspection: React.FC = () => {
                                         ) : (
                                             <>
                                                 <AlertCircle size={16} />
-                                                AtenÃ§Ã£o: {q.reasons.join(' Â· ')}
+                                                Atenção: {q.reasons.join(' · ')}
                                             </>
                                         )}
                                     </div>
@@ -753,7 +761,7 @@ const PncpProspection: React.FC = () => {
                                             : 'bg-[#1B263B] text-white border-[#1B263B] hover:bg-[#243347]'
                                     }`}
                                 >
-                                    {sentCnpjs.has(cnpjK) ? 'âœ“ Enviado' : 'Enviar para LEADS'}
+                                    {sentCnpjs.has(cnpjK) ? '\u2713 Enviado' : 'Enviar para LEADS'}
                                 </button>
                             </div>
                         </article>
