@@ -111,6 +111,36 @@ export interface Prospect {
   tasks?: CRMTask[];
 }
 
+/** Leads enviados da aba Prospecção PNCP (tabela `leads_seguro_garantia`). */
+export type PncpTipoLeadEnviado = 'Seguro Garantia' | 'Judicial' | 'Energia' | 'Seguro de Crédito';
+
+export type PncpProbabilidadeSg = 'alta' | 'media' | 'verificar';
+
+export interface PncpContratoNormalizado {
+  /** Chave estável para dedup e React key */
+  dedupKey: string;
+  nomeRazaoSocialFornecedor: string;
+  niFornecedor: string;
+  objetoContrato: string;
+  valorGlobal: number;
+  orgaoRazaoSocial: string;
+  municipioNome: string;
+  ufSigla: string;
+  dataAssinatura: string;
+  probabilidadeSg: PncpProbabilidadeSg;
+}
+
+/** Dados enriquecidos via proxy Empresas Aqui (campos opcionais conforme API). */
+export interface EmpresaAquiParsed {
+  telefone: string;
+  email: string;
+  site: string;
+  socioResponsavel: string;
+  porte: string;
+  faturamentoEstimado: string;
+  raw?: unknown;
+}
+
 export interface CRMTask {
   id: string;
   created_at: string;

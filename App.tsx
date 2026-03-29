@@ -14,9 +14,7 @@ import {
   User,
   Bell,
   Loader2,
-  ExternalLink as ExternalLinkIcon,
   Zap,
-  ArrowUpRight,
   Home,
   Landmark,
   Scale,
@@ -122,22 +120,6 @@ const App: React.FC = () => {
               <NavItem view="sureties" icon={<Scale size={16} />} label="Afiançadoras" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
-
-              <div className="pt-6 mt-6 border-t border-white/5">
-                <p className="text-[10px] font-black text-[#C69C6D]/60 uppercase tracking-[4px] px-5 mb-4">Acessos Externos</p>
-                <a
-                  href="https://crm-perfexcrm.a1dttr.easypanel.host/admin/authentication"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between w-full px-5 py-3 rounded-2xl transition-all duration-300 group text-slate-300 hover:bg-[#243347] border border-transparent hover:border-[#C69C6D]/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <ExternalLinkIcon size={16} className="text-slate-400 group-hover:text-[#C69C6D]" />
-                    <span className="font-bold text-[13px] tracking-tight">Portal CRM Perfex</span>
-                  </div>
-                  <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-70 transition-opacity" />
-                </a>
-              </div>
             </nav>
           </div>
 
