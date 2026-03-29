@@ -302,10 +302,13 @@ const PncpProspection: React.FC = () => {
     const [sendingLead, setSendingLead] = useState(false);
     const [sentCnpjs, setSentCnpjs] = useState<Set<string>>(new Set());
 
-    const token = import.meta.env.VITE_EMPRESAQUI_TOKEN as string | undefined;
+    const tokenOk = !!import.meta.env.VITE_EMPRESAQUI_TOKEN?.trim();
+    const empresaquiToken = import.meta.env.VITE_EMPRESAQUI_TOKEN?.trim() ?? '';
 
     useEffect(() => {
         console.log('TOKEN:', import.meta.env.VITE_EMPRESAQUI_TOKEN);
+        console.log('PROXY_PNCP:', PROXY_PNCP);
+        console.log('PROXY_EQ:', PROXY_EQ);
     }, []);
 
     const dateRange = useMemo(() => {
@@ -331,13 +334,22 @@ const PncpProspection: React.FC = () => {
     }, [rawContracts, ufFilter, minValor, hideContador, onlyWithSite, contactsByCnpj]);
 
     const fetchPncpPage = useCallback(async (pagina: number) => {
-        const { dataInicial, dataFinal } = dateRange;
-        const url = `${PROXY_PNCP}?dataInicial=${encodeURIComponent(dataInicial)}&dataFinal=${encodeURIComponent(
-            dataFinal
+        const di = dateRange.dataInicial;
+        const df = dateRange.dataFinal;
+        const url = `${PROXY_PNCP}?dataInicial=${encodeURIComponent(di)}&dataFinal=${encodeURIComponent(
+            df
         )}&pagina=${pagina}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`PNCP HTTP ${res.status}`);
-        return res.json();
+        console.log('Fetching PNCP:', url);
+        try {
+            const res = await fetch(url);
+            console.log('PNCP status:', res.status);
+            const json = await res.json();
+            console.log('PNCP response:', json);
+            return json;
+        } catch (e) {
+            console.error('PNCP error:', e);
+            return null;
+        }
     }, [dateRange]);
 
     const runSearch = async () => {
@@ -353,6 +365,7 @@ const PncpProspection: React.FC = () => {
 
             for (const r of results) {
                 if (r.status !== 'fulfilled') continue;
+                if (r.value == null) continue;
                 const rows = extractPncpArray(r.value);
                 for (const row of rows) {
                     if (!row || typeof row !== 'object') continue;
@@ -364,7 +377,12 @@ const PncpProspection: React.FC = () => {
                 }
             }
 
-            if (merged.length === 0 && results.every((r) => r.status === 'rejected')) {
+            const allFailed = results.every(
+                (r) =>
+                    r.status === 'rejected' ||
+                    (r.status === 'fulfilled' && (r.value === null || r.value === undefined))
+            );
+            if (merged.length === 0 && allFailed) {
                 throw new Error('Não foi possível obter contratos do PNCP. Verifique o proxy e o período.');
             }
 
@@ -382,14 +400,14 @@ const PncpProspection: React.FC = () => {
             setError('CNPJ inválido para consulta.');
             return;
         }
-        if (!token) {
-            setError('Configure VITE_EMPRESAQUI_TOKEN no .env.local');
+        if (!tokenOk) {
+            setError('Configure VITE_EMPRESAQUI_TOKEN no .env.local (raiz do projeto, sem aspas) e reinicie o Vite.');
             return;
         }
         setContactLoad((m) => ({ ...m, [cnpj]: true }));
         setError(null);
         try {
-            const url = `${PROXY_EQ}?token=${encodeURIComponent(token)}&cnpj=${encodeURIComponent(cnpj)}`;
+            const url = `${PROXY_EQ}?token=${encodeURIComponent(empresaquiToken)}&cnpj=${encodeURIComponent(cnpj)}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Empresas Aqui HTTP ${res.status}`);
             const json = await res.json();
@@ -590,8 +608,10 @@ const PncpProspection: React.FC = () => {
                         {loading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
                         Buscar contratos PNCP
                     </button>
-                    {!token && (
-                        <p className="text-xs font-bold text-amber-700">Defina VITE_EMPRESAQUI_TOKEN para buscar contatos.</p>
+                    {!tokenOk && (
+                        <p className="text-xs font-bold text-amber-700">
+                            Defina VITE_EMPRESAQUI_TOKEN na raiz (.env.local, sem aspas) e reinicie o Vite para buscar contatos.
+                        </p>
                     )}
                 </div>
 
