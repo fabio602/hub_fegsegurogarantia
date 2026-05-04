@@ -111,6 +111,19 @@ export interface Prospect {
   tasks?: CRMTask[];
 }
 
+/** Pendências da aba Gestão de Resultados (tabela `pendencias`). */
+export interface Pendencia {
+  id: string;
+  titulo: string;
+  descricao?: string | null;
+  responsavel?: string | null;
+  prazo?: string | null;
+  prioridade: 'alta' | 'media' | 'baixa';
+  concluida: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
+}
+
 /** Leads enviados da aba Prospecção PNCP (tabela `leads_seguro_garantia`). */
 export type PncpTipoLeadEnviado = 'Seguro Garantia' | 'Judicial' | 'Energia' | 'Seguro de Crédito';
 

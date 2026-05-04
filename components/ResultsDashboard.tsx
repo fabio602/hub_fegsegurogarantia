@@ -31,6 +31,7 @@ import { formatCurrency, parseNumber } from '../utils/formatters';
 import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
 import ProspectsKanban from './ProspectsKanban';
 import PncpProspection from './PncpProspection';
+import PendenciasHub from './PendenciasHub';
 import TaskManager from './TaskManager';
 import { generateThankYouEmail } from '../utils/emailTemplates';
 
@@ -108,7 +109,23 @@ const SELLERS_CONFIG = [
     { name: "Andréia", share: 0.30, daysPerWeek: 2 }
 ];
 
-type Section = 'sales' | 'prospects' | 'goals' | 'annualGoals' | 'carteira' | 'pncp';
+const EXPIRY_REMINDER_DONE_STORAGE_KEY = 'feg_hub_sales_expiry_reminders_done';
+
+function expiryReminderDismissKey(s: Pick<Sale, 'id' | 'vigencia_fim'>): string {
+    return `${s.id}|${(s.vigencia_fim ?? '').trim()}`;
+}
+
+function loadExpiryReminderDismissed(): Set<string> {
+    try {
+        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(EXPIRY_REMINDER_DONE_STORAGE_KEY) : null;
+        const arr = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []);
+    } catch {
+        return new Set();
+    }
+}
+
+type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pncp';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
@@ -164,6 +181,9 @@ const ResultsDashboard: React.FC = () => {
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
     const [salesSearch, setSalesSearch] = useState('');
+    const [dismissedExpiryReminderKeys, setDismissedExpiryReminderKeys] = useState<Set<string>>(() =>
+        loadExpiryReminderDismissed()
+    );
     const [goalsMonthSelector, setGoalsMonthSelector] = useState(() => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -212,17 +232,37 @@ const ResultsDashboard: React.FC = () => {
         valorContrato: '',
     });
 
-    // Compute sales expiring within 30 days
+    const persistExpiryReminderDismissed = (keys: Set<string>) => {
+        try {
+            localStorage.setItem(EXPIRY_REMINDER_DONE_STORAGE_KEY, JSON.stringify([...keys]));
+        } catch {
+            /* ignore quota */
+        }
+    };
+
+    const markExpiryReminderDone = (s: Sale) => {
+        const key = expiryReminderDismissKey(s);
+        setDismissedExpiryReminderKeys((prev) => {
+            const next = new Set(prev).add(key);
+            persistExpiryReminderDismissed(next);
+            return next;
+        });
+    };
+
+    // Compute sales expiring within 30 days (exclui itens marcados como “Concluído” neste navegador)
     const getExpiringAlerts = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const in30 = new Date(today);
         in30.setDate(in30.getDate() + 30);
-        return sales.filter(s => {
-            if (!s.vigencia_fim || s.vendeu !== 'Sim') return false;
-            const fim = new Date(s.vigencia_fim);
-            return fim >= today && fim <= in30;
-        }).sort((a, b) => new Date(a.vigencia_fim!).getTime() - new Date(b.vigencia_fim!).getTime());
+        return sales
+            .filter((s) => {
+                if (!s.vigencia_fim || s.vendeu !== 'Sim') return false;
+                const fim = new Date(s.vigencia_fim);
+                return fim >= today && fim <= in30;
+            })
+            .filter((s) => !dismissedExpiryReminderKeys.has(expiryReminderDismissKey(s)))
+            .sort((a, b) => new Date(a.vigencia_fim!).getTime() - new Date(b.vigencia_fim!).getTime());
     };
 
     const fetchData = useCallback(async () => {
@@ -810,7 +850,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'prospects', 'carteira', 'pncp', 'goals', 'annualGoals'] as Section[]).map((section) => (
+                {(['sales', 'prospects', 'pendencias', 'carteira', 'pncp', 'goals', 'annualGoals'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -821,6 +861,7 @@ const ResultsDashboard: React.FC = () => {
                     >
                         {section === 'sales' && 'Vendas'}
                         {section === 'prospects' && 'Prospecção'}
+                        {section === 'pendencias' && 'Pendências'}
                         {section === 'carteira' && 'Carteira de Clientes'}
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
@@ -862,13 +903,24 @@ const ResultsDashboard: React.FC = () => {
                                                     <p className="font-black text-amber-600 text-sm">{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</p>
                                                     <p className="text-xs text-slate-400">Vence {fim.toLocaleDateString('pt-BR')}</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleEdit(s)}
-                                                    className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-black text-xs px-3 py-2 rounded-lg transition-all"
-                                                    title="Editar este lead"
-                                                >
-                                                    <Edit2 size={13} /> Editar
-                                                </button>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => markExpiryReminderDone(s)}
+                                                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-black text-xs px-3 py-2 rounded-lg transition-all"
+                                                        title="Remover da lista — pendência já tratada"
+                                                    >
+                                                        <Check size={13} strokeWidth={2.5} /> Concluído
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEdit(s)}
+                                                        className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-black text-xs px-3 py-2 rounded-lg transition-all"
+                                                        title="Editar este lead"
+                                                    >
+                                                        <Edit2 size={13} /> Editar
+                                                    </button>
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -1803,6 +1855,8 @@ const ResultsDashboard: React.FC = () => {
                     </div>
                 </section>
             )}
+
+            {activeSection === 'pendencias' && <PendenciasHub />}
 
             {activeSection === 'pncp' && <PncpProspection />}
 
