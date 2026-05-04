@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Info, Edit3, Save, X, Plus, ShieldPlus, Landmark, FileText, UserCircle, DollarSign, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface BankData {
     premios: {
@@ -274,7 +275,11 @@ const BanksDirectory: React.FC = () => {
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Telefone</span>
-                                                    <span className="font-bold text-slate-600">{data.gerente.telefone || 'Não informado'}</span>
+                                                    {data.gerente.telefone ? (
+                                                        <WhatsAppPhoneLink phone={data.gerente.telefone} className="font-bold text-slate-600" />
+                                                    ) : (
+                                                        <span className="font-bold text-slate-600">Não informado</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">E-mail</span>

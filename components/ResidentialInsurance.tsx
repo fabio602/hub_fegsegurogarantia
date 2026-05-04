@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface ResidentialClient {
     id: number;
@@ -675,12 +676,38 @@ const ResidentialInsurance: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                {c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'}
-                                                {' • '}
-                                                {c.telefone ? (c.telefone.includes('(') ? c.telefone : formatPhone(c.telefone)) : '-'}
-                                                {c.telefone_2 ? ` • ${c.telefone_2.includes('(') ? c.telefone_2 : formatPhone(c.telefone_2)}` : ''}
-                                                {c.cep_imovel ? ` • CEP ${c.cep_imovel.includes('-') ? c.cep_imovel : formatCEP(c.cep_imovel)}` : ''}
+                                            <div className="text-[10px] text-slate-400 font-bold mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                                <span>{c.cpf ? (c.cpf.includes('.') ? c.cpf : formatCPF(c.cpf)) : '-'}</span>
+                                                <span aria-hidden>•</span>
+                                                {c.telefone ? (
+                                                    <WhatsAppPhoneLink
+                                                        phone={c.telefone}
+                                                        display={c.telefone.includes('(') ? c.telefone : formatPhone(c.telefone)}
+                                                        className="text-slate-500 font-bold"
+                                                    />
+                                                ) : (
+                                                    <span>-</span>
+                                                )}
+                                                {c.telefone_2 ? (
+                                                    <>
+                                                        <span aria-hidden>•</span>
+                                                        <WhatsAppPhoneLink
+                                                            phone={c.telefone_2}
+                                                            display={
+                                                                c.telefone_2.includes('(') ? c.telefone_2 : formatPhone(c.telefone_2)
+                                                            }
+                                                            className="text-slate-500 font-bold"
+                                                        />
+                                                    </>
+                                                ) : null}
+                                                {c.cep_imovel ? (
+                                                    <>
+                                                        <span aria-hidden>•</span>
+                                                        <span>
+                                                            CEP {c.cep_imovel.includes('-') ? c.cep_imovel : formatCEP(c.cep_imovel)}
+                                                        </span>
+                                                    </>
+                                                ) : null}
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 text-xs font-bold text-slate-600 whitespace-nowrap align-top">

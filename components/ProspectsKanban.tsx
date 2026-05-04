@@ -4,6 +4,7 @@ import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Building, Phone, Mail, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import TaskManager from './TaskManager';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface KanbanColumn {
     id: string;
@@ -1270,9 +1271,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 </div>
                                             )}
                                             {prospect.phonenumber && prospect.phonenumber !== 'nan' && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-600">
+                                                <div className="flex items-center gap-2 text-xs text-slate-600 min-w-0">
                                                     <Phone size={12} className="text-slate-400 shrink-0" />
-                                                    <span className="truncate">{prospect.phonenumber}</span>
+                                                    <WhatsAppPhoneLink phone={prospect.phonenumber} className="truncate min-w-0 text-slate-600" />
                                                 </div>
                                             )}
                                             {prospect.email && prospect.email !== 'nan' && (

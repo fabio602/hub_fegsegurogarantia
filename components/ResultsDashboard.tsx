@@ -32,6 +32,7 @@ import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
 import ProspectsKanban from './ProspectsKanban';
 import PncpProspection from './PncpProspection';
 import PendenciasHub from './PendenciasHub';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import TaskManager from './TaskManager';
 import { generateThankYouEmail } from '../utils/emailTemplates';
 
@@ -1676,7 +1677,10 @@ const ResultsDashboard: React.FC = () => {
                                                         )}
                                                         {client.telefone && (
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-xs font-medium text-slate-500 break-all">📞 {client.telefone}</p>
+                                                                <p className="text-xs font-medium text-slate-500 break-all flex flex-wrap items-center gap-1">
+                                                                    <span aria-hidden>📞</span>
+                                                                    <WhatsAppPhoneLink phone={client.telefone} className="text-slate-600" />
+                                                                </p>
                                                                 <CopyButton text={client.telefone} label="Telefone" />
                                                             </div>
                                                         )}

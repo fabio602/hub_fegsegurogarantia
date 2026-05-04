@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/formatters';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import type { EmpresaAquiParsed, PncpContratoNormalizado, PncpProbabilidadeSg, PncpTipoLeadEnviado } from '../types';
 
 const FALLBACK_PROXY_PNCP = 'https://darkslategray-turtle-936446.hostingersite.com/proxy_pncp.php';
@@ -703,8 +704,12 @@ const PncpProspection: React.FC = () => {
                                     </p>
                                     <div className="grid sm:grid-cols-2 gap-3 text-sm">
                                         <div className="flex items-center gap-2">
-                                            <Phone size={14} className="text-[#C69C6D]" />
-                                            <span className="font-medium text-slate-800">{contact.telefone || '\u2014'}</span>
+                                            <Phone size={14} className="text-[#C69C6D] shrink-0" />
+                                            {contact.telefone ? (
+                                                <WhatsAppPhoneLink phone={contact.telefone} className="font-medium text-slate-800" />
+                                            ) : (
+                                                <span className="font-medium text-slate-800">{'\u2014'}</span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Mail size={14} className="text-[#C69C6D]" />

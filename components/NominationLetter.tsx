@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, MapPin, Phone, Mail, UserCheck, Loader2, CheckCircle2, ShieldCheck, Printer } from 'lucide-react';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import { formatDateExtenso } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
 
@@ -303,7 +304,8 @@ const NominationLetter: React.FC = () => {
                 <div className="mt-6 flex items-center gap-6 text-[8px] font-bold text-slate-500 uppercase">
                   {data.telefone && (
                     <div className="flex items-center gap-1">
-                      <Phone size={10} className="text-[#C69C6D]" /> {data.telefone}
+                      <Phone size={10} className="text-[#C69C6D] shrink-0" />
+                      <WhatsAppPhoneLink phone={data.telefone} className="text-[8px] font-bold text-slate-500 normal-case" />
                     </div>
                   )}
                   {data.email && (
