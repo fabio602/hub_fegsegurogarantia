@@ -30,7 +30,6 @@ import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
 import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
 import ProspectsKanban from './ProspectsKanban';
-import PncpProspection from './PncpProspection';
 import PendenciasHub from './PendenciasHub';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import TaskManager from './TaskManager';
@@ -126,7 +125,7 @@ function loadExpiryReminderDismissed(): Set<string> {
     }
 }
 
-type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pncp';
+type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
@@ -851,7 +850,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'prospects', 'pendencias', 'carteira', 'pncp', 'goals', 'annualGoals'] as Section[]).map((section) => (
+                {(['sales', 'prospects', 'pendencias', 'carteira', 'goals', 'annualGoals'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -866,7 +865,6 @@ const ResultsDashboard: React.FC = () => {
                         {section === 'carteira' && 'Carteira de Clientes'}
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
-                        {section === 'pncp' && 'Prospecção PNCP'}
                     </button>
                 ))}
             </div>
@@ -1861,8 +1859,6 @@ const ResultsDashboard: React.FC = () => {
             )}
 
             {activeSection === 'pendencias' && <PendenciasHub />}
-
-            {activeSection === 'pncp' && <PncpProspection />}
 
             {activeSection === 'goals' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">

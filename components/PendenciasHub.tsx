@@ -1,6 +1,6 @@
 // -*- coding: utf-8 -*-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Loader2, CheckCircle2, AlertCircle, Calendar, User, X } from 'lucide-react';
+import { Plus, Loader2, CheckCircle2, AlertCircle, Calendar, User, X, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Pendencia } from '../types';
 
@@ -128,6 +128,24 @@ const PendenciasHub: React.FC = () => {
         }
     };
 
+    const excluirPendencia = async (p: Pendencia) => {
+        const ok = window.confirm(
+            `Excluir permanentemente a pendência «${p.titulo}»?\n\nEsta ação não pode ser desfeita.`
+        );
+        if (!ok) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const { error: delErr } = await supabase.from('pendencias').delete().eq('id', p.id);
+            if (delErr) throw delErr;
+            await fetchLista();
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Erro ao excluir.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const filtrosBar = useMemo(
         () =>
             (
@@ -244,17 +262,29 @@ const PendenciasHub: React.FC = () => {
                                             </p>
                                         ) : null}
                                     </div>
-                                    {!p.concluida ? (
+                                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 shrink-0">
+                                        {!p.concluida ? (
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={() => marcarConcluida(p.id)}
+                                                className="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            >
+                                                <CheckCircle2 size={16} />
+                                                Marcar como concluída
+                                            </button>
+                                        ) : null}
                                         <button
                                             type="button"
                                             disabled={saving}
-                                            onClick={() => marcarConcluida(p.id)}
-                                            className="shrink-0 inline-flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            onClick={() => excluirPendencia(p)}
+                                            className="inline-flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            title="Remover esta pendência"
                                         >
-                                            <CheckCircle2 size={16} />
-                                            Marcar como concluída
+                                            <Trash2 size={16} />
+                                            Excluir
                                         </button>
-                                    ) : null}
+                                    </div>
                                 </div>
                             </article>
                         );

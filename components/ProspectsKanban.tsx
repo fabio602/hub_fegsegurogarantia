@@ -174,7 +174,7 @@ const LeadFormFields = ({
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Origem do Contato</label>
-            <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Ex: Conlicitação, PNCP, Indicação" />
+            <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Ex: Conlicitação, Portal, Indicação" />
         </div>
         {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
         {selectedProduct === 'Judicial Depósito Recursal' && (
