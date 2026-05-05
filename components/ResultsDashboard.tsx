@@ -258,6 +258,7 @@ const ResultsDashboard: React.FC = () => {
         return sales
             .filter((s) => {
                 if (!s.vigencia_fim || s.vendeu !== 'Sim') return false;
+                if ((s.tipo || '').trim() !== 'Performance') return false;
                 const fim = new Date(s.vigencia_fim);
                 return fim >= today && fim <= in30;
             })
@@ -882,8 +883,11 @@ const ResultsDashboard: React.FC = () => {
                                         <AlertCircle size={18} className="text-amber-600" />
                                     </div>
                                     <div>
-                                        <p className="font-black text-amber-800 text-sm">⚠️ {alerts.length} apólice{alerts.length > 1 ? 's vencem' : ' vence'} nos próximos 30 dias</p>
-                                        <p className="text-amber-600 text-xs font-medium">Acione o cliente para renovação</p>
+                                        <p className="font-black text-amber-800 text-sm">
+                                            ⚠️ {alerts.length} apólice{alerts.length > 1 ? 's' : ''} <span className="text-amber-900">Performance</span>{' '}
+                                            {alerts.length > 1 ? 'vencem' : 'vence'} nos próximos 30 dias
+                                        </p>
+                                        <p className="text-amber-600 text-xs font-medium">Acione o cliente para renovação (apenas tipo Performance).</p>
                                     </div>
                                 </div>
                                 <div className="space-y-2">

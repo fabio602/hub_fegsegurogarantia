@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import {
     Home,
-    Laptop,
-    Users,
     Megaphone,
-    Wrench,
     ClipboardList,
     Bolt,
     ShieldCheck,
@@ -46,7 +43,6 @@ import {
 const InternalProcedures: React.FC = () => {
     const [activeSection, setActiveSection] = useState('home');
     const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-        crm: false,
         admin: false,
         comercial: false
     });
@@ -99,23 +95,6 @@ const InternalProcedures: React.FC = () => {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] px-4 mb-4">Sumário</p>
 
                 <NavItem id="home" icon={Home} label="Início" />
-
-                <div className="space-y-1">
-                    <SubmenuHeader
-                        id="crm"
-                        icon={Laptop}
-                        label="Tutorial CRM"
-                        isOpen={openSubmenus.crm}
-                        onToggle={() => toggleSubmenu('crm')}
-                    />
-                    {openSubmenus.crm && (
-                        <div className="space-y-1 animate-in slide-in-from-top-2 duration-300">
-                            <NavItem id="tutorial-crm-clientes" icon={Users} label="Clientes" submenu="crm" />
-                            <NavItem id="tutorial-crm-leads" icon={Megaphone} label="Leads" submenu="crm" />
-                            <NavItem id="tutorial-crm-utils" icon={Wrench} label="Utilidades" submenu="crm" />
-                        </div>
-                    )}
-                </div>
 
                 <div className="space-y-1">
                     <SubmenuHeader
@@ -958,263 +937,6 @@ Atenciosamente,`)}
                 )}
 
 
-                {activeSection === 'tutorial-crm-clientes' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-[#C69C6D]">
-                            <h3 className="text-3xl font-black text-[#1B263B] mb-4">Passo a Passo: Cadastro no CRM - Aba Clientes</h3>
-                            <p className="text-slate-500 font-medium italic">Siga este roteiro para garantir que todas as informações importantes do cliente sejam registradas corretamente no sistema.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">1</div>
-                                    Perfil do Cliente
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Defina Empresa:</span> Nome da empresa prospectada.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Defina CNPJ:</span> Para identificação precisa e eventuais consultas.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Mude para Campos Personalizados:</span> Definir o ramo.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Clique em Salvar.</span></p></li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">2</div>
-                                    Contato
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Vá em Contato.</span></p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Defina:</span> Nome, Sobrenome, E-mail, Telefone.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Defina Senha:</span> Basta clicar nas setas em forma de círculo.</p></li>
-                                    <li className="flex gap-3 text-red-600 font-bold"><TriangleAlert size={18} className="shrink-0" /> <p><span className="uppercase">Importante:</span> Marque a opção "Não enviar e-mail de boas-vindas".</p></li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">3</div>
-                                    Notas
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Menu Notas:</span> Clique em +Nova Nota.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Descrição:</span> Sempre coloque informações sobre quais seguradoras o cliente tem cadastro conosco e qual o limite dele em cada uma.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Menu Faturas:</span> Adicione o boleto que vendemos para acompanhar o pagamento.</p></li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">4</div>
-                                    Menu Propostas
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Assunto:</span> Tipo de Seguro – Empresa x Órgão Público (Ex: Seguro Licitante – Golden x Prefeitura de Minas).</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Data:</span> Selecionar sempre o prazo de 2 dias (de abrir até fechar).</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Item:</span> Descrição (Ex: Seguro Licitante Edital 05/2025).</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Tarifa:</span> Coloque o valor oferecido e clique no quadradinho azul para confirmar.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Comentários:</span> Use para definir se houve fechamento e senão, qual foi o motivo.</p></li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">5</div>
-                                    Menu Tarefas
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Objetivo:</span> Crie alertas para acompanhamento do cliente (retorno sobre orçamento ou vigência).</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Assunto:</span> Ex: "Validar Orçamento – Seguro Performance".</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Data de início:</span> Quando a tarefa será lembrada.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Descrição:</span> Informações que precisa validar ou perguntas para ajudar a lembrar.</p></li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                                <h3 className="text-xl font-black text-[#1B263B] mb-6 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-white text-sm font-bold shadow-sm">6</div>
-                                    Menu Arquivos
-                                </h3>
-                                <ul className="space-y-4 text-sm text-slate-600">
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Conteúdo:</span> Contratos, Editais, Apólices, Boletos.</p></li>
-                                    <li className="flex gap-3"><CircleCheck size={18} className="text-[#C69C6D] shrink-0" /> <p><span className="font-bold text-[#1B263B]">Nomenclatura Padrão:</span> Para identificação rápida (Ex: Edital 05/2025; Apólice – Edital 05/2025; Boleto – Edital 05/2025).</p></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeSection === 'tutorial-crm-leads' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-[#C69C6D]">
-                            <h3 className="text-3xl font-black text-[#1B263B] mb-4">Passo a Passo: Cadastro no CRM - Aba Leads</h3>
-                            <p className="text-slate-500 font-medium leading-relaxed">
-                                Nesse card temos os leads. Esses leads vem do <span className="text-[#C69C6D] font-bold">Portal Nacional de Contratos Públicos</span>.
-                                Conseguimos qualificar esses leads como: <span className="font-bold">Ouro, Prata e Bronze</span>.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                                { title: 'Verde: Novos Leads', color: 'bg-emerald-500', border: 'border-emerald-100', bg: 'bg-emerald-50', desc: 'Leads recém-adicionados no sistema aguardando triagem.' },
-                                { title: 'Laranja: Sem demanda', color: 'bg-orange-500', border: 'border-orange-100', bg: 'bg-orange-50', desc: 'Trabalha com seguro garantia mas sem demanda no momento. Captar e-mails para MKP.' },
-                                { title: 'Roxo: Com demanda', color: 'bg-purple-500', border: 'border-purple-100', bg: 'bg-purple-50', desc: 'Potencial cliente para fechamento imediato. Atender com agilidade.' },
-                                { title: 'Azul: Leads Rafa', color: 'bg-blue-500', border: 'border-blue-100', bg: 'bg-blue-50', desc: 'Leads que o Rafa está negociando.' },
-                                { title: 'Laranja: Leads Andréia', color: 'bg-orange-600', border: 'border-orange-200', bg: 'bg-orange-50/50', desc: 'Leads que a Andréia está negociando.' },
-                                { title: 'Cinza: Leads Lala', color: 'bg-slate-500', border: 'border-slate-200', bg: 'bg-slate-50', desc: 'Leads que a Lala está orçando.' },
-                                { title: 'Vermelho: Excluir', color: 'bg-red-500', border: 'border-red-100', bg: 'bg-red-50', desc: 'Sem telefone correspondente ou contato não localizado.' }
-                            ].map((item, idx) => (
-                                <div key={idx} className={`p-8 rounded-[2.5rem] border ${item.border} ${item.bg} shadow-sm group hover:scale-[1.02] transition-transform`}>
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className={`w-3 h-3 rounded-full ${item.color} shadow-sm`}></div>
-                                        <h4 className="font-black text-[#1B263B] text-sm uppercase tracking-widest">{item.title}</h4>
-                                    </div>
-                                    <p className="text-xs text-slate-600 leading-relaxed font-medium">{item.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="bg-[#1B263B] p-10 rounded-[3.5rem] text-white relative overflow-hidden shadow-2xl">
-                            <div className="absolute top-0 right-0 p-10 opacity-10">
-                                <RotateCw size={120} className="text-[#C69C6D]" />
-                            </div>
-                            <div className="relative z-10">
-                                <h3 className="text-2xl font-black text-[#C69C6D] mb-8 flex items-center gap-4">
-                                    <div className="p-3 bg-[#C69C6D]/20 rounded-2xl">
-                                        <UserCheck className="text-[#C69C6D]" size={28} />
-                                    </div>
-                                    Como transformar um lead em cliente?
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <ul className="space-y-6">
-                                        <li className="flex gap-4">
-                                            <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-[#1B263B] font-black shrink-0 shadow-lg">1</div>
-                                            <p className="text-slate-300 text-sm leading-relaxed">Com o card do lead aberto, clique no botão <span className="text-white font-bold uppercase tracking-wider">CONVERTER PARA CLIENTES</span>.</p>
-                                        </li>
-                                        <li className="flex gap-4">
-                                            <div className="w-8 h-8 rounded-lg bg-[#C69C6D] flex items-center justify-center text-[#1B263B] font-black shrink-0 shadow-lg">2</div>
-                                            <p className="text-slate-300 text-sm leading-relaxed">Alimente o formulário com todas as <span className="text-white font-bold">informações importantes</span> coletadas.</p>
-                                        </li>
-                                    </ul>
-                                    <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10">
-                                        <div className="flex items-center gap-3 mb-4 text-[#C69C6D]">
-                                            <Info size={20} />
-                                            <h4 className="font-black uppercase text-xs tracking-[2px]">No campo Notas</h4>
-                                        </div>
-                                        <p className="text-slate-300 text-sm leading-relaxed italic">
-                                            "Escreva um breve relato das necessidades do cliente (quanto ele precisa de limite ou algo específico)."
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeSection === 'tutorial-crm-utils' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-[#C69C6D]">
-                            <h3 className="text-3xl font-black text-[#1B263B] mb-4">Passo a Passo: Cadastro no CRM - Utilidades</h3>
-                            <p className="text-slate-500 font-medium">Aqui teremos alguns arquivos para baixar que irão nos auxiliar no processo comercial e técnico.</p>
-                        </div>
-
-                        {/* Nota Técnica: Seguro Adicional */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 bg-blue-50 rounded-2xl">
-                                    <Receipt className="text-blue-600" size={32} />
-                                </div>
-                                <div>
-                                    <h4 className="font-black text-[#1B263B] text-xl">Nota Técnica: Seguro Adicional</h4>
-                                    <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Documento Técnico</p>
-                                </div>
-                            </div>
-                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                                <p className="text-sm text-blue-900 leading-relaxed">
-                                    Nota Técnica de como ajudar o órgão público a <span className="font-bold">cobrar corretamente o seguro adicional</span>, ou seja quando uma proposta no pregão ficar abaixo de 85% do valor.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Contrato de Confidencialidade */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 bg-amber-50 rounded-2xl">
-                                    <Signature className="text-amber-600" size={32} />
-                                </div>
-                                <div>
-                                    <h4 className="font-black text-[#1B263B] text-xl">Contrato de Confidencialidade</h4>
-                                    <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">4 Modelos Disponíveis</p>
-                                </div>
-                            </div>
-                            <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 space-y-4">
-                                <p className="text-sm text-amber-900 leading-relaxed">
-                                    Esses contratos podemos usar quando entendemos que o cliente quer apenas nossas informações para usar com outro corretor.
-                                </p>
-                                <div className="bg-white p-4 rounded-xl border border-amber-200">
-                                    <p className="text-xs font-black text-amber-900 uppercase tracking-wide mb-2">Opções Disponíveis</p>
-                                    <p className="text-sm text-slate-700">
-                                        Temos <span className="font-bold text-amber-900">4 modelos</span>, desde algo simples até uma situação mais complexa e que exigir maior confidencialidade.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contrato de Parceria */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 bg-emerald-50 rounded-2xl">
-                                    <Handshake className="text-emerald-600" size={32} />
-                                </div>
-                                <div>
-                                    <h4 className="font-black text-[#1B263B] text-xl">Contrato de Parceria</h4>
-                                    <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Consultores / Advogados</p>
-                                </div>
-                            </div>
-                            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 space-y-4">
-                                <p className="text-sm text-emerald-900 leading-relaxed">
-                                    É um contrato que podemos firmar com <span className="font-bold">consultores de licitações, contadores, advogados etc.</span> com o objetivo de compartilhar uma parte da nossa comissão para que ele traga o fluxo de seguros para nossa corretora.
-                                </p>
-                                <div className="bg-white p-4 rounded-xl border border-emerald-200 flex items-start gap-3">
-                                    <TrendingUp size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs font-black text-emerald-900 uppercase tracking-wide mb-1">Benefício Mútuo</p>
-                                        <p className="text-xs text-slate-700 leading-relaxed">
-                                            Compartilhamento de comissão em troca de fluxo contínuo de negócios.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Resumo Visual */}
-                        <div className="bg-[#1B263B] p-10 rounded-[3rem] shadow-xl">
-                            <div className="flex items-center gap-3 mb-8">
-                                <Briefcase className="text-[#C69C6D]" size={28} />
-                                <h4 className="font-black text-[#C69C6D] uppercase text-sm tracking-widest">Downloads Disponíveis</h4>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-white/10 p-6 rounded-2xl border border-white/20 text-center space-y-3">
-                                    <Receipt className="text-blue-400 mx-auto" size={40} />
-                                    <p className="text-white font-bold text-sm">Nota Técnica</p>
-                                    <p className="text-slate-400 text-xs">Seguro Adicional</p>
-                                </div>
-                                <div className="bg-white/10 p-6 rounded-2xl border border-white/20 text-center space-y-3">
-                                    <Signature className="text-amber-400 mx-auto" size={40} />
-                                    <p className="text-white font-bold text-sm">Confidencialidade</p>
-                                    <p className="text-slate-400 text-xs">4 Modelos</p>
-                                </div>
-                                <div className="bg-white/10 p-6 rounded-2xl border border-white/20 text-center space-y-3">
-                                    <Handshake className="text-emerald-400 mx-auto" size={40} />
-                                    <p className="text-white font-bold text-sm">Parceria</p>
-                                    <p className="text-slate-400 text-xs">Consultores/Advogados</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {activeSection === 'comercial' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-[#C69C6D]">
@@ -1571,28 +1293,6 @@ Atenciosamente,`)}
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeSection === 'emails' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-[#C69C6D]">
-                            <h3 className="text-3xl font-black text-[#1B263B] mb-2">Scripts Administrativos</h3>
-                            <p className="text-slate-500 font-medium">Modelos padronizados.</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {[
-                                { s: 'Cobrança Documentos', b: 'Recepcionamos os documentos...' },
-                                { s: 'Limites Aprovados', b: 'Seu cadastro foi homologado...' },
-                                { s: 'Inadimplência', b: 'Solicitamos contato para pendências...' }
-                            ].map((email, idx) => (
-                                <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                    <p className="font-black text-[#1B263B] text-xs uppercase mb-3 border-b pb-2">{email.s}</p>
-                                    <p className="text-xs text-slate-500 mb-4 truncate">{email.b}</p>
-                                    <button onClick={() => copyToClipboard(email.b)} className="text-[#C69C6D] font-black text-[10px] uppercase">Copiar</button>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 )}
