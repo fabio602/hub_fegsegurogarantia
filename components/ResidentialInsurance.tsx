@@ -146,6 +146,10 @@ const ResidentialInsurance: React.FC = () => {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formData, setFormData] = useState<Partial<ResidentialClient>>(EMPTY_FORM);
     const [search, setSearch] = useState('');
+    const [filterProduto, setFilterProduto] = useState('');
+    const [filterSituacao, setFilterSituacao] = useState('');
+    const [filterPagamento, setFilterPagamento] = useState('');
+    const [filterGarantia, setFilterGarantia] = useState('');
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [publicFormCopied, setPublicFormCopied] = useState(false);
@@ -296,19 +300,26 @@ const ResidentialInsurance: React.FC = () => {
         a.download = 'Clientes_Residencial.csv'; a.click();
     };
 
-    const filtered = clients.filter(c => {
-        const q = search.toLowerCase();
-        const qDigits = search.replace(/\D/g, '');
-        const cepDigits = (c.cep_imovel || '').replace(/\D/g, '');
-        const cepMatch = qDigits.length > 0 && cepDigits.includes(qDigits);
-        return (
-            c.nome?.toLowerCase().includes(q) ||
-            c.cpf?.includes(search) ||
-            c.apolice?.includes(search) ||
-            (c.telefone_2 && c.telefone_2.includes(search)) ||
-            cepMatch
-        );
-    });
+    const filtered = clients
+        .filter(c => {
+            const q = search.toLowerCase();
+            const qDigits = search.replace(/\D/g, '');
+            const cepDigits = (c.cep_imovel || '').replace(/\D/g, '');
+            const cepMatch = qDigits.length > 0 && cepDigits.includes(qDigits);
+            return (
+                c.nome?.toLowerCase().includes(q) ||
+                c.cpf?.includes(search) ||
+                c.apolice?.includes(search) ||
+                (c.telefone_2 && c.telefone_2.includes(search)) ||
+                cepMatch
+            );
+        })
+        .filter(c => !filterProduto || c.produto === filterProduto)
+        .filter(c => !filterSituacao || c.situacao === filterSituacao)
+        .filter(c => !filterPagamento || c.forma_pagamento === filterPagamento)
+        .filter(c => !filterGarantia || c.tem_garantia === filterGarantia);
+
+    const hasTableFilters = !!(filterProduto || filterSituacao || filterPagamento || filterGarantia);
 
     const expiringAlerts = getExpiringAlerts();
 
@@ -380,8 +391,8 @@ const ResidentialInsurance: React.FC = () => {
                     <h2 className="text-3xl font-black text-slate-800">Seguro Residencial / Locatícia</h2>
                     <p className="text-slate-500 font-medium">Base de clientes e apólices residenciais.</p>
                 </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:flex-none">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-none min-w-0">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text" placeholder="Buscar nome, CPF, apólice, CEP..."
@@ -389,7 +400,21 @@ const ResidentialInsurance: React.FC = () => {
                             className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20"
                         />
                     </div>
-                    <button onClick={exportCSV} className="bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+                    {hasTableFilters && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFilterProduto('');
+                                setFilterSituacao('');
+                                setFilterPagamento('');
+                                setFilterGarantia('');
+                            }}
+                            className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all whitespace-nowrap"
+                        >
+                            Limpar filtros
+                        </button>
+                    )}
+                    <button onClick={exportCSV} className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Download size={16} /> Exportar
                     </button>
                 </div>
@@ -635,24 +660,75 @@ const ResidentialInsurance: React.FC = () => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
-                                <th className="px-6 py-5">Cliente</th>
-                                <th className="px-6 py-5">Entrada</th>
-                                <th className="px-6 py-5">Produto</th>
-                                <th className="px-6 py-5">Apólice</th>
-                                <th className="px-6 py-5">Prêmio</th>
-                                <th className="px-6 py-5">Comissão</th>
-                                <th className="px-6 py-5">Fim Vigência</th>
-                                <th className="px-6 py-5">Pagamento</th>
-                                <th className="px-6 py-5">Situação</th>
-                                <th className="px-6 py-5">Garantia</th>
-                                <th className="px-6 py-5 text-center">Ações</th>
+                                <th className="px-6 py-5 align-top">Cliente</th>
+                                <th className="px-6 py-5 align-top">Entrada</th>
+                                <th className="px-6 py-5 align-top">
+                                    <span className="block">Produto</span>
+                                    <select
+                                        value={filterProduto}
+                                        onChange={(e) => setFilterProduto(e.target.value)}
+                                        aria-label="Filtrar por produto"
+                                        className="mt-1 block w-fit max-w-[min(100%,140px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                    >
+                                        <option value="">Todos</option>
+                                        {PRODUTOS.map((p) => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
+                                </th>
+                                <th className="px-6 py-5 align-top">Apólice</th>
+                                <th className="px-6 py-5 align-top">Prêmio</th>
+                                <th className="px-6 py-5 align-top">Comissão</th>
+                                <th className="px-6 py-5 align-top">Fim Vigência</th>
+                                <th className="px-6 py-5 align-top">
+                                    <span className="block">Pagamento</span>
+                                    <select
+                                        value={filterPagamento}
+                                        onChange={(e) => setFilterPagamento(e.target.value)}
+                                        aria-label="Filtrar por forma de pagamento"
+                                        className="mt-1 block w-fit max-w-[min(100%,140px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                    >
+                                        <option value="">Todas</option>
+                                        {FORMAS_PAGAMENTO.map((f) => (
+                                            <option key={f} value={f}>{f}</option>
+                                        ))}
+                                    </select>
+                                </th>
+                                <th className="px-6 py-5 align-top">
+                                    <span className="block">Situação</span>
+                                    <select
+                                        value={filterSituacao}
+                                        onChange={(e) => setFilterSituacao(e.target.value)}
+                                        aria-label="Filtrar por situação"
+                                        className="mt-1 block w-fit max-w-[min(100%,140px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                    >
+                                        <option value="">Todas</option>
+                                        {SITUACOES.map((s) => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </th>
+                                <th className="px-6 py-5 align-top">
+                                    <span className="block">Garantia</span>
+                                    <select
+                                        value={filterGarantia}
+                                        onChange={(e) => setFilterGarantia(e.target.value)}
+                                        aria-label="Filtrar por garantia"
+                                        className="mt-1 block w-fit max-w-[min(100%,140px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                    >
+                                        <option value="">Todas</option>
+                                        <option value="Sim">Sim</option>
+                                        <option value="Não">Não</option>
+                                    </select>
+                                </th>
+                                <th className="px-6 py-5 text-center align-top">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {filtered.length === 0 ? (
                                 <tr>
                                     <td colSpan={11} className="px-6 py-16 text-center text-slate-400 font-bold text-sm">
-                                        {search ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
+                                        {search || hasTableFilters ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
                                     </td>
                                 </tr>
                             ) : filtered.map(c => {

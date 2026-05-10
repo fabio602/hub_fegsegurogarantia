@@ -20,6 +20,26 @@ export interface GoalMonth {
   vendas: number;
 }
 
+/** Vendedor (tabela `sellers` no Supabase). */
+export interface Seller {
+  id: string;
+  name: string;
+  email: string | null;
+  share: number;
+  days_per_week: number;
+  active: boolean;
+  created_at?: string;
+}
+
+/** Meta mensal por vendedor (tabela `monthly_targets`). */
+export interface MonthlyTarget {
+  id: string;
+  seller_id: string;
+  year: number;
+  month: number;
+  target: number;
+}
+
 export interface NominationData {
   dataInicio: string;
   cidade: string;

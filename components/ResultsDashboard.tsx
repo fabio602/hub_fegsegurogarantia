@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Plus,
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
-import { Sale, LeadCost, GoalMonth, CRMTask } from '../types';
+import { Sale, LeadCost, CRMTask, Seller, MonthlyTarget } from '../types';
 import ProspectsKanban from './ProspectsKanban';
 import PendenciasHub from './PendenciasHub';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
@@ -54,28 +54,64 @@ function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
 const LIST_DATA = {
     origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
     tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
-    vendedor: [
-        { name: "Fábio", email: "fabio@fegsegurogarantia.com.br" },
-        { name: "Andréia", email: "andreia@fegsegurogarantia.com.br" },
-        { name: "Rafael", email: "rafael@fegsegurogarantia.com.br" }
-    ],
     motivoPerda: ["Preço fora do mercado", "Faltou agilidade", "Cliente não retornou", "Serasa", "Tomador sem seguradora disponível para cotação"]
 };
 
-const ANNUAL_TARGETS: Record<string, { name: string; target: number }> = {
-    "01": { name: "Janeiro", target: 20000 },
-    "02": { name: "Fevereiro", target: 25000 },
-    "03": { name: "Março", target: 20000 },
-    "04": { name: "Abril", target: 22000 },
-    "05": { name: "Maio", target: 25000 },
-    "06": { name: "Junho", target: 25000 },
-    "07": { name: "Julho", target: 25000 },
-    "08": { name: "Agosto", target: 25000 },
-    "09": { name: "Setembro", target: 27000 },
-    "10": { name: "Outubro", target: 28000 },
-    "11": { name: "Novembro", target: 28000 },
-    "12": { name: "Dezembro", target: 28000 }
+/** Nomes dos meses (select de período). */
+const MONTH_LABELS: Record<string, string> = {
+    "01": "Janeiro",
+    "02": "Fevereiro",
+    "03": "Março",
+    "04": "Abril",
+    "05": "Maio",
+    "06": "Junho",
+    "07": "Julho",
+    "08": "Agosto",
+    "09": "Setembro",
+    "10": "Outubro",
+    "11": "Novembro",
+    "12": "Dezembro"
 };
+
+/** Meta mensal total da empresa (fallback) quando não há registro em `monthly_targets` para o vendedor. */
+const FALLBACK_COMPANY_MONTHLY_TOTAL: Record<string, number> = {
+    "01": 20000,
+    "02": 25000,
+    "03": 20000,
+    "04": 22000,
+    "05": 25000,
+    "06": 25000,
+    "07": 25000,
+    "08": 25000,
+    "09": 27000,
+    "10": 28000,
+    "11": 28000,
+    "12": 28000
+};
+
+function normalizeSellerRow(row: Record<string, unknown>): Seller {
+    const r = row as Record<string, unknown>;
+    return {
+        id: String(r.id),
+        name: String(r.name ?? ''),
+        email: r.email != null ? String(r.email) : null,
+        share: Number(r.share ?? 0),
+        days_per_week: Number(r.days_per_week ?? 5),
+        active: r.active !== false,
+        created_at: r.created_at != null ? String(r.created_at) : undefined
+    };
+}
+
+function normalizeMonthlyTargetRow(row: Record<string, unknown>): MonthlyTarget {
+    const r = row as Record<string, unknown>;
+    return {
+        id: String(r.id),
+        seller_id: String(r.seller_id),
+        year: Number(r.year),
+        month: Number(r.month),
+        target: Number(r.target ?? 0)
+    };
+}
 
 // --- Helper Components ---
 const CopyButton = ({ text, label }: { text: string; label?: string }) => {
@@ -104,11 +140,6 @@ const CopyButton = ({ text, label }: { text: string; label?: string }) => {
     );
 };
 
-const SELLERS_CONFIG = [
-    { name: "Rafael", share: 0.70, daysPerWeek: 5 },
-    { name: "Andréia", share: 0.30, daysPerWeek: 2 }
-];
-
 const EXPIRY_REMINDER_DONE_STORAGE_KEY = 'feg_hub_sales_expiry_reminders_done';
 
 function expiryReminderDismissKey(s: Pick<Sale, 'id' | 'vigencia_fim'>): string {
@@ -132,6 +163,8 @@ const ResultsDashboard: React.FC = () => {
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
     const [insurers, setInsurers] = useState<any[]>([]);
+    const [sellers, setSellers] = useState<Seller[]>([]);
+    const [monthlyTargets, setMonthlyTargets] = useState<MonthlyTarget[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -201,6 +234,16 @@ const ResultsDashboard: React.FC = () => {
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
     const [sendingEmail, setSendingEmail] = useState(false);
+
+    const [showNewSellerForm, setShowNewSellerForm] = useState(false);
+    const [newSellerDraft, setNewSellerDraft] = useState({ name: '', email: '', sharePercent: '', daysPerWeek: '5' });
+    const [editingSellerId, setEditingSellerId] = useState<string | null>(null);
+    const [sellerEditDraft, setSellerEditDraft] = useState({ name: '', email: '', sharePercent: '', daysPerWeek: '' });
+    const [sellerCrudBusy, setSellerCrudBusy] = useState(false);
+    const [sellerMgmtError, setSellerMgmtError] = useState<string | null>(null);
+    const [editingGoalTargetSellerId, setEditingGoalTargetSellerId] = useState<string | null>(null);
+    const [goalTargetDraft, setGoalTargetDraft] = useState('');
+    const [goalTargetSaving, setGoalTargetSaving] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
@@ -274,14 +317,24 @@ const ResultsDashboard: React.FC = () => {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [{ data: salesData }, { data: costsData }, { data: insurersData }] = await Promise.all([
+            const [
+                { data: salesData },
+                { data: costsData },
+                { data: insurersData },
+                { data: sellersData },
+                { data: mtData }
+            ] = await Promise.all([
                 supabase.from('sales').select('*').order('data', { ascending: false }),
                 supabase.from('lead_costs').select('*'),
-                supabase.from('insurers').select('*').order('nome')
+                supabase.from('insurers').select('*').order('nome'),
+                supabase.from('sellers').select('*').order('name'),
+                supabase.from('monthly_targets').select('*')
             ]);
             setSales((salesData || []).map((row) => normalizeSaleFromDb(row as Record<string, unknown>)));
             setLeadCosts(costsData || []);
             setInsurers(insurersData || []);
+            setSellers((sellersData || []).map((row) => normalizeSellerRow(row as Record<string, unknown>)));
+            setMonthlyTargets((mtData || []).map((row) => normalizeMonthlyTargetRow(row as Record<string, unknown>)));
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -289,10 +342,167 @@ const ResultsDashboard: React.FC = () => {
         }
     }, []);
 
+    const refetchSellersAndTargets = useCallback(async () => {
+        try {
+            const [{ data: sellersData }, { data: mtData }] = await Promise.all([
+                supabase.from('sellers').select('*').order('name'),
+                supabase.from('monthly_targets').select('*')
+            ]);
+            setSellers((sellersData || []).map((row) => normalizeSellerRow(row as Record<string, unknown>)));
+            setMonthlyTargets((mtData || []).map((row) => normalizeMonthlyTargetRow(row as Record<string, unknown>)));
+        } catch (e) {
+            console.error('Error fetching sellers/targets:', e);
+        }
+    }, []);
+
     useEffect(() => {
         fetchData();
         fetchTasks();
     }, [fetchData]);
+
+    const vendedorSelectOptions = useMemo(
+        () => sellers.filter((s) => s.active).map((s) => ({ name: s.name, email: s.email || '' })),
+        [sellers]
+    );
+
+    const getSellerMonthlyTarget = (seller: Seller, year: number, monthNum: number): number => {
+        const monthKey = String(monthNum).padStart(2, '0');
+        const fallbackTotal = FALLBACK_COMPANY_MONTHLY_TOTAL[monthKey] ?? 0;
+        const row = monthlyTargets.find(
+            (t) => t.seller_id === seller.id && t.year === year && t.month === monthNum
+        );
+        if (row != null) return Number(row.target);
+        return fallbackTotal * Number(seller.share);
+    };
+
+    const getCompanyMonthlyTargetTotal = (year: number, monthNum: number): number => {
+        const active = sellers.filter((s) => s.active);
+        const monthKey = String(monthNum).padStart(2, '0');
+        const fallbackOnly = FALLBACK_COMPANY_MONTHLY_TOTAL[monthKey] ?? 0;
+        if (active.length === 0) return fallbackOnly;
+        return active.reduce((sum, seller) => sum + getSellerMonthlyTarget(seller, year, monthNum), 0);
+    };
+
+    const commitMonthlyTargetForSeller = async (sellerId: string, rawValue: string) => {
+        const parts = goalsMonthSelector.split('-');
+        const year = parseInt(parts[0], 10);
+        const monthNum = parseInt(parts[1], 10);
+        const targetVal = parseNumber(rawValue.trim());
+        setGoalTargetSaving(true);
+        try {
+            const { error } = await supabase.from('monthly_targets').upsert(
+                {
+                    seller_id: sellerId,
+                    year,
+                    month: monthNum,
+                    target: targetVal
+                },
+                { onConflict: 'seller_id,year,month' }
+            );
+            if (error) throw error;
+            await refetchSellersAndTargets();
+            setEditingGoalTargetSellerId(null);
+            setGoalTargetDraft('');
+            setSellerMgmtError(null);
+        } catch (err) {
+            console.error(err);
+            setSellerMgmtError('Não foi possível salvar a meta mensal.');
+        } finally {
+            setGoalTargetSaving(false);
+        }
+    };
+
+    const handleInsertSeller = async () => {
+        const sharePct = parseFloat(newSellerDraft.sharePercent.replace(',', '.'));
+        const days = parseInt(newSellerDraft.daysPerWeek, 10);
+        if (!newSellerDraft.name.trim()) {
+            setSellerMgmtError('Informe o nome do vendedor.');
+            return;
+        }
+        if (Number.isNaN(sharePct) || sharePct < 0 || sharePct > 100) {
+            setSellerMgmtError('Share inválido (use % entre 0 e 100).');
+            return;
+        }
+        if (Number.isNaN(days) || days < 1 || days > 7) {
+            setSellerMgmtError('Dias por semana deve ser entre 1 e 7.');
+            return;
+        }
+        setSellerCrudBusy(true);
+        setSellerMgmtError(null);
+        try {
+            const { error } = await supabase.from('sellers').insert({
+                name: newSellerDraft.name.trim(),
+                email: newSellerDraft.email.trim() || null,
+                share: sharePct / 100,
+                days_per_week: days,
+                active: true
+            });
+            if (error) throw error;
+            setNewSellerDraft({ name: '', email: '', sharePercent: '', daysPerWeek: '5' });
+            setShowNewSellerForm(false);
+            await refetchSellersAndTargets();
+        } catch (err) {
+            console.error(err);
+            setSellerMgmtError('Não foi possível criar o vendedor.');
+        } finally {
+            setSellerCrudBusy(false);
+        }
+    };
+
+    const handleUpdateSeller = async (id: string) => {
+        const sharePct = parseFloat(sellerEditDraft.sharePercent.replace(',', '.'));
+        const days = parseInt(sellerEditDraft.daysPerWeek, 10);
+        if (!sellerEditDraft.name.trim()) {
+            setSellerMgmtError('Informe o nome do vendedor.');
+            return;
+        }
+        if (Number.isNaN(sharePct) || sharePct < 0 || sharePct > 100) {
+            setSellerMgmtError('Share inválido (use % entre 0 e 100).');
+            return;
+        }
+        if (Number.isNaN(days) || days < 1 || days > 7) {
+            setSellerMgmtError('Dias por semana deve ser entre 1 e 7.');
+            return;
+        }
+        setSellerCrudBusy(true);
+        setSellerMgmtError(null);
+        try {
+            const { error } = await supabase
+                .from('sellers')
+                .update({
+                    name: sellerEditDraft.name.trim(),
+                    email: sellerEditDraft.email.trim() || null,
+                    share: sharePct / 100,
+                    days_per_week: days
+                })
+                .eq('id', id);
+            if (error) throw error;
+            setEditingSellerId(null);
+            await refetchSellersAndTargets();
+        } catch (err) {
+            console.error(err);
+            setSellerMgmtError('Não foi possível atualizar o vendedor.');
+        } finally {
+            setSellerCrudBusy(false);
+        }
+    };
+
+    const handleDeleteSeller = async (id: string, name: string) => {
+        if (!confirm(`Excluir o vendedor "${name}"? As metas mensais associadas serão removidas.`)) return;
+        setSellerCrudBusy(true);
+        setSellerMgmtError(null);
+        try {
+            const { error } = await supabase.from('sellers').delete().eq('id', id);
+            if (error) throw error;
+            if (editingSellerId === id) setEditingSellerId(null);
+            await refetchSellersAndTargets();
+        } catch (err) {
+            console.error(err);
+            setSellerMgmtError('Não foi possível excluir o vendedor.');
+        } finally {
+            setSellerCrudBusy(false);
+        }
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, type } = e.target as HTMLInputElement;
@@ -986,7 +1196,7 @@ const ResultsDashboard: React.FC = () => {
                                     {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(m => {
                                         const month = String(m + 1).padStart(2, '0');
                                         return <option key={m} value={`${new Date().getFullYear()}-${month}`}>
-                                            {ANNUAL_TARGETS[month].name}
+                                            {MONTH_LABELS[month]}
                                         </option>
                                     })}
                                 </select>
@@ -1258,7 +1468,9 @@ const ResultsDashboard: React.FC = () => {
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
                                     <select id="vendedor" value={formData.vendedor} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Selecione...</option>
-                                        {LIST_DATA.vendedor.map(v => <option key={v.email} value={v.name}>{v.name}</option>)}
+                                        {vendedorSelectOptions.map((v) => (
+                                            <option key={v.email || v.name} value={v.name}>{v.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
@@ -1466,8 +1678,8 @@ const ResultsDashboard: React.FC = () => {
                                                 className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
-                                                {LIST_DATA.vendedor.map((v) => (
-                                                    <option key={v.email} value={v.name}>{v.name}</option>
+                                                {vendedorSelectOptions.map((v) => (
+                                                    <option key={v.email || v.name} value={v.name}>{v.name}</option>
                                                 ))}
                                             </select>
                                         </th>
@@ -1968,7 +2180,7 @@ const ResultsDashboard: React.FC = () => {
 
             {activeSection === 'goals' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-800">Metas do Mês</h2>
                             <p className="text-slate-500 font-medium">Acompanhe a performance proporcional por vendedor.</p>
@@ -1979,67 +2191,286 @@ const ResultsDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {SELLERS_CONFIG.map((seller) => {
-                            const [year, month] = goalsMonthSelector.split('-');
-                            const monthKey = month;
-                            const totalTarget = ANNUAL_TARGETS[monthKey]?.target || 0;
-                            const sellerTarget = totalTarget * seller.share;
-                            const totalWeekdays = getWeekdayCount(parseInt(year), parseInt(month));
-                            const diasVendedor = seller.daysPerWeek === 5 ? totalWeekdays : (totalWeekdays * (seller.daysPerWeek / 5));
-
-                            const sellerSales = sales.filter(s => s.vendedor === seller.name && s.vendeu === 'Sim' && s.data.startsWith(goalsMonthSelector));
-                            const totalAchieved = sellerSales.reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
-                            const percent = sellerTarget > 0 ? Math.min((totalAchieved / sellerTarget) * 100, 100) : 0;
-
-                            return (
-                                <div key={seller.name} className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
-                                    <div className="relative z-10 flex flex-col h-full">
-                                        <div className="flex justify-between items-start mb-12">
-                                            <div>
-                                                <h3 className="text-4xl font-black tracking-tighter text-[#C69C6D]">{seller.name}</h3>
-                                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">{seller.share * 100}% da Meta Total</p>
-                                            </div>
-                                            <div className="bg-[#C69C6D]/20 p-4 rounded-3xl">
-                                                <Target size={32} className="text-[#C69C6D]" />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-8 mb-12">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Mensal</p>
-                                                <p className="text-2xl font-black">{formatCurrency(sellerTarget)}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Semanal</p>
-                                                <p className="text-2xl font-black text-slate-300">{formatCurrency(sellerTarget / 4)}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-auto pt-10 border-t border-white/5">
-                                            <div className="flex justify-between items-end mb-4">
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
-                                                    <p className="text-5xl font-black text-[#C69C6D] tracking-tighter">{formatCurrency(totalAchieved)}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-3xl font-black text-white">{percent.toFixed(1)}%</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="h-4 bg-white/5 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-[#C69C6D] to-white rounded-full transition-all duration-1000"
-                                                    style={{ width: `${percent}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#C69C6D] opacity-[0.03] rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                    <div className="bg-[#1B263B] rounded-2xl p-6 md:p-8 border border-white/10 text-white shadow-xl">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[#C69C6D]/20 flex items-center justify-center">
+                                    <Users size={20} className="text-[#C69C6D]" />
                                 </div>
-                            );
-                        })}
+                                <div>
+                                    <h3 className="text-lg font-black uppercase tracking-widest text-[#C69C6D]">Gestão de Vendedores</h3>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cadastro e participação nas metas</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={sellerCrudBusy}
+                                onClick={() => {
+                                    setSellerMgmtError(null);
+                                    setShowNewSellerForm((v) => !v);
+                                    setEditingSellerId(null);
+                                }}
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm uppercase tracking-wider border border-[#b8895a] hover:bg-[#b8895a] transition-all disabled:opacity-50"
+                            >
+                                <Plus size={18} strokeWidth={2.5} /> Novo Vendedor
+                            </button>
+                        </div>
+
+                        {sellerMgmtError && (
+                            <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/15 border border-red-400/40 text-red-200 text-sm font-bold">
+                                {sellerMgmtError}
+                            </div>
+                        )}
+
+                        {showNewSellerForm && (
+                            <div className="mb-6 p-5 rounded-2xl border border-white/10 bg-white/5 space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Novo vendedor</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input
+                                        placeholder="Nome"
+                                        value={newSellerDraft.name}
+                                        onChange={(e) => setNewSellerDraft((p) => ({ ...p, name: e.target.value }))}
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                    />
+                                    <input
+                                        placeholder="Email"
+                                        type="email"
+                                        value={newSellerDraft.email}
+                                        onChange={(e) => setNewSellerDraft((p) => ({ ...p, email: e.target.value }))}
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                    />
+                                    <input
+                                        placeholder="Share (%)"
+                                        value={newSellerDraft.sharePercent}
+                                        onChange={(e) => setNewSellerDraft((p) => ({ ...p, sharePercent: e.target.value }))}
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                    />
+                                    <input
+                                        placeholder="Dias por semana"
+                                        value={newSellerDraft.daysPerWeek}
+                                        onChange={(e) => setNewSellerDraft((p) => ({ ...p, daysPerWeek: e.target.value }))}
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={sellerCrudBusy}
+                                        onClick={() => void handleInsertSeller()}
+                                        className="px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-xs uppercase tracking-widest disabled:opacity-50"
+                                    >
+                                        Salvar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={sellerCrudBusy}
+                                        onClick={() => {
+                                            setShowNewSellerForm(false);
+                                            setNewSellerDraft({ name: '', email: '', sharePercent: '', daysPerWeek: '5' });
+                                        }}
+                                        className="px-5 py-2.5 rounded-xl border border-white/20 font-black text-xs uppercase tracking-widest text-slate-300 hover:bg-white/5"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            {sellers.map((seller) => (
+                                <div
+                                    key={seller.id}
+                                    className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.03]"
+                                >
+                                    {editingSellerId === seller.id ? (
+                                        <div className="flex flex-wrap gap-3 flex-1 items-end">
+                                            <input
+                                                value={sellerEditDraft.name}
+                                                onChange={(e) => setSellerEditDraft((p) => ({ ...p, name: e.target.value }))}
+                                                className="min-w-[140px] flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-bold"
+                                            />
+                                            <input
+                                                value={sellerEditDraft.email}
+                                                onChange={(e) => setSellerEditDraft((p) => ({ ...p, email: e.target.value }))}
+                                                className="min-w-[160px] flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-bold"
+                                            />
+                                            <input
+                                                value={sellerEditDraft.sharePercent}
+                                                onChange={(e) => setSellerEditDraft((p) => ({ ...p, sharePercent: e.target.value }))}
+                                                className="w-28 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-black"
+                                                placeholder="%"
+                                            />
+                                            <input
+                                                value={sellerEditDraft.daysPerWeek}
+                                                onChange={(e) => setSellerEditDraft((p) => ({ ...p, daysPerWeek: e.target.value }))}
+                                                className="w-24 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-black"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={sellerCrudBusy}
+                                                    onClick={() => void handleUpdateSeller(seller.id)}
+                                                    className="px-4 py-2 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-xs uppercase"
+                                                >
+                                                    Salvar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={sellerCrudBusy}
+                                                    onClick={() => setEditingSellerId(null)}
+                                                    className="px-4 py-2 rounded-xl border border-white/20 text-xs font-black uppercase"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-black text-white text-lg truncate">{seller.name}</p>
+                                                <p className="text-xs text-slate-400 font-bold truncate">{seller.email || '—'}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mt-2">
+                                                    {Number(seller.share) * 100}% share · {seller.days_per_week} dias/semana
+                                                    {!seller.active && <span className="ml-2 text-slate-500">(inativo)</span>}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    disabled={sellerCrudBusy}
+                                                    onClick={() => {
+                                                        setSellerMgmtError(null);
+                                                        setShowNewSellerForm(false);
+                                                        setEditingSellerId(seller.id);
+                                                        setSellerEditDraft({
+                                                            name: seller.name,
+                                                            email: seller.email || '',
+                                                            sharePercent: String(Number(seller.share) * 100),
+                                                            daysPerWeek: String(seller.days_per_week)
+                                                        });
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl border border-[#C69C6D]/50 text-[#C69C6D] font-black text-xs uppercase tracking-wider hover:bg-[#C69C6D]/10"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={sellerCrudBusy}
+                                                    onClick={() => void handleDeleteSeller(seller.id, seller.name)}
+                                                    className="px-4 py-2 rounded-xl border border-red-400/40 text-red-300 font-black text-xs uppercase tracking-wider hover:bg-red-500/10"
+                                                >
+                                                    Excluir
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                            {sellers.length === 0 && !loading && (
+                                <p className="text-sm font-bold text-slate-400 text-center py-6">Nenhum vendedor cadastrado. Adicione pelo botão acima.</p>
+                            )}
+                        </div>
                     </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {sellers
+                            .filter((s) => s.active)
+                            .map((seller) => {
+                                const [yearStr, monthStr] = goalsMonthSelector.split('-');
+                                const year = parseInt(yearStr, 10);
+                                const monthNum = parseInt(monthStr, 10);
+                                const sellerTarget = getSellerMonthlyTarget(seller, year, monthNum);
+
+                                const sellerSales = sales.filter(
+                                    (s) => s.vendedor === seller.name && s.vendeu === 'Sim' && s.data.startsWith(goalsMonthSelector)
+                                );
+                                const totalAchieved = sellerSales.reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
+                                const percent = sellerTarget > 0 ? Math.min((totalAchieved / sellerTarget) * 100, 100) : 0;
+
+                                return (
+                                    <div key={seller.id} className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <div className="flex justify-between items-start mb-12">
+                                                <div>
+                                                    <h3 className="text-4xl font-black tracking-tighter text-[#C69C6D]">{seller.name}</h3>
+                                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">
+                                                        {Number(seller.share) * 100}% da meta empresa (fallback proporcional)
+                                                    </p>
+                                                </div>
+                                                <div className="bg-[#C69C6D]/20 p-4 rounded-3xl">
+                                                    <Target size={32} className="text-[#C69C6D]" />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-8 mb-12">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Mensal</p>
+                                                    {editingGoalTargetSellerId === seller.id ? (
+                                                        <input
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            value={goalTargetDraft}
+                                                            onChange={(e) => setGoalTargetDraft(e.target.value)}
+                                                            onBlur={() => {
+                                                                void commitMonthlyTargetForSeller(seller.id, goalTargetDraft);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                                            }}
+                                                            disabled={goalTargetSaving}
+                                                            autoFocus
+                                                            className="mt-1 w-full max-w-[11rem] bg-white/10 border border-[#C69C6D]/40 rounded-xl px-3 py-2 text-xl font-black text-white outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
+                                                        />
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSellerMgmtError(null);
+                                                                setEditingGoalTargetSellerId(seller.id);
+                                                                setGoalTargetDraft(
+                                                                    String(getSellerMonthlyTarget(seller, year, monthNum))
+                                                                );
+                                                            }}
+                                                            className="text-left text-2xl font-black hover:text-[#C69C6D] transition-colors"
+                                                        >
+                                                            {formatCurrency(sellerTarget)}
+                                                        </button>
+                                                    )}
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter pt-1">Clique para editar</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Semanal</p>
+                                                    <p className="text-2xl font-black text-slate-300">{formatCurrency(sellerTarget / 4)}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-auto pt-10 border-t border-white/5">
+                                                <div className="flex justify-between items-end mb-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
+                                                        <p className="text-5xl font-black text-[#C69C6D] tracking-tighter">{formatCurrency(totalAchieved)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-3xl font-black text-white">{percent.toFixed(1)}%</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="h-4 bg-white/5 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-[#C69C6D] to-white rounded-full transition-all duration-1000"
+                                                        style={{ width: `${percent}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#C69C6D] opacity-[0.03] rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                    {sellers.filter((s) => s.active).length === 0 && !loading && (
+                        <p className="text-center text-slate-500 font-bold text-sm">Nenhum vendedor ativo para exibir metas.</p>
+                    )}
                 </section>
             )}
 
@@ -2051,26 +2482,28 @@ const ResultsDashboard: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {Object.keys(ANNUAL_TARGETS).sort().map((key) => {
-                            const m = ANNUAL_TARGETS[key];
+                        {Object.keys(MONTH_LABELS).sort().map((key) => {
+                            const monthLabel = MONTH_LABELS[key];
                             const currentYear = new Date().getFullYear();
+                            const monthNum = parseInt(key, 10);
+                            const metaTotal = getCompanyMonthlyTargetTotal(currentYear, monthNum);
                             const monthSales = sales.filter(s => s.vendeu === 'Sim' && s.data.startsWith(`${currentYear}-${key}`));
                             const achieved = monthSales.reduce((sum, s) => sum + parseNumber(s.comissao || '0'), 0);
-                            const percent = Math.min((achieved / m.target) * 100, 100);
+                            const percent = metaTotal > 0 ? Math.min((achieved / metaTotal) * 100, 100) : 0;
                             const isCurrent = key === String(new Date().getMonth() + 1).padStart(2, '0');
 
                             return (
                                 <div key={key} className={`p-8 rounded-[2rem] border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-[#1B263B] text-white border-[#C69C6D] shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
                                     }`}>
                                     <div className="flex justify-between items-start mb-6">
-                                        <h3 className="text-2xl font-black tracking-tight">{m.name}</h3>
+                                        <h3 className="text-2xl font-black tracking-tight">{monthLabel}</h3>
                                         <div className={`w-3 h-3 rounded-full ${isCurrent ? 'bg-[#C69C6D] animate-pulse' : 'bg-slate-200'}`}></div>
                                     </div>
 
                                     <div className="space-y-4 mb-8">
                                         <div>
                                             <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-slate-400' : 'text-slate-400'}`}>Meta</p>
-                                            <p className="text-lg font-bold">{formatCurrency(m.target)}</p>
+                                            <p className="text-lg font-bold">{formatCurrency(metaTotal)}</p>
                                         </div>
                                         <div>
                                             <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-[#C69C6D]' : 'text-slate-400'}`}>Atingido</p>
