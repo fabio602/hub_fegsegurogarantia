@@ -185,7 +185,7 @@ const ResultsDashboard: React.FC = () => {
     const [salesTipoFilter, setSalesTipoFilter] = useState('');
     const [salesVendedorFilter, setSalesVendedorFilter] = useState('');
     const [salesOrigemFilter, setSalesOrigemFilter] = useState('');
-    const [salesSeguradoraFilter, setSalesSeguradoraFilter] = useState('');
+    const [salesLeadNomeFilter, setSalesLeadNomeFilter] = useState('');
     const [dismissedExpiryReminderKeys, setDismissedExpiryReminderKeys] = useState<Set<string>>(() =>
         loadExpiryReminderDismissed()
     );
@@ -958,7 +958,7 @@ const ResultsDashboard: React.FC = () => {
                                     salesTipoFilter ||
                                     salesVendedorFilter ||
                                     salesOrigemFilter ||
-                                    salesSeguradoraFilter) && (
+                                    salesLeadNomeFilter) && (
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -967,7 +967,7 @@ const ResultsDashboard: React.FC = () => {
                                             setSalesTipoFilter('');
                                             setSalesVendedorFilter('');
                                             setSalesOrigemFilter('');
-                                            setSalesSeguradoraFilter('');
+                                            setSalesLeadNomeFilter('');
                                         }}
                                         className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all whitespace-nowrap"
                                     >
@@ -1400,14 +1400,16 @@ const ResultsDashboard: React.FC = () => {
                                         <th className="px-6 py-5 align-top">
                                             <span className="block">Lead</span>
                                             <select
-                                                value={salesSeguradoraFilter}
-                                                onChange={(e) => setSalesSeguradoraFilter(e.target.value)}
-                                                aria-label="Filtrar por seguradora"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                value={salesLeadNomeFilter}
+                                                onChange={(e) => setSalesLeadNomeFilter(e.target.value)}
+                                                aria-label="Filtrar por cliente"
+                                                className="mt-1 block w-fit max-w-[min(100%,200px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
-                                                <option value="">Todas</option>
-                                                {[...new Set(sales.map(s => s.seguradora).filter(Boolean))].sort().map((seg) => (
-                                                    <option key={seg} value={seg}>{seg}</option>
+                                                <option value="">Todos</option>
+                                                {([...new Set(sales.map((s) => (s.nome ?? '').trim()).filter((x): x is string => Boolean(x)))] as string[]).sort((a, b) =>
+                                                    a.localeCompare(b, 'pt-BR')
+                                                ).map((nome) => (
+                                                    <option key={nome} value={nome}>{nome}</option>
                                                 ))}
                                             </select>
                                         </th>
@@ -1486,7 +1488,9 @@ const ResultsDashboard: React.FC = () => {
                                         .filter((s) => (salesTipoFilter ? s.tipo === salesTipoFilter : true))
                                         .filter((s) => (salesVendedorFilter ? s.vendedor === salesVendedorFilter : true))
                                         .filter((s) => (salesOrigemFilter ? s.origem === salesOrigemFilter : true))
-                                        .filter((s) => (salesSeguradoraFilter ? s.seguradora === salesSeguradoraFilter : true))
+                                        .filter((s) =>
+                                            salesLeadNomeFilter ? (s.nome ?? '').trim() === salesLeadNomeFilter : true
+                                        )
                                         .map((sale) => (
                                             <tr key={sale.id} className="group hover:bg-slate-50/80 transition-all">
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
