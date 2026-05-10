@@ -154,30 +154,6 @@ function parseBulletLines(raw: string) {
     .filter(Boolean);
 }
 
-/** Mantido alinhado ao seed SQL; preenche nomes faltantes no banco (deploy não roda .sql sozinho). */
-const DEFAULT_AGENDA_STAFF_NAMES = [
-  'Rafael',
-  'Larissa',
-  'Andréia',
-  'Helena',
-  'Grace',
-  'Geisa',
-  'Fábio',
-] as const;
-
-async function ensureDefaultAgendaStaffRows() {
-  const { data: existing, error: selErr } = await supabase.from('agenda_staff').select('name');
-  if (selErr) {
-    console.warn('[Agenda] ensureDefaultAgendaStaffRows select', selErr);
-    return;
-  }
-  const have = new Set((existing || []).map((r: { name: string }) => r.name));
-  const missing = DEFAULT_AGENDA_STAFF_NAMES.filter(n => !have.has(n));
-  if (missing.length === 0) return;
-  const { error: insErr } = await supabase.from('agenda_staff').insert(missing.map((name) => ({ name })));
-  if (insErr) console.warn('[Agenda] ensureDefaultAgendaStaffRows insert', insErr);
-}
-
 const AgendaHub: React.FC = () => {
   const [staff, setStaff] = useState<AgendaStaff[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
@@ -262,7 +238,6 @@ const AgendaHub: React.FC = () => {
   useEffect(() => {
     void (async () => {
       try {
-        await ensureDefaultAgendaStaffRows();
         await refreshStaff();
       } catch (e) {
         console.error(e);
