@@ -942,14 +942,35 @@ const ResultsDashboard: React.FC = () => {
                             <p className="text-slate-500 font-medium">Gestão operacional do funil de vendas corporativo.</p>
                         </div>
 
-                        <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="relative flex-1 md:flex-none">
-                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text" placeholder="Buscar lead, origem, seguro..."
-                                    value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
-                                    className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
-                                />
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                            <div className="flex flex-wrap items-center gap-2 flex-1 md:flex-none">
+                                <div className="relative flex-1 md:flex-none min-w-0">
+                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text" placeholder="Buscar lead, origem, seguro..."
+                                        value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
+                                        className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                                    />
+                                </div>
+                                {(salesMonthFilter ||
+                                    salesStatusFilter ||
+                                    salesTipoFilter ||
+                                    salesVendedorFilter ||
+                                    salesOrigemFilter) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSalesMonthFilter('');
+                                            setSalesStatusFilter('');
+                                            setSalesTipoFilter('');
+                                            setSalesVendedorFilter('');
+                                            setSalesOrigemFilter('');
+                                        }}
+                                        className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all whitespace-nowrap"
+                                    >
+                                        Limpar filtros
+                                    </button>
+                                )}
                             </div>
                             <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
                                 <Calendar size={18} className="text-[#C69C6D]" />
@@ -1366,99 +1387,73 @@ const ResultsDashboard: React.FC = () => {
                         </form>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 shrink-0">Status</span>
-                            <select
-                                value={salesStatusFilter}
-                                onChange={(e) => setSalesStatusFilter(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none min-w-0"
-                                aria-label="Filtrar por status"
-                            >
-                                <option value="">Todos</option>
-                                <option value="Sim">Sim</option>
-                                <option value="Não">Não</option>
-                                <option value="Em andamento">Em andamento</option>
-                            </select>
-                        </div>
-                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 shrink-0">Seguro</span>
-                            <select
-                                value={salesTipoFilter}
-                                onChange={(e) => setSalesTipoFilter(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none min-w-0"
-                                aria-label="Filtrar por tipo de seguro"
-                            >
-                                <option value="">Todos</option>
-                                {LIST_DATA.tipoSeguro.map((t) => (
-                                    <option key={t} value={t}>{t}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 shrink-0">Vendedor</span>
-                            <select
-                                value={salesVendedorFilter}
-                                onChange={(e) => setSalesVendedorFilter(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none min-w-0"
-                                aria-label="Filtrar por vendedor"
-                            >
-                                <option value="">Todos</option>
-                                {LIST_DATA.vendedor.map((v) => (
-                                    <option key={v.email} value={v.name}>{v.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-700 shrink-0">Origem</span>
-                            <select
-                                value={salesOrigemFilter}
-                                onChange={(e) => setSalesOrigemFilter(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none min-w-0"
-                                aria-label="Filtrar por origem"
-                            >
-                                <option value="">Todos</option>
-                                {LIST_DATA.origem.map((o) => (
-                                    <option key={o} value={o}>{o}</option>
-                                ))}
-                            </select>
-                        </div>
-                        {(salesMonthFilter ||
-                            salesStatusFilter ||
-                            salesTipoFilter ||
-                            salesVendedorFilter ||
-                            salesOrigemFilter) && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSalesMonthFilter('');
-                                    setSalesStatusFilter('');
-                                    setSalesTipoFilter('');
-                                    setSalesVendedorFilter('');
-                                    setSalesOrigemFilter('');
-                                }}
-                                className="bg-white text-slate-700 px-4 py-2 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all"
-                            >
-                                Limpar filtros
-                            </button>
-                        )}
-                    </div>
-
                     {/* Table Card */}
                     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                                     <tr>
-                                        <th className="px-6 py-5">Data</th>
-                                        <th className="px-6 py-5">Lead</th>
-                                        <th className="px-6 py-5">Origem</th>
-                                        <th className="px-6 py-5">Status</th>
-                                        <th className="px-6 py-5">Seguro</th>
-                                        <th className="px-6 py-5">Prêmio</th>
-                                        <th className="px-6 py-5">Comissão</th>
-                                        <th className="px-6 py-5">Vendedor</th>
-                                        <th className="px-6 py-5 text-center">Ações</th>
+                                        <th className="px-6 py-5 align-top">Data</th>
+                                        <th className="px-6 py-5 align-top">Lead</th>
+                                        <th className="px-6 py-5 align-top">
+                                            <span className="block">Origem</span>
+                                            <select
+                                                value={salesOrigemFilter}
+                                                onChange={(e) => setSalesOrigemFilter(e.target.value)}
+                                                aria-label="Filtrar por origem"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                            >
+                                                <option value="">Todas</option>
+                                                {LIST_DATA.origem.map((o) => (
+                                                    <option key={o} value={o}>{o}</option>
+                                                ))}
+                                            </select>
+                                        </th>
+                                        <th className="px-6 py-5 align-top">
+                                            <span className="block">Status</span>
+                                            <select
+                                                value={salesStatusFilter}
+                                                onChange={(e) => setSalesStatusFilter(e.target.value)}
+                                                aria-label="Filtrar por status"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                            >
+                                                <option value="">Todos</option>
+                                                <option value="Sim">Sim</option>
+                                                <option value="Não">Não</option>
+                                                <option value="Em andamento">Em andamento</option>
+                                            </select>
+                                        </th>
+                                        <th className="px-6 py-5 align-top">
+                                            <span className="block">Seguro</span>
+                                            <select
+                                                value={salesTipoFilter}
+                                                onChange={(e) => setSalesTipoFilter(e.target.value)}
+                                                aria-label="Filtrar por tipo de seguro"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                            >
+                                                <option value="">Todos</option>
+                                                {LIST_DATA.tipoSeguro.map((t) => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                            </select>
+                                        </th>
+                                        <th className="px-6 py-5 align-top">Prêmio</th>
+                                        <th className="px-6 py-5 align-top">Comissão</th>
+                                        <th className="px-6 py-5 align-top">
+                                            <span className="block">Vendedor</span>
+                                            <select
+                                                value={salesVendedorFilter}
+                                                onChange={(e) => setSalesVendedorFilter(e.target.value)}
+                                                aria-label="Filtrar por vendedor"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                            >
+                                                <option value="">Todos</option>
+                                                {LIST_DATA.vendedor.map((v) => (
+                                                    <option key={v.email} value={v.name}>{v.name}</option>
+                                                ))}
+                                            </select>
+                                        </th>
+                                        <th className="px-6 py-5 text-center align-top">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
