@@ -433,34 +433,6 @@ const ResidentialInsurance: React.FC = () => {
                             Limpar filtros
                         </button>
                     )}
-                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm shrink-0">
-                        {(['entrada', 'vigencia', 'nome'] as const).map(opt => (
-                            <button
-                                key={opt}
-                                type="button"
-                                onClick={() => {
-                                    if (sortBy === opt) {
-                                        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-                                    } else {
-                                        setSortBy(opt);
-                                        setSortDir(
-                                            opt === 'nome' ? 'asc' : opt === 'vigencia' ? 'asc' : 'desc',
-                                        );
-                                    }
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                                    sortBy === opt
-                                        ? 'bg-[#1B263B] text-white shadow'
-                                        : 'text-slate-400 hover:text-slate-600'
-                                }`}
-                            >
-                                {opt === 'nome' ? 'A-Z' : opt === 'vigencia' ? 'Vigência' : 'Entrada'}
-                                {sortBy === opt && (
-                                    <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
                     <button onClick={exportCSV} className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Download size={16} /> Exportar
                     </button>
@@ -703,6 +675,43 @@ const ResidentialInsurance: React.FC = () => {
 
             {/* Table */}
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/40">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                        Ordenar lista
+                    </p>
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm shrink-0">
+                        {(['entrada', 'vigencia', 'nome'] as const).map(opt => (
+                            <button
+                                key={opt}
+                                type="button"
+                                onClick={() => {
+                                    if (sortBy === opt) {
+                                        setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+                                    } else {
+                                        setSortBy(opt);
+                                        setSortDir(
+                                            opt === 'nome' ? 'asc' : opt === 'vigencia' ? 'asc' : 'desc',
+                                        );
+                                    }
+                                }}
+                                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                    sortBy === opt
+                                        ? 'bg-[#1B263B] text-white shadow'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                {opt === 'nome'
+                                    ? 'A-Z'
+                                    : opt === 'vigencia'
+                                      ? 'Fim vigência'
+                                      : 'Data entrada'}
+                                {sortBy === opt && (
+                                    <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
