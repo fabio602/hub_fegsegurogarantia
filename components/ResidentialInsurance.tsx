@@ -104,7 +104,7 @@ const PRODUTOS = [
     'Condomínio',
 ];
 const FORMAS_PAGAMENTO = ['Boleto Mensal', 'Boleto Anual', 'Cartão de Crédito', 'Débito Automático', 'PIX'];
-const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação'];
+const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação', 'Reprovado'];
 
 // Funções de Máscara e Formatação
 const formatCPF = (value: string) => {
@@ -342,6 +342,7 @@ const ResidentialInsurance: React.FC = () => {
         if (s === 'Ativo') return 'bg-emerald-50 text-emerald-600';
         if (s === 'Vencido') return 'bg-red-50 text-red-600';
         if (s === 'Cancelado') return 'bg-slate-100 text-slate-500';
+        if (s === 'Reprovado') return 'bg-red-100 text-red-700';
         return 'bg-blue-50 text-blue-600';
     };
 
