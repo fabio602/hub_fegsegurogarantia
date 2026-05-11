@@ -150,6 +150,8 @@ const ResidentialInsurance: React.FC = () => {
     const [filterSituacao, setFilterSituacao] = useState('');
     const [filterPagamento, setFilterPagamento] = useState('');
     const [filterGarantia, setFilterGarantia] = useState('');
+    const [sortBy, setSortBy] = useState<'entrada' | 'nome'>('entrada');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [publicFormCopied, setPublicFormCopied] = useState(false);
@@ -317,7 +319,16 @@ const ResidentialInsurance: React.FC = () => {
         .filter(c => !filterProduto || c.produto === filterProduto)
         .filter(c => !filterSituacao || c.situacao === filterSituacao)
         .filter(c => !filterPagamento || c.forma_pagamento === filterPagamento)
-        .filter(c => !filterGarantia || c.tem_garantia === filterGarantia);
+        .filter(c => !filterGarantia || c.tem_garantia === filterGarantia)
+        .sort((a, b) => {
+            const mul = sortDir === 'asc' ? 1 : -1;
+            if (sortBy === 'nome') {
+                return mul * (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
+            }
+            const da = new Date(a.created_at || 0).getTime();
+            const db = new Date(b.created_at || 0).getTime();
+            return mul * (da - db);
+        });
 
     const hasTableFilters = !!(filterProduto || filterSituacao || filterPagamento || filterGarantia);
 
@@ -415,6 +426,32 @@ const ResidentialInsurance: React.FC = () => {
                             Limpar filtros
                         </button>
                     )}
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm shrink-0">
+                        {(['entrada', 'nome'] as const).map(opt => (
+                            <button
+                                key={opt}
+                                type="button"
+                                onClick={() => {
+                                    if (sortBy === opt) {
+                                        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                    } else {
+                                        setSortBy(opt);
+                                        setSortDir(opt === 'nome' ? 'asc' : 'desc');
+                                    }
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                                    sortBy === opt
+                                        ? 'bg-[#1B263B] text-white shadow'
+                                        : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                {opt === 'nome' ? 'A-Z' : 'Data'}
+                                {sortBy === opt && (
+                                    <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                     <button onClick={exportCSV} className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Download size={16} /> Exportar
                     </button>
