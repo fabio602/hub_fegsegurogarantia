@@ -150,7 +150,7 @@ const ResidentialInsurance: React.FC = () => {
     const [filterSituacao, setFilterSituacao] = useState('');
     const [filterPagamento, setFilterPagamento] = useState('');
     const [filterGarantia, setFilterGarantia] = useState('');
-    const [sortBy, setSortBy] = useState<'entrada' | 'nome'>('entrada');
+    const [sortBy, setSortBy] = useState<'entrada' | 'vigencia' | 'nome'>('entrada');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -325,6 +325,13 @@ const ResidentialInsurance: React.FC = () => {
             if (sortBy === 'nome') {
                 return mul * (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
             }
+            if (sortBy === 'vigencia') {
+                const da = new Date(a.fim_vigencia || 0).getTime();
+                const db = new Date(b.fim_vigencia || 0).getTime();
+                const na = Number.isNaN(da) ? 0 : da;
+                const nb = Number.isNaN(db) ? 0 : db;
+                return mul * (na - nb);
+            }
             const da = new Date(a.created_at || 0).getTime();
             const db = new Date(b.created_at || 0).getTime();
             return mul * (da - db);
@@ -427,7 +434,7 @@ const ResidentialInsurance: React.FC = () => {
                         </button>
                     )}
                     <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm shrink-0">
-                        {(['entrada', 'nome'] as const).map(opt => (
+                        {(['entrada', 'vigencia', 'nome'] as const).map(opt => (
                             <button
                                 key={opt}
                                 type="button"
@@ -436,7 +443,9 @@ const ResidentialInsurance: React.FC = () => {
                                         setSortDir(d => d === 'asc' ? 'desc' : 'asc');
                                     } else {
                                         setSortBy(opt);
-                                        setSortDir(opt === 'nome' ? 'asc' : 'desc');
+                                        setSortDir(
+                                            opt === 'nome' ? 'asc' : opt === 'vigencia' ? 'asc' : 'desc',
+                                        );
                                     }
                                 }}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
@@ -445,7 +454,7 @@ const ResidentialInsurance: React.FC = () => {
                                         : 'text-slate-400 hover:text-slate-600'
                                 }`}
                             >
-                                {opt === 'nome' ? 'A-Z' : 'Data'}
+                                {opt === 'nome' ? 'A-Z' : opt === 'vigencia' ? 'Vigência' : 'Entrada'}
                                 {sortBy === opt && (
                                     <span className="text-[10px]">{sortDir === 'asc' ? '↑' : '↓'}</span>
                                 )}
