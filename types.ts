@@ -89,6 +89,8 @@ export interface Sale {
   objetoContrato?: string;
   segurado?: string;
   valorContrato?: string;
+  /** Observações internas (carteira / vendas) */
+  obs?: string | null;
 }
 
 

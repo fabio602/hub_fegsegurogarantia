@@ -51,6 +51,9 @@ function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
     };
 }
 
+/** Valor do `<select>` quando o usuário informa corretor/seguradora manualmente. */
+const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
+
 const LIST_DATA = {
     origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
     tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
@@ -204,6 +207,9 @@ const ResultsDashboard: React.FC = () => {
     const [editingClientLimits, setEditingClientLimits] = useState<string | null>(null);
     const [tempClientLimits, setTempClientLimits] = useState<InsurerLimit[]>([]);
     const [newTempLimit, setNewTempLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
+    const [newLimitSeguradoraOutro, setNewLimitSeguradoraOutro] = useState('');
+    const [editingClientObs, setEditingClientObs] = useState<string | null>(null);
+    const [tempClientObs, setTempClientObs] = useState('');
     const [editingClientName, setEditingClientName] = useState<string | null>(null);
     const [clientEditForm, setClientEditForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
     const [sendingLimitsTo, setSendingLimitsTo] = useState<string | null>(null);
@@ -748,6 +754,24 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
+    const handleSaveClientObs = async (salesIds: number[]) => {
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const obsVal = tempClientObs.trim() || null;
+            const { error } = await supabase.from('sales').update({ obs: obsVal }).in('id', salesIds);
+            if (error) throw error;
+            await fetchData();
+            setEditingClientObs(null);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            setSaveError(error?.message || 'Erro ao salvar observações.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleSaveClientInfo = async (salesIds: number[]) => {
         setSaving(true);
         setSaveError(null);
@@ -927,8 +951,12 @@ const ResultsDashboard: React.FC = () => {
         try {
             // Auto-append any un-added limit before saving
             let finalLimits = [...tempClientLimits];
-            if (newTempLimit.seguradora && newTempLimit.valor) {
-                finalLimits.push(newTempLimit);
+            const resolvedSeguradora =
+                newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
+                    ? newLimitSeguradoraOutro.trim()
+                    : newTempLimit.seguradora;
+            if (resolvedSeguradora && newTempLimit.valor) {
+                finalLimits.push({ ...newTempLimit, seguradora: resolvedSeguradora });
             }
             const limitesJson = JSON.stringify(finalLimits);
             
@@ -941,6 +969,8 @@ const ResultsDashboard: React.FC = () => {
 
             await fetchData();
             setEditingClientLimits(null);
+            setNewTempLimit({ seguradora: '', valor: '' });
+            setNewLimitSeguradoraOutro('');
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
@@ -1795,6 +1825,7 @@ const ResultsDashboard: React.FC = () => {
                                 telefone: string;
                                 email: string;
                                 decisor: string;
+                                obs: string;
                                 salesVendidas: Array<{ id: number; data: string; tipo: string; seguradora: string; is: string; premio: string; comissao: string }>;
                                 limites: Array<{ seguradora: string, valor: string }>;
                                 totalPremio: number;
@@ -1815,6 +1846,7 @@ const ResultsDashboard: React.FC = () => {
                                         telefone: sale.telefone || '',
                                         email: sale.email || '',
                                         decisor: sale.decisor || '',
+                                        obs: '',
                                         salesVendidas: [],
                                         limites: [],
                                         totalPremio: 0,
@@ -1825,6 +1857,11 @@ const ResultsDashboard: React.FC = () => {
                                 }
 
                                 acc[clientName].salesIds.push(sale.id);
+
+                                const saleObs = (sale.obs ?? '').trim();
+                                if (saleObs && !acc[clientName].obs) {
+                                    acc[clientName].obs = saleObs;
+                                }
 
                                 // Update contact info if missing
                                 if (!acc[clientName].cnpj && sale.cnpj) acc[clientName].cnpj = sale.cnpj;
@@ -2046,6 +2083,7 @@ const ResultsDashboard: React.FC = () => {
                                                             setEditingClientLimits(client.nome);
                                                             setTempClientLimits(client.limites);
                                                             setNewTempLimit({ seguradora: '', valor: '' });
+                                                            setNewLimitSeguradoraOutro('');
                                                         }}
                                                         className="text-[#C69C6D] hover:text-[#b58a5b] transition-colors p-1"
                                                     >
@@ -2071,17 +2109,31 @@ const ResultsDashboard: React.FC = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        <div className="flex gap-1">
+                                                        <div className="flex flex-wrap gap-1 items-stretch">
                                                             <select
                                                                 value={newTempLimit.seguradora}
-                                                                onChange={e => setNewTempLimit(prev => ({ ...prev, seguradora: e.target.value }))}
-                                                                className="flex-1 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D]"
+                                                                onChange={e => {
+                                                                    const v = e.target.value;
+                                                                    setNewTempLimit(prev => ({ ...prev, seguradora: v }));
+                                                                    if (v !== SEGURADORA_OUTRO_CORRETOR) setNewLimitSeguradoraOutro('');
+                                                                }}
+                                                                className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
                                                             >
                                                                 <option value="">Seguradora...</option>
                                                                 {insurers.map(ins => (
                                                                     <option key={ins.id} value={ins.nome}>{ins.nome}</option>
                                                                 ))}
+                                                                <option value={SEGURADORA_OUTRO_CORRETOR}>Outro corretor</option>
                                                             </select>
+                                                            {newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Nome do corretor ou seguradora"
+                                                                    value={newLimitSeguradoraOutro}
+                                                                    onChange={e => setNewLimitSeguradoraOutro(e.target.value)}
+                                                                    className="flex-1 min-w-[140px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                                                                />
+                                                            )}
                                                             <input
                                                                 type="text" placeholder="R$ 0,00"
                                                                 value={newTempLimit.valor}
@@ -2094,19 +2146,31 @@ const ResultsDashboard: React.FC = () => {
                                                             />
                                                             <button
                                                                 onClick={() => {
-                                                                    if (newTempLimit.seguradora && newTempLimit.valor) {
-                                                                        setTempClientLimits(prev => [...prev, newTempLimit]);
+                                                                    const resolvedSeguradora =
+                                                                        newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
+                                                                            ? newLimitSeguradoraOutro.trim()
+                                                                            : newTempLimit.seguradora;
+                                                                    if (resolvedSeguradora && newTempLimit.valor) {
+                                                                        setTempClientLimits(prev => [
+                                                                            ...prev,
+                                                                            { ...newTempLimit, seguradora: resolvedSeguradora },
+                                                                        ]);
                                                                         setNewTempLimit({ seguradora: '', valor: '' });
+                                                                        setNewLimitSeguradoraOutro('');
                                                                     }
                                                                 }}
-                                                                className="bg-[#C69C6D] text-white p-2 rounded-lg"
+                                                                className="bg-[#C69C6D] text-white p-2 rounded-lg shrink-0"
                                                             >
                                                                 <Plus size={12} />
                                                             </button>
                                                         </div>
                                                         <div className="flex gap-2 pt-1">
                                                             <button
-                                                                onClick={() => setEditingClientLimits(null)}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setEditingClientLimits(null);
+                                                                    setNewLimitSeguradoraOutro('');
+                                                                }}
                                                                 className="flex-1 text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors"
                                                             >
                                                                 CANCELAR
@@ -2153,6 +2217,7 @@ const ResultsDashboard: React.FC = () => {
                                                                         setEditingClientLimits(client.nome);
                                                                         setTempClientLimits([]);
                                                                         setNewTempLimit({ seguradora: '', valor: '' });
+                                                                        setNewLimitSeguradoraOutro('');
                                                                     }}
                                                                     className="mt-2 w-full py-2 border border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:border-[#C69C6D]/30 hover:text-[#C69C6D] transition-all"
                                                                 >
@@ -2168,6 +2233,59 @@ const ResultsDashboard: React.FC = () => {
                                         {/* Task Manager for Clients */}
                                         <div className="mt-6 pt-6 border-t border-slate-100">
                                             <TaskManager saleIds={client.salesIds} onTaskChange={fetchTasks} />
+                                        </div>
+                                        <div className="mt-4 pt-4 border-t border-slate-100">
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                    Observações
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingClientObs(client.nome);
+                                                        setTempClientObs(client.obs || '');
+                                                    }}
+                                                    className="p-1 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                    title="Editar observações"
+                                                    aria-label="Editar observações"
+                                                >
+                                                    <Edit2 size={12} />
+                                                </button>
+                                            </div>
+                                            {editingClientObs === client.nome ? (
+                                                <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                                                    <textarea
+                                                        value={tempClientObs}
+                                                        onChange={e => setTempClientObs(e.target.value)}
+                                                        rows={3}
+                                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] resize-y min-h-[72px]"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditingClientObs(null)}
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-slate-500 hover:text-slate-700 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all"
+                                                        >
+                                                            <X size={11} /> Cancelar
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSaveClientObs(client.salesIds)}
+                                                            disabled={saving}
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-[#1B263B] hover:bg-[#243347] py-2 rounded-lg transition-all disabled:opacity-50"
+                                                        >
+                                                            {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                                                            Salvar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p
+                                                    className={`text-xs text-slate-500 leading-relaxed ${!client.obs?.trim() ? 'italic' : ''}`}
+                                                >
+                                                    {client.obs?.trim() ? client.obs : 'Sem observações.'}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                             ));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
     Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink
@@ -150,6 +150,7 @@ const ResidentialInsurance: React.FC = () => {
     const [filterSituacao, setFilterSituacao] = useState('');
     const [filterPagamento, setFilterPagamento] = useState('');
     const [filterGarantia, setFilterGarantia] = useState('');
+    const [filterClienteId, setFilterClienteId] = useState('');
     const [sortBy, setSortBy] = useState<'entrada' | 'vigencia' | 'nome'>('entrada');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -302,6 +303,11 @@ const ResidentialInsurance: React.FC = () => {
         a.download = 'Clientes_Residencial.csv'; a.click();
     };
 
+    const clienteFilterOptions = useMemo(
+        () => [...clients].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')),
+        [clients],
+    );
+
     const filtered = clients
         .filter(c => {
             const q = search.toLowerCase();
@@ -316,6 +322,7 @@ const ResidentialInsurance: React.FC = () => {
                 cepMatch
             );
         })
+        .filter(c => !filterClienteId || String(c.id) === filterClienteId)
         .filter(c => !filterProduto || c.produto === filterProduto)
         .filter(c => !filterSituacao || c.situacao === filterSituacao)
         .filter(c => !filterPagamento || c.forma_pagamento === filterPagamento)
@@ -337,7 +344,13 @@ const ResidentialInsurance: React.FC = () => {
             return mul * (da - db);
         });
 
-    const hasTableFilters = !!(filterProduto || filterSituacao || filterPagamento || filterGarantia);
+    const hasTableFilters = !!(
+        filterClienteId ||
+        filterProduto ||
+        filterSituacao ||
+        filterPagamento ||
+        filterGarantia
+    );
 
     const expiringAlerts = getExpiringAlerts();
 
@@ -423,6 +436,7 @@ const ResidentialInsurance: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => {
+                                setFilterClienteId('');
                                 setFilterProduto('');
                                 setFilterSituacao('');
                                 setFilterPagamento('');
@@ -675,10 +689,10 @@ const ResidentialInsurance: React.FC = () => {
 
             {/* Table */}
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/40">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-slate-100 bg-slate-50/40">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
                         Ordenar lista
-                    </p>
+                    </span>
                     <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm shrink-0">
                         {(['entrada', 'vigencia', 'nome'] as const).map(opt => (
                             <button
@@ -716,7 +730,22 @@ const ResidentialInsurance: React.FC = () => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
-                                <th className="px-6 py-5 align-top">Cliente</th>
+                                <th className="px-6 py-5 align-top">
+                                    <span className="block">Cliente</span>
+                                    <select
+                                        value={filterClienteId}
+                                        onChange={(e) => setFilterClienteId(e.target.value)}
+                                        aria-label="Filtrar por cliente"
+                                        className="mt-1 block w-fit max-w-[min(100%,200px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                    >
+                                        <option value="">Todos</option>
+                                        {clienteFilterOptions.map((c) => (
+                                            <option key={c.id} value={String(c.id)}>
+                                                {c.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </th>
                                 <th className="px-6 py-5 align-top">Entrada</th>
                                 <th className="px-6 py-5 align-top">
                                     <span className="block">Produto</span>
