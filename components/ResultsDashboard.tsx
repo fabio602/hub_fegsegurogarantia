@@ -54,6 +54,127 @@ function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
 /** Valor do `<select>` quando o usuário informa corretor/seguradora manualmente. */
 const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
 
+/** Formulário de limites quando a carteira ainda não tem nenhum — estado local por card (evita conflito entre clientes). */
+function CarteiraEmptyLimitsForm({
+    salesIds,
+    insurers,
+    saving,
+    onSave,
+}: {
+    salesIds: number[];
+    insurers: { id: string | number; nome: string }[];
+    saving: boolean;
+    onSave: (limits: InsurerLimit[]) => Promise<void>;
+}) {
+    const [tempLimits, setTempLimits] = useState<InsurerLimit[]>([]);
+    const [newTemp, setNewTemp] = useState<InsurerLimit>({ seguradora: '', valor: '' });
+    const [outroNome, setOutroNome] = useState('');
+
+    const resolvedSeguradora = (lim: InsurerLimit, outro: string) =>
+        lim.seguradora === SEGURADORA_OUTRO_CORRETOR ? outro.trim() : lim.seguradora;
+
+    const appendPendingRow = (list: InsurerLimit[]) => {
+        const r = resolvedSeguradora(newTemp, outroNome);
+        if (r && newTemp.valor) {
+            return [...list, { seguradora: r, valor: newTemp.valor }];
+        }
+        return list;
+    };
+
+    const handleSalvar = async () => {
+        const finalLimits = appendPendingRow([...tempLimits]);
+        if (finalLimits.length === 0) {
+            return;
+        }
+        await onSave(finalLimits);
+    };
+
+    return (
+        <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <p className="text-[10px] font-bold text-slate-500 leading-snug">
+                Nenhum limite cadastrado. Escolha a seguradora na lista ou <span className="text-[#C69C6D]">Outro corretor</span> para informar o nome manualmente, preencha o valor e salve.
+            </p>
+            <div className="space-y-2">
+                {tempLimits.map((l, i) => (
+                    <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
+                        <span className="font-bold text-slate-700">{l.seguradora}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-400">{formatCurrency(l.valor)}</span>
+                            <button
+                                type="button"
+                                onClick={() => setTempLimits(prev => prev.filter((_, idx) => idx !== i))}
+                                className="text-red-400 hover:text-red-600"
+                            >
+                                <X size={12} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div className="flex flex-wrap gap-1 items-stretch">
+                <select
+                    value={newTemp.seguradora}
+                    onChange={e => {
+                        const v = e.target.value;
+                        setNewTemp(prev => ({ ...prev, seguradora: v }));
+                        if (v !== SEGURADORA_OUTRO_CORRETOR) setOutroNome('');
+                    }}
+                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                >
+                    <option value="">Seguradora...</option>
+                    {insurers.map(ins => (
+                        <option key={ins.id} value={ins.nome}>{ins.nome}</option>
+                    ))}
+                    <option value={SEGURADORA_OUTRO_CORRETOR}>Outro corretor</option>
+                </select>
+                {newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR && (
+                    <input
+                        type="text"
+                        placeholder="Nome do corretor ou seguradora"
+                        value={outroNome}
+                        onChange={e => setOutroNome(e.target.value)}
+                        className="flex-1 min-w-[140px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                    />
+                )}
+                <input
+                    type="text"
+                    placeholder="R$ 0,00"
+                    value={newTemp.valor}
+                    onChange={e => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
+                        setNewTemp(prev => ({ ...prev, valor: val }));
+                    }}
+                    className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                />
+                <button
+                    type="button"
+                    onClick={() => {
+                        const r = resolvedSeguradora(newTemp, outroNome);
+                        if (r && newTemp.valor) {
+                            setTempLimits(prev => [...prev, { seguradora: r, valor: newTemp.valor }]);
+                            setNewTemp({ seguradora: '', valor: '' });
+                            setOutroNome('');
+                        }
+                    }}
+                    className="bg-[#C69C6D] text-white p-2 rounded-lg shrink-0"
+                >
+                    <Plus size={12} />
+                </button>
+            </div>
+            <button
+                type="button"
+                onClick={() => void handleSalvar()}
+                disabled={saving || appendPendingRow([...tempLimits]).length === 0}
+                className="w-full flex items-center justify-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-800 py-2.5 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50/50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            >
+                {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                SALVAR LIMITES
+            </button>
+        </div>
+    );
+}
+
 const LIST_DATA = {
     origem: ["Google", "Instagram", "Prospecção Ativa", "Indicação", "Cliente da base"],
     tipoSeguro: ["Licitante", "Performance", "Cyber", "Risco de Engenharia", "Depósito Recursal"],
@@ -946,27 +1067,16 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
-    const handleUpdateClientLimits = async (clientName: string, salesIds: number[]) => {
+    const persistClientLimitsToSales = async (salesIds: number[], finalLimits: InsurerLimit[]) => {
         setSaving(true);
+        setSaveError(null);
         try {
-            // Auto-append any un-added limit before saving
-            let finalLimits = [...tempClientLimits];
-            const resolvedSeguradora =
-                newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
-                    ? newLimitSeguradoraOutro.trim()
-                    : newTempLimit.seguradora;
-            if (resolvedSeguradora && newTempLimit.valor) {
-                finalLimits.push({ ...newTempLimit, seguradora: resolvedSeguradora });
-            }
             const limitesJson = JSON.stringify(finalLimits);
-            
             const { error } = await supabase
                 .from('sales')
                 .update({ limites_seguradoras: limitesJson })
                 .in('id', salesIds);
-
             if (error) throw error;
-
             await fetchData();
             setEditingClientLimits(null);
             setNewTempLimit({ seguradora: '', valor: '' });
@@ -979,6 +1089,18 @@ const ResultsDashboard: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleUpdateClientLimits = async (_clientName: string, salesIds: number[]) => {
+        let finalLimits = [...tempClientLimits];
+        const resolvedSeguradora =
+            newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
+                ? newLimitSeguradoraOutro.trim()
+                : newTempLimit.seguradora;
+        if (resolvedSeguradora && newTempLimit.valor) {
+            finalLimits.push({ ...newTempLimit, seguradora: resolvedSeguradora });
+        }
+        await persistClientLimitsToSales(salesIds, finalLimits);
     };
 
     const updateManualCost = async (key: string, value: number) => {
@@ -2210,20 +2332,12 @@ const ResultsDashboard: React.FC = () => {
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <div className="group/empty relative">
-                                                                <p className="text-xs text-slate-400 italic">Nenhum limite de crédito aprovado.</p>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setEditingClientLimits(client.nome);
-                                                                        setTempClientLimits([]);
-                                                                        setNewTempLimit({ seguradora: '', valor: '' });
-                                                                        setNewLimitSeguradoraOutro('');
-                                                                    }}
-                                                                    className="mt-2 w-full py-2 border border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:border-[#C69C6D]/30 hover:text-[#C69C6D] transition-all"
-                                                                >
-                                                                    + ADICIONAR LIMITE
-                                                                </button>
-                                                            </div>
+                                                            <CarteiraEmptyLimitsForm
+                                                                salesIds={client.salesIds}
+                                                                insurers={insurers}
+                                                                saving={saving}
+                                                                onSave={(limits) => persistClientLimitsToSales(client.salesIds, limits)}
+                                                            />
                                                         )}
                                                     </>
                                                 )}
