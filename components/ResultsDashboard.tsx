@@ -92,7 +92,7 @@ function CarteiraEmptyLimitsForm({
     return (
         <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
             <p className="text-[10px] font-bold text-slate-500 leading-snug">
-                Nenhum limite cadastrado. Escolha a seguradora na lista ou <span className="text-[#C69C6D]">Outro corretor</span> para informar o nome manualmente, preencha o valor e salve.
+                Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-[#C69C6D] font-black">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
             </p>
             <div className="space-y-2">
                 {tempLimits.map((l, i) => (
@@ -111,29 +111,41 @@ function CarteiraEmptyLimitsForm({
                     </div>
                 ))}
             </div>
-            <div className="flex flex-wrap gap-1 items-stretch">
+            <div className="flex flex-wrap gap-1.5 items-stretch">
                 <select
-                    value={newTemp.seguradora}
+                    value={newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR ? '' : newTemp.seguradora}
                     onChange={e => {
                         const v = e.target.value;
                         setNewTemp(prev => ({ ...prev, seguradora: v }));
-                        if (v !== SEGURADORA_OUTRO_CORRETOR) setOutroNome('');
+                        setOutroNome('');
                     }}
-                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                    className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
                 >
                     <option value="">Seguradora...</option>
                     {insurers.map(ins => (
                         <option key={ins.id} value={ins.nome}>{ins.nome}</option>
                     ))}
-                    <option value={SEGURADORA_OUTRO_CORRETOR}>Outro corretor</option>
                 </select>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setNewTemp(prev => ({ ...prev, seguradora: SEGURADORA_OUTRO_CORRETOR }));
+                    }}
+                    className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
+                        newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR
+                            ? 'border-[#1B263B] bg-[#1B263B] text-white shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-[#C69C6D]/50 hover:text-[#C69C6D]'
+                    }`}
+                >
+                    Outro corretor
+                </button>
                 {newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR && (
                     <input
                         type="text"
                         placeholder="Nome do corretor ou seguradora"
                         value={outroNome}
                         onChange={e => setOutroNome(e.target.value)}
-                        className="flex-1 min-w-[140px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                        className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
                     />
                 )}
                 <input
@@ -2231,29 +2243,44 @@ const ResultsDashboard: React.FC = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        <div className="flex flex-wrap gap-1 items-stretch">
+                                                        <div className="flex flex-wrap gap-1.5 items-stretch">
                                                             <select
-                                                                value={newTempLimit.seguradora}
+                                                                value={newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR ? '' : newTempLimit.seguradora}
                                                                 onChange={e => {
                                                                     const v = e.target.value;
                                                                     setNewTempLimit(prev => ({ ...prev, seguradora: v }));
-                                                                    if (v !== SEGURADORA_OUTRO_CORRETOR) setNewLimitSeguradoraOutro('');
+                                                                    setNewLimitSeguradoraOutro('');
                                                                 }}
-                                                                className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                                                                className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
                                                             >
                                                                 <option value="">Seguradora...</option>
                                                                 {insurers.map(ins => (
                                                                     <option key={ins.id} value={ins.nome}>{ins.nome}</option>
                                                                 ))}
-                                                                <option value={SEGURADORA_OUTRO_CORRETOR}>Outro corretor</option>
                                                             </select>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setNewTempLimit(prev => ({
+                                                                        ...prev,
+                                                                        seguradora: SEGURADORA_OUTRO_CORRETOR,
+                                                                    }));
+                                                                }}
+                                                                className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
+                                                                    newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
+                                                                        ? 'border-[#1B263B] bg-[#1B263B] text-white shadow-sm'
+                                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#C69C6D]/50 hover:text-[#C69C6D]'
+                                                                }`}
+                                                            >
+                                                                Outro corretor
+                                                            </button>
                                                             {newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR && (
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Nome do corretor ou seguradora"
                                                                     value={newLimitSeguradoraOutro}
                                                                     onChange={e => setNewLimitSeguradoraOutro(e.target.value)}
-                                                                    className="flex-1 min-w-[140px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                                                                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
                                                                 />
                                                             )}
                                                             <input
