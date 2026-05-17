@@ -69,28 +69,48 @@ function CarteiraEmptyLimitsForm({
     const [tempLimits, setTempLimits] = useState<InsurerLimit[]>([]);
     const [newTemp, setNewTemp] = useState<InsurerLimit>({ seguradora: '', valor: '' });
     const [outroNome, setOutroNome] = useState('');
+    const [localError, setLocalError] = useState<string | null>(null);
 
     const resolvedSeguradora = (lim: InsurerLimit, outro: string) =>
         lim.seguradora === SEGURADORA_OUTRO_CORRETOR ? outro.trim() : lim.seguradora;
 
     const appendPendingRow = (list: InsurerLimit[]) => {
         const r = resolvedSeguradora(newTemp, outroNome);
-        if (r && newTemp.valor) {
-            return [...list, { seguradora: r, valor: newTemp.valor }];
+        if (r && (newTemp.valor || '').trim()) {
+            return [...list, { seguradora: r, valor: (newTemp.valor || '').trim() }];
         }
         return list;
     };
 
     const handleSalvar = async () => {
-        const finalLimits = appendPendingRow([...tempLimits]);
-        if (finalLimits.length === 0) {
+        setLocalError(null);
+        if (!salesIds.length) {
+            setLocalError('Este cliente não tem vendas vinculadas; não é possível salvar limites.');
             return;
         }
-        await onSave(finalLimits);
+        const finalLimits = appendPendingRow([...tempLimits]);
+        if (finalLimits.length === 0) {
+            setLocalError(
+                'Informe seguradora (lista) ou Outro corretor + nome, e o valor em R$, depois Salvar.',
+            );
+            return;
+        }
+        try {
+            await onSave(finalLimits);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Erro ao salvar limites.';
+            setLocalError(msg);
+        }
     };
 
     return (
         <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            {localError && (
+                <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-[11px] text-rose-800 font-medium">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    {localError}
+                </div>
+            )}
             <p className="text-[10px] font-bold text-slate-500 leading-snug">
                 Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-[#C69C6D] font-black">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
             </p>
@@ -162,12 +182,19 @@ function CarteiraEmptyLimitsForm({
                 <button
                     type="button"
                     onClick={() => {
+                        setLocalError(null);
                         const r = resolvedSeguradora(newTemp, outroNome);
-                        if (r && newTemp.valor) {
-                            setTempLimits(prev => [...prev, { seguradora: r, valor: newTemp.valor }]);
-                            setNewTemp({ seguradora: '', valor: '' });
-                            setOutroNome('');
+                        if (!r) {
+                            setLocalError('Escolha uma seguradora ou Outro corretor e preencha o nome.');
+                            return;
                         }
+                        if (!newTemp.valor?.trim()) {
+                            setLocalError('Informe o valor do limite em R$.');
+                            return;
+                        }
+                        setTempLimits(prev => [...prev, { seguradora: r, valor: newTemp.valor.trim() }]);
+                        setNewTemp({ seguradora: '', valor: '' });
+                        setOutroNome('');
                     }}
                     className="bg-[#C69C6D] text-white p-2 rounded-lg shrink-0"
                 >
@@ -888,6 +915,10 @@ const ResultsDashboard: React.FC = () => {
     };
 
     const handleSaveClientObs = async (salesIds: number[]) => {
+        if (!salesIds.length) {
+            setSaveError('Este cliente não tem vendas vinculadas; não é possível salvar observações.');
+            return;
+        }
         setSaving(true);
         setSaveError(null);
         try {
@@ -1080,6 +1111,11 @@ const ResultsDashboard: React.FC = () => {
     };
 
     const persistClientLimitsToSales = async (salesIds: number[], finalLimits: InsurerLimit[]) => {
+        if (!salesIds.length) {
+            const msg = 'Este cliente não tem vendas vinculadas; não é possível salvar os limites.';
+            setSaveError(msg);
+            throw new Error(msg);
+        }
         setSaving(true);
         setSaveError(null);
         try {
@@ -1097,7 +1133,12 @@ const ResultsDashboard: React.FC = () => {
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (error: any) {
             console.error('Error updating client limits:', error);
-            setSaveError(error?.message || 'Erro ao atualizar limites.');
+            const msg =
+                error?.message ||
+                error?.error_description ||
+                'Erro ao atualizar limites. No Supabase, confira se a coluna `limites_seguradoras` existe em `sales` (migração 017).';
+            setSaveError(msg);
+            throw new Error(msg);
         } finally {
             setSaving(false);
         }
@@ -1108,11 +1149,19 @@ const ResultsDashboard: React.FC = () => {
         const resolvedSeguradora =
             newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
                 ? newLimitSeguradoraOutro.trim()
-                : newTempLimit.seguradora;
-        if (resolvedSeguradora && newTempLimit.valor) {
-            finalLimits.push({ ...newTempLimit, seguradora: resolvedSeguradora });
+                : newTempLimit.seguradora.trim();
+        const valorTrim = (newTempLimit.valor || '').trim();
+        if (resolvedSeguradora && valorTrim) {
+            finalLimits.push({
+                seguradora: resolvedSeguradora,
+                valor: valorTrim,
+            });
         }
-        await persistClientLimitsToSales(salesIds, finalLimits);
+        try {
+            await persistClientLimitsToSales(salesIds, finalLimits);
+        } catch {
+            /* saveError definido em persistClientLimitsToSales */
+        }
     };
 
     const updateManualCost = async (key: string, value: number) => {
@@ -1950,6 +1999,19 @@ const ResultsDashboard: React.FC = () => {
                         </div>
                     </div>
 
+                    {saveError && (
+                        <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+                            <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                            <span>{saveError}</span>
+                        </div>
+                    )}
+                    {saveSuccess && (
+                        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-bold">
+                            <CheckCircle2 size={18} />
+                            Alterações salvas.
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {(() => {
                             // Define the ClientPortfolioItem type
@@ -2294,15 +2356,17 @@ const ResultsDashboard: React.FC = () => {
                                                                 className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D]"
                                                             />
                                                             <button
+                                                                type="button"
                                                                 onClick={() => {
                                                                     const resolvedSeguradora =
                                                                         newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
                                                                             ? newLimitSeguradoraOutro.trim()
-                                                                            : newTempLimit.seguradora;
-                                                                    if (resolvedSeguradora && newTempLimit.valor) {
+                                                                            : newTempLimit.seguradora.trim();
+                                                                    const valorTrim = (newTempLimit.valor || '').trim();
+                                                                    if (resolvedSeguradora && valorTrim) {
                                                                         setTempClientLimits(prev => [
                                                                             ...prev,
-                                                                            { ...newTempLimit, seguradora: resolvedSeguradora },
+                                                                            { seguradora: resolvedSeguradora, valor: valorTrim },
                                                                         ]);
                                                                         setNewTempLimit({ seguradora: '', valor: '' });
                                                                         setNewLimitSeguradoraOutro('');

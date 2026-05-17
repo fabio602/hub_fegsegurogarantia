@@ -1,6 +1,6 @@
 // -*- coding: utf-8 -*-
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Loader2, CheckCircle2, AlertCircle, Calendar, User, X, Trash2 } from 'lucide-react';
+import { Plus, Loader2, CheckCircle2, AlertCircle, Calendar, User, X, Trash2, Edit2, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Pendencia } from '../types';
 
@@ -41,6 +41,22 @@ const emptyForm = {
     prioridade: 'media' as Pendencia['prioridade'],
 };
 
+function prazoParaInput(prazo: string | null | undefined): string {
+    if (!prazo) return '';
+    const s = prazo.includes('T') ? prazo.slice(0, 10) : prazo;
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function pendenciaParaForm(p: Pendencia) {
+    return {
+        titulo: p.titulo,
+        descricao: p.descricao || '',
+        responsavel: p.responsavel || '',
+        prazo: prazoParaInput(p.prazo),
+        prioridade: p.prioridade,
+    };
+}
+
 const PendenciasHub: React.FC = () => {
     const [lista, setLista] = useState<Pendencia[]>([]);
     const [loading, setLoading] = useState(true);
@@ -48,6 +64,7 @@ const PendenciasHub: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [filtro, setFiltro] = useState<FiltroPendencia>('todas');
     const [modalOpen, setModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState(emptyForm);
 
     const fetchLista = useCallback(async () => {
@@ -86,7 +103,28 @@ const PendenciasHub: React.FC = () => {
                 : 'bg-white text-slate-600 border-slate-200 hover:border-[#C69C6D]/40'
         }`;
 
-    const handleNova = async () => {
+    const fecharModal = (force = false) => {
+        if (!force && saving) return;
+        setModalOpen(false);
+        setEditingId(null);
+        setForm(emptyForm);
+    };
+
+    const abrirNova = () => {
+        setForm(emptyForm);
+        setEditingId(null);
+        setError(null);
+        setModalOpen(true);
+    };
+
+    const abrirEdicao = (p: Pendencia) => {
+        setForm(pendenciaParaForm(p));
+        setEditingId(p.id);
+        setError(null);
+        setModalOpen(true);
+    };
+
+    const handleSalvar = async () => {
         if (!form.titulo.trim()) {
             setError('Informe o título.');
             return;
@@ -100,12 +138,17 @@ const PendenciasHub: React.FC = () => {
                 responsavel: form.responsavel.trim() || null,
                 prazo: form.prazo || null,
                 prioridade: form.prioridade,
-                concluida: false,
             };
-            const { error: insErr } = await supabase.from('pendencias').insert(row);
-            if (insErr) throw insErr;
-            setForm(emptyForm);
-            setModalOpen(false);
+            if (editingId) {
+                const { error: upErr } = await supabase.from('pendencias').update(row).eq('id', editingId);
+                if (upErr) throw upErr;
+            } else {
+                const { error: insErr } = await supabase
+                    .from('pendencias')
+                    .insert({ ...row, concluida: false });
+                if (insErr) throw insErr;
+            }
+            fecharModal(true);
             await fetchLista();
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Erro ao salvar.');
@@ -175,11 +218,7 @@ const PendenciasHub: React.FC = () => {
                 </div>
                 <button
                     type="button"
-                    onClick={() => {
-                        setForm(emptyForm);
-                        setError(null);
-                        setModalOpen(true);
-                    }}
+                    onClick={abrirNova}
                     className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-5 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-[#243347] transition-all shrink-0"
                 >
                     <Plus size={18} /> Nova pendência
@@ -277,6 +316,16 @@ const PendenciasHub: React.FC = () => {
                                         <button
                                             type="button"
                                             disabled={saving}
+                                            onClick={() => abrirEdicao(p)}
+                                            className="inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            title="Editar pendência"
+                                        >
+                                            <Edit2 size={16} />
+                                            Editar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={saving}
                                             onClick={() => excluirPendencia(p)}
                                             className="inline-flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                                             title="Remover esta pendência"
@@ -296,10 +345,12 @@ const PendenciasHub: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1B263B]/55 backdrop-blur-sm">
                     <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-[#C69C6D]/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
-                            <h4 className="text-xl font-black text-[#1B263B]">Nova pendência</h4>
+                            <h4 className="text-xl font-black text-[#1B263B]">
+                                {editingId ? 'Editar pendência' : 'Nova pendência'}
+                            </h4>
                             <button
                                 type="button"
-                                onClick={() => !saving && setModalOpen(false)}
+                                onClick={fecharModal}
                                 className="p-2 rounded-xl hover:bg-white/80 text-slate-600"
                                 aria-label="Fechar"
                             >
@@ -383,11 +434,17 @@ const PendenciasHub: React.FC = () => {
                         <button
                             type="button"
                             disabled={saving}
-                            onClick={handleNova}
+                            onClick={handleSalvar}
                             className="mt-8 w-full flex items-center justify-center gap-2 bg-[#C69C6D] text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
                         >
-                            {saving ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-                            Salvar pendência
+                            {saving ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : editingId ? (
+                                <Save size={18} />
+                            ) : (
+                                <Plus size={18} />
+                            )}
+                            {editingId ? 'Salvar alterações' : 'Salvar pendência'}
                         </button>
                     </div>
                 </div>
