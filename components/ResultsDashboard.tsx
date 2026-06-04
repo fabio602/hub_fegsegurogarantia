@@ -1817,7 +1817,7 @@ const ResultsDashboard: React.FC = () => {
 
                     {/* Table Card */}
                     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="table-scroll-x">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                                     <tr>
@@ -2867,7 +2867,7 @@ const ResultsDashboard: React.FC = () => {
                     </div>
 
                     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="table-scroll-x">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                                     <tr>
