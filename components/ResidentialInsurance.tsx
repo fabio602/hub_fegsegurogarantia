@@ -761,6 +761,7 @@ const ResidentialInsurance: React.FC = () => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
+                                <th className="px-4 py-5 text-center align-top">Ações</th>
                                 <th className="px-6 py-5 align-top">
                                     <span className="block">Cliente</span>
                                     <select
@@ -837,7 +838,6 @@ const ResidentialInsurance: React.FC = () => {
                                         <option value="Não">Não</option>
                                     </select>
                                 </th>
-                                <th className="px-6 py-5 text-center align-top">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -854,6 +854,12 @@ const ResidentialInsurance: React.FC = () => {
                                 const nearExpiry = dias !== null && dias <= 30 && dias >= 0 && c.situacao === 'Ativo';
                                 return (
                                     <tr key={c.id} className={`group hover:bg-slate-50/80 transition-all ${nearExpiry ? 'bg-amber-50/40' : ''}`}>
+                                        <td className="px-4 py-5">
+                                            <div className="flex justify-center gap-2">
+                                                <button onClick={() => handleEdit(c)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
+                                                <button onClick={() => handleDelete(c.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-5 min-w-[200px] max-w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-black text-slate-800 text-sm truncate">{c.nome}</span>
@@ -926,12 +932,6 @@ const ResidentialInsurance: React.FC = () => {
                                             {c.tem_garantia === 'Sim'
                                                 ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 font-black text-[10px]"><Home size={11} /> Sim</span>
                                                 : <span className="text-slate-400 text-xs">—</span>}
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex justify-center gap-2">
-                                                <button onClick={() => handleEdit(c)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(c.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                                            </div>
                                         </td>
                                     </tr>
                                 );
