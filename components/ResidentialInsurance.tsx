@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
     Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink
@@ -156,6 +156,34 @@ const ResidentialInsurance: React.FC = () => {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [publicFormCopied, setPublicFormCopied] = useState(false);
+
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const topScrollInnerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const table = tableScrollRef.current;
+        const top = topScrollRef.current;
+        const inner = topScrollInnerRef.current;
+        if (!table || !top || !inner) return;
+
+        const syncWidth = () => {
+            inner.style.width = table.scrollWidth + 'px';
+        };
+        syncWidth();
+        const ro = new ResizeObserver(syncWidth);
+        ro.observe(table);
+
+        const onTableScroll = () => { top.scrollLeft = table.scrollLeft; };
+        const onTopScroll = () => { table.scrollLeft = top.scrollLeft; };
+        table.addEventListener('scroll', onTableScroll);
+        top.addEventListener('scroll', onTopScroll);
+        return () => {
+            table.removeEventListener('scroll', onTableScroll);
+            top.removeEventListener('scroll', onTopScroll);
+            ro.disconnect();
+        };
+    }, []);
 
     const copyPublicFormUrl = () => {
         const url = getPublicResidentialFormUrl();
@@ -726,7 +754,10 @@ const ResidentialInsurance: React.FC = () => {
                         ))}
                     </div>
                 </div>
-                <div className="table-scroll-x">
+                <div ref={topScrollRef} className="table-scroll-x" style={{height: 10}}>
+                    <div ref={topScrollInnerRef} style={{height: 1}} />
+                </div>
+                <div ref={tableScrollRef} className="table-scroll-x">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
