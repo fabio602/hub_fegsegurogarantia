@@ -401,6 +401,25 @@ const ResultsDashboard: React.FC = () => {
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
     const [sendingEmail, setSendingEmail] = useState(false);
 
+    const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
+    const [emailTemplate, setEmailTemplate] = useState('');
+    const [emailDispatchStatus, setEmailDispatchStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
+    const handleDispatchEmails = async () => {
+        if (!emailTemplate.trim()) { alert('Por favor, insira o código HTML do email antes de enviar.'); return; }
+        setEmailDispatchStatus('sending');
+        try {
+            const res = await fetch('https://automacao.jvstomaz.com/webhook-test/ddbd9ccc-e675-4600-b137-1bf9ed14055a', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_html: emailTemplate, assunto_base: 'Seguro Garantia para Licitações - [NOME_EMPRESA]' }),
+            });
+            setEmailDispatchStatus(res.ok ? 'success' : 'error');
+        } catch {
+            setEmailDispatchStatus('error');
+        }
+    };
+
     const [showNewSellerForm, setShowNewSellerForm] = useState(false);
     const [newSellerDraft, setNewSellerDraft] = useState({ name: '', email: '', sharePercent: '', daysPerWeek: '5' });
     const [editingSellerId, setEditingSellerId] = useState<string | null>(null);
@@ -1964,7 +1983,49 @@ const ResultsDashboard: React.FC = () => {
                     <div className="mt-8">
                         <ProspectsKanban onConvertToSale={handleConvertToSale} />
                     </div>
+
+                    <div className="flex justify-end mt-4">
+                        <button
+                            onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
+                            className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-black text-sm rounded-xl shadow transition-all"
+                        >
+                            🚀 Disparador de Emails
+                        </button>
+                    </div>
                 </section>
+            )}
+
+            {showEmailDispatcher && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowEmailDispatcher(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-black text-slate-800">Disparador de Emails — Seguro Garantia</h3>
+                            <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded">[NOME_EMPRESA]</code> como variáveis.</p>
+                        <textarea
+                            value={emailTemplate}
+                            onChange={e => setEmailTemplate(e.target.value)}
+                            rows={10}
+                            placeholder="Cole seu código HTML aqui..."
+                            className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] resize-y transition-all"
+                        />
+                        <button
+                            onClick={handleDispatchEmails}
+                            disabled={emailDispatchStatus === 'sending'}
+                            className="w-full py-3 bg-[#25D366] hover:bg-[#1ebe5d] disabled:opacity-60 text-white font-black text-sm rounded-xl transition-all"
+                        >
+                            {emailDispatchStatus === 'sending' ? '⏳ Enviando...' : '🚀 Salvar Template e Iniciar Envios'}
+                        </button>
+                        {emailDispatchStatus === 'success' && (
+                            <p className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 rounded-xl py-3">✅ Comando recebido! O n8n já está enviando os emails.</p>
+                        )}
+                        {emailDispatchStatus === 'error' && (
+                            <p className="text-center text-sm font-bold text-red-600 bg-red-50 rounded-xl py-3">❌ Erro de conexão. Verifique se a automação está ativa.</p>
+                        )}
+                    </div>
+                </div>,
+                document.body
             )}
 
             {activeSection === 'carteira' && (
