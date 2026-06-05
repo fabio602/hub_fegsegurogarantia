@@ -117,7 +117,6 @@ const App: React.FC = () => {
               <NavItem view="residential" icon={<Home size={16} />} label="Seguro Residencial/Locatícia" />
               <NavItem view="directory" icon={<ShieldCheck size={16} />} label="Seguradoras" />
               <NavItem view="banks" icon={<Landmark size={16} />} label="Bancos Garantidores" />
-              <NavItem view="sureties" icon={<Scale size={16} />} label="Afiançadoras" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
             </nav>
