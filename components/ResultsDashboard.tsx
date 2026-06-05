@@ -1978,19 +1978,16 @@ const ResultsDashboard: React.FC = () => {
                             <h2 className="text-3xl font-black text-slate-800">Prospecção Ativa</h2>
                             <p className="text-slate-500 font-medium">Gestão de contatos e captação de novos clientes no formato Kanban.</p>
                         </div>
+                        <button
+                            onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
+                            className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-black text-sm rounded-xl shadow transition-all shrink-0"
+                        >
+                            🚀 Disparador de Emails
+                        </button>
                     </div>
 
                     <div className="mt-8">
                         <ProspectsKanban onConvertToSale={handleConvertToSale} />
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                        <button
-                            onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
-                            className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-black text-sm rounded-xl shadow transition-all"
-                        >
-                            🚀 Disparador de Emails
-                        </button>
                     </div>
                 </section>
             )}
