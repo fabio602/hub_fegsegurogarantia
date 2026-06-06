@@ -409,7 +409,7 @@ const ResultsDashboard: React.FC = () => {
         if (!emailTemplate.trim()) { alert('Por favor, insira o código HTML do email antes de enviar.'); return; }
         setEmailDispatchStatus('sending');
         try {
-            const res = await fetch('https://automacao.jvstomaz.com/webhook-test/ddbd9ccc-e675-4600-b137-1bf9ed14055a', {
+            const res = await fetch('https://webhook.jvstomaz.com/webhook/ddbd9ccc-e675-4600-b137-1bf9ed14055a', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ template_html: emailTemplate, assunto_base: 'Seguro Garantia para Licitações - [NOME_EMPRESA]' }),
