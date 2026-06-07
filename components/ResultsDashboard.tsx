@@ -404,15 +404,24 @@ const ResultsDashboard: React.FC = () => {
     const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
     const [emailTemplate, setEmailTemplate] = useState('');
     const [emailDispatchStatus, setEmailDispatchStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+    const [activeKanbanProduct, setActiveKanbanProduct] = useState('Seguro Garantia');
+
+    const WEBHOOK_URLS: Record<string, string> = {
+        'Seguro Garantia':          'https://webhook.jvstomaz.com/webhook/ddbd9ccc-e675-4600-b137-1bf9ed14055a',
+        'Judicial Depósito Recursal': 'https://webhook.jvstomaz.com/webhook/6ed9e1e5-6067-4851-a830-200c561e5495',
+        'Energia':                  'https://automacao.jvstomaz.com/webhook-test/9c27347a-e4b2-4687-88d7-52334f155d83',
+        'Seguro de crédito':        'https://webhook.jvstomaz.com/webhook/dce23040-9499-4344-88d0-432dd633cdfc',
+    };
 
     const handleDispatchEmails = async () => {
         if (!emailTemplate.trim()) { alert('Por favor, insira o código HTML do email antes de enviar.'); return; }
         setEmailDispatchStatus('sending');
+        const url = WEBHOOK_URLS[activeKanbanProduct] || WEBHOOK_URLS['Seguro Garantia'];
         try {
-            const res = await fetch('https://webhook.jvstomaz.com/webhook/ddbd9ccc-e675-4600-b137-1bf9ed14055a', {
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ template_html: emailTemplate, assunto_base: 'Seguro Garantia para Licitações - [NOME_EMPRESA]' }),
+                body: JSON.stringify({ template_html: emailTemplate, assunto_base: `${activeKanbanProduct} - [NOME_EMPRESA]` }),
             });
             setEmailDispatchStatus(res.ok ? 'success' : 'error');
         } catch {
@@ -1988,7 +1997,7 @@ const ResultsDashboard: React.FC = () => {
                     </div>
 
                     <div className="mt-8">
-                        <ProspectsKanban onConvertToSale={handleConvertToSale} />
+                        <ProspectsKanban onConvertToSale={handleConvertToSale} onProductChange={setActiveKanbanProduct} />
                     </div>
                 </section>
             )}
@@ -1997,7 +2006,7 @@ const ResultsDashboard: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowEmailDispatcher(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-black text-slate-800">Disparador de Emails — Seguro Garantia</h3>
+                            <h3 className="text-lg font-black text-slate-800">Disparador de Emails — {activeKanbanProduct}</h3>
                             <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all">✕</button>
                         </div>
                         <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded">[NOME_EMPRESA]</code> como variáveis.</p>

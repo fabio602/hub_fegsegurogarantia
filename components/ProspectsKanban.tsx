@@ -67,6 +67,7 @@ const saveColumns = (productType: string, cols: KanbanColumn[]) => {
 type ProspectProductTab = 'Seguro Garantia' | 'Judicial Depósito Recursal' | 'Energia' | 'Seguro de crédito';
 
 interface ProspectsKanbanProps {
+    onProductChange?: (product: string) => void;
     onConvertToSale?: (data: {
         nome: string;
         cnpj: string;
@@ -206,7 +207,7 @@ const LeadFormFields = ({
     </div>
 );
 
-const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
+const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onProductChange }) => {
 
     const [selectedProduct, setSelectedProduct] = useState<ProspectProductTab>('Seguro Garantia');
     const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns('Seguro Garantia'));
@@ -228,6 +229,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setColumns(loadColumns(selectedProduct));
         setEditingColId(null);
         setEditingColTitle('');
+        onProductChange?.(selectedProduct);
     }, [selectedProduct]);
 
     // CSV Import State
