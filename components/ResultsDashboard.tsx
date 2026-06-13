@@ -409,7 +409,7 @@ const ResultsDashboard: React.FC = () => {
     const WEBHOOK_URLS: Record<string, string> = {
         'Seguro Garantia':          'https://webhook.jvstomaz.com/webhook/ddbd9ccc-e675-4600-b137-1bf9ed14055a',
         'Judicial Depósito Recursal': 'https://webhook.jvstomaz.com/webhook/6ed9e1e5-6067-4851-a830-200c561e5495',
-        'Energia':                  'https://automacao.jvstomaz.com/webhook-test/9c27347a-e4b2-4687-88d7-52334f155d83',
+        'Energia':                  'https://webhook.jvstomaz.com/webhook/9c27347a-e4b2-4687-88d7-52334f155d83',
         'Seguro de crédito':        'https://webhook.jvstomaz.com/webhook/dce23040-9499-4344-88d0-432dd633cdfc',
     };
 
