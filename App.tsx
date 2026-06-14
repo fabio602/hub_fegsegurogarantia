@@ -18,6 +18,7 @@ import {
   Home,
   Landmark,
   Scale,
+  Car,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
@@ -29,9 +30,10 @@ import BanksDirectory from './components/BanksDirectory';
 import SuretiesDirectory from './components/SuretiesDirectory';
 import InternalProcedures from './components/InternalProcedures';
 import ResidentialInsurance from './components/ResidentialInsurance';
+import AutoInsurance from './components/AutoInsurance';
 import AgendaHub from './components/AgendaHub';
 
-type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'banks' | 'sureties' | 'agenda';
+type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -115,6 +117,7 @@ const App: React.FC = () => {
               <NavItem view="letter" icon={<FileText size={16} />} label="Carta de Nomeação" />
               <NavItem view="goals" icon={<Target size={16} />} label="Seguro Garantia" />
               <NavItem view="residential" icon={<Home size={16} />} label="Seguro Residencial/Locatícia" />
+              <NavItem view="auto" icon={<Car size={16} />} label="Seguro AUTO" />
               <NavItem view="directory" icon={<ShieldCheck size={16} />} label="Seguradoras" />
               <NavItem view="banks" icon={<Landmark size={16} />} label="Bancos Garantidores" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
@@ -154,8 +157,9 @@ const App: React.FC = () => {
                 {activeView === 'directory' && 'Ecossistema Seguradoras'}
                 {activeView === 'banks' && 'Bancos Garantidores'}
                 {activeView === 'sureties' && 'Afiançadoras'}
+                {activeView === 'auto' && 'Seguro AUTO'}
                 {activeView === 'manual' && 'Manual de Procedimentos Internos'}
-              {activeView === 'agenda' && 'Agenda Semanal'}
+                {activeView === 'agenda' && 'Agenda Semanal'}
               </h2>
               <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
@@ -265,6 +269,7 @@ const App: React.FC = () => {
               {activeView === 'letter' && <NominationLetter />}
               {activeView === 'goals' && <ResultsDashboard />}
               {activeView === 'residential' && <ResidentialInsurance />}
+              {activeView === 'auto' && <AutoInsurance />}
               {activeView === 'directory' && <InsuranceDirectory tableName="insurers" title="Base de Seguradoras" subtitle="Gerenciamento centralizado de acessos e condições comerciais." itemName="Seguradora" emptyStateText="Adicionar Seguradora" />}
               {activeView === 'banks' && <BanksDirectory />}
               {activeView === 'sureties' && <SuretiesDirectory />}
