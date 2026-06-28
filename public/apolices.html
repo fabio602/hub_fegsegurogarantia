@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minhas Apólices — F&G Seguro Garantia</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; padding: 40px 16px; color: #1B263B; }
+    .container { max-width: 720px; margin: 0 auto; }
+
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo { width: 60px; height: 60px; background: #1B263B; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #C69C6D; font-weight: 900; font-size: 22px; margin: 0 auto 16px; }
+    .header h1 { font-size: 24px; font-weight: 900; color: #1B263B; }
+    .header p { font-size: 14px; color: #64748b; margin-top: 4px; }
+
+    .search-card { background: #fff; border-radius: 20px; padding: 32px; border: 1px solid #e2e8f0; margin-bottom: 32px; box-shadow: 0 2px 16px rgba(0,0,0,.06); }
+    .search-card label { display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+    .input-row { display: flex; gap: 12px; }
+    .input-row input { flex: 1; padding: 14px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; background: #f8fafc; color: #1B263B; transition: border .2s; }
+    .input-row input:focus { border-color: #C69C6D; background: #fff; }
+    .input-row button { padding: 14px 28px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; transition: background .2s; white-space: nowrap; }
+    .input-row button:hover { background: #243447; }
+    .input-row button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .msg { text-align: center; padding: 20px; font-size: 14px; font-weight: 600; color: #94a3b8; }
+    .msg.error { color: #ef4444; }
+
+    .results { display: flex; flex-direction: column; gap: 16px; }
+    .apolice-card { background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .apolice-info .empresa { font-size: 16px; font-weight: 900; color: #1B263B; }
+    .apolice-info .meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .meta-item { display: flex; align-items: center; gap: 4px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; text-transform: uppercase; background: #dbeafe; color: #1d4ed8; }
+    .btn-download { display: inline-flex; align-items: center; gap-6px; gap: 6px; padding: 10px 20px; background: #1B263B; color: #fff; border-radius: 12px; font-size: 13px; font-weight: 900; text-decoration: none; transition: background .2s; white-space: nowrap; }
+    .btn-download:hover { background: #243447; }
+    .btn-download svg { width: 16px; height: 16px; }
+
+    .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">F&G</div>
+      <h1>Minhas Apólices</h1>
+      <p>F&G Corretora de Seguros — consulte suas apólices pelo CNPJ</p>
+    </div>
+
+    <div class="search-card">
+      <label>CNPJ da empresa</label>
+      <div class="input-row">
+        <input type="text" id="cnpj-input" placeholder="00.000.000/0000-00" maxlength="18" oninput="mascara(this)" onkeydown="if(event.key==='Enter') buscar()" />
+        <button id="btn-buscar" onclick="buscar()">Buscar</button>
+      </div>
+    </div>
+
+    <div id="resultado"></div>
+
+    <div class="footer">F&G Corretora de Seguros · Acesso exclusivo ao titular do CNPJ</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function mascara(el) {
+      let v = el.value.replace(/\D/g, '').substring(0, 14);
+      v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+      v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+      v = v.replace(/(\d{4})(\d)/, '$1-$2');
+      el.value = v;
+    }
+
+    function cnpjRaw(v) {
+      return v.replace(/\D/g, '');
+    }
+
+    function fmtData(d) {
+      if (!d) return '—';
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+
+    function fmtMoeda(v) {
+      if (!v) return null;
+      const n = parseFloat(String(v).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (isNaN(n) || n === 0) return null;
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    async function buscar() {
+      const raw = cnpjRaw(document.getElementById('cnpj-input').value);
+      if (raw.length < 14) {
+        document.getElementById('resultado').innerHTML = '<p class="msg error">Digite um CNPJ válido com 14 dígitos.</p>';
+        return;
+      }
+
+      const btn = document.getElementById('btn-buscar');
+      btn.disabled = true;
+      btn.textContent = 'Buscando...';
+      document.getElementById('resultado').innerHTML = '<p class="msg">Consultando...</p>';
+
+      // Try matching with and without formatting
+      const { data, error } = await client
+        .from('sales')
+        .select('id, data, nome, product_type, tipo, seguradora, premio, vigencia_inicio, vigencia_fim, apolice_url')
+        .not('apolice_url', 'is', null)
+        .or(`cnpj.eq.${raw},cnpj.eq.${document.getElementById('cnpj-input').value}`);
+
+      btn.disabled = false;
+      btn.textContent = 'Buscar';
+
+      if (error) {
+        document.getElementById('resultado').innerHTML = '<p class="msg error">Erro ao consultar. Tente novamente.</p>';
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        document.getElementById('resultado').innerHTML = '<p class="msg">Nenhuma apólice encontrada para este CNPJ.</p>';
+        return;
+      }
+
+      document.getElementById('resultado').innerHTML = `
+        <div class="results">
+          ${data.map(a => {
+            const produto = a.product_type || a.tipo || '—';
+            const vigencia = (a.vigencia_inicio || a.vigencia_fim)
+              ? `${fmtData(a.vigencia_inicio)} → ${fmtData(a.vigencia_fim)}`
+              : null;
+            const premio = fmtMoeda(a.premio);
+            return `
+            <div class="apolice-card">
+              <div class="apolice-info">
+                <div class="empresa">${a.nome || '—'}</div>
+                <div class="meta">
+                  <span class="badge">${produto}</span>
+                  ${a.seguradora ? `<span class="meta-item">🏢 ${a.seguradora}</span>` : ''}
+                  ${vigencia ? `<span class="meta-item">📅 ${vigencia}</span>` : ''}
+                  ${premio ? `<span class="meta-item">💰 ${premio}</span>` : ''}
+                  <span class="meta-item">📄 Emitida em ${fmtData(a.data)}</span>
+                </div>
+              </div>
+              <a href="${a.apolice_url}" target="_blank" rel="noopener noreferrer" class="btn-download">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                Baixar PDF
+              </a>
+            </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -399,6 +399,7 @@ const ResultsDashboard: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
+    const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
@@ -808,13 +809,29 @@ const ResultsDashboard: React.FC = () => {
         };
 
         try {
+            let savedId = editingId;
             if (editingId) {
                 const { error } = await supabase.from('sales').update(payload).eq('id', editingId);
                 if (error) throw error;
             } else {
-                const { error } = await supabase.from('sales').insert([payload]);
+                const { data: inserted, error } = await supabase.from('sales').insert([payload]).select('id').single();
                 if (error) throw error;
+                savedId = inserted?.id ?? null;
             }
+
+            // Upload apólice PDF to Storage if provided
+            if (selectedApolice && savedId && payload.vendeu === 'Sim') {
+                const ext = selectedApolice.name.split('.').pop() || 'pdf';
+                const path = `${savedId}/apolice.${ext}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('apolices')
+                    .upload(path, selectedApolice, { upsert: true, contentType: 'application/pdf' });
+                if (!uploadError) {
+                    const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+                    await supabase.from('sales').update({ apolice_url: urlData.publicUrl }).eq('id', savedId);
+                }
+            }
+
             await fetchData();
             setSaveSuccess(true);
             
@@ -940,6 +957,26 @@ const ResultsDashboard: React.FC = () => {
             await fetchData();
         } catch (error) {
             console.error('Error deleting sale:', error);
+        }
+    };
+
+    const handleUploadApolice = async (saleId: number, file: File) => {
+        setUploadingApoliceId(saleId);
+        try {
+            const ext = file.name.split('.').pop() || 'pdf';
+            const path = `${saleId}/apolice.${ext}`;
+            const { error: uploadError } = await supabase.storage
+                .from('apolices')
+                .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+            await supabase.from('sales').update({ apolice_url: urlData.publicUrl }).eq('id', saleId);
+            await fetchData();
+        } catch (err) {
+            console.error('Erro ao fazer upload da apólice:', err);
+            alert('Erro ao enviar apólice. Tente novamente.');
+        } finally {
+            setUploadingApoliceId(null);
         }
     };
 
@@ -1934,6 +1971,7 @@ const ResultsDashboard: React.FC = () => {
                                                 ))}
                                             </select>
                                         </th>
+                                        <th className="px-6 py-5 text-center align-top">Apólice</th>
                                         <th className="px-6 py-5 text-center align-top">Ações</th>
                                     </tr>
                                 </thead>
@@ -1975,6 +2013,33 @@ const ResultsDashboard: React.FC = () => {
                                                 <td className="px-6 py-5 text-sm text-slate-800 font-black">{sale.premio || '-'}</td>
                                                 <td className="px-6 py-5 text-sm text-[#C69C6D] font-black">{sale.comissao || '-'}</td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.vendedor}</td>
+                                                <td className="px-6 py-5 text-center">
+                                                    {(sale as any).apolice_url ? (
+                                                        <a
+                                                            href={(sale as any).apolice_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-black hover:bg-emerald-100 transition-all"
+                                                        >
+                                                            <Download size={13} /> PDF
+                                                        </a>
+                                                    ) : (
+                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-black hover:bg-slate-100 transition-all">
+                                                            {uploadingApoliceId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <Shield size={13} />}
+                                                            {uploadingApoliceId === sale.id ? '...' : 'Upload'}
+                                                            <input
+                                                                type="file"
+                                                                accept=".pdf"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    const f = e.target.files?.[0];
+                                                                    if (f) handleUploadApolice(sale.id, f);
+                                                                    e.target.value = '';
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center gap-2">
                                                         <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
