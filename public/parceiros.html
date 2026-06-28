@@ -156,9 +156,18 @@
         const btnApolice = v.apolice_url
           ? `<a href="${v.apolice_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Apólice</a>`
           : `<span style="color:#cbd5e1;font-size:11px;">—</span>`;
-        const btnBoleto = v.boleto_url
-          ? `<a href="${v.boleto_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Boleto</a>`
-          : `<span style="color:#cbd5e1;font-size:11px;">—</span>`;
+
+        // Boletos: lista de parcelas
+        let boletoHtml = '<span style="color:#cbd5e1;font-size:11px;">—</span>';
+        if (v._boletos && v._boletos.length > 0) {
+          boletoHtml = v._boletos.map(b =>
+            `<a href="${b.url}" target="_blank" rel="noopener noreferrer"
+              style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;margin:2px;">
+              ⬇ Parc. ${b.parcela}${b.vencimento ? ' <span style=\'font-weight:500;font-size:10px;opacity:.7\'>(' + fmtData(b.vencimento) + ')</span>' : ''}
+            </a>`
+          ).join('');
+        }
+
         return `<tr>
           <td class="data">${fmtData(v.data)}</td>
           <td class="nome">${v.nome || '—'}</td>
@@ -167,7 +176,7 @@
           <td class="comissao">${fmt(comissao)}</td>
           <td class="parceiro-val">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
           <td style="text-align:center">${btnApolice}</td>
-          <td style="text-align:center">${btnBoleto}</td>
+          <td style="min-width:140px">${boletoHtml}</td>
         </tr>`;
       }).join('');
       setTimeout(() => { topInner.style.width = tabelaScroll.scrollWidth + 'px'; }, 100);
@@ -185,16 +194,37 @@
     async function carregar() {
       const { data, error } = await client
         .from('sales')
-        .select('data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, boleto_url')
+        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url')
         .eq('vendeu', 'Sim')
         .eq('parceiro', session.name)
         .order('data', { ascending: false });
 
       if (error) {
-        document.getElementById('tabela-body').innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar dados.</td></tr>';
+        document.getElementById('tabela-body').innerHTML = '<tr><td colspan="8" class="empty">Erro ao carregar dados.</td></tr>';
         return;
       }
-      todasVendas = data || [];
+
+      const vendas = data || [];
+
+      // Buscar boletos para todas as vendas encontradas
+      if (vendas.length > 0) {
+        const ids = vendas.map(v => v.id);
+        const { data: bData } = await client
+          .from('boletos')
+          .select('sale_id, parcela, vencimento, url')
+          .in('sale_id', ids)
+          .order('parcela');
+
+        const bMap = {};
+        (bData || []).forEach(b => {
+          if (!bMap[b.sale_id]) bMap[b.sale_id] = [];
+          bMap[b.sale_id].push(b);
+        });
+
+        vendas.forEach(v => { v._boletos = bMap[v.id] || []; });
+      }
+
+      todasVendas = vendas;
       renderTabela(todasVendas);
       atualizarCards(todasVendas);
     }

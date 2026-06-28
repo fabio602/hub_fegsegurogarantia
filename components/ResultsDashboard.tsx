@@ -400,7 +400,11 @@ const ResultsDashboard: React.FC = () => {
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
     const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
-    const [uploadingBoletoId, setUploadingBoletoId] = useState<number | null>(null);
+    const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
+    const [boletoModalNome, setBoletoModalNome] = useState('');
+    const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string }[]>([]);
+    const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; file: File | null }>({ parcela: '', vencimento: '', file: null });
+    const [uploadingBoleto, setUploadingBoleto] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
@@ -974,24 +978,54 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
-    const handleUploadBoleto = async (saleId: number, file: File) => {
-        setUploadingBoletoId(saleId);
+    const openBoletoModal = async (saleId: number, nome: string) => {
+        setBoletoModalSaleId(saleId);
+        setBoletoModalNome(nome);
+        setBoletoForm({ parcela: '', vencimento: '', file: null });
+        const { data } = await supabase
+            .from('boletos')
+            .select('id, parcela, vencimento, url')
+            .eq('sale_id', saleId)
+            .order('parcela');
+        setBoletos(data || []);
+    };
+
+    const handleAddBoleto = async () => {
+        if (!boletoModalSaleId || !boletoForm.file || !boletoForm.parcela) return;
+        setUploadingBoleto(true);
         try {
-            const ext = file.name.split('.').pop() || 'pdf';
-            const path = `${saleId}/boleto.${ext}`;
+            const ext = boletoForm.file.name.split('.').pop() || 'pdf';
+            const path = `${boletoModalSaleId}/boletos/parcela-${boletoForm.parcela}.${ext}`;
             const { error: uploadError } = await supabase.storage
                 .from('apolices')
-                .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+                .upload(path, boletoForm.file, { upsert: true, contentType: 'application/pdf' });
             if (uploadError) throw uploadError;
             const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
-            await supabase.from('sales').update({ boleto_url: urlData.publicUrl }).eq('id', saleId);
-            await fetchData();
+            await supabase.from('boletos').insert({
+                sale_id: boletoModalSaleId,
+                parcela: parseInt(boletoForm.parcela),
+                vencimento: boletoForm.vencimento || null,
+                url: urlData.publicUrl,
+            });
+            const { data } = await supabase
+                .from('boletos')
+                .select('id, parcela, vencimento, url')
+                .eq('sale_id', boletoModalSaleId)
+                .order('parcela');
+            setBoletos(data || []);
+            setBoletoForm({ parcela: '', vencimento: '', file: null });
         } catch (err) {
-            console.error('Erro ao fazer upload do boleto:', err);
+            console.error('Erro ao enviar boleto:', err);
             alert('Erro ao enviar boleto. Tente novamente.');
         } finally {
-            setUploadingBoletoId(null);
+            setUploadingBoleto(false);
         }
+    };
+
+    const handleDeleteBoleto = async (boletoId: number) => {
+        if (!confirm('Remover este boleto?')) return;
+        await supabase.from('boletos').delete().eq('id', boletoId);
+        setBoletos(prev => prev.filter(b => b.id !== boletoId));
     };
 
     const handleUploadApolice = async (saleId: number, file: File) => {
@@ -2076,31 +2110,12 @@ const ResultsDashboard: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-5 text-center">
-                                                    {(sale as any).boleto_url ? (
-                                                        <a
-                                                            href={(sale as any).boleto_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-black hover:bg-blue-100 transition-all"
-                                                        >
-                                                            <Download size={13} /> PDF
-                                                        </a>
-                                                    ) : (
-                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-black hover:bg-slate-100 transition-all">
-                                                            {uploadingBoletoId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-                                                            {uploadingBoletoId === sale.id ? '...' : 'Upload'}
-                                                            <input
-                                                                type="file"
-                                                                accept=".pdf"
-                                                                className="hidden"
-                                                                onChange={(e) => {
-                                                                    const f = e.target.files?.[0];
-                                                                    if (f) handleUploadBoleto(sale.id, f);
-                                                                    e.target.value = '';
-                                                                }}
-                                                            />
-                                                        </label>
-                                                    )}
+                                                    <button
+                                                        onClick={() => openBoletoModal(sale.id, sale.nome || '')}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-black hover:bg-blue-100 transition-all"
+                                                    >
+                                                        <FileText size={13} /> Boletos
+                                                    </button>
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center gap-2">
@@ -2166,6 +2181,85 @@ const ResultsDashboard: React.FC = () => {
                         {emailDispatchStatus === 'error' && (
                             <p className="text-center text-sm font-bold text-red-600 bg-red-50 rounded-xl py-3">❌ Erro de conexão. Verifique se a automação está ativa.</p>
                         )}
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {boletoModalSaleId !== null && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setBoletoModalSaleId(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">Gerencie as parcelas do boleto</p>
+                            </div>
+                            <button onClick={() => setBoletoModalSaleId(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all"><X size={18} /></button>
+                        </div>
+
+                        {/* Lista de boletos existentes */}
+                        {boletos.length > 0 ? (
+                            <div className="space-y-2">
+                                {boletos.map(b => (
+                                    <div key={b.id} className="flex items-center justify-between gap-3 bg-blue-50 rounded-xl px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">Parcela {b.parcela}</span>
+                                            {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800 transition-all">
+                                                <Download size={13} /> PDF
+                                            </a>
+                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-400 text-center py-4">Nenhum boleto cadastrado ainda.</p>
+                        )}
+
+                        {/* Formulário para adicionar parcela */}
+                        <div className="border-t border-slate-100 pt-5 space-y-3">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº da Parcela</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={boletoForm.parcela}
+                                        onChange={e => setBoletoForm(f => ({ ...f, parcela: e.target.value }))}
+                                        placeholder="1"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
+                                    <input
+                                        type="date"
+                                        value={boletoForm.vencimento}
+                                        onChange={e => setBoletoForm(f => ({ ...f, vencimento: e.target.value }))}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Arquivo PDF</label>
+                                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${boletoForm.file ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                    <FileText size={14} />
+                                    {boletoForm.file ? boletoForm.file.name.substring(0, 25) : 'Selecionar PDF'}
+                                    <input type="file" accept=".pdf" className="hidden" onChange={e => setBoletoForm(f => ({ ...f, file: e.target.files?.[0] || null }))} />
+                                </label>
+                            </div>
+                            <button
+                                onClick={handleAddBoleto}
+                                disabled={uploadingBoleto || !boletoForm.file || !boletoForm.parcela}
+                                className="w-full py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                {uploadingBoleto ? <><Loader2 size={16} className="animate-spin" /> Enviando...</> : <><Plus size={16} /> Adicionar Parcela</>}
+                            </button>
+                        </div>
                     </div>
                 </div>,
                 document.body
