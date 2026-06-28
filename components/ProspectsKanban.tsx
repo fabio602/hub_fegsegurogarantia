@@ -263,6 +263,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // Bulk Selection State
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+
     // Add Column Modal
     const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
     const [newColTitle, setNewColTitle] = useState('');
@@ -607,6 +611,35 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
             await supabase.from('prospects').delete().eq('id', prospectId);
         } catch (error) {
             console.error('Error deleting lead:', error);
+            fetchProspects();
+        }
+    };
+
+    const toggleLeadSelection = (prospectId: string) => {
+        setSelectedLeadIds(prev => {
+            const next = new Set(prev);
+            if (next.has(prospectId)) next.delete(prospectId);
+            else next.add(prospectId);
+            return next;
+        });
+    };
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedLeadIds(new Set());
+    };
+
+    const handleBulkDelete = async () => {
+        const count = selectedLeadIds.size;
+        if (count === 0) return;
+        if (!confirm(`Deseja excluir ${count} lead(s) permanentemente? Esta ação não pode ser desfeita.`)) return;
+        const ids = Array.from(selectedLeadIds);
+        setProspects(prev => prev.filter(p => !selectedLeadIds.has(p.id)));
+        exitSelectionMode();
+        try {
+            await supabase.from('prospects').delete().in('id', ids);
+        } catch (error) {
+            console.error('Error bulk deleting leads:', error);
             fetchProspects();
         }
     };
@@ -1080,6 +1113,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                     <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 text-slate-600 hover:text-[#1B263B] px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
                         <LayoutGrid size={16} /> Nova Coluna
                     </button>
+                    <button
+                        onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+                        className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 border ${selectionMode ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50'}`}
+                    >
+                        <Trash2 size={15} /> {selectionMode ? 'Cancelar' : 'Selecionar'}
+                    </button>
                 </div>
                 <div className="w-full md:w-64 flex flex-col gap-2">
                     <div className="relative w-full">
@@ -1191,19 +1230,33 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
 
                             {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
                             <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
-                                {columnProspects.map(prospect => (
-                                    <div key={prospect.id} draggable onDragStart={(e) => handleDragStart(e, prospect.id)} onDragEnd={handleDragEnd} className="bg-white rounded-xl p-2.5 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#C69C6D]/30 transition-all flex flex-col gap-1">
+                                {columnProspects.map(prospect => {
+                                    const isSelected = selectedLeadIds.has(prospect.id);
+                                    return (
+                                    <div
+                                        key={prospect.id}
+                                        draggable={!selectionMode}
+                                        onDragStart={(e) => { if (!selectionMode) handleDragStart(e, prospect.id); }}
+                                        onDragEnd={handleDragEnd}
+                                        onClick={() => { if (selectionMode) toggleLeadSelection(prospect.id); }}
+                                        className={`rounded-xl p-2.5 shadow-sm border transition-all flex flex-col gap-1 ${selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} ${isSelected ? 'bg-rose-50 border-rose-400 shadow-md ring-2 ring-rose-300' : 'bg-white border-slate-200 hover:shadow-md hover:border-[#C69C6D]/30'}`}
+                                    >
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2 min-w-0 group/header">
-                                                <div 
-                                                    onClick={() => handleOpenEdit(prospect)}
+                                            {selectionMode && (
+                                                <div className={`w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-600 border-rose-600' : 'border-slate-300 bg-white'}`}>
+                                                    {isSelected && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                </div>
+                                            )}
+                                                <div
+                                                    onClick={(e) => { if (selectionMode) { e.stopPropagation(); toggleLeadSelection(prospect.id); } else handleOpenEdit(prospect); }}
                                                     className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer hover:bg-white hover:border-[#C69C6D]/40 hover:shadow-sm transition-all"
                                                 >
                                                     <Building size={14} className="text-slate-500 group-hover/header:text-[#C69C6D] transition-colors" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h4 
-                                                        onClick={() => handleOpenEdit(prospect)}
+                                                    <h4
+                                                        onClick={(e) => { if (!selectionMode) { e.stopPropagation(); handleOpenEdit(prospect); } }}
                                                         className="font-black text-slate-800 text-sm truncate cursor-pointer hover:text-[#1B263B] transition-colors" 
                                                         title={prospect.company || prospect.name}
                                                     >
@@ -1231,7 +1284,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                                             </div>
 
                                             {/* Context Menu */}
-                                            <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
+                                            {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
                                                 <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
                                                     <MoreVertical size={16} />
                                                 </button>
@@ -1262,7 +1315,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                                                         </div>
                                                     </div>
                                                 )}
-                                            </div>
+                                            </div>}
                                         </div>
 
                                         <div className="flex flex-col gap-1.5 mt-1">
@@ -1328,18 +1381,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                                             })()}
                                         </div>
 
-                                        <div className="flex gap-2 pt-1">
-                                            <button onClick={() => handleOpenEdit(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/12 hover:bg-[#C69C6D]/22 rounded-lg py-1.5 transition-colors">
+                                        {!selectionMode && <div className="flex gap-2 pt-1">
+                                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/12 hover:bg-[#C69C6D]/22 rounded-lg py-1.5 transition-colors">
                                                 <Edit2 size={11} /> Editar
                                             </button>
                                             {onConvertToSale && (
-                                                <button onClick={() => handleConvertToSale(prospect)} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/25 rounded-lg py-1.5 transition-colors">
+                                                <button onClick={(e) => { e.stopPropagation(); handleConvertToSale(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/25 rounded-lg py-1.5 transition-colors">
                                                     <TrendingUp size={11} /> Venda
                                                 </button>
                                             )}
-                                        </div>
+                                        </div>}
                                     </div>
-                                ))}
+                                    );
+                                })}
                                 {columnProspects.length === 0 && !isDragging && (
                                     <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                                         <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-2">
@@ -1360,6 +1414,32 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                     </button>
                 </div>
             </div>
+
+            {/* ── BULK DELETE FLOATING BAR ── */}
+            {selectionMode && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-[#1B263B] text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-[#C69C6D]/30 animate-in slide-in-from-bottom-4 duration-200">
+                    <span className="text-sm font-bold">
+                        {selectedLeadIds.size === 0
+                            ? 'Clique nos leads para selecionar'
+                            : `${selectedLeadIds.size} lead(s) selecionado(s)`}
+                    </span>
+                    {selectedLeadIds.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition-colors"
+                        >
+                            <Trash2 size={15} /> Excluir Selecionados
+                        </button>
+                    )}
+                    <button
+                        onClick={exitSelectionMode}
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                        title="Cancelar"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
 
             {/* ── ADD COLUMN MODAL ── */}
             {isAddColumnOpen && (

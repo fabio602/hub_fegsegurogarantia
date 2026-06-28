@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acesso de Parceiros — F&G Seguro Garantia</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 24px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: 0 4px 32px rgba(0,0,0,.08); border: 1px solid #e2e8f0; }
+    .logo { width: 56px; height: 56px; background: #1B263B; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #C69C6D; font-weight: 900; font-size: 20px; margin: 0 auto 20px; }
+    h1 { text-align: center; font-size: 20px; font-weight: 900; color: #1B263B; margin-bottom: 4px; }
+    p { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 28px; }
+    label { display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
+    input { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; margin-bottom: 16px; background: #f8fafc; color: #1B263B; transition: border .2s; }
+    input:focus { border-color: #C69C6D; background: #fff; }
+    button { width: 100%; padding: 14px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; transition: background .2s; margin-top: 4px; }
+    button:hover { background: #243447; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .erro { color: #ef4444; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">F&G</div>
+    <h1>Área do Parceiro</h1>
+    <p>F&G Corretora de Seguros</p>
+    <label>Usuário</label>
+    <input type="text" id="usuario" placeholder="Seu usuário" autocomplete="username" />
+    <label>Senha</label>
+    <input type="password" id="senha" placeholder="Sua senha" autocomplete="current-password" />
+    <button id="btn-login" onclick="login()">Entrar</button>
+    <div class="erro" id="erro">Usuário ou senha incorretos.</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Se já logado, redireciona
+    if (localStorage.getItem('parceiro_session')) {
+      window.location.href = 'parceiros.html';
+    }
+
+    document.getElementById('senha').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+
+    async function login() {
+      const usuario = document.getElementById('usuario').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btn = document.getElementById('btn-login');
+      const erro = document.getElementById('erro');
+      erro.style.display = 'none';
+      if (!usuario || !senha) return;
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+
+      const { data, error } = await client
+        .from('partners')
+        .select('id, name, username, commission_pct')
+        .eq('username', usuario)
+        .eq('password', senha)
+        .single();
+
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+
+      if (error || !data) {
+        erro.style.display = 'block';
+        return;
+      }
+
+      localStorage.setItem('parceiro_session', JSON.stringify(data));
+      window.location.href = 'parceiros.html';
+    }
+  </script>
+</body>
+</html>

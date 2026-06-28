@@ -804,6 +804,7 @@ const ResultsDashboard: React.FC = () => {
             segurado: formData.segurado || null,
             valorContrato: formData.valorContrato || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
+            parceiro: (formData as any).parceiro || null,
         };
 
         try {
@@ -1713,6 +1714,14 @@ const ResultsDashboard: React.FC = () => {
                                         {vendedorSelectOptions.map((v) => (
                                             <option key={v.email || v.name} value={v.name}>{v.name}</option>
                                         ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Parceiro</label>
+                                    <select id="parceiro" value={(formData as any).parceiro || ''} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="">Nenhum</option>
+                                        <option value="maximusb2gov">maximusb2gov</option>
+                                        <option value="Raphael Icaro Licitações">Raphael Icaro Licitações</option>
                                     </select>
                                 </div>
                             </div>
