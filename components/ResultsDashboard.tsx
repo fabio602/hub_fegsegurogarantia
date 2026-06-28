@@ -400,6 +400,7 @@ const ResultsDashboard: React.FC = () => {
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
     const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
+    const [uploadingBoletoId, setUploadingBoletoId] = useState<number | null>(null);
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
@@ -832,6 +833,19 @@ const ResultsDashboard: React.FC = () => {
                 }
             }
 
+            // Upload boleto PDF to Storage if provided
+            if (selectedBoleto && savedId && payload.vendeu === 'Sim') {
+                const ext = selectedBoleto.name.split('.').pop() || 'pdf';
+                const path = `${savedId}/boleto.${ext}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('apolices')
+                    .upload(path, selectedBoleto, { upsert: true, contentType: 'application/pdf' });
+                if (!uploadError) {
+                    const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+                    await supabase.from('sales').update({ boleto_url: urlData.publicUrl }).eq('id', savedId);
+                }
+            }
+
             await fetchData();
             setSaveSuccess(true);
             
@@ -957,6 +971,26 @@ const ResultsDashboard: React.FC = () => {
             await fetchData();
         } catch (error) {
             console.error('Error deleting sale:', error);
+        }
+    };
+
+    const handleUploadBoleto = async (saleId: number, file: File) => {
+        setUploadingBoletoId(saleId);
+        try {
+            const ext = file.name.split('.').pop() || 'pdf';
+            const path = `${saleId}/boleto.${ext}`;
+            const { error: uploadError } = await supabase.storage
+                .from('apolices')
+                .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+            await supabase.from('sales').update({ boleto_url: urlData.publicUrl }).eq('id', saleId);
+            await fetchData();
+        } catch (err) {
+            console.error('Erro ao fazer upload do boleto:', err);
+            alert('Erro ao enviar boleto. Tente novamente.');
+        } finally {
+            setUploadingBoletoId(null);
         }
     };
 
@@ -1972,6 +2006,7 @@ const ResultsDashboard: React.FC = () => {
                                             </select>
                                         </th>
                                         <th className="px-6 py-5 text-center align-top">Apólice</th>
+                                        <th className="px-6 py-5 text-center align-top">Boleto</th>
                                         <th className="px-6 py-5 text-center align-top">Ações</th>
                                     </tr>
                                 </thead>
@@ -2034,6 +2069,33 @@ const ResultsDashboard: React.FC = () => {
                                                                 onChange={(e) => {
                                                                     const f = e.target.files?.[0];
                                                                     if (f) handleUploadApolice(sale.id, f);
+                                                                    e.target.value = '';
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-5 text-center">
+                                                    {(sale as any).boleto_url ? (
+                                                        <a
+                                                            href={(sale as any).boleto_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-black hover:bg-blue-100 transition-all"
+                                                        >
+                                                            <Download size={13} /> PDF
+                                                        </a>
+                                                    ) : (
+                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-black hover:bg-slate-100 transition-all">
+                                                            {uploadingBoletoId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                                                            {uploadingBoletoId === sale.id ? '...' : 'Upload'}
+                                                            <input
+                                                                type="file"
+                                                                accept=".pdf"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    const f = e.target.files?.[0];
+                                                                    if (f) handleUploadBoleto(sale.id, f);
                                                                     e.target.value = '';
                                                                 }}
                                                             />

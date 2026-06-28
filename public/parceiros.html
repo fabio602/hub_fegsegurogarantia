@@ -85,10 +85,12 @@
               <th>Prêmio</th>
               <th>Comissão F&G</th>
               <th>Sua comissão</th>
+              <th style="text-align:center">Apólice</th>
+              <th style="text-align:center">Boleto</th>
             </tr>
           </thead>
           <tbody id="tabela-body">
-            <tr><td colspan="6" class="empty">Carregando...</td></tr>
+            <tr><td colspan="8" class="empty">Carregando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -145,12 +147,18 @@
     function renderTabela(vendas) {
       const tbody = document.getElementById('tabela-body');
       if (!vendas.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhuma venda encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma venda encontrada.</td></tr>';
         return;
       }
       tbody.innerHTML = vendas.map(v => {
         const comissao = parseVal(v.comissao);
         const parceiro = comissao * PCT;
+        const btnApolice = v.apolice_url
+          ? `<a href="${v.apolice_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Apólice</a>`
+          : `<span style="color:#cbd5e1;font-size:11px;">—</span>`;
+        const btnBoleto = v.boleto_url
+          ? `<a href="${v.boleto_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Boleto</a>`
+          : `<span style="color:#cbd5e1;font-size:11px;">—</span>`;
         return `<tr>
           <td class="data">${fmtData(v.data)}</td>
           <td class="nome">${v.nome || '—'}</td>
@@ -158,6 +166,8 @@
           <td>${fmt(parseVal(v.premio))}</td>
           <td class="comissao">${fmt(comissao)}</td>
           <td class="parceiro-val">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
+          <td style="text-align:center">${btnApolice}</td>
+          <td style="text-align:center">${btnBoleto}</td>
         </tr>`;
       }).join('');
       setTimeout(() => { topInner.style.width = tabelaScroll.scrollWidth + 'px'; }, 100);
@@ -175,7 +185,7 @@
     async function carregar() {
       const { data, error } = await client
         .from('sales')
-        .select('data, nome, tipo, product_type, premio, comissao, parceiro')
+        .select('data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, boleto_url')
         .eq('vendeu', 'Sim')
         .eq('parceiro', session.name)
         .order('data', { ascending: false });
