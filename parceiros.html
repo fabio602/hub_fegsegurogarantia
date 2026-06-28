@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório de Parceria — F&G Seguro Garantia</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; padding: 32px 16px; color: #1B263B; }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+    .logo { width: 48px; height: 48px; background: #1B263B; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #C69C6D; font-weight: 900; font-size: 18px; flex-shrink: 0; }
+    .header h1 { font-size: 22px; font-weight: 900; color: #1B263B; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; }
+    .card .label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 6px; }
+    .card .value { font-size: 22px; font-weight: 900; color: #1B263B; }
+    .card .value.gold { color: #C69C6D; }
+
+    .table-wrap { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .table-header { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .table-header h2 { font-size: 15px; font-weight: 900; }
+    .filter-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-wrap input, .filter-wrap select {
+      border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 12px;
+      font-size: 12px; outline: none; background: #f8fafc; color: #1B263B;
+    }
+
+    .scroll-x { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+    .scroll-x::-webkit-scrollbar { height: 6px; }
+    .scroll-x::-webkit-scrollbar-track { background: #f1f5f9; }
+    .scroll-x::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
+    thead th { padding: 12px 20px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #f8fafc; transition: background .15s; }
+    tbody tr:hover { background: #fafafa; }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 14px 20px; vertical-align: middle; }
+    .nome { font-weight: 800; color: #1B263B; }
+    .produto { color: #475569; }
+    .premio { font-weight: 700; }
+    .comissao { font-weight: 900; color: #1B263B; }
+    .parceiro { font-weight: 900; color: #C69C6D; font-size: 14px; }
+    .data { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+    .badge-ativo { background: #dcfce7; color: #16a34a; }
+    .badge-emitido { background: #dbeafe; color: #1d4ed8; }
+    .badge-outro { background: #f1f5f9; color: #64748b; }
+
+    .empty { padding: 48px; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
+    .loading { padding: 48px; text-align: center; color: #94a3b8; font-size: 14px; }
+
+    .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #94a3b8; }
+
+    @media (max-width: 600px) {
+      .header h1 { font-size: 18px; }
+      .card .value { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">F&G</div>
+      <div>
+        <h1>Relatório de Parceria</h1>
+        <p>F&G Corretora de Seguros — comissões geradas em parceria</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="label">Vendas fechadas</div>
+        <div class="value" id="total-vendas">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Prêmio total</div>
+        <div class="value" id="total-premio">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Comissão F&G</div>
+        <div class="value" id="total-comissao">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Sua comissão (20%)</div>
+        <div class="value gold" id="total-parceiro">—</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <h2>Clientes e comissões</h2>
+        <div class="filter-wrap">
+          <input type="text" id="busca" placeholder="Buscar cliente..." oninput="filtrar()" />
+          <select id="filtro-produto" onchange="filtrar()">
+            <option value="">Todos os produtos</option>
+            <option value="Seguro Garantia">Seguro Garantia</option>
+            <option value="Judicial">Judicial</option>
+            <option value="Energia">Energia</option>
+            <option value="Seguro de crédito">Seguro de crédito</option>
+          </select>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Cliente</th>
+              <th>Produto</th>
+              <th>Prêmio</th>
+              <th>Comissão F&G</th>
+              <th>Sua comissão (20%)</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr><td colspan="6" class="loading">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">Gerado por F&G Corretora · Uso exclusivo para parceiros</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
+    const COMISSAO_PARCEIRO = 0.20;
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let todasVendas = [];
+
+    function fmt(val) {
+      const n = parseFloat(String(val || '0').replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (isNaN(n) || n === 0) return '—';
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function parseVal(val) {
+      if (!val) return 0;
+      const n = parseFloat(String(val).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      return isNaN(n) ? 0 : n;
+    }
+
+    function fmtData(d) {
+      if (!d) return '—';
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+
+    function badgeProduto(tipo) {
+      if (!tipo) return '';
+      const lower = tipo.toLowerCase();
+      if (lower.includes('garantia')) return 'Seg. Garantia';
+      if (lower.includes('judicial')) return 'Judicial';
+      if (lower.includes('energia')) return 'Energia';
+      if (lower.includes('crédito') || lower.includes('credito')) return 'Seg. Crédito';
+      return tipo;
+    }
+
+    function filtrar() {
+      const busca = document.getElementById('busca').value.toLowerCase();
+      const produto = document.getElementById('filtro-produto').value.toLowerCase();
+      const filtradas = todasVendas.filter(v => {
+        const nomeOk = !busca || (v.nome || '').toLowerCase().includes(busca);
+        const produtoOk = !produto || (v.product_type || v.tipo || '').toLowerCase().includes(produto);
+        return nomeOk && produtoOk;
+      });
+      renderTabela(filtradas);
+      atualizarCards(filtradas);
+    }
+
+    function renderTabela(vendas) {
+      const tbody = document.getElementById('tabela-body');
+      if (!vendas.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhuma venda encontrada.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = vendas.map(v => {
+        const premio = parseVal(v.premio);
+        const comissao = parseVal(v.comissao);
+        const parceiro = comissao * COMISSAO_PARCEIRO;
+        const produto = badgeProduto(v.product_type || v.tipo);
+        return `<tr>
+          <td class="data">${fmtData(v.data)}</td>
+          <td class="nome">${v.nome || '—'}</td>
+          <td class="produto">${produto || '—'}</td>
+          <td class="premio">${fmt(premio)}</td>
+          <td class="comissao">${fmt(comissao)}</td>
+          <td class="parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function atualizarCards(vendas) {
+      const totalPremio = vendas.reduce((s, v) => s + parseVal(v.premio), 0);
+      const totalComissao = vendas.reduce((s, v) => s + parseVal(v.comissao), 0);
+      const totalParceiro = totalComissao * COMISSAO_PARCEIRO;
+      document.getElementById('total-vendas').textContent = vendas.length;
+      document.getElementById('total-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
+      document.getElementById('total-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
+      document.getElementById('total-parceiro').textContent = totalParceiro > 0 ? fmt(totalParceiro) : '—';
+    }
+
+    async function carregar() {
+      const { data, error } = await client
+        .from('sales')
+        .select('data, nome, tipo, product_type, premio, comissao, vendeu, indicacao')
+        .eq('vendeu', 'Sim')
+        .order('data', { ascending: false });
+
+      if (error) {
+        document.getElementById('tabela-body').innerHTML =
+          '<tr><td colspan="6" class="empty">Erro ao carregar dados.</td></tr>';
+        return;
+      }
+
+      todasVendas = data || [];
+      renderTabela(todasVendas);
+      atualizarCards(todasVendas);
+    }
+
+    carregar();
+  </script>
+</body>
+</html>
