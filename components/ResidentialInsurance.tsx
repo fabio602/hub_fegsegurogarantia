@@ -306,11 +306,18 @@ const ResidentialInsurance: React.FC = () => {
         fetchClients();
     };
 
+    const handleNaoRenovar = async (id: number) => {
+        if (!confirm('Marcar este cliente como "Não irá renovar"? Ele sairá do alerta de vencimento.')) return;
+        await supabase.from('residential_clients').update({ nao_renovar: true }).eq('id', id);
+        fetchClients();
+    };
+
     const getExpiringAlerts = () => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
         return clients.filter(c => {
             if (!c.fim_vigencia) return false;
+            if (c.nao_renovar) return false;
             const fim = new Date(c.fim_vigencia);
             return fim >= today && fim <= in30 && c.situacao === 'Ativo';
         }).sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
@@ -437,6 +444,9 @@ const ResidentialInsurance: React.FC = () => {
                                     </div>
                                     <button onClick={() => handleEdit(c)} className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-black text-xs px-3 py-2 rounded-lg transition-all">
                                         <Edit2 size={13} /> Editar
+                                    </button>
+                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 font-black text-xs px-3 py-2 rounded-lg transition-all">
+                                        ✕ Não renovar
                                     </button>
                                 </div>
                             );
