@@ -99,7 +99,11 @@
 
     function fmtMoeda(v) {
       if (!v) return null;
-      const n = parseFloat(String(v).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      // Remove tudo exceto dígitos, vírgula e ponto
+      let s = String(v).replace(/[^0-9,.]/g, '');
+      // Formato BR: ponto = milhar, vírgula = decimal → remove pontos, troca vírgula por ponto
+      s = s.replace(/\./g, '').replace(',', '.');
+      const n = parseFloat(s);
       if (isNaN(n) || n === 0) return null;
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
