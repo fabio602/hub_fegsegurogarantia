@@ -1564,6 +1564,14 @@ const ResultsDashboard: React.FC = () => {
                                 <Download size={18} />
                                 Exportar
                             </button>
+                            <button
+                                onClick={() => navigator.clipboard.writeText('https://hub.fegsegurogarantia.com/apolices.html')}
+                                className="bg-white text-[#C69C6D] px-5 py-2.5 rounded-xl font-bold text-sm border border-[#C69C6D]/30 shadow-sm hover:bg-[#C69C6D]/5 transition-all flex items-center gap-2"
+                                title="Copiar link do portal de apólices"
+                            >
+                                <Copy size={18} />
+                                Portal Cliente
+                            </button>
                         </div>
                     </div>
 
