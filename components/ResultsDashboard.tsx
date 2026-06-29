@@ -996,27 +996,35 @@ const ResultsDashboard: React.FC = () => {
         try {
             const ext = boletoForm.file.name.split('.').pop() || 'pdf';
             const path = `${boletoModalSaleId}/boletos/parcela-${boletoForm.parcela}.${ext}`;
+
             const { error: uploadError } = await supabase.storage
                 .from('apolices')
                 .upload(path, boletoForm.file, { upsert: true, contentType: 'application/pdf' });
-            if (uploadError) throw uploadError;
+            if (uploadError) throw new Error(`Upload: ${uploadError.message}`);
+
             const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
-            await supabase.from('boletos').insert({
+            if (!urlData?.publicUrl) throw new Error('Não foi possível obter a URL pública.');
+
+            const { error: insertError } = await supabase.from('boletos').insert({
                 sale_id: boletoModalSaleId,
                 parcela: parseInt(boletoForm.parcela),
                 vencimento: boletoForm.vencimento || null,
                 url: urlData.publicUrl,
             });
-            const { data } = await supabase
+            if (insertError) throw new Error(`Insert: ${insertError.message}`);
+
+            const { data, error: selectError } = await supabase
                 .from('boletos')
                 .select('id, parcela, vencimento, url')
                 .eq('sale_id', boletoModalSaleId)
                 .order('parcela');
+            if (selectError) throw new Error(`Select: ${selectError.message}`);
+
             setBoletos(data || []);
             setBoletoForm({ parcela: '', vencimento: '', file: null });
-        } catch (err) {
+        } catch (err: any) {
             console.error('Erro ao enviar boleto:', err);
-            alert('Erro ao enviar boleto. Tente novamente.');
+            alert(`Erro ao enviar boleto: ${err?.message || 'Tente novamente.'}`);
         } finally {
             setUploadingBoleto(false);
         }
