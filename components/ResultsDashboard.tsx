@@ -1972,6 +1972,7 @@ const ResultsDashboard: React.FC = () => {
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                                     <tr>
+                                        <th className="px-6 py-5 text-center align-top">Ações</th>
                                         <th className="px-6 py-5 align-top">Data</th>
                                         <th className="px-6 py-5 align-top">
                                             <span className="block">Lead</span>
@@ -2049,7 +2050,6 @@ const ResultsDashboard: React.FC = () => {
                                         </th>
                                         <th className="px-6 py-5 text-center align-top">Apólice</th>
                                         <th className="px-6 py-5 text-center align-top">Boleto</th>
-                                        <th className="px-6 py-5 text-center align-top">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -2071,6 +2071,12 @@ const ResultsDashboard: React.FC = () => {
                                         )
                                         .map((sale) => (
                                             <tr key={sale.id} className="group hover:bg-slate-50/80 transition-all">
+                                                <td className="px-6 py-5">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
+                                                        <button onClick={() => handleDelete(sale.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="font-black text-slate-800 tracking-tight">{sale.nome}</div>
@@ -2124,12 +2130,6 @@ const ResultsDashboard: React.FC = () => {
                                                     >
                                                         <FileText size={13} /> Boletos
                                                     </button>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex justify-center gap-2">
-                                                        <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
-                                                        <button onClick={() => handleDelete(sale.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
