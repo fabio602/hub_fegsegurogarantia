@@ -19,6 +19,7 @@ import {
   Landmark,
   Scale,
   Car,
+  Users,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
@@ -32,8 +33,9 @@ import InternalProcedures from './components/InternalProcedures';
 import ResidentialInsurance from './components/ResidentialInsurance';
 import AutoInsurance from './components/AutoInsurance';
 import AgendaHub from './components/AgendaHub';
+import ParceiroManager from './components/ParceiroManager';
 
-type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda';
+type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda' | 'parceiros';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -122,6 +124,7 @@ const App: React.FC = () => {
               <NavItem view="banks" icon={<Landmark size={16} />} label="Bancos Garantidores" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
+              <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
             </nav>
           </div>
 
@@ -160,6 +163,7 @@ const App: React.FC = () => {
                 {activeView === 'auto' && 'Seguro AUTO'}
                 {activeView === 'manual' && 'Manual de Procedimentos Internos'}
                 {activeView === 'agenda' && 'Agenda Semanal'}
+                {activeView === 'parceiros' && 'Gestão de Parceiros'}
               </h2>
               <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
@@ -238,7 +242,7 @@ const App: React.FC = () => {
                       { title: 'Calculadora', desc: 'Precificação Garantia', icon: <CalcIcon size={22} />, view: 'calculator', color: 'bg-indigo-50 text-indigo-600' },
                       { title: 'Nomeação', desc: 'Relatório em PDF', icon: <FileText size={22} />, view: 'letter', color: 'bg-amber-50 text-amber-600' },
                       { title: 'Performance', desc: 'KPIs & PLR 2026', icon: <Target size={22} />, view: 'goals', color: 'bg-emerald-50 text-emerald-600' },
-                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <ShieldCheck size={22} />, view: 'directory', color: 'bg-slate-100 text-[#1B263B]' },
+                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros', color: 'bg-slate-100 text-[#1B263B]' },
                     ].map((item, idx) => (
                       <button
                         key={idx}
@@ -261,6 +265,49 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Portais Públicos */}
+                <div>
+                  <div className="flex items-center justify-between mb-6 px-2">
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Portais Públicos</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Links para enviar aos clientes/parceiros</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      {
+                        label: 'Portal de Apólices',
+                        desc: 'Cliente consulta suas apólices pelo CNPJ',
+                        url: 'https://hub.fegsegurogarantia.com/apolices.html',
+                        icon: '📄',
+                      },
+                      {
+                        label: 'Portal do Parceiro',
+                        desc: 'Acesso dos parceiros comerciais ao relatório de comissões',
+                        url: 'https://hub.fegsegurogarantia.com/parceiros-login.html',
+                        icon: '🤝',
+                      },
+                    ].map((portal, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="text-2xl">{portal.icon}</div>
+                          <div>
+                            <p className="font-black text-slate-800 text-sm">{portal.label}</p>
+                            <p className="text-xs text-slate-400 font-medium mt-0.5">{portal.desc}</p>
+                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#C69C6D] font-bold hover:underline mt-1 block truncate max-w-[260px]">
+                              {portal.url.replace('https://', '')}
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(portal.url)}
+                          className="shrink-0 text-xs font-black px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl transition-all"
+                        >
+                          Copiar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -275,6 +322,7 @@ const App: React.FC = () => {
               {activeView === 'sureties' && <SuretiesDirectory />}
               {activeView === 'manual' && <InternalProcedures />}
               {activeView === 'agenda' && <AgendaHub />}
+              {activeView === 'parceiros' && <ParceiroManager />}
             </div>
           </div>
         </div>
