@@ -28,14 +28,18 @@
     .msg.error { color: #ef4444; }
 
     .results { display: flex; flex-direction: column; gap: 16px; }
-    .apolice-card { background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .apolice-card { background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .apolice-info .empresa { font-size: 16px; font-weight: 900; color: #1B263B; }
-    .apolice-info .meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .apolice-info .segurado { font-size: 12px; color: #475569; margin-top: 4px; }
+    .apolice-info .meta { font-size: 12px; color: #64748b; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 12px; }
     .meta-item { display: flex; align-items: center; gap: 4px; }
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; text-transform: uppercase; background: #dbeafe; color: #1d4ed8; }
-    .btn-download { display: inline-flex; align-items: center; gap-6px; gap: 6px; padding: 10px 20px; background: #1B263B; color: #fff; border-radius: 12px; font-size: 13px; font-weight: 900; text-decoration: none; transition: background .2s; white-space: nowrap; }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .btn-download { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #1B263B; color: #fff; border-radius: 12px; font-size: 13px; font-weight: 900; text-decoration: none; transition: background .2s; white-space: nowrap; }
     .btn-download:hover { background: #243447; }
-    .btn-download svg { width: 16px; height: 16px; }
+    .btn-download svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .btn-boleto { background: #1d4ed8; }
+    .btn-boleto:hover { background: #1e40af; }
 
     .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #94a3b8; }
   </style>
@@ -104,12 +108,14 @@
       btn.textContent = 'Buscando...';
       document.getElementById('resultado').innerHTML = '<p class="msg">Consultando...</p>';
 
-      // Try matching with and without formatting
+      const cnpjFormatado = document.getElementById('cnpj-input').value;
+
+      // Buscar vendas pelo CNPJ (com ou sem formatação)
       const { data, error } = await client
         .from('sales')
-        .select('id, data, nome, product_type, tipo, seguradora, premio, vigencia_inicio, vigencia_fim, apolice_url')
-        .not('apolice_url', 'is', null)
-        .or(`cnpj.eq.${raw},cnpj.eq.${document.getElementById('cnpj-input').value}`);
+        .select('id, data, nome, product_type, tipo, seguradora, segurado, premio, vigencia_inicio, vigencia_fim, apolice_url')
+        .or(`cnpj.eq.${raw},cnpj.eq.${cnpjFormatado}`)
+        .eq('vendeu', 'Sim');
 
       btn.disabled = false;
       btn.textContent = 'Buscar';
@@ -124,18 +130,57 @@
         return;
       }
 
+      // Buscar boletos para todas as vendas
+      const ids = data.map(a => a.id);
+      const { data: bData } = await client
+        .from('boletos')
+        .select('sale_id, parcela, vencimento, url')
+        .in('sale_id', ids)
+        .order('parcela');
+
+      const bMap = {};
+      (bData || []).forEach(b => {
+        if (!bMap[b.sale_id]) bMap[b.sale_id] = [];
+        bMap[b.sale_id].push(b);
+      });
+
+      // Filtrar apenas registros que têm apólice OU boleto
+      const comDocumentos = data.filter(a => a.apolice_url || (bMap[a.id] && bMap[a.id].length > 0));
+
+      if (comDocumentos.length === 0) {
+        document.getElementById('resultado').innerHTML = '<p class="msg">Nenhum documento disponível para este CNPJ ainda.</p>';
+        return;
+      }
+
       document.getElementById('resultado').innerHTML = `
         <div class="results">
-          ${data.map(a => {
+          ${comDocumentos.map(a => {
             const produto = a.product_type || a.tipo || '—';
             const vigencia = (a.vigencia_inicio || a.vigencia_fim)
               ? `${fmtData(a.vigencia_inicio)} → ${fmtData(a.vigencia_fim)}`
               : null;
             const premio = fmtMoeda(a.premio);
+            const boletos = bMap[a.id] || [];
+
+            const btnApolice = a.apolice_url
+              ? `<a href="${a.apolice_url}" target="_blank" rel="noopener noreferrer" class="btn-download">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                  Apólice
+                </a>`
+              : '';
+
+            const btnsBoleto = boletos.map(b =>
+              `<a href="${b.url}" target="_blank" rel="noopener noreferrer" class="btn-download btn-boleto">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                Boleto ${b.parcela}${b.vencimento ? ' <span style="font-size:10px;opacity:.75">(' + fmtData(b.vencimento) + ')</span>' : ''}
+              </a>`
+            ).join('');
+
             return `
             <div class="apolice-card">
               <div class="apolice-info">
                 <div class="empresa">${a.nome || '—'}</div>
+                ${a.segurado ? `<div class="segurado">Segurado: <strong>${a.segurado}</strong></div>` : ''}
                 <div class="meta">
                   <span class="badge">${produto}</span>
                   ${a.seguradora ? `<span class="meta-item">🏢 ${a.seguradora}</span>` : ''}
@@ -144,10 +189,7 @@
                   <span class="meta-item">📄 Emitida em ${fmtData(a.data)}</span>
                 </div>
               </div>
-              <a href="${a.apolice_url}" target="_blank" rel="noopener noreferrer" class="btn-download">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-                Baixar PDF
-              </a>
+              <div class="btns">${btnApolice}${btnsBoleto}</div>
             </div>
             `;
           }).join('')}
