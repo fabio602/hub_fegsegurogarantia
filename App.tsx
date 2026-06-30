@@ -34,8 +34,9 @@ import ResidentialInsurance from './components/ResidentialInsurance';
 import AutoInsurance from './components/AutoInsurance';
 import AgendaHub from './components/AgendaHub';
 import ParceiroManager from './components/ParceiroManager';
+import UserManager from './components/UserManager';
 
-type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda' | 'parceiros';
+type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda' | 'parceiros' | 'usuarios';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -125,6 +126,9 @@ const App: React.FC = () => {
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
               <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
+              {session?.user?.email === 'fabio@fegsegurogarantia.com.br' && (
+                <NavItem view="usuarios" icon={<ShieldCheck size={16} />} label="Usuários do Hub" />
+              )}
             </nav>
           </div>
 
@@ -164,6 +168,7 @@ const App: React.FC = () => {
                 {activeView === 'manual' && 'Manual de Procedimentos Internos'}
                 {activeView === 'agenda' && 'Agenda Semanal'}
                 {activeView === 'parceiros' && 'Gestão de Parceiros'}
+                {activeView === 'usuarios' && 'Usuários do Hub'}
               </h2>
               <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
@@ -323,6 +328,7 @@ const App: React.FC = () => {
               {activeView === 'manual' && <InternalProcedures />}
               {activeView === 'agenda' && <AgendaHub />}
               {activeView === 'parceiros' && <ParceiroManager />}
+              {activeView === 'usuarios' && <UserManager />}
             </div>
           </div>
         </div>
