@@ -402,7 +402,7 @@ const ResultsDashboard: React.FC = () => {
     const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
     const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
     const [boletoModalNome, setBoletoModalNome] = useState('');
-    const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string }[]>([]);
+    const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean }[]>([]);
     const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; file: File | null }>({ parcela: '', vencimento: '', file: null });
     const [uploadingBoleto, setUploadingBoleto] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -984,7 +984,7 @@ const ResultsDashboard: React.FC = () => {
         setBoletoForm({ parcela: '', vencimento: '', file: null });
         const { data } = await supabase
             .from('boletos')
-            .select('id, parcela, vencimento, url')
+            .select('id, parcela, vencimento, url, pago')
             .eq('sale_id', saleId)
             .order('parcela');
         setBoletos(data || []);
@@ -1015,7 +1015,7 @@ const ResultsDashboard: React.FC = () => {
 
             const { data, error: selectError } = await supabase
                 .from('boletos')
-                .select('id, parcela, vencimento, url')
+                .select('id, parcela, vencimento, url, pago')
                 .eq('sale_id', boletoModalSaleId)
                 .order('parcela');
             if (selectError) throw new Error(`Select: ${selectError.message}`);
@@ -1028,6 +1028,11 @@ const ResultsDashboard: React.FC = () => {
         } finally {
             setUploadingBoleto(false);
         }
+    };
+
+    const handleTogglePago = async (boletoId: number, currentPago: boolean) => {
+        await supabase.from('boletos').update({ pago: !currentPago }).eq('id', boletoId);
+        setBoletos(prev => prev.map(b => b.id === boletoId ? { ...b, pago: !currentPago } : b));
     };
 
     const handleDeleteBoleto = async (boletoId: number) => {
@@ -2217,12 +2222,19 @@ const ResultsDashboard: React.FC = () => {
                         {boletos.length > 0 ? (
                             <div className="space-y-2">
                                 {boletos.map(b => (
-                                    <div key={b.id} className="flex items-center justify-between gap-3 bg-blue-50 rounded-xl px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xs font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded-lg">Parcela {b.parcela}</span>
+                                    <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-blue-50'}`}>
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
+                                            {b.pago && <span className="text-xs font-black text-emerald-600">✓ Pago</span>}
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleTogglePago(b.id, b.pago)}
+                                                className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                            >
+                                                {b.pago ? 'Desmarcar' : '✓ Pago'}
+                                            </button>
                                             <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800 transition-all">
                                                 <Download size={13} /> PDF
                                             </a>
