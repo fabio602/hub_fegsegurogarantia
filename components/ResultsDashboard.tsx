@@ -2222,18 +2222,21 @@ const ResultsDashboard: React.FC = () => {
                         {boletos.length > 0 ? (
                             <div className="space-y-2">
                                 {boletos.map(b => (
-                                    <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-blue-50'}`}>
+                                    <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>Parcela {b.parcela}</span>
+                                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
-                                            {b.pago && <span className="text-xs font-black text-emerald-600">✓ Pago</span>}
+                                            {b.pago
+                                                ? <span className="text-xs font-black text-emerald-600">✓ Pago</span>
+                                                : <span className="text-xs font-black text-red-600">⚠ Em Aberto</span>
+                                            }
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleTogglePago(b.id, b.pago)}
-                                                className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                                className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
                                             >
-                                                {b.pago ? 'Desmarcar' : '✓ Pago'}
+                                                {b.pago ? 'Marcar como Em Aberto' : 'Marcar como Pago'}
                                             </button>
                                             <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800 transition-all">
                                                 <Download size={13} /> PDF
