@@ -403,6 +403,7 @@ const ResultsDashboard: React.FC = () => {
     const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
     const [boletoModalNome, setBoletoModalNome] = useState('');
     const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean }[]>([]);
+    const [boletosSummary, setBoletosSummary] = useState<Record<number, { total: number; emAberto: number }>>({});
     const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; file: File | null }>({ parcela: '', vencimento: '', file: null });
     const [uploadingBoleto, setUploadingBoleto] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -522,19 +523,28 @@ const ResultsDashboard: React.FC = () => {
                 { data: costsData },
                 { data: insurersData },
                 { data: sellersData },
-                { data: mtData }
+                { data: mtData },
+                { data: boletosAllData }
             ] = await Promise.all([
                 supabase.from('sales').select('*').order('data', { ascending: false }),
                 supabase.from('lead_costs').select('*'),
                 supabase.from('insurers').select('*').order('nome'),
                 supabase.from('sellers').select('*').order('name'),
-                supabase.from('monthly_targets').select('*')
+                supabase.from('monthly_targets').select('*'),
+                supabase.from('boletos').select('sale_id, pago')
             ]);
             setSales((salesData || []).map((row) => normalizeSaleFromDb(row as Record<string, unknown>)));
             setLeadCosts(costsData || []);
             setInsurers(insurersData || []);
             setSellers((sellersData || []).map((row) => normalizeSellerRow(row as Record<string, unknown>)));
             setMonthlyTargets((mtData || []).map((row) => normalizeMonthlyTargetRow(row as Record<string, unknown>)));
+            const summary: Record<number, { total: number; emAberto: number }> = {};
+            (boletosAllData || []).forEach((b: { sale_id: number; pago: boolean }) => {
+                if (!summary[b.sale_id]) summary[b.sale_id] = { total: 0, emAberto: 0 };
+                summary[b.sale_id].total++;
+                if (!b.pago) summary[b.sale_id].emAberto++;
+            });
+            setBoletosSummary(summary);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -1033,6 +1043,18 @@ const ResultsDashboard: React.FC = () => {
     const handleTogglePago = async (boletoId: number, currentPago: boolean) => {
         await supabase.from('boletos').update({ pago: !currentPago }).eq('id', boletoId);
         setBoletos(prev => prev.map(b => b.id === boletoId ? { ...b, pago: !currentPago } : b));
+        if (boletoModalSaleId !== null) {
+            setBoletosSummary(prev => {
+                const cur = prev[boletoModalSaleId] || { total: 0, emAberto: 0 };
+                return {
+                    ...prev,
+                    [boletoModalSaleId]: {
+                        total: cur.total,
+                        emAberto: currentPago ? cur.emAberto + 1 : Math.max(0, cur.emAberto - 1)
+                    }
+                };
+            });
+        }
     };
 
     const handleDeleteBoleto = async (boletoId: number) => {
@@ -2137,12 +2159,22 @@ const ResultsDashboard: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-5 text-center">
-                                                    <button
-                                                        onClick={() => openBoletoModal(sale.id, sale.nome || '')}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-black hover:bg-blue-100 transition-all"
-                                                    >
-                                                        <FileText size={13} /> Boletos
-                                                    </button>
+                                                    {(() => {
+                                                        const s = boletosSummary[sale.id];
+                                                        return (
+                                                            <button
+                                                                onClick={() => openBoletoModal(sale.id, sale.nome || '')}
+                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                            >
+                                                                <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
+                                                                {s && s.total > 0 && (
+                                                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                        {s.emAberto > 0 ? `${s.emAberto} em aberto` : 'Todos pagos'}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </td>
                                             </tr>
                                         ))}
