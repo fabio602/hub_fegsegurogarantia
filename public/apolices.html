@@ -146,7 +146,7 @@
       const ids = data.map(a => a.id);
       const { data: bData } = await client
         .from('boletos')
-        .select('sale_id, parcela, vencimento, url')
+        .select('sale_id, parcela, vencimento, url, pago')
         .in('sale_id', ids)
         .order('parcela');
 
@@ -181,12 +181,17 @@
                 </a>`
               : '';
 
-            const btnsBoleto = boletos.map(b =>
-              `<a href="${b.url}" target="_blank" rel="noopener noreferrer" class="btn-download btn-boleto">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-                Boleto ${b.parcela}${b.vencimento ? ' <span style="font-size:10px;opacity:.75">(' + fmtData(b.vencimento) + ')</span>' : ''}
-              </a>`
-            ).join('');
+            const hoje = new Date().toISOString().slice(0, 10);
+            const btnsBoleto = boletos.map(b => {
+              const emAberto = !b.pago && b.vencimento && b.vencimento < hoje;
+              return `<div style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;margin:2px;">
+                <a href="${b.url}" target="_blank" rel="noopener noreferrer" class="btn-download btn-boleto" style="${emAberto ? 'background:#dc2626;' : ''}">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                  Boleto ${b.parcela}${b.vencimento ? ' <span style="font-size:10px;opacity:.75">(' + fmtData(b.vencimento) + ')</span>' : ''}
+                </a>
+                ${emAberto ? '<span style="font-size:10px;font-weight:900;color:#dc2626;background:#fee2e2;padding:2px 8px;border-radius:6px;">⚠ Em aberto</span>' : ''}
+              </div>`;
+            }).join('');
 
             return `
             <div class="apolice-card">
