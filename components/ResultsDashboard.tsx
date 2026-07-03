@@ -459,6 +459,7 @@ const ResultsDashboard: React.FC = () => {
         vendeu: 'Em andamento',
         motivoPerda: '',
         comissao: '',
+        comissaoPerc: '',
         vendedor: '',
         indicacao: 'Não',
         limites: 'Não',
@@ -718,6 +719,18 @@ const ResultsDashboard: React.FC = () => {
         const { id, type } = e.target as HTMLInputElement;
         let value = e.target.value;
 
+        if (id === 'comissaoPerc') {
+            const perc = parseFloat(value.replace(',', '.'));
+            const premioRaw = parseFloat(formData.premio.replace(/[R$\s.]/g, '').replace(',', '.'));
+            setFormData(prev => ({
+                ...prev,
+                comissaoPerc: value,
+                comissao: (!isNaN(perc) && !isNaN(premioRaw) && premioRaw > 0)
+                    ? formatCurrency(premioRaw * perc / 100)
+                    : prev.comissao
+            }));
+            return;
+        }
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [id]: checked ? 'Sim' : 'Não' }));
@@ -937,6 +950,7 @@ const ResultsDashboard: React.FC = () => {
             vendeu: 'Em andamento',
             motivoPerda: '',
             comissao: '',
+            comissaoPerc: '',
             vendedor: '',
             indicacao: 'Não',
             limites: 'Não',
@@ -1852,8 +1866,22 @@ const ResultsDashboard: React.FC = () => {
                                     </>
                                 )}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor Comissão</label>
-                                    <input type="text" id="comissao" value={formData.comissao} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Comissão</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative w-28 flex-shrink-0">
+                                            <input
+                                                type="number"
+                                                id="comissaoPerc"
+                                                value={formData.comissaoPerc}
+                                                onChange={handleInputChange}
+                                                placeholder="0"
+                                                min="0" max="100" step="0.1"
+                                                className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 pr-8 text-sm outline-none focus:border-amber-400 transition-all"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 font-black text-sm">%</span>
+                                        </div>
+                                        <input type="text" id="comissao" value={formData.comissao} onChange={handleInputChange} placeholder="R$ 0,00" className="flex-1 bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
