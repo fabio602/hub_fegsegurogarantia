@@ -359,6 +359,9 @@ const ResultsDashboard: React.FC = () => {
     const [showEmailPrompt, setShowEmailPrompt] = useState<{ email: string; name: string; decisor?: string } | null>(null);
     const [cnpjLookupStatus, setCnpjLookupStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+    const [nameSuggestions, setNameSuggestions] = useState<{ nome: string; cnpj: string; telefone: string; email: string; decisor: string }[]>([]);
+    const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+    const nameSearchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [limitesArray, setLimitesArray] = useState<InsurerLimit[]>([]);
     const [currentLimit, setCurrentLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
@@ -792,6 +795,43 @@ const ResultsDashboard: React.FC = () => {
         } catch {
             setCnpjLookupStatus('idle');
         }
+    };
+
+    const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setAutoFilledFields(prev => { const s = new Set(prev); s.delete('nome'); return s; });
+        handleInputChange(e);
+        if (nameSearchTimer.current) clearTimeout(nameSearchTimer.current);
+        if (value.length < 2) { setNameSuggestions([]); setShowNameSuggestions(false); return; }
+        nameSearchTimer.current = setTimeout(async () => {
+            const { data } = await supabase
+                .from('sales')
+                .select('nome, cnpj, telefone, email, decisor')
+                .ilike('nome', `%${value}%`)
+                .not('nome', 'is', null)
+                .order('nome')
+                .limit(6);
+            const unique = Array.from(new Map((data || []).map(r => [r.cnpj || r.nome, r])).values());
+            setNameSuggestions(unique as { nome: string; cnpj: string; telefone: string; email: string; decisor: string }[]);
+            setShowNameSuggestions(unique.length > 0);
+        }, 300);
+    };
+
+    const handleNameSuggestionSelect = (s: { nome: string; cnpj: string; telefone: string; email: string; decisor: string }) => {
+        const filled = new Set<string>();
+        setFormData(prev => {
+            const updated = { ...prev };
+            if (s.nome) { updated.nome = s.nome; filled.add('nome'); }
+            if (s.cnpj) { updated.cnpj = s.cnpj; filled.add('cnpj'); }
+            if (s.telefone) { updated.telefone = s.telefone; filled.add('telefone'); }
+            if (s.email) { updated.email = s.email; filled.add('email'); }
+            if (s.decisor) { updated.decisor = s.decisor; filled.add('decisor'); }
+            return updated;
+        });
+        setAutoFilledFields(filled);
+        setShowNameSuggestions(false);
+        setNameSuggestions([]);
+        setCnpjLookupStatus('found');
     };
 
     const handleSaleSubmit = async (e: React.FormEvent) => {
@@ -1680,13 +1720,30 @@ const ResultsDashboard: React.FC = () => {
                                     <div className="relative">
                                         <input
                                             type="text" id="nome" value={formData.nome || ''}
-                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('nome'); return s; }); handleInputChange(e); }}
+                                            onChange={handleNomeChange}
+                                            onBlur={() => setTimeout(() => setShowNameSuggestions(false), 150)}
+                                            onFocus={() => nameSuggestions.length > 0 && setShowNameSuggestions(true)}
                                             required placeholder="Ex: Empresa XYZ"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('nome')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
                                                 : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
                                                 }`}
                                         />
+                                        {showNameSuggestions && nameSuggestions.length > 0 && (
+                                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                                                {nameSuggestions.map((s, i) => (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        onMouseDown={() => handleNameSuggestionSelect(s)}
+                                                        className="w-full text-left px-4 py-3 hover:bg-[#C69C6D]/10 transition-colors border-b border-slate-50 last:border-0"
+                                                    >
+                                                        <div className="font-black text-sm text-slate-800">{s.nome}</div>
+                                                        {s.cnpj && <div className="text-[11px] text-slate-400 font-medium">{s.cnpj}</div>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="group/field relative">
