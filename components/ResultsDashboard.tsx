@@ -797,6 +797,18 @@ const ResultsDashboard: React.FC = () => {
         }
     };
 
+    const maskTelefone = (value: string): string => {
+        const digits = value.replace(/\D/g, '').substring(0, 11);
+        if (digits.length <= 10) {
+            return digits
+                .replace(/^(\d{2})(\d)/, '($1) $2')
+                .replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        return digits
+            .replace(/^(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{5})(\d)/, '$1-$2');
+    };
+
     const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setAutoFilledFields(prev => { const s = new Set(prev); s.delete('nome'); return s; });
@@ -1784,7 +1796,10 @@ const ResultsDashboard: React.FC = () => {
                                     <div className="relative">
                                         <input
                                             type="text" id="telefone" value={formData.telefone || ''}
-                                            onChange={(e) => { setAutoFilledFields(prev => { const s = new Set(prev); s.delete('telefone'); return s; }); handleInputChange(e); }}
+                                            onChange={(e) => {
+                                                setAutoFilledFields(prev => { const s = new Set(prev); s.delete('telefone'); return s; });
+                                                setFormData(prev => ({ ...prev, telefone: maskTelefone(e.target.value) }));
+                                            }}
                                             placeholder="(00) 00000-0000"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('telefone')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'

@@ -35,8 +35,9 @@ import AutoInsurance from './components/AutoInsurance';
 import AgendaHub from './components/AgendaHub';
 import ParceiroManager from './components/ParceiroManager';
 import UserManager from './components/UserManager';
+import EndossoAllseg from './components/EndossoAllseg';
 
-type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda' | 'parceiros' | 'usuarios';
+type View = 'dashboard' | 'calculator' | 'letter' | 'goals' | 'directory' | 'manual' | 'residential' | 'auto' | 'banks' | 'sureties' | 'agenda' | 'parceiros' | 'usuarios' | 'endosso-allseg';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -126,6 +127,7 @@ const App: React.FC = () => {
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
               <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
+              <NavItem view="endosso-allseg" icon={<FileText size={16} />} label="Endosso Allseg" />
               {session?.user?.email === 'fabio@fegsegurogarantia.com.br' && (
                 <NavItem view="usuarios" icon={<ShieldCheck size={16} />} label="Usuários do Hub" />
               )}
@@ -169,6 +171,7 @@ const App: React.FC = () => {
                 {activeView === 'agenda' && 'Agenda Semanal'}
                 {activeView === 'parceiros' && 'Gestão de Parceiros'}
                 {activeView === 'usuarios' && 'Usuários do Hub'}
+                {activeView === 'endosso-allseg' && 'Pedido de Endosso — Allseg'}
               </h2>
               <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">Sessão Ativa: {session?.user?.email?.split('@')[0]}</p>
             </div>
@@ -329,6 +332,7 @@ const App: React.FC = () => {
               {activeView === 'agenda' && <AgendaHub />}
               {activeView === 'parceiros' && <ParceiroManager />}
               {activeView === 'usuarios' && <UserManager />}
+              {activeView === 'endosso-allseg' && <EndossoAllseg />}
             </div>
           </div>
         </div>
