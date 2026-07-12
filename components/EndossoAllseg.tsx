@@ -49,6 +49,14 @@ const empty: EndossoForm = {
   local_data: '',
 };
 
+function xmlEscape(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function fmtDate(iso: string): string {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
@@ -122,38 +130,44 @@ const EndossoAllseg: React.FC = () => {
         ? `Boituva, ${fmtDate(form.local_data)}`
         : 'Boituva, _____ de __________ de ______';
 
+      const x = (s: string) => xmlEscape(s);
       const filled = docXml
-        .replace(/\{\{TOM_RAZAO\}\}/g, form.tom_razao)
-        .replace(/\{\{TOM_CNPJ\}\}/g, form.tom_cnpj)
-        .replace(/\{\{TOM_END\}\}/g, form.tom_end)
-        .replace(/\{\{TOM_BAIRRO\}\}/g, form.tom_bairro)
-        .replace(/\{\{TOM_CEP\}\}/g, form.tom_cep)
-        .replace(/\{\{TOM_CIDADE\}\}/g, form.tom_cidade)
-        .replace(/\{\{TOM_UF\}\}/g, form.tom_uf)
-        .replace(/\{\{SEG_RAZAO\}\}/g, form.seg_razao)
-        .replace(/\{\{SEG_CNPJ\}\}/g, form.seg_cnpj)
-        .replace(/\{\{SEG_END\}\}/g, form.seg_end)
-        .replace(/\{\{SEG_BAIRRO\}\}/g, form.seg_bairro)
-        .replace(/\{\{SEG_CEP\}\}/g, form.seg_cep)
-        .replace(/\{\{SEG_CIDADE\}\}/g, form.seg_cidade)
-        .replace(/\{\{SEG_UF\}\}/g, form.seg_uf)
-        .replace(/\{\{RISCO_NUM_PROPOSTA\}\}/g, form.risco_num_proposta)
-        .replace(/\{\{RISCO_NUM_APOLICE\}\}/g, form.risco_num_apolice)
-        .replace(/\{\{RISCO_MODALIDADE\}\}/g, form.risco_modalidade)
-        .replace(/\{\{RISCO_INICIO\}\}/g, form.risco_inicio)
-        .replace(/\{\{RISCO_FIM\}\}/g, form.risco_fim)
-        .replace(/\{\{RISCO_VALOR_GARANTIA\}\}/g, form.risco_valor_garantia)
-        .replace(/\{\{RISCO_PAGAMENTO\}\}/g, form.risco_pagamento)
-        .replace(/\{\{OBJ_CONTRATO\}\}/g, form.obj_contrato)
-        .replace(/\{\{OBJ_PROCESSO\}\}/g, form.obj_processo)
-        .replace(/\{\{OBJ_PREGAO\}\}/g, form.obj_pregao)
-        .replace(/\{\{COR_RAZAO\}\}/g, form.cor_razao)
-        .replace(/\{\{COR_CNPJ\}\}/g, form.cor_cnpj)
-        .replace(/\{\{COR_SUSEP\}\}/g, form.cor_susep)
-        .replace(/\{\{LOCAL_DATA\}\}/g, localData);
+        .replace(/\{\{TOM_RAZAO\}\}/g, x(form.tom_razao))
+        .replace(/\{\{TOM_CNPJ\}\}/g, x(form.tom_cnpj))
+        .replace(/\{\{TOM_END\}\}/g, x(form.tom_end))
+        .replace(/\{\{TOM_BAIRRO\}\}/g, x(form.tom_bairro))
+        .replace(/\{\{TOM_CEP\}\}/g, x(form.tom_cep))
+        .replace(/\{\{TOM_CIDADE\}\}/g, x(form.tom_cidade))
+        .replace(/\{\{TOM_UF\}\}/g, x(form.tom_uf))
+        .replace(/\{\{SEG_RAZAO\}\}/g, x(form.seg_razao))
+        .replace(/\{\{SEG_CNPJ\}\}/g, x(form.seg_cnpj))
+        .replace(/\{\{SEG_END\}\}/g, x(form.seg_end))
+        .replace(/\{\{SEG_BAIRRO\}\}/g, x(form.seg_bairro))
+        .replace(/\{\{SEG_CEP\}\}/g, x(form.seg_cep))
+        .replace(/\{\{SEG_CIDADE\}\}/g, x(form.seg_cidade))
+        .replace(/\{\{SEG_UF\}\}/g, x(form.seg_uf))
+        .replace(/\{\{RISCO_NUM_PROPOSTA\}\}/g, x(form.risco_num_proposta))
+        .replace(/\{\{RISCO_NUM_APOLICE\}\}/g, x(form.risco_num_apolice))
+        .replace(/\{\{RISCO_MODALIDADE\}\}/g, x(form.risco_modalidade))
+        .replace(/\{\{RISCO_INICIO\}\}/g, x(form.risco_inicio))
+        .replace(/\{\{RISCO_FIM\}\}/g, x(form.risco_fim))
+        .replace(/\{\{RISCO_VALOR_GARANTIA\}\}/g, x(form.risco_valor_garantia))
+        .replace(/\{\{RISCO_PAGAMENTO\}\}/g, x(form.risco_pagamento))
+        .replace(/\{\{OBJ_CONTRATO\}\}/g, x(form.obj_contrato))
+        .replace(/\{\{OBJ_PROCESSO\}\}/g, x(form.obj_processo))
+        .replace(/\{\{OBJ_PREGAO\}\}/g, x(form.obj_pregao))
+        .replace(/\{\{COR_RAZAO\}\}/g, x(form.cor_razao))
+        .replace(/\{\{COR_CNPJ\}\}/g, x(form.cor_cnpj))
+        .replace(/\{\{COR_SUSEP\}\}/g, x(form.cor_susep))
+        .replace(/\{\{LOCAL_DATA\}\}/g, x(localData));
 
       zip.file('word/document.xml', filled);
-      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const blob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
