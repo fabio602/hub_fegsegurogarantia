@@ -1787,19 +1787,33 @@ const ResultsDashboard: React.FC = () => {
                         )}
 
                         {/* ── Importar Minuta / Apólice ── */}
-                        <div className="mb-4 flex items-center justify-between gap-4 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3.5">
-                            <div>
-                                <div className="text-sm font-black text-indigo-800">📄 Importar Minuta ou Apólice</div>
-                                <div className="text-xs text-indigo-500 mt-0.5">
-                                    {importedFields.length > 0
-                                        ? `✅ Preencheu: ${importedFields.join(', ')}`
-                                        : 'Faça upload do PDF e os campos serão preenchidos automaticamente'}
+                        <div className="mb-6 relative overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-indigo-50 to-blue-50 shadow-sm">
+                            {/* decorative gradient bar */}
+                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400" />
+                            <div className="flex items-center justify-between gap-4 px-5 py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-800 leading-tight">Importar Minuta ou Apólice</div>
+                                        <div className="text-xs mt-0.5 leading-tight">
+                                            {importedFields.length > 0
+                                                ? <span className="text-emerald-600 font-semibold">✓ Preencheu: {importedFields.join(', ')}</span>
+                                                : <span className="text-gray-400">Suba o PDF e os campos são preenchidos automaticamente com IA</span>}
+                                        </div>
+                                    </div>
                                 </div>
+                                <label className={`cursor-pointer flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all ${importingPdf ? 'bg-violet-300 cursor-not-allowed' : 'bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 hover:shadow-lg'}`}>
+                                    {importingPdf
+                                        ? <><Loader2 size={13} className="animate-spin" /> Processando...</>
+                                        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Selecionar PDF</>}
+                                    <input type="file" accept=".pdf" className="hidden" onChange={handleImportPdf} disabled={importingPdf} />
+                                </label>
                             </div>
-                            <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white transition-all ${importingPdf ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-                                {importingPdf ? <><Loader2 size={13} className="animate-spin" /> Processando...</> : '📎 Selecionar PDF'}
-                                <input type="file" accept=".pdf" className="hidden" onChange={handleImportPdf} disabled={importingPdf} />
-                            </label>
                         </div>
 
                         <form onSubmit={handleSaleSubmit} className="space-y-8">
