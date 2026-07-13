@@ -819,18 +819,23 @@ const ResultsDashboard: React.FC = () => {
         setImportingPdf(true);
         setImportedFields([]);
         try {
-            // Convert to base64
-            const ab = await file.arrayBuffer();
-            const bytes = new Uint8Array(ab);
-            let bin = '';
-            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-            const b64 = btoa(bin);
+            // Convert to base64 via FileReader (mais robusto)
+            const b64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // result = "data:application/pdf;base64,XXXX" — pegar só o XXXX
+                    resolve(result.split(',')[1]);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
 
             // Call Edge Function
             const { data, error } = await supabase.functions.invoke('parse-documento-seguro', {
                 body: { pdf_base64: b64 }
             });
-            if (error) throw new Error(error.message);
+            if (error) throw new Error(`Supabase error: ${error.message} | status: ${(error as any).status}`);
 
             // Convert dd/mm/aaaa → yyyy-mm-dd
             const toISO = (s: string) => {
@@ -858,7 +863,7 @@ const ResultsDashboard: React.FC = () => {
             setImportedFields(filled);
         } catch (err) {
             console.error('Import PDF error:', err);
-            alert('Erro ao importar o PDF. Verifique se a chave Anthropic está configurada no Supabase.');
+            alert(`Erro ao importar o PDF:\n${String(err)}`);
         } finally {
             setImportingPdf(false);
             e.target.value = '';
