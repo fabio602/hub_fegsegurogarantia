@@ -831,11 +831,18 @@ const ResultsDashboard: React.FC = () => {
                 reader.readAsDataURL(file);
             });
 
-            // Call Edge Function
-            const { data, error } = await supabase.functions.invoke('parse-documento-seguro', {
-                body: { pdf_base64: b64 }
+            // Call Edge Function via fetch direto (mais confiável para payloads grandes)
+            const fnUrl = 'https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parse-documento-seguro';
+            const fnRes = await fetch(fnUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pdf_base64: b64 }),
             });
-            if (error) throw new Error(`Supabase error: ${error.message} | status: ${(error as any).status}`);
+            if (!fnRes.ok) {
+                const errText = await fnRes.text();
+                throw new Error(`HTTP ${fnRes.status}: ${errText}`);
+            }
+            const data = await fnRes.json();
 
             // Convert dd/mm/aaaa → yyyy-mm-dd
             const toISO = (s: string) => {
