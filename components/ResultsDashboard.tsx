@@ -449,6 +449,10 @@ const ResultsDashboard: React.FC = () => {
     const [goalTargetDraft, setGoalTargetDraft] = useState('');
     const [goalTargetSaving, setGoalTargetSaving] = useState(false);
 
+    // PDF Import State
+    const [importingPdf, setImportingPdf] = useState(false);
+    const [importedFields, setImportedFields] = useState<string[]>([]);
+
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
         data: new Date().toISOString().split('T')[0],
@@ -807,6 +811,58 @@ const ResultsDashboard: React.FC = () => {
         return digits
             .replace(/^(\d{2})(\d)/, '($1) $2')
             .replace(/(\d{5})(\d)/, '$1-$2');
+    };
+
+    const handleImportPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImportingPdf(true);
+        setImportedFields([]);
+        try {
+            // Convert to base64
+            const ab = await file.arrayBuffer();
+            const bytes = new Uint8Array(ab);
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            const b64 = btoa(bin);
+
+            // Call Edge Function
+            const { data, error } = await supabase.functions.invoke('parse-documento-seguro', {
+                body: { pdf_base64: b64 }
+            });
+            if (error) throw new Error(error.message);
+
+            // Convert dd/mm/aaaa → yyyy-mm-dd
+            const toISO = (s: string) => {
+                if (!s) return '';
+                const [d, m, y] = s.split('/');
+                if (!d || !m || !y) return '';
+                return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            };
+
+            // Map fields
+            const filled: string[] = [];
+            const updates: Partial<typeof formData> = {};
+
+            if (data.nome) { updates.nome = data.nome; filled.push('nome'); }
+            if (data.cnpj) { updates.cnpj = data.cnpj; filled.push('cnpj'); }
+            if (data.seguradora) { updates.seguradora = data.seguradora; filled.push('seguradora'); }
+            if (data.premio) { updates.premio = data.premio; filled.push('premio'); }
+            if (data.valor_garantia) { updates.is = data.valor_garantia; filled.push('is'); }
+            const vi = toISO(data.vigencia_inicio);
+            const vf = toISO(data.vigencia_fim);
+            if (vi) { updates.vigencia_inicio = vi; updates.vendeu = updates.vendeu || formData.vendeu || 'Em andamento'; filled.push('vigencia_inicio'); }
+            if (vf) { updates.vigencia_fim = vf; filled.push('vigencia_fim'); }
+
+            setFormData(prev => ({ ...prev, ...updates }));
+            setImportedFields(filled);
+        } catch (err) {
+            console.error('Import PDF error:', err);
+            alert('Erro ao importar o PDF. Verifique se a chave Anthropic está configurada no Supabase.');
+        } finally {
+            setImportingPdf(false);
+            e.target.value = '';
+        }
     };
 
     const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1717,6 +1773,22 @@ const ResultsDashboard: React.FC = () => {
                                 )}
                             </div>
                         )}
+
+                        {/* ── Importar Minuta / Apólice ── */}
+                        <div className="mb-4 flex items-center justify-between gap-4 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3.5">
+                            <div>
+                                <div className="text-sm font-black text-indigo-800">📄 Importar Minuta ou Apólice</div>
+                                <div className="text-xs text-indigo-500 mt-0.5">
+                                    {importedFields.length > 0
+                                        ? `✅ Preencheu: ${importedFields.join(', ')}`
+                                        : 'Faça upload do PDF e os campos serão preenchidos automaticamente'}
+                                </div>
+                            </div>
+                            <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white transition-all ${importingPdf ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                                {importingPdf ? <><Loader2 size={13} className="animate-spin" /> Processando...</> : '📎 Selecionar PDF'}
+                                <input type="file" accept=".pdf" className="hidden" onChange={handleImportPdf} disabled={importingPdf} />
+                            </label>
+                        </div>
 
                         <form onSubmit={handleSaleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
