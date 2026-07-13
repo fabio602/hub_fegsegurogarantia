@@ -858,6 +858,7 @@ const ResultsDashboard: React.FC = () => {
 
             if (data.nome) { updates.nome = data.nome; filled.push('nome'); }
             if (data.cnpj) { updates.cnpj = data.cnpj; filled.push('cnpj'); }
+            if (data.orgao_licitante) { updates.orgaoLicitante = data.orgao_licitante; filled.push('orgao_licitante'); }
             if (data.seguradora) { updates.seguradora = data.seguradora; filled.push('seguradora'); }
             if (data.premio) { updates.premio = data.premio; filled.push('premio'); }
             if (data.valor_garantia) { updates.is = data.valor_garantia; filled.push('is'); }
