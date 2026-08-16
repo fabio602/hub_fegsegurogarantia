@@ -5,6 +5,26 @@ import {
   Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import MinutaValidator from './MinutaValidator';
+
+const CONTRATO_LABELS: Record<string, string> = {
+  numero_contrato: 'Número do Contrato',
+  objeto_contrato: 'Objeto do Contrato',
+  tomador_cnpj: 'CNPJ do Tomador (Contratada)',
+  tomador_nome: 'Razão Social do Tomador',
+  segurado_cnpj: 'CNPJ do Segurado (Órgão Público)',
+  segurado_nome: 'Nome do Segurado (Órgão Público)',
+  valor_contrato: 'Valor do Contrato (R$)',
+  percentual_is: '% da Importância Segurada (IS)',
+  valor_is_calculado: 'Valor da IS Calculado (R$)',
+  vigencia_contrato_inicio: 'Início da Vigência do Contrato',
+  vigencia_contrato_fim: 'Fim da Vigência do Contrato',
+  vigencia_garantia: 'Vigência da Garantia',
+  exige_dias_adicionais: 'Exige Dias Adicionais de Cobertura',
+  dias_adicionais: 'Quantidade de Dias Adicionais',
+  exige_multas_trabalhistas: 'Exige Cobertura de Multas e Trabalhistas',
+  contrato_abaixo_85_percent: 'Contrato Abaixo de 85% (art. 59 §4º Lei 14.133/2021)',
+};
 
 interface ContratoData {
   numero_contrato?: string | null;
@@ -385,6 +405,15 @@ export default function ContratoAnalyzer() {
               <p className="text-xs font-black text-slate-500 uppercase tracking-[2px] mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
+          )}
+
+          {/* Double Check da Minuta */}
+          {!result.parse_error && (
+            <MinutaValidator
+              dadosOriginais={result as unknown as Record<string, unknown>}
+              tipo="contrato"
+              campoLabels={CONTRATO_LABELS}
+            />
           )}
         </div>
       )}

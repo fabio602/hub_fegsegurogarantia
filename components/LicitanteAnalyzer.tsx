@@ -5,6 +5,22 @@ import {
   Info, ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import MinutaValidator from './MinutaValidator';
+
+const LICITANTE_LABELS: Record<string, string> = {
+  orgao_nome: 'Órgão Licitante',
+  orgao_cnpj: 'CNPJ do Órgão',
+  numero_edital: 'Número do Edital',
+  modalidade: 'Modalidade',
+  objeto: 'Objeto',
+  valor_global_edital: 'Valor Global do Edital (R$)',
+  exige_seguro_garantia_proposta: 'Exige Seguro-Garantia de Proposta',
+  percentual_garantia_proposta: '% da Garantia de Proposta',
+  valor_garantia_proposta_calculado: 'Valor da Garantia de Proposta (R$)',
+  validade_proposta_dias: 'Validade da Proposta (dias)',
+  vigencia_garantia_proposta: 'Vigência da Garantia de Proposta',
+  data_sessao_publica: 'Data da Sessão Pública / Pregão',
+};
 
 interface EditalData {
   orgao_nome?: string | null;
@@ -282,6 +298,15 @@ export default function LicitanteAnalyzer() {
               <p className="text-xs font-black text-slate-500 uppercase tracking-[2px] mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
+          )}
+
+          {/* Double Check da Minuta */}
+          {!result.parse_error && (
+            <MinutaValidator
+              dadosOriginais={result as unknown as Record<string, unknown>}
+              tipo="licitante"
+              campoLabels={LICITANTE_LABELS}
+            />
           )}
         </div>
       )}
