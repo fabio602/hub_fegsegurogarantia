@@ -33,6 +33,7 @@ import ProspectsKanban from './ProspectsKanban';
 import PendenciasHub from './PendenciasHub';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import TaskManager from './TaskManager';
+import LicitanteAnalyzer from './LicitanteAnalyzer';
 import { generateThankYouEmail } from '../utils/emailTemplates';
 
 // --- Configuration ---
@@ -319,7 +320,7 @@ function loadExpiryReminderDismissed(): Set<string> {
     }
 }
 
-type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc';
+type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante';
 
 const ResultsDashboard: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('sales');
@@ -1583,7 +1584,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'prospects', 'pendencias', 'carteira', 'goals', 'annualGoals', 'pnpc'] as Section[]).map((section) => (
+                {(['sales', 'prospects', 'pendencias', 'carteira', 'goals', 'annualGoals', 'pnpc', 'licitante'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -1599,6 +1600,7 @@ const ResultsDashboard: React.FC = () => {
                         {section === 'goals' && 'Metas Mensais'}
                         {section === 'annualGoals' && 'Metas Anuais'}
                         {section === 'pnpc' && 'PNPC'}
+                        {section === 'licitante' && 'Seguro Licitante'}
                     </button>
                 ))}
             </div>
@@ -3436,6 +3438,12 @@ const ResultsDashboard: React.FC = () => {
                             title="PNPC Consulta"
                         />
                     </div>
+                </section>
+            )}
+
+            {activeSection === 'licitante' && (
+                <section className="animate-in slide-in-from-bottom-4 duration-500">
+                    <LicitanteAnalyzer />
                 </section>
             )}
 
