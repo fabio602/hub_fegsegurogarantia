@@ -63,7 +63,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
     setEditForm({});
     setInsurers([]);
     fetchInsurers();
-    if (tableName === 'seguradoras') fetchRanking();
+    if (tableName === 'insurers') fetchRanking();
   }, [tableName]);
 
   const fetchRanking = async () => {
