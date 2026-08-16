@@ -14,6 +14,7 @@ export interface Insurer {
   obs?: string;
   ccg?: string;
   rank_position?: number | null;
+  card_color?: string | null;
 }
 
 export interface GoalMonth {

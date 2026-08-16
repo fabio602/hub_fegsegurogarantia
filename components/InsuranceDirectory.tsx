@@ -3,17 +3,26 @@ import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus
 import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
 
-const MEDAL_COLORS = [
-  { bg: 'from-yellow-400 to-amber-500', text: 'text-yellow-900', badge: 'bg-yellow-100 text-yellow-800 border-yellow-300', emoji: '🥇' },
-  { bg: 'from-slate-300 to-slate-400', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700 border-slate-200', emoji: '🥈' },
-  { bg: 'from-orange-400 to-amber-600', text: 'text-orange-900', badge: 'bg-orange-100 text-orange-800 border-orange-200', emoji: '🥉' },
-  { bg: 'from-blue-100 to-indigo-100', text: 'text-indigo-900', badge: 'bg-white text-indigo-700 border-indigo-200', emoji: '' },
-  { bg: 'from-emerald-100 to-teal-100', text: 'text-teal-900', badge: 'bg-white text-teal-700 border-teal-200', emoji: '' },
-  { bg: 'from-violet-100 to-purple-100', text: 'text-purple-900', badge: 'bg-white text-purple-700 border-purple-200', emoji: '' },
-  { bg: 'from-rose-100 to-pink-100', text: 'text-pink-900', badge: 'bg-white text-pink-700 border-pink-200', emoji: '' },
-  { bg: 'from-cyan-100 to-sky-100', text: 'text-sky-900', badge: 'bg-white text-sky-700 border-sky-200', emoji: '' },
-  { bg: 'from-lime-100 to-green-100', text: 'text-green-900', badge: 'bg-white text-green-700 border-green-200', emoji: '' },
-  { bg: 'from-amber-100 to-yellow-100', text: 'text-amber-900', badge: 'bg-white text-amber-700 border-amber-200', emoji: '' },
+const PRESET_COLORS: { id: string; label: string; bg: string; text: string; badge: string; swatch: string }[] = [
+  { id: 'gold',         label: 'Dourado',       bg: 'from-yellow-400 to-amber-500',    text: 'text-yellow-900',  badge: 'bg-yellow-100 text-yellow-800 border-yellow-300',   swatch: 'bg-gradient-to-br from-yellow-400 to-amber-500' },
+  { id: 'silver',       label: 'Prata',         bg: 'from-slate-300 to-slate-400',     text: 'text-slate-800',   badge: 'bg-slate-100 text-slate-700 border-slate-200',       swatch: 'bg-gradient-to-br from-slate-300 to-slate-400' },
+  { id: 'bronze',       label: 'Bronze',        bg: 'from-orange-400 to-amber-600',    text: 'text-orange-900',  badge: 'bg-orange-100 text-orange-800 border-orange-200',    swatch: 'bg-gradient-to-br from-orange-400 to-amber-600' },
+  { id: 'blue',         label: 'Azul',          bg: 'from-blue-500 to-indigo-600',     text: 'text-white',       badge: 'bg-blue-100 text-blue-800 border-blue-300',          swatch: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+  { id: 'green',        label: 'Verde',         bg: 'from-emerald-500 to-teal-600',    text: 'text-white',       badge: 'bg-emerald-100 text-emerald-800 border-emerald-300', swatch: 'bg-gradient-to-br from-emerald-500 to-teal-600' },
+  { id: 'purple',       label: 'Roxo',          bg: 'from-violet-500 to-purple-600',   text: 'text-white',       badge: 'bg-violet-100 text-violet-800 border-violet-300',    swatch: 'bg-gradient-to-br from-violet-500 to-purple-600' },
+  { id: 'red',          label: 'Vermelho',      bg: 'from-red-500 to-rose-600',        text: 'text-white',       badge: 'bg-red-100 text-red-800 border-red-300',             swatch: 'bg-gradient-to-br from-red-500 to-rose-600' },
+  { id: 'pink',         label: 'Rosa',          bg: 'from-pink-400 to-fuchsia-500',    text: 'text-white',       badge: 'bg-pink-100 text-pink-800 border-pink-300',          swatch: 'bg-gradient-to-br from-pink-400 to-fuchsia-500' },
+  { id: 'cyan',         label: 'Ciano',         bg: 'from-cyan-400 to-sky-500',        text: 'text-white',       badge: 'bg-cyan-100 text-cyan-800 border-cyan-300',          swatch: 'bg-gradient-to-br from-cyan-400 to-sky-500' },
+  { id: 'navy',         label: 'Marinho',       bg: 'from-slate-700 to-slate-900',     text: 'text-white',       badge: 'bg-slate-200 text-slate-800 border-slate-300',       swatch: 'bg-gradient-to-br from-slate-700 to-slate-900' },
+  { id: 'light-blue',   label: 'Azul Claro',    bg: 'from-blue-100 to-indigo-200',     text: 'text-indigo-900',  badge: 'bg-white text-indigo-700 border-indigo-200',         swatch: 'bg-gradient-to-br from-blue-100 to-indigo-200' },
+  { id: 'light-green',  label: 'Verde Claro',   bg: 'from-emerald-100 to-teal-200',    text: 'text-teal-900',    badge: 'bg-white text-teal-700 border-teal-200',             swatch: 'bg-gradient-to-br from-emerald-100 to-teal-200' },
+  { id: 'light-purple', label: 'Lilás',         bg: 'from-violet-100 to-purple-200',   text: 'text-purple-900',  badge: 'bg-white text-purple-700 border-purple-200',         swatch: 'bg-gradient-to-br from-violet-100 to-purple-200' },
+  { id: 'peach',        label: 'Pêssego',       bg: 'from-orange-100 to-rose-200',     text: 'text-rose-900',    badge: 'bg-white text-rose-700 border-rose-200',             swatch: 'bg-gradient-to-br from-orange-100 to-rose-200' },
+  { id: 'midnight',     label: 'Meia-Noite',    bg: 'from-indigo-900 to-blue-950',     text: 'text-white',       badge: 'bg-indigo-200 text-indigo-900 border-indigo-300',    swatch: 'bg-gradient-to-br from-indigo-900 to-blue-950' },
+];
+
+const DEFAULT_COLORS = [
+  'gold', 'silver', 'bronze', 'light-blue', 'light-green', 'light-purple', 'peach', 'cyan', 'light-blue', 'light-green',
 ];
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
@@ -93,6 +102,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       obs: editForm.obs,
       ccg: editForm.ccg,
       rank_position: editForm.rank_position ?? null,
+      card_color: editForm.card_color ?? null,
     });
     if (error) { console.error('Erro ao salvar:', error); alert('Erro ao salvar dados.'); }
     else { setEditingId(null); fetchInsurers(); }
@@ -167,13 +177,15 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rankedInsurers.map((ins, i) => {
-                const m = MEDAL_COLORS[i] ?? { bg: 'from-slate-100 to-slate-200', text: 'text-slate-800', badge: 'bg-white text-slate-600 border-slate-200', emoji: '' };
+                const colorId = ins.card_color || DEFAULT_COLORS[i] || 'light-blue';
+                const m = PRESET_COLORS.find(c => c.id === colorId) ?? PRESET_COLORS[0];
+                const TOP3_EMOJIS = ['🥇', '🥈', '🥉'];
                 const premioMin = ins.premioMinimo || ins.premio_minimo;
                 return (
                   <div key={ins.id} className={`relative rounded-[1.5rem] p-5 bg-gradient-to-br ${m.bg} shadow-md flex flex-col gap-3`}>
                     <div className="flex items-start justify-between">
                       <span className={`text-[10px] font-black uppercase tracking-[2px] ${m.text} opacity-60`}>#{ins.rank_position}</span>
-                      {m.emoji && <span className="text-2xl leading-none">{m.emoji}</span>}
+                      {i < 3 && <span className="text-2xl leading-none">{TOP3_EMOJIS[i]}</span>}
                     </div>
                     <h4 className={`font-black text-xl leading-tight ${m.text}`}>{ins.nome}</h4>
                     <div className="flex flex-wrap gap-2">
@@ -298,6 +310,27 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                         onChange={e => setEditForm({ ...editForm, rank_position: e.target.value ? parseInt(e.target.value) : null })}
                       />
                     </div>
+                    {(editForm.rank_position ?? 0) > 0 && (
+                      <div className="flex flex-col gap-3 sm:col-span-2">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-[2px]">🎨 Cor do Card no Destaque</span>
+                        <div className="flex flex-wrap gap-2">
+                          {PRESET_COLORS.map(color => (
+                            <button
+                              key={color.id}
+                              type="button"
+                              title={color.label}
+                              onClick={() => setEditForm({ ...editForm, card_color: color.id })}
+                              className={`w-9 h-9 rounded-full ${color.swatch} transition-all shadow-sm ${editForm.card_color === color.id ? 'ring-4 ring-offset-2 ring-slate-700 scale-110' : 'hover:scale-110'}`}
+                            />
+                          ))}
+                        </div>
+                        {editForm.card_color && (
+                          <p className="text-xs text-slate-400 font-semibold">
+                            Selecionado: <span className="text-slate-700 font-black">{PRESET_COLORS.find(c => c.id === editForm.card_color)?.label}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
