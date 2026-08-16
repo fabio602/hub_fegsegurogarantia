@@ -210,7 +210,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       </header>
 
       {/* ── Ranking section (seguradoras only) ─────────────────────── */}
-      {tableName === 'seguradoras' && (
+      {tableName === 'insurers' && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-8 py-5 border-b border-slate-50">
             <div className="flex items-center gap-3">
