@@ -67,6 +67,23 @@ Pode analisar a minuta e se estiver de acordo posso seguir com a emissão imedia
 Aguardo,`;
 }
 
+function buildMensagemContrato(d: MinutaDados): string {
+  return `Obrigado por ter aguardado. Consegui fazer o orçamento do seu contrato. Vou te passar as informações:
+
+*Resumo da Minuta para o Seguro Garantia de Contrato*
+Seguradora: ${d.seguradora || '—'}
+Tomador: ${d.tomador || '—'}
+Segurado: ${d.segurado || '—'}
+Modalidade: Garantia de Execução Contratual
+Valor da garantia (IS): ${d.valor_garantia || '—'}
+Vigência: ${d.vigencia || '—'}
+Custo do seguro: ${d.custo_seguro || '—'}
+
+Pode analisar a minuta e se estiver de acordo posso seguir com a emissão imediatamente.
+
+Aguardo,`;
+}
+
 const STATUS_CONFIG = {
   ok: {
     icon: <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />,
@@ -182,8 +199,10 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
 
   const visibleItens = showAll ? sortedItens : sortedItens.filter(i => i.status !== 'ok');
 
-  const mensagem = result?.minuta_dados && tipo === 'licitante'
-    ? buildMensagemLicitante(result.minuta_dados)
+  const mensagem = result?.minuta_dados
+    ? tipo === 'licitante'
+      ? buildMensagemLicitante(result.minuta_dados)
+      : buildMensagemContrato(result.minuta_dados)
     : null;
 
   const copyMsg = () => {
