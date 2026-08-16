@@ -51,7 +51,7 @@ export default function LicitanteAnalyzer() {
 
   const handleFile = (f: File) => {
     if (f.type !== 'application/pdf') { setError('Selecione um arquivo PDF.'); return; }
-    if (f.size > 10 * 1024 * 1024) { setError('Arquivo deve ter no máximo 10MB.'); return; }
+    if (f.size > 30 * 1024 * 1024) { setError('Arquivo deve ter no máximo 30MB.'); return; }
     setFile(f); setResult(null); setError(null);
   };
 
@@ -142,7 +142,7 @@ export default function LicitanteAnalyzer() {
               </div>
               <div className="text-center">
                 <p className="font-black text-slate-700 text-lg">Arraste o edital aqui</p>
-                <p className="text-slate-400 text-sm mt-1">ou clique para selecionar · PDF até 10MB</p>
+                <p className="text-slate-400 text-sm mt-1">ou clique para selecionar · PDF até 30MB</p>
               </div>
             </>
           )}
