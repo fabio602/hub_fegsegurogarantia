@@ -22,6 +22,7 @@ import {
   Car,
   Users,
   Shield,
+  ShieldAlert,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
@@ -38,6 +39,7 @@ import AgendaHub from './components/AgendaHub';
 import ParceiroManager from './components/ParceiroManager';
 import UserManager from './components/UserManager';
 import EndossoAllseg from './components/EndossoAllseg';
+import RCInsurance from './components/RCInsurance';
 
 type View =
   | 'dashboard'
@@ -47,12 +49,15 @@ type View =
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
   | 'residential' | 'residencial-seguradoras' | 'residencial-garantidoras'
+  // Responsabilidade Civil
+  | 'rc' | 'rc-seguradoras'
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties';
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras'];
+const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
@@ -67,6 +72,8 @@ const VIEW_TITLES: Record<View, string> = {
   residential: 'Seguro Residencial / Locatícia',
   'residencial-seguradoras': 'Seguradoras Residencial',
   'residencial-garantidoras': 'Garantidoras',
+  rc: 'Responsabilidade Civil',
+  'rc-seguradoras': 'Seguradoras — RC',
   manual: 'Manual de Procedimentos Internos',
   agenda: 'Agenda Semanal',
   parceiros: 'Gestão de Parceiros',
@@ -83,6 +90,7 @@ const App: React.FC = () => {
     garantia: false,
     auto: false,
     residencial: false,
+    rc: false,
   });
 
   useEffect(() => {
@@ -101,6 +109,7 @@ const App: React.FC = () => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
     if (RESIDENCIAL_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, residencial: true }));
+    if (RC_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, rc: true }));
   }, [activeView]);
 
   const toggleGroup = (key: string) =>
@@ -258,6 +267,17 @@ const App: React.FC = () => {
                 <NavSubItem view="residential" label="Gestão Comercial" />
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
+              </NavGroup>
+
+              {/* ── Responsabilidade Civil ──────────────── */}
+              <NavGroup
+                groupKey="rc"
+                icon={<ShieldAlert size={16} />}
+                label="Resp. Civil"
+                isGroupActive={RC_VIEWS.includes(activeView)}
+              >
+                <NavSubItem view="rc" label="Gestão Comercial" />
+                <NavSubItem view="rc-seguradoras" label="Seguradoras" />
               </NavGroup>
 
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
@@ -475,6 +495,18 @@ const App: React.FC = () => {
                   subtitle="Empresas fiançadoras para seguro locatício."
                   itemName="Garantidora"
                   emptyStateText="Adicionar Garantidora"
+                />
+              )}
+
+              {/* Responsabilidade Civil */}
+              {activeView === 'rc' && <RCInsurance />}
+              {activeView === 'rc-seguradoras' && (
+                <InsuranceDirectory
+                  tableName="seguradoras_rc"
+                  title="Seguradoras — RC"
+                  subtitle="Portais, acessos e condições para responsabilidade civil."
+                  itemName="Seguradora"
+                  emptyStateText="Adicionar Seguradora"
                 />
               )}
 
