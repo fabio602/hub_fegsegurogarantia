@@ -4,6 +4,7 @@ export interface Insurer {
   nome: string;
   logoUrl?: string;
   premioMinimo?: string;
+  premio_minimo?: string;
   portal?: string;
   login?: string;
   senha?: string;
@@ -12,6 +13,7 @@ export interface Insurer {
   email?: string;
   obs?: string;
   ccg?: string;
+  rank_position?: number | null;
 }
 
 export interface GoalMonth {
