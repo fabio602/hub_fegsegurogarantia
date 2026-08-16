@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Trophy } from 'lucide-react';
+import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Star } from 'lucide-react';
 import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -167,12 +167,12 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       {rankedInsurers.length > 0 && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-8 py-5 border-b border-slate-50">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-              <Trophy size={20} className="text-white" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1B3A5C] to-[#0F2440] flex items-center justify-center shadow-lg">
+              <Star size={18} className="text-[#C69C6D] fill-[#C69C6D]" />
             </div>
             <div>
-              <h3 className="font-black text-slate-800 text-lg tracking-tight">Seguradoras em Destaque</h3>
-              <p className="text-xs text-slate-400 font-semibold">Ordem definida por você — edite uma seguradora para ajustar a posição</p>
+              <h3 className="font-black text-slate-800 text-lg tracking-tight">Seguradoras Prioritárias para o Seguro de Proposta</h3>
+              <p className="text-xs text-slate-400 font-medium">Ordem definida por você — edite uma seguradora para ajustar posição e cor</p>
             </div>
           </div>
 
