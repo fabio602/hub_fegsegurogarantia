@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2 } from 'lucide-react';
+import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Trophy, TrendingUp, BarChart2 } from 'lucide-react';
 import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
+
+interface RankEntry { nome: string; count: number; totalPremio: number; }
+
+const MEDAL_COLORS = [
+  { bg: 'from-yellow-400 to-amber-500', text: 'text-yellow-900', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: '🥇' },
+  { bg: 'from-slate-300 to-slate-400', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-600 border-slate-200', label: '🥈' },
+  { bg: 'from-orange-400 to-amber-600', text: 'text-orange-900', badge: 'bg-orange-100 text-orange-700 border-orange-200', label: '🥉' },
+];
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   const [copied, setCopied] = useState(false);
@@ -45,6 +53,9 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<Insurer>>({});
+  const [ranking, setRanking] = useState<RankEntry[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [showFullRanking, setShowFullRanking] = useState(false);
 
   useEffect(() => {
     setSearchTerm('');
@@ -52,7 +63,34 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
     setEditForm({});
     setInsurers([]);
     fetchInsurers();
+    if (tableName === 'seguradoras') fetchRanking();
   }, [tableName]);
+
+  const fetchRanking = async () => {
+    setRankingLoading(true);
+    const { data, error } = await supabase
+      .from('sales')
+      .select('seguradora, premio')
+      .not('seguradora', 'is', null);
+
+    if (!error && data) {
+      const agg: Record<string, { count: number; totalPremio: number }> = {};
+      data.forEach(row => {
+        const name = (row.seguradora as string)?.trim();
+        if (!name) return;
+        if (!agg[name]) agg[name] = { count: 0, totalPremio: 0 };
+        agg[name].count++;
+        const raw = String(row.premio || '0').replace(/[^\d,]/g, '').replace(',', '.');
+        const val = parseFloat(raw);
+        agg[name].totalPremio += isNaN(val) ? 0 : val;
+      });
+      const sorted = Object.entries(agg)
+        .map(([nome, v]) => ({ nome, ...v }))
+        .sort((a, b) => b.count - a.count);
+      setRanking(sorted);
+    }
+    setRankingLoading(false);
+  };
 
   const fetchInsurers = async () => {
     setLoading(true);
@@ -170,6 +208,86 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           </button>
         </div>
       </header>
+
+      {/* ── Ranking section (seguradoras only) ─────────────────────── */}
+      {tableName === 'seguradoras' && (
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-8 py-5 border-b border-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                <Trophy size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 text-lg tracking-tight">Ranking de Utilização</h3>
+                <p className="text-xs text-slate-400 font-semibold">Seguradoras mais usadas nas suas vendas</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {rankingLoading && <Loader2 size={16} className="animate-spin text-slate-300" />}
+              {ranking.length > 3 && (
+                <button
+                  onClick={() => setShowFullRanking(v => !v)}
+                  className="text-xs font-black text-[#C69C6D] hover:text-[#b58a5b] uppercase tracking-[2px] flex items-center gap-1 transition-colors"
+                >
+                  <BarChart2 size={14} />
+                  {showFullRanking ? 'VER MENOS' : `VER TODAS (${ranking.length})`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {ranking.length === 0 && !rankingLoading ? (
+            <div className="flex items-center gap-3 px-8 py-6 text-slate-400">
+              <TrendingUp size={18} />
+              <span className="text-sm font-semibold">Nenhuma venda registrada ainda.</span>
+            </div>
+          ) : (
+            <div className="p-6 space-y-3">
+              {/* Top 3 podium */}
+              {ranking.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  {ranking.slice(0, 3).map((entry, i) => {
+                    const m = MEDAL_COLORS[i];
+                    return (
+                      <div key={entry.nome} className={`relative rounded-[1.5rem] p-5 bg-gradient-to-br ${m.bg} shadow-lg flex flex-col gap-2`}>
+                        <span className="text-3xl absolute top-4 right-4">{m.label}</span>
+                        <span className={`text-xs font-black uppercase tracking-[2px] ${m.text} opacity-60`}>#{i + 1}</span>
+                        <h4 className={`font-black text-lg leading-tight ${m.text} pr-8`}>{entry.nome}</h4>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span className={`text-xs font-black px-3 py-1 rounded-full border ${m.badge}`}>
+                            {entry.count} {entry.count === 1 ? 'apólice' : 'apólices'}
+                          </span>
+                          {entry.totalPremio > 0 && (
+                            <span className={`text-xs font-bold ${m.text} opacity-70`}>
+                              R$ {entry.totalPremio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Rest of ranking (expandable) */}
+              {(showFullRanking ? ranking.slice(3) : []).map((entry, i) => (
+                <div key={entry.nome} className="flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <span className="text-sm font-black text-slate-300 w-6 text-right">{i + 4}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-slate-700 truncate block">{entry.nome}</span>
+                  </div>
+                  <span className="text-xs font-black text-slate-400 shrink-0">{entry.count} {entry.count === 1 ? 'apólice' : 'apólices'}</span>
+                  {entry.totalPremio > 0 && (
+                    <span className="text-xs font-semibold text-slate-400 shrink-0 hidden sm:block">
+                      R$ {entry.totalPremio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {filteredInsurers.map(ins => {
