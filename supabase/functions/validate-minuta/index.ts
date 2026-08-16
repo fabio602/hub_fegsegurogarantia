@@ -49,7 +49,16 @@ Retorne SOMENTE o JSON abaixo, sem texto extra, sem markdown:
       "observacao": "Explicação adicional se necessário, ou null"
     }
   ],
-  "resumo": "Resumo geral do double check em 2-3 linhas: quantos campos OK, quais divergências críticas encontradas."
+  "resumo": "Resumo geral do double check em 2-3 linhas: quantos campos OK, quais divergências críticas encontradas.",
+  "minuta_dados": {
+    "seguradora": "Nome completo da seguradora emitente da minuta",
+    "tomador": "Nome/razão social do tomador conforme a minuta",
+    "segurado": "Nome do segurado conforme a minuta",
+    "valor_garantia": "Valor da garantia/IS formatado conforme aparece na minuta (ex: R$ 50.000,00)",
+    "vigencia": "Período de vigência conforme a minuta (ex: 01/01/2025 a 31/12/2025)",
+    "custo_seguro": "Prêmio / custo do seguro formatado conforme aparece na minuta (ex: R$ 1.250,00)",
+    "numero_apolice_minuta": "Número da minuta ou apólice se informado, ou null"
+  }
 }
 
 REGRAS:
@@ -58,7 +67,8 @@ REGRAS:
 - status_geral = "verificar" se houver campos "nao_encontrado" mas sem divergências explícitas
 - Seja rigoroso: diferenças de CNPJ, valor, datas e vigência são críticas
 - Diferenças de formatação ou grafia menor podem ser observadas mas não necessariamente marcadas como divergência
-- Se a minuta tiver um campo que o original não tinha, inclua como item extra com status "ok" ou observação`;
+- Se a minuta tiver um campo que o original não tinha, inclua como item extra com status "ok" ou observação
+- Para minuta_dados: use SEMPRE os valores exatamente como aparecem na minuta, não os dados originais`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

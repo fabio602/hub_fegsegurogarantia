@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
-  AlertTriangle, RotateCcw, ClipboardCheck, ChevronDown, ChevronUp
+  AlertTriangle, RotateCcw, ClipboardCheck, ChevronDown, ChevronUp,
+  MessageSquare, Copy, Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -13,24 +14,31 @@ export interface ValidationItem {
   observacao?: string | null;
 }
 
+interface MinutaDados {
+  seguradora?: string | null;
+  tomador?: string | null;
+  segurado?: string | null;
+  valor_garantia?: string | null;
+  vigencia?: string | null;
+  custo_seguro?: string | null;
+  numero_apolice_minuta?: string | null;
+}
+
 export interface ValidationResult {
   status_geral: 'aprovado' | 'divergencias' | 'verificar';
   itens: ValidationItem[];
   resumo: string;
+  minuta_dados?: MinutaDados;
   raw?: string;
   parse_error?: boolean;
 }
 
 interface Props {
-  /** Objeto com os dados já extraídos (resultado do analyze-edital ou analyze-contrato) */
   dadosOriginais: Record<string, unknown>;
-  /** 'licitante' ou 'contrato' */
   tipo: 'licitante' | 'contrato';
-  /** Labels legíveis para os campos do dadosOriginais */
   campoLabels: Record<string, string>;
 }
 
-/** Formata o objeto de dados originais como texto legível para o contexto da IA */
 function buildContexto(dados: Record<string, unknown>, labels: Record<string, string>): string {
   return Object.entries(dados)
     .filter(([k, v]) => !['raw', 'parse_error'].includes(k) && v != null && v !== '' && v !== false)
@@ -40,6 +48,23 @@ function buildContexto(dados: Record<string, unknown>, labels: Record<string, st
       return `- ${label}: ${val}`;
     })
     .join('\n');
+}
+
+function buildMensagemLicitante(d: MinutaDados): string {
+  return `Obrigado por ter aguardado. Consegui fazer o orçamento do seu edital. Vou te passar as informações:
+
+*Resumo da Minuta para o Seguro de Proposta*
+Seguradora: ${d.seguradora || '—'}
+Tomador: ${d.tomador || '—'}
+Segurado: ${d.segurado || '—'}
+Modalidade: Garantia de Proposta (Licitante)
+Valor da garantia: ${d.valor_garantia || '—'}
+Vigência: ${d.vigencia || '—'}
+Custo do seguro: ${d.custo_seguro || '—'}
+
+Pode analisar a minuta e se estiver de acordo posso seguir com a emissão imediatamente.
+
+Aguardo,`;
 }
 
 const STATUS_CONFIG = {
@@ -93,6 +118,8 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [showMsg, setShowMsg] = useState(false);
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
@@ -111,7 +138,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
 
   const validate = async () => {
     if (!file) return;
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setShowMsg(false);
     try {
       const pdfBase64 = await toBase64(file);
       const contexto = buildContexto(dadosOriginais, campoLabels);
@@ -140,13 +167,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
     }
   };
 
-  const reset = () => { setFile(null); setResult(null); setError(null); };
+  const reset = () => { setFile(null); setResult(null); setError(null); setShowMsg(false); setCopied(false); };
 
   const okCount = result?.itens?.filter(i => i.status === 'ok').length ?? 0;
   const divCount = result?.itens?.filter(i => i.status === 'divergencia').length ?? 0;
   const naCount = result?.itens?.filter(i => i.status === 'nao_encontrado').length ?? 0;
 
-  // Show divergências first, then nao_encontrado, then ok
   const sortedItens = result?.itens
     ? [...result.itens].sort((a, b) => {
         const order = { divergencia: 0, nao_encontrado: 1, ok: 2 };
@@ -155,6 +181,18 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
     : [];
 
   const visibleItens = showAll ? sortedItens : sortedItens.filter(i => i.status !== 'ok');
+
+  const mensagem = result?.minuta_dados && tipo === 'licitante'
+    ? buildMensagemLicitante(result.minuta_dados)
+    : null;
+
+  const copyMsg = () => {
+    if (!mensagem) return;
+    navigator.clipboard.writeText(mensagem).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className="mt-8 border-t border-slate-100 pt-8 space-y-5">
@@ -305,6 +343,46 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
                 ? <><ChevronUp size={14} /> Ocultar campos OK</>
                 : <><ChevronDown size={14} /> Ver todos os {okCount} campos OK</>}
             </button>
+          )}
+
+          {/* ── Mensagem para o cliente (apenas Licitante) ── */}
+          {mensagem && (
+            <div className="border-t border-slate-100 pt-5 space-y-3">
+              <button
+                onClick={() => setShowMsg(!showMsg)}
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-2xl transition-all font-black text-sm shadow"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={16} className="text-[#C69C6D]" />
+                  <span>Gerar Mensagem para o Cliente</span>
+                </div>
+                {showMsg ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {showMsg && (
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-[2px]">Mensagem WhatsApp</span>
+                    <button
+                      onClick={copyMsg}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                        copied
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {copied ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar</>}
+                    </button>
+                  </div>
+
+                  {/* Mensagem */}
+                  <pre className="px-5 py-4 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
+                    {mensagem}
+                  </pre>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Nova validação */}
