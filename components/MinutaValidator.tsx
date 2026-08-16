@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   AlertTriangle, RotateCcw, ClipboardCheck, ChevronDown, ChevronUp,
-  MessageSquare, Copy, Check
+  MessageSquare, Copy, Check, TrendingUp, PartyPopper, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -39,6 +39,8 @@ interface Props {
   campoLabels: Record<string, string>;
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 function buildContexto(dados: Record<string, unknown>, labels: Record<string, string>): string {
   return Object.entries(dados)
     .filter(([k, v]) => !['raw', 'parse_error'].includes(k) && v != null && v !== '' && v !== false)
@@ -48,6 +50,16 @@ function buildContexto(dados: Record<string, unknown>, labels: Record<string, st
       return `- ${label}: ${val}`;
     })
     .join('\n');
+}
+
+/** Tenta extrair datas de "DD/MM/YYYY a DD/MM/YYYY" → { inicio, fim } em YYYY-MM-DD */
+function parseVigencia(v: string): { inicio: string; fim: string } {
+  const match = v?.match(/(\d{2}\/\d{2}\/\d{4})\s+(?:a|até|ao)\s+(\d{2}\/\d{2}\/\d{4})/i);
+  if (match) {
+    const toISO = (d: string) => d.split('/').reverse().join('-');
+    return { inicio: toISO(match[1]), fim: toISO(match[2]) };
+  }
+  return { inicio: '', fim: '' };
 }
 
 function buildMensagemLicitante(d: MinutaDados): string {
@@ -83,6 +95,8 @@ Pode analisar a minuta e se estiver de acordo posso seguir com a emissão imedia
 
 Aguardo,`;
 }
+
+// ── Configs de UI ──────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
   ok: {
@@ -129,6 +143,8 @@ const GERAL_CONFIG = {
   },
 };
 
+// ── Componente ─────────────────────────────────────────────────────────────
+
 export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -137,6 +153,15 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
   const [showAll, setShowAll] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Fechar venda
+  const [showVenda, setShowVenda] = useState(false);
+  const [sellers, setSellers] = useState<Array<{ id: string; name: string }>>([]);
+  const [vendaForm, setVendaForm] = useState({ data: '', vendedor: '', comissao: '' });
+  const [savingVenda, setSavingVenda] = useState(false);
+  const [vendaSalva, setVendaSalva] = useState(false);
+  const [vendaError, setVendaError] = useState<string | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
@@ -155,7 +180,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
 
   const validate = async () => {
     if (!file) return;
-    setLoading(true); setError(null); setResult(null); setShowMsg(false);
+    setLoading(true); setError(null); setResult(null); setShowMsg(false); setShowVenda(false); setVendaSalva(false);
     try {
       const pdfBase64 = await toBase64(file);
       const contexto = buildContexto(dadosOriginais, campoLabels);
@@ -184,7 +209,70 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
     }
   };
 
-  const reset = () => { setFile(null); setResult(null); setError(null); setShowMsg(false); setCopied(false); };
+  const reset = () => {
+    setFile(null); setResult(null); setError(null);
+    setShowMsg(false); setCopied(false);
+    setShowVenda(false); setVendaSalva(false); setVendaError(null);
+  };
+
+  const openVenda = async () => {
+    setVendaSalva(false); setVendaError(null);
+    setVendaForm({ data: new Date().toISOString().split('T')[0], vendedor: '', comissao: '' });
+    const { data } = await supabase.from('sellers').select('id, name').eq('active', true).order('name');
+    setSellers(data || []);
+    setShowVenda(true);
+  };
+
+  const salvarVenda = async () => {
+    if (!result?.minuta_dados || !vendaForm.vendedor) return;
+    setSavingVenda(true); setVendaError(null);
+    try {
+      const d = result.minuta_dados;
+      const { inicio, fim } = parseVigencia(d.vigencia || '');
+
+      const salePayload: Record<string, unknown> = {
+        data: vendaForm.data,
+        vendedor: vendaForm.vendedor,
+        nome: d.tomador || '',
+        seguradora: d.seguradora || '',
+        premio: d.custo_seguro || '',
+        comissao: vendaForm.comissao || '',
+        tipo: 'Seguro Garantia',
+        product_type: tipo === 'licitante' ? 'garantia_proposta' : 'garantia_contrato',
+        vendeu: 'Sim',
+        origem: tipo === 'licitante' ? 'Licitante' : 'Contrato',
+        qualificado: 'Sim',
+        indicacao: 'Não',
+        limites: '',
+        catalogo: '',
+        vigencia_inicio: inicio || null,
+        vigencia_fim: fim || null,
+        segurado: d.segurado || '',
+      };
+
+      if (tipo === 'licitante') {
+        salePayload.orgaoLicitante = d.segurado || String(dadosOriginais.orgao_nome || '');
+        salePayload.valorLote = dadosOriginais.valor_global_edital ? String(dadosOriginais.valor_global_edital) : '';
+        salePayload.dataPregao = String(dadosOriginais.data_sessao_publica || '');
+      } else {
+        salePayload.numeroContrato = String(dadosOriginais.numero_contrato || '');
+        salePayload.objetoContrato = String(dadosOriginais.objeto_contrato || '');
+        salePayload.valorContrato = dadosOriginais.valor_contrato ? String(dadosOriginais.valor_contrato) : '';
+        salePayload.cnpj = String(dadosOriginais.tomador_cnpj || '');
+      }
+
+      const { error: dbErr } = await supabase.from('sales').insert([salePayload]);
+      if (dbErr) throw dbErr;
+      setVendaSalva(true);
+      setShowVenda(false);
+    } catch (e) {
+      setVendaError(e instanceof Error ? e.message : 'Erro ao registrar venda.');
+    } finally {
+      setSavingVenda(false);
+    }
+  };
+
+  // ── Derivados ──────────────────────────────────────────────────────────────
 
   const okCount = result?.itens?.filter(i => i.status === 'ok').length ?? 0;
   const divCount = result?.itens?.filter(i => i.status === 'divergencia').length ?? 0;
@@ -196,7 +284,6 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
         return order[a.status] - order[b.status];
       })
     : [];
-
   const visibleItens = showAll ? sortedItens : sortedItens.filter(i => i.status !== 'ok');
 
   const mensagem = result?.minuta_dados
@@ -213,9 +300,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
     });
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="mt-8 border-t border-slate-100 pt-8 space-y-5">
-      {/* Section header */}
+
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-[#1B263B] flex items-center justify-center shrink-0">
           <ClipboardCheck size={16} className="text-[#C69C6D]" />
@@ -226,7 +316,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
         </div>
       </div>
 
-      {/* Upload area */}
+      {/* Upload */}
       {!result && (
         <div
           onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
@@ -237,7 +327,6 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
         >
           <input ref={inputRef} type="file" accept="application/pdf" className="hidden"
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
-
           {file ? (
             <>
               <div className="w-12 h-12 rounded-xl bg-[#C69C6D]/10 flex items-center justify-center">
@@ -293,7 +382,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
         </div>
       )}
 
-      {/* Validation result */}
+      {/* Resultado da validação */}
       {result && !loading && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-400">
 
@@ -354,23 +443,18 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
             })}
           </div>
 
-          {/* Toggle show all OK */}
           {okCount > 0 && (
             <button onClick={() => setShowAll(!showAll)}
               className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all border border-slate-200 rounded-xl hover:bg-slate-50">
-              {showAll
-                ? <><ChevronUp size={14} /> Ocultar campos OK</>
-                : <><ChevronDown size={14} /> Ver todos os {okCount} campos OK</>}
+              {showAll ? <><ChevronUp size={14} /> Ocultar campos OK</> : <><ChevronDown size={14} /> Ver todos os {okCount} campos OK</>}
             </button>
           )}
 
-          {/* ── Mensagem para o cliente (apenas Licitante) ── */}
+          {/* ── Mensagem para cliente ── */}
           {mensagem && (
-            <div className="border-t border-slate-100 pt-5 space-y-3">
-              <button
-                onClick={() => setShowMsg(!showMsg)}
-                className="w-full flex items-center justify-between px-5 py-3.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-2xl transition-all font-black text-sm shadow"
-              >
+            <div className="border-t border-slate-100 pt-4 space-y-3">
+              <button onClick={() => setShowMsg(!showMsg)}
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-2xl transition-all font-black text-sm shadow">
                 <div className="flex items-center gap-2">
                   <MessageSquare size={16} className="text-[#C69C6D]" />
                   <span>Gerar Mensagem para o Cliente</span>
@@ -380,31 +464,141 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
 
               {showMsg && (
                 <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-200">
-                  {/* Header */}
                   <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
                     <span className="text-xs font-black text-slate-500 uppercase tracking-[2px]">Mensagem WhatsApp</span>
-                    <button
-                      onClick={copyMsg}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        copied
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
+                    <button onClick={copyMsg}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                       {copied ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar</>}
                     </button>
                   </div>
-
-                  {/* Mensagem */}
-                  <pre className="px-5 py-4 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                    {mensagem}
-                  </pre>
+                  <pre className="px-5 py-4 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{mensagem}</pre>
                 </div>
               )}
             </div>
           )}
 
-          {/* Nova validação */}
+          {/* ── Fechar Venda ── */}
+          {result.minuta_dados && !result.parse_error && (
+            <div className="border-t border-slate-100 pt-4 space-y-3">
+
+              {/* Venda salva com sucesso */}
+              {vendaSalva && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-4">
+                  <CheckCircle2 size={28} className="text-emerald-600 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-black text-emerald-800">Venda registrada com sucesso!</p>
+                    <p className="text-emerald-700 text-sm mt-0.5">Os dados foram adicionados ao acompanhamento de vendas.</p>
+                  </div>
+                  <a href="#vendas" onClick={reset}
+                    className="shrink-0 flex items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-900 transition-all border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100">
+                    <ExternalLink size={12} /> Ver em Vendas
+                  </a>
+                </div>
+              )}
+
+              {/* Botão abrir formulário */}
+              {!vendaSalva && (
+                <button onClick={showVenda ? () => setShowVenda(false) : openVenda}
+                  className="w-full flex items-center justify-between px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all font-black text-sm shadow">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} />
+                    <span>Fechar Venda — Registrar no Acompanhamento</span>
+                  </div>
+                  {showVenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              )}
+
+              {/* Formulário de venda */}
+              {showVenda && !vendaSalva && (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+
+                  {/* Preview dos dados pré-preenchidos */}
+                  <div className="bg-slate-50 border-b border-slate-200 px-5 py-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-3">Dados pré-preenchidos da minuta</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+                      {[
+                        ['Cliente', result.minuta_dados.tomador],
+                        ['Seguradora', result.minuta_dados.seguradora],
+                        ['Prêmio', result.minuta_dados.custo_seguro],
+                        ['Valor da Garantia', result.minuta_dados.valor_garantia],
+                        ['Vigência', result.minuta_dados.vigencia],
+                        ['Segurado', result.minuta_dados.segurado],
+                      ].filter(([, v]) => v).map(([l, v]) => (
+                        <div key={l as string}>
+                          <span className="text-slate-400 font-bold">{l}: </span>
+                          <span className="text-slate-700 font-semibold">{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Campos a preencher */}
+                  <div className="p-5 space-y-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Complete para registrar</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Data da Venda *</label>
+                        <input
+                          type="date"
+                          value={vendaForm.data}
+                          onChange={e => setVendaForm(f => ({ ...f, data: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Vendedor *</label>
+                        <select
+                          value={vendaForm.vendedor}
+                          onChange={e => setVendaForm(f => ({ ...f, vendedor: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] bg-white"
+                        >
+                          <option value="">Selecionar...</option>
+                          {sellers.map(s => (
+                            <option key={s.id} value={s.name}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Comissão (R$)</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: R$ 500,00"
+                          value={vendaForm.comissao}
+                          onChange={e => setVendaForm(f => ({ ...f, comissao: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D]"
+                        />
+                      </div>
+                    </div>
+
+                    {vendaError && (
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-2">
+                        <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                        <p className="text-red-600 text-xs font-semibold">{vendaError}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-1">
+                      <button
+                        onClick={salvarVenda}
+                        disabled={savingVenda || !vendaForm.vendedor || !vendaForm.data}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow">
+                        {savingVenda ? <><Loader2 size={15} className="animate-spin" /> Registrando...</> : <><Check size={15} /> Confirmar e Registrar Venda</>}
+                      </button>
+                      <button onClick={() => setShowVenda(false)}
+                        className="px-5 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Reset */}
           <button onClick={reset}
             className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-all">
             <RotateCcw size={13} /> Validar outra minuta
