@@ -4,9 +4,16 @@ import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
 
 const MEDAL_COLORS = [
-  { bg: 'from-yellow-400 to-amber-500', text: 'text-yellow-900', badge: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: '🥇' },
-  { bg: 'from-slate-300 to-slate-400', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700 border-slate-200', label: '🥈' },
-  { bg: 'from-orange-400 to-amber-600', text: 'text-orange-900', badge: 'bg-orange-100 text-orange-800 border-orange-200', label: '🥉' },
+  { bg: 'from-yellow-400 to-amber-500', text: 'text-yellow-900', badge: 'bg-yellow-100 text-yellow-800 border-yellow-300', emoji: '🥇' },
+  { bg: 'from-slate-300 to-slate-400', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700 border-slate-200', emoji: '🥈' },
+  { bg: 'from-orange-400 to-amber-600', text: 'text-orange-900', badge: 'bg-orange-100 text-orange-800 border-orange-200', emoji: '🥉' },
+  { bg: 'from-blue-100 to-indigo-100', text: 'text-indigo-900', badge: 'bg-white text-indigo-700 border-indigo-200', emoji: '' },
+  { bg: 'from-emerald-100 to-teal-100', text: 'text-teal-900', badge: 'bg-white text-teal-700 border-teal-200', emoji: '' },
+  { bg: 'from-violet-100 to-purple-100', text: 'text-purple-900', badge: 'bg-white text-purple-700 border-purple-200', emoji: '' },
+  { bg: 'from-rose-100 to-pink-100', text: 'text-pink-900', badge: 'bg-white text-pink-700 border-pink-200', emoji: '' },
+  { bg: 'from-cyan-100 to-sky-100', text: 'text-sky-900', badge: 'bg-white text-sky-700 border-sky-200', emoji: '' },
+  { bg: 'from-lime-100 to-green-100', text: 'text-green-900', badge: 'bg-white text-green-700 border-green-200', emoji: '' },
+  { bg: 'from-amber-100 to-yellow-100', text: 'text-amber-900', badge: 'bg-white text-amber-700 border-amber-200', emoji: '' },
 ];
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
@@ -160,13 +167,15 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rankedInsurers.map((ins, i) => {
-                const m = MEDAL_COLORS[i] ?? { bg: 'from-slate-100 to-slate-200', text: 'text-slate-800', badge: 'bg-white text-slate-600 border-slate-200', label: `#${i + 1}` };
+                const m = MEDAL_COLORS[i] ?? { bg: 'from-slate-100 to-slate-200', text: 'text-slate-800', badge: 'bg-white text-slate-600 border-slate-200', emoji: '' };
                 const premioMin = ins.premioMinimo || ins.premio_minimo;
                 return (
                   <div key={ins.id} className={`relative rounded-[1.5rem] p-5 bg-gradient-to-br ${m.bg} shadow-md flex flex-col gap-3`}>
-                    <span className="text-2xl absolute top-4 right-4 leading-none">{m.label}</span>
-                    <span className={`text-[10px] font-black uppercase tracking-[2px] ${m.text} opacity-60`}>#{ins.rank_position}</span>
-                    <h4 className={`font-black text-xl leading-tight ${m.text} pr-8`}>{ins.nome}</h4>
+                    <div className="flex items-start justify-between">
+                      <span className={`text-[10px] font-black uppercase tracking-[2px] ${m.text} opacity-60`}>#{ins.rank_position}</span>
+                      {m.emoji && <span className="text-2xl leading-none">{m.emoji}</span>}
+                    </div>
+                    <h4 className={`font-black text-xl leading-tight ${m.text}`}>{ins.nome}</h4>
                     <div className="flex flex-wrap gap-2">
                       {premioMin && (
                         <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border ${m.badge}`}>
