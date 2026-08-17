@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Send, Square, Trash2, CheckCircle2, XCircle, Clock, Loader2,
-  AlertTriangle, Upload, ChevronDown, ChevronUp, Plus, X, Save, FileText,
+  AlertTriangle, Upload, ChevronDown, ChevronUp, Plus, X, Save, FileText, Pencil,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -85,6 +85,7 @@ export default function WhatsAppBlast() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<{ id: string; name: string; body: string } | null>(null);
 
   const applyTemplate = (tpl: MsgTemplate) => { setTemplate(tpl.body); setShowTemplates(false); };
 
@@ -96,6 +97,14 @@ export default function WhatsAppBlast() {
     saveTemplates(updated);
     setNewTemplateName('');
     setSavingTemplate(false);
+  };
+
+  const updateTemplate = () => {
+    if (!editingTemplate || !editingTemplate.name.trim() || !editingTemplate.body.trim()) return;
+    const updated = savedTemplates.map(t => t.id === editingTemplate.id ? { ...editingTemplate } : t);
+    setSavedTemplates(updated);
+    saveTemplates(updated);
+    setEditingTemplate(null);
   };
 
   const deleteTemplate = (id: string) => {
@@ -327,18 +336,47 @@ export default function WhatsAppBlast() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelos salvos</p>
                 <div className="space-y-2">
                   {savedTemplates.map(tpl => (
-                    <div key={tpl.id} className="flex items-center gap-2 group">
-                      <button
-                        onClick={() => applyTemplate(tpl)}
-                        className="flex-1 text-left px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5 transition-all"
-                      >
-                        <p className="text-sm font-bold text-slate-700">{tpl.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5">{tpl.body.slice(0, 60)}...</p>
-                      </button>
-                      {tpl.id !== 'default-1' && (
-                        <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                          <Trash2 size={13} />
-                        </button>
+                    <div key={tpl.id}>
+                      {editingTemplate?.id === tpl.id ? (
+                        /* ── Edit mode ── */
+                        <div className="bg-white border border-[#C69C6D]/40 rounded-xl p-3 space-y-2">
+                          <input
+                            autoFocus
+                            value={editingTemplate.name}
+                            onChange={e => setEditingTemplate(et => et ? { ...et, name: e.target.value } : et)}
+                            className="w-full text-sm font-bold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-[#C69C6D]"
+                            placeholder="Nome do modelo"
+                          />
+                          <textarea
+                            value={editingTemplate.body}
+                            onChange={e => setEditingTemplate(et => et ? { ...et, body: e.target.value } : et)}
+                            rows={5}
+                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#C69C6D] resize-none"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setEditingTemplate(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
+                            <button onClick={updateTemplate} className="px-3 py-1.5 text-xs font-bold bg-[#1B263B] text-white rounded-lg hover:bg-[#243447] flex items-center gap-1.5 transition-colors">
+                              <Save size={12} /> Salvar alterações
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── Normal mode ── */
+                        <div className="flex items-center gap-2 group">
+                          <button
+                            onClick={() => applyTemplate(tpl)}
+                            className="flex-1 text-left px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5 transition-all"
+                          >
+                            <p className="text-sm font-bold text-slate-700">{tpl.name}</p>
+                            <p className="text-[11px] text-slate-400 truncate mt-0.5">{tpl.body.slice(0, 60)}...</p>
+                          </button>
+                          <button onClick={() => setEditingTemplate({ ...tpl })} className="shrink-0 p-1.5 text-slate-300 hover:text-[#C69C6D] transition-colors opacity-0 group-hover:opacity-100" title="Editar">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
