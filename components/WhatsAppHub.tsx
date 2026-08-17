@@ -109,7 +109,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   }, [selectedPhone, loadMessages]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
 
   // Search messages in DB with debounce
@@ -136,6 +136,25 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const sendMessage = async () => {
     if ((!newMessage.trim() && !pendingFiles.length) || !selectedPhone || sending) return;
     setSending(true);
+
+    // Optimistic UI — show message immediately
+    const optimisticText = pendingFiles.length
+      ? pendingFiles.map(pf => pf.type.startsWith('audio/') ? `[Áudio: ${pf.name}]` : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`).join(', ') + (newMessage.trim() ? ` — ${newMessage.trim()}` : '')
+      : newMessage.trim();
+    const optimisticMsg: Message = {
+      id: `opt-${Date.now()}`,
+      phone: selectedPhone,
+      name: selectedLead?.name ?? selectedPhone,
+      message: optimisticText,
+      direction: 'outbound',
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    const msgText = newMessage.trim();
+    const files = [...pendingFiles];
+    setNewMessage('');
+    setPendingFiles([]);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -149,8 +168,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       };
 
       // Send files sequentially
-      for (const pf of pendingFiles) {
-        const caption = pendingFiles.indexOf(pf) === pendingFiles.length - 1 ? newMessage.trim() : '';
+      for (const pf of files) {
+        const caption = files.indexOf(pf) === files.length - 1 ? msgText : '';
         const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
           method: 'POST', headers,
           body: JSON.stringify({ phone: selectedPhone, file: pf.base64, fileName: pf.name, fileType: pf.type, message: caption }),
@@ -166,15 +185,15 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       }
 
       // Send text-only if no files
-      if (!pendingFiles.length && newMessage.trim()) {
+      if (!files.length && msgText) {
         const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
           method: 'POST', headers,
-          body: JSON.stringify({ phone: selectedPhone, message: newMessage.trim() }),
+          body: JSON.stringify({ phone: selectedPhone, message: msgText }),
         });
         const resData = await res.json();
         await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
-          message: newMessage.trim(), direction: 'outbound', status: 'sent',
+          message: msgText, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         });
       }
@@ -185,8 +204,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
         .eq('phone', selectedPhone);
       setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
-      setNewMessage('');
-      setPendingFiles([]);
+      // Replace optimistic message with real one from DB
       loadMessages(selectedPhone);
     } catch (e) {
       console.error('Erro ao enviar:', e);
