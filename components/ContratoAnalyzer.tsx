@@ -2,8 +2,13 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X
+  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X, History
 } from 'lucide-react';
+
+const CONTRATO_HISTORY_KEY = 'cotacao_history_contrato';
+const MAX_HISTORY = 5;
+
+interface HistoryEntry { timestamp: string; fileName: string; data: ContratoData; }
 import { supabase } from '../lib/supabase';
 import MinutaValidator from './MinutaValidator';
 
@@ -98,6 +103,15 @@ function WarnBadge({ active, label }: { active: boolean; label: string }) {
   );
 }
 
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(CONTRATO_HISTORY_KEY) ?? '[]'); } catch { return []; }
+}
+function saveToHistory(entry: HistoryEntry) {
+  const prev = loadHistory();
+  const updated = [entry, ...prev].slice(0, MAX_HISTORY);
+  localStorage.setItem(CONTRATO_HISTORY_KEY, JSON.stringify(updated));
+}
+
 export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,6 +119,8 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
   const [error, setError] = useState<string | null>(null);
   const [showObs, setShowObs] = useState(false);
   const [showClausula, setShowClausula] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
+  const [showHistory, setShowHistory] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = (incoming: FileList | File[]) => {
@@ -150,6 +166,9 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao analisar');
       setResult(json.data);
+      const entry: HistoryEntry = { timestamp: new Date().toISOString(), fileName: files[0].name, data: json.data };
+      saveToHistory(entry);
+      setHistory(loadHistory());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao analisar. Tente novamente.');
     } finally {
@@ -161,10 +180,49 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">
-      <div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Seguro de Contrato</h2>
-        <p className="text-slate-500 font-semibold mt-1">Upload do contrato em PDF — a IA extrai todos os dados para cotação do seguro garantia de execução.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Seguro de Contrato</h2>
+          <p className="text-slate-500 font-semibold mt-1">Upload do contrato em PDF — a IA extrai todos os dados para cotação do seguro garantia de execução.</p>
+        </div>
+        {history.length > 0 && (
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-colors shrink-0"
+          >
+            <History size={15} /> Histórico ({history.length})
+          </button>
+        )}
       </div>
+
+      {/* History panel */}
+      {showHistory && history.length > 0 && (
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 space-y-3">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
+          {history.map((entry, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 text-sm truncate">{entry.data.tomador_nome ?? entry.data.segurado_nome ?? entry.fileName}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {entry.data.numero_contrato ? `Contrato ${entry.data.numero_contrato} · ` : ''}
+                  {new Date(entry.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </p>
+                {entry.data.valor_is_calculado && (
+                  <p className="text-xs font-black text-[#C69C6D] mt-0.5">
+                    IS: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.data.valor_is_calculado)}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => { setResult(entry.data); setShowHistory(false); }}
+                className="shrink-0 px-3 py-1.5 rounded-xl bg-[#1B263B] text-white text-xs font-bold hover:bg-[#243447] transition-colors"
+              >
+                Restaurar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Upload */}
       {!result && (
