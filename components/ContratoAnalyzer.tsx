@@ -98,7 +98,7 @@ function WarnBadge({ active, label }: { active: boolean; label: string }) {
   );
 }
 
-export default function ContratoAnalyzer() {
+export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ContratoData | null>(null);
@@ -413,6 +413,7 @@ export default function ContratoAnalyzer() {
               dadosOriginais={result as unknown as Record<string, unknown>}
               tipo="contrato"
               campoLabels={CONTRATO_LABELS}
+              onVerVendas={onVerVendas}
             />
           )}
         </div>

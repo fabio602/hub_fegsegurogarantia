@@ -45,28 +45,35 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg'
+  | 'carteira' | 'prospeccao' | 'pnpc'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
   | 'residential' | 'residencial-seguradoras' | 'residencial-garantidoras'
   // Responsabilidade Civil
   | 'rc' | 'rc-seguradoras'
+  // Gestão Financeira
+  | 'metas-mensais' | 'metas-anuais'
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
+const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
-  goals: 'Gestão de Resultados',
+  goals: 'Gestão Comercial — Vendas',
   directory: 'Seguradoras — Garantia',
   banks: 'Bancos Garantidores',
   letter: 'Gerador de Nomeação',
   calculator: 'Calculadora de Seguros',
   'endosso-allseg': 'Pedido de Endosso — Allseg',
+  carteira: 'Carteira de Clientes',
+  prospeccao: 'Prospecção',
+  pnpc: 'PNPC',
   auto: 'Seguro AUTO',
   'auto-seguradoras': 'Seguradoras AUTO',
   residential: 'Seguro Residencial / Locatícia',
@@ -74,6 +81,8 @@ const VIEW_TITLES: Record<View, string> = {
   'residencial-garantidoras': 'Garantidoras',
   rc: 'Responsabilidade Civil',
   'rc-seguradoras': 'Seguradoras — RC',
+  'metas-mensais': 'Metas Mensais',
+  'metas-anuais': 'Metas Anuais',
   manual: 'Manual de Procedimentos Internos',
   agenda: 'Agenda Semanal',
   parceiros: 'Gestão de Parceiros',
@@ -88,6 +97,8 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     garantia: false,
+    prospeccao: false,
+    financeiro: false,
     auto: false,
     residencial: false,
     rc: false,
@@ -107,6 +118,8 @@ const App: React.FC = () => {
   // Auto-expand the group that contains the active view
   useEffect(() => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
+    if (['prospeccao', 'pnpc'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
+    if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
     if (RESIDENCIAL_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, residencial: true }));
     if (RC_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, rc: true }));
@@ -214,6 +227,36 @@ const App: React.FC = () => {
     </button>
   );
 
+  // ── Collapsible sub-group inside a NavGroup ───────────────────────
+  const NavSubGroup: React.FC<{
+    groupKey: string;
+    label: string;
+    isGroupActive: boolean;
+    children: React.ReactNode;
+  }> = ({ groupKey, label, isGroupActive, children }) => {
+    const isOpen = openGroups[groupKey];
+    return (
+      <div>
+        <button
+          onClick={() => toggleGroup(groupKey)}
+          className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
+            isGroupActive
+              ? 'text-[#C69C6D] bg-[#1a2d45]'
+              : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-[#243347]'
+          }`}
+        >
+          <span>{label}</span>
+          <ChevronDown size={10} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="mt-0.5 ml-3 pl-3 border-l border-[#C69C6D]/15 space-y-0.5 py-0.5">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
       {/* Sidebar */}
@@ -236,14 +279,34 @@ const App: React.FC = () => {
                 groupKey="garantia"
                 icon={<ShieldCheck size={16} />}
                 label="Seguro Garantia"
-                isGroupActive={GARANTIA_VIEWS.includes(activeView)}
+                isGroupActive={GARANTIA_VIEWS.includes(activeView) || FINANCEIRO_VIEWS.includes(activeView)}
               >
                 <NavSubItem view="goals" label="Gestão Comercial" />
+                <NavSubItem view="carteira" label="Carteira de Clientes" />
+                <NavSubGroup
+                  groupKey="prospeccao"
+                  label="Prospecção"
+                  isGroupActive={['prospeccao', 'pnpc'].includes(activeView)}
+                >
+                  <NavSubItem view="prospeccao" label="Prospecção" />
+                  <NavSubItem view="pnpc" label="PNPC" />
+                </NavSubGroup>
                 <NavSubItem view="directory" label="Seguradoras" />
                 <NavSubItem view="banks" label="Bancos Garantidores" />
                 <NavSubItem view="letter" label="Carta de Nomeação" />
                 <NavSubItem view="calculator" label="Cálculo de Garantia" />
                 <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
+              </NavGroup>
+
+              {/* ── Gestão Financeira ────────────────────── */}
+              <NavGroup
+                groupKey="financeiro"
+                icon={<Target size={16} />}
+                label="Gestão Financeira"
+                isGroupActive={FINANCEIRO_VIEWS.includes(activeView)}
+              >
+                <NavSubItem view="metas-mensais" label="Metas Mensais" />
+                <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
 
               {/* ── Seguro AUTO ─────────────────────────── */}
@@ -450,7 +513,12 @@ const App: React.FC = () => {
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
               {/* Seguro Garantia */}
-              {activeView === 'goals' && <ResultsDashboard />}
+              {activeView === 'goals' && <ResultsDashboard key="goals" initialSection="sales" />}
+              {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" />}
+              {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" />}
+              {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" />}
+              {activeView === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" />}
+              {activeView === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" />}
               {activeView === 'directory' && (
                 <InsuranceDirectory
                   tableName="insurers"

@@ -323,8 +323,8 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC = () => {
-    const [activeSection, setActiveSection] = useState<Section>('sales');
+const ResultsDashboard: React.FC<{ initialSection?: Section }> = ({ initialSection = 'sales' }) => {
+    const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
     const [insurers, setInsurers] = useState<any[]>([]);
@@ -1585,7 +1585,7 @@ const ResultsDashboard: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'prospects', 'pendencias', 'carteira', 'goals', 'annualGoals', 'pnpc', 'licitante', 'contrato'] as Section[]).map((section) => (
+                {(['sales', 'pendencias', 'licitante', 'contrato'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -1595,12 +1595,7 @@ const ResultsDashboard: React.FC = () => {
                             }`}
                     >
                         {section === 'sales' && 'Vendas'}
-                        {section === 'prospects' && 'Prospecção'}
                         {section === 'pendencias' && 'Pendências'}
-                        {section === 'carteira' && 'Carteira de Clientes'}
-                        {section === 'goals' && 'Metas Mensais'}
-                        {section === 'annualGoals' && 'Metas Anuais'}
-                        {section === 'pnpc' && 'PNPC'}
                         {section === 'licitante' && 'Seguro Licitante'}
                         {section === 'contrato' && 'Seguro de Contrato'}
                     </button>
@@ -3445,13 +3440,13 @@ const ResultsDashboard: React.FC = () => {
 
             {activeSection === 'licitante' && (
                 <section className="animate-in slide-in-from-bottom-4 duration-500">
-                    <LicitanteAnalyzer />
+                    <LicitanteAnalyzer onVerVendas={() => setActiveSection('sales')} />
                 </section>
             )}
 
             {activeSection === 'contrato' && (
                 <section className="animate-in slide-in-from-bottom-4 duration-500">
-                    <ContratoAnalyzer />
+                    <ContratoAnalyzer onVerVendas={() => setActiveSection('sales')} />
                 </section>
             )}
 

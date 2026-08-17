@@ -37,6 +37,7 @@ interface Props {
   dadosOriginais: Record<string, unknown>;
   tipo: 'licitante' | 'contrato';
   campoLabels: Record<string, string>;
+  onVerVendas?: () => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ const GERAL_CONFIG = {
 
 // ── Componente ─────────────────────────────────────────────────────────────
 
-export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: Props) {
+export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onVerVendas }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
@@ -489,10 +490,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels }: P
                     <p className="font-black text-emerald-800">Venda registrada com sucesso!</p>
                     <p className="text-emerald-700 text-sm mt-0.5">Os dados foram adicionados ao acompanhamento de vendas.</p>
                   </div>
-                  <a href="#vendas" onClick={reset}
-                    className="shrink-0 flex items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-900 transition-all border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100">
-                    <ExternalLink size={12} /> Ver em Vendas
-                  </a>
+                  {onVerVendas && (
+                    <button onClick={onVerVendas}
+                      className="shrink-0 flex items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-900 transition-all border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100">
+                      <ExternalLink size={12} /> Ver em Vendas
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -57,7 +57,7 @@ function Card({ icon, label, value, highlight }: { icon: React.ReactNode; label:
   );
 }
 
-export default function LicitanteAnalyzer() {
+export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EditalData | null>(null);
@@ -306,6 +306,7 @@ export default function LicitanteAnalyzer() {
               dadosOriginais={result as unknown as Record<string, unknown>}
               tipo="licitante"
               campoLabels={LICITANTE_LABELS}
+              onVerVendas={onVerVendas}
             />
           )}
         </div>
