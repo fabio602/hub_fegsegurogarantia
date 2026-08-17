@@ -1,10 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, ChevronDown } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ChevronDown, Paperclip, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+// Display messages (UI)
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  fileName?: string; // badge for attached PDF
+}
+
+// API messages (Anthropic format)
+type ApiContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'document'; source: { type: 'base64'; media_type: string; data: string } };
+
+interface ApiMessage {
+  role: 'user' | 'assistant';
+  content: string | ApiContentBlock[];
 }
 
 const VIEW_CONTEXT: Record<string, string> = {
@@ -30,14 +42,25 @@ const QUICK_CHIPS = [
   'Art. 59 §4º da Lei 14.133/2021',
 ];
 
+const toBase64 = (f: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve((r.result as string).split(',')[1]);
+    r.onerror = reject;
+    r.readAsDataURL(f);
+  });
+
 export default function ChatWidget({ activeView }: { activeView?: string }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
   const [input, setInput] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -54,13 +77,47 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
 
   const context = activeView ? VIEW_CONTEXT[activeView] ?? '' : '';
 
-  const send = async (text: string) => {
-    const userMsg = text.trim();
-    if (!userMsg || loading) return;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.type !== 'application/pdf') { alert('Apenas arquivos PDF são aceitos.'); return; }
+    if (f.size > 30 * 1024 * 1024) { alert('Arquivo deve ter no máximo 30MB.'); return; }
+    setAttachedFile(f);
+    e.target.value = '';
+  };
 
-    const newMessages: Message[] = [...messages, { role: 'user', content: userMsg }];
-    setMessages(newMessages);
+  const send = async (text: string) => {
+    const userText = text.trim();
+    if (!userText && !attachedFile) return;
+    if (loading) return;
+
+    // Build display message
+    const displayMsg: Message = {
+      role: 'user',
+      content: userText,
+      fileName: attachedFile?.name,
+    };
+
+    // Build API message
+    let apiMsg: ApiMessage;
+    if (attachedFile) {
+      const base64 = await toBase64(attachedFile);
+      const blocks: ApiContentBlock[] = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+      ];
+      if (userText) blocks.push({ type: 'text', text: userText });
+      apiMsg = { role: 'user', content: blocks };
+    } else {
+      apiMsg = { role: 'user', content: userText };
+    }
+
+    const newDisplayMessages = [...messages, displayMsg];
+    const newApiMessages = [...apiMessages, apiMsg];
+
+    setMessages(newDisplayMessages);
+    setApiMessages(newApiMessages);
     setInput('');
+    setAttachedFile(null);
     setLoading(true);
 
     try {
@@ -76,27 +133,28 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
           'Authorization': `Bearer ${token || supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({
-          messages: newMessages,
-          context,
-        }),
+        body: JSON.stringify({ messages: newApiMessages, context }),
       });
 
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao responder');
 
-      const assistantMsg: Message = { role: 'assistant', content: json.text };
-      setMessages(prev => [...prev, assistantMsg]);
+      const assistantDisplay: Message = { role: 'assistant', content: json.text };
+      const assistantApi: ApiMessage = { role: 'assistant', content: json.text };
+      setMessages(prev => [...prev, assistantDisplay]);
+      setApiMessages(prev => [...prev, assistantApi]);
       if (!open) setUnread(true);
-    } catch (e) {
-      const errorMsg: Message = {
-        role: 'assistant',
-        content: '⚠️ Não foi possível obter resposta. Tente novamente.',
-      };
-      setMessages(prev => [...prev, errorMsg]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Não foi possível obter resposta. Tente novamente.' }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearAll = () => {
+    setMessages([]);
+    setApiMessages([]);
+    setAttachedFile(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -106,13 +164,15 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
     }
   };
 
+  const canSend = (input.trim().length > 0 || !!attachedFile) && !loading;
+
   return (
     <>
       {/* Chat panel */}
       <div
         className={`fixed bottom-24 right-6 z-50 flex flex-col bg-white rounded-[2rem] shadow-2xl border border-slate-100 transition-all duration-300 origin-bottom-right ${
           open
-            ? 'w-[380px] h-[560px] opacity-100 scale-100 pointer-events-auto'
+            ? 'w-[380px] h-[580px] opacity-100 scale-100 pointer-events-auto'
             : 'w-0 h-0 opacity-0 scale-75 pointer-events-none'
         }`}
         style={{ maxHeight: 'calc(100vh - 120px)' }}
@@ -128,14 +188,11 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                 <div>
                   <p className="font-black text-slate-800 text-sm leading-none">Assistente FEG</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">
-                    {context ? context : 'Seguro Garantia · IA'}
+                    {context || 'Seguro Garantia · IA'}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
+              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <ChevronDown size={18} />
               </button>
             </div>
@@ -149,7 +206,9 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                       <MessageCircle size={20} className="text-[#C69C6D]" />
                     </div>
                     <p className="font-black text-slate-800 text-sm">Olá! Como posso ajudar?</p>
-                    <p className="text-slate-400 text-xs mt-1">Tire dúvidas sobre seguro-garantia, licitações e muito mais.</p>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Tire dúvidas ou envie um PDF para análise.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     {QUICK_CHIPS.map((chip) => (
@@ -166,19 +225,28 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
               )}
 
               {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-[#1B263B] text-white rounded-br-md'
-                        : 'bg-slate-100 text-slate-800 rounded-bl-md'
-                    }`}
-                    style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                  >
-                    {msg.content}
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[82%] flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    {/* File badge */}
+                    {msg.fileName && (
+                      <div className="flex items-center gap-1.5 bg-[#1B263B]/10 border border-[#1B263B]/15 px-3 py-1.5 rounded-xl">
+                        <FileText size={12} className="text-[#C69C6D] shrink-0" />
+                        <span className="text-[11px] font-bold text-slate-700 truncate max-w-[180px]">{msg.fileName}</span>
+                      </div>
+                    )}
+                    {/* Text bubble */}
+                    {msg.content && (
+                      <div
+                        className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'bg-[#1B263B] text-white rounded-br-md'
+                            : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                        }`}
+                        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                      >
+                        {msg.content}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -196,31 +264,61 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
-            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-slate-100">
-              <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-[#C69C6D]/50 focus-within:bg-white transition-all">
+            {/* Input area */}
+            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-slate-100 space-y-2">
+              {/* File preview */}
+              {attachedFile && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-[#C69C6D]/30 rounded-xl px-3 py-2">
+                  <FileText size={14} className="text-[#C69C6D] shrink-0" />
+                  <span className="flex-1 text-xs font-bold text-slate-700 truncate">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-red-500 transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
+              {/* Textarea + buttons */}
+              <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-3 py-2.5 focus-within:border-[#C69C6D]/50 focus-within:bg-white transition-all">
+                {/* Attach button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#C69C6D] hover:bg-slate-100 transition-all"
+                  title="Anexar PDF"
+                >
+                  <Paperclip size={15} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+
                 <textarea
                   ref={textareaRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Digite sua dúvida... (Enter para enviar)"
+                  placeholder={attachedFile ? 'Adicione uma instrução (opcional)...' : 'Digite sua dúvida... (Enter para enviar)'}
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                   style={{ maxHeight: '80px' }}
                 />
+
                 <button
                   onClick={() => send(input)}
-                  disabled={!input.trim() || loading}
+                  disabled={!canSend}
                   className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-[#1B263B] text-[#C69C6D] disabled:opacity-30 hover:bg-[#243447] transition-all"
                 >
                   {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </button>
               </div>
+
               {messages.length > 0 && (
                 <button
-                  onClick={() => setMessages([])}
-                  className="w-full text-center text-[10px] text-slate-400 hover:text-slate-600 mt-2 transition-colors"
+                  onClick={clearAll}
+                  className="w-full text-center text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   Limpar conversa
                 </button>
