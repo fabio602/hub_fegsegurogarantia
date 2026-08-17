@@ -15,8 +15,9 @@ serve(async (req) => {
   try {
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
 
-    const { pdfBase64, fileName } = await req.json();
-    if (!pdfBase64) throw new Error('PDF não enviado');
+    const { pdfBase64, pdfBase64Array, fileName } = await req.json();
+    const pdfs: string[] = pdfBase64Array ?? (pdfBase64 ? [pdfBase64] : []);
+    if (pdfs.length === 0) throw new Error('Nenhum PDF enviado');
 
     const prompt = `Você é um especialista em licitações públicas brasileiras e seguros de garantia (seguro-garantia de proposta / bid bond).
 
@@ -61,11 +62,13 @@ Retorne SOMENTE o JSON abaixo, sem texto extra, sem markdown:
           {
             role: 'user',
             content: [
-              {
+              ...pdfs.map((pdf: string) => ({
                 type: 'document',
-                source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
-              },
-              { type: 'text', text: prompt },
+                source: { type: 'base64', media_type: 'application/pdf', data: pdf },
+              })),
+              { type: 'text', text: pdfs.length > 1
+                ? `Analise os ${pdfs.length} documentos acima em conjunto (edital, termo de referência e/ou anexos) e extraia as informações solicitadas considerando todos eles.\n\n${prompt}`
+                : prompt },
             ],
           },
         ],

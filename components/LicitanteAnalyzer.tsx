@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
-  Building2, DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle
+  DollarSign, Shield, Calendar, RotateCcw,
+  Info, ChevronDown, ChevronUp, AlertTriangle, Plus, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import MinutaValidator from './MinutaValidator';
@@ -58,18 +58,24 @@ function Card({ icon, label, value, highlight }: { icon: React.ReactNode; label:
 }
 
 export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<EditalData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showObs, setShowObs] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (f: File) => {
-    if (f.type !== 'application/pdf') { setError('Selecione um arquivo PDF.'); return; }
-    if (f.size > 30 * 1024 * 1024) { setError('Arquivo deve ter no máximo 30MB.'); return; }
-    setFile(f); setResult(null); setError(null);
+  const addFiles = (incoming: FileList | File[]) => {
+    const arr = Array.from(incoming);
+    const invalid = arr.find(f => f.type !== 'application/pdf');
+    if (invalid) { setError('Selecione apenas arquivos PDF.'); return; }
+    const tooBig = arr.find(f => f.size > 30 * 1024 * 1024);
+    if (tooBig) { setError('Cada arquivo deve ter no máximo 30MB.'); return; }
+    setFiles(prev => [...prev, ...arr]);
+    setError(null);
   };
+
+  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
   const toBase64 = (f: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -80,10 +86,10 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
     });
 
   const analyze = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const pdfBase64 = await toBase64(file);
+      const pdfBase64Array = await Promise.all(files.map(toBase64));
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const supabaseUrl = (supabase as any).supabaseUrl as string;
@@ -96,7 +102,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
           'Authorization': `Bearer ${token || supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({ pdfBase64, fileName: file.name }),
+        body: JSON.stringify({ pdfBase64Array, fileName: files[0].name }),
       });
 
       const json = await res.json();
@@ -109,7 +115,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
     }
   };
 
-  const reset = () => { setFile(null); setResult(null); setError(null); };
+  const reset = () => { setFiles([]); setResult(null); setError(null); };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">
@@ -120,47 +126,53 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
       {/* Upload */}
       {!result && (
-        <div
-          onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
-          onDragOver={e => e.preventDefault()}
-          onClick={() => !file && inputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-[2rem] p-12 flex flex-col items-center gap-5 transition-all cursor-pointer
-            ${file ? 'border-[#C69C6D] bg-amber-50/30 cursor-default' : 'border-slate-200 bg-white hover:border-[#C69C6D] hover:bg-amber-50/10'}`}
-        >
-          <input ref={inputRef} type="file" accept="application/pdf" className="hidden"
-            onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+        <div className="space-y-3">
+          {/* Drop zone (sempre visível enquanto sem resultado) */}
+          <div
+            onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
+            onDragOver={e => e.preventDefault()}
+            onClick={() => inputRef.current?.click()}
+            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-[#C69C6D] hover:bg-amber-50/10"
+          >
+            <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden"
+              onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+              <Upload size={24} className="text-slate-400" />
+            </div>
+            <div className="text-center">
+              <p className="font-black text-slate-700">Arraste os arquivos aqui</p>
+              <p className="text-slate-400 text-sm mt-1">Edital, Termo de Referência, Anexos · PDF até 30MB cada</p>
+            </div>
+          </div>
 
-          {file ? (
-            <>
-              <div className="w-16 h-16 rounded-2xl bg-[#C69C6D]/10 flex items-center justify-center">
-                <FileText size={30} className="text-[#C69C6D]" />
-              </div>
-              <div className="text-center">
-                <p className="font-black text-slate-800 text-lg">{file.name}</p>
-                <p className="text-slate-400 text-sm mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB · PDF pronto</p>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={e => { e.stopPropagation(); analyze(); }} disabled={loading}
-                  className="bg-[#1B263B] text-white px-8 py-3.5 rounded-2xl font-black hover:bg-[#243447] transition-all shadow-lg flex items-center gap-2 disabled:opacity-60">
+          {/* Lista de arquivos adicionados */}
+          {files.length > 0 && (
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center gap-3 bg-amber-50 border border-[#C69C6D]/30 rounded-2xl px-5 py-3.5">
+                  <FileText size={18} className="text-[#C69C6D] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">{f.name}</p>
+                    <p className="text-xs text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500 transition-colors">
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={analyze} disabled={loading}
+                  className="flex-1 bg-[#1B263B] text-white px-8 py-3.5 rounded-2xl font-black hover:bg-[#243447] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
-                  {loading ? 'Analisando...' : 'Analisar Edital com IA'}
+                  {loading ? 'Analisando...' : `Analisar ${files.length > 1 ? `${files.length} arquivos` : 'Edital'} com IA`}
                 </button>
-                <button onClick={e => { e.stopPropagation(); reset(); }}
+                <button onClick={reset}
                   className="bg-slate-100 text-slate-600 px-5 py-3.5 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center gap-2">
-                  <RotateCcw size={15} /> Trocar
+                  <RotateCcw size={15} /> Limpar
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
-                <Upload size={28} className="text-slate-400" />
-              </div>
-              <div className="text-center">
-                <p className="font-black text-slate-700 text-lg">Arraste o edital aqui</p>
-                <p className="text-slate-400 text-sm mt-1">ou clique para selecionar · PDF até 30MB</p>
-              </div>
-            </>
+            </div>
           )}
         </div>
       )}
