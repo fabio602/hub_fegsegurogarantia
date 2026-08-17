@@ -298,17 +298,6 @@ const App: React.FC = () => {
                 <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
               </NavGroup>
 
-              {/* ── Gestão Financeira ────────────────────── */}
-              <NavGroup
-                groupKey="financeiro"
-                icon={<Target size={16} />}
-                label="Gestão Financeira"
-                isGroupActive={FINANCEIRO_VIEWS.includes(activeView)}
-              >
-                <NavSubItem view="metas-mensais" label="Metas Mensais" />
-                <NavSubItem view="metas-anuais" label="Metas Anuais" />
-              </NavGroup>
-
               {/* ── Seguro AUTO ─────────────────────────── */}
               <NavGroup
                 groupKey="auto"
@@ -341,6 +330,17 @@ const App: React.FC = () => {
               >
                 <NavSubItem view="rc" label="Gestão Comercial" />
                 <NavSubItem view="rc-seguradoras" label="Seguradoras" />
+              </NavGroup>
+
+              {/* ── Gestão Financeira ────────────────────── */}
+              <NavGroup
+                groupKey="financeiro"
+                icon={<Target size={16} />}
+                label="Gestão Financeira"
+                isGroupActive={FINANCEIRO_VIEWS.includes(activeView)}
+              >
+                <NavSubItem view="metas-mensais" label="Metas Mensais" />
+                <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
 
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
