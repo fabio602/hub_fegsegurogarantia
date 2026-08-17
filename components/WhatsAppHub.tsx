@@ -57,8 +57,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Pending file attachment
-  const [pendingFile, setPendingFile] = useState<{ name: string; type: string; base64: string } | null>(null);
+  // Pending file attachments
+  const [pendingFiles, setPendingFiles] = useState<{ name: string; type: string; base64: string }[]>([]);
 
   // CRM Modal state
   const [crmModalLead, setCrmModalLead] = useState<Lead | null>(null);
@@ -109,7 +109,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   };
 
   const sendMessage = async () => {
-    if ((!newMessage.trim() && !pendingFile) || !selectedPhone || sending) return;
+    if ((!newMessage.trim() && !pendingFiles.length) || !selectedPhone || sending) return;
     setSending(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -117,51 +117,47 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       const supabaseUrl = (supabase as any).supabaseUrl as string;
       const supabaseKey = (supabase as any).supabaseKey as string;
 
-      const payload: Record<string, string> = { phone: selectedPhone };
-      let dbMessage: string;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token || supabaseKey}`,
+        'apikey': supabaseKey,
+      };
 
-      if (pendingFile) {
-        payload.file = pendingFile.base64;
-        payload.fileName = pendingFile.name;
-        payload.fileType = pendingFile.type;
-        if (newMessage.trim()) payload.message = newMessage.trim();
-        dbMessage = pendingFile.type.startsWith('image/')
-          ? `[Imagem: ${pendingFile.name}]`
-          : `[Arquivo: ${pendingFile.name}]`;
-        if (newMessage.trim()) dbMessage += ` — ${newMessage.trim()}`;
-      } else {
-        payload.message = newMessage.trim();
-        dbMessage = newMessage.trim();
-      }
-
-      const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || supabaseKey}`,
-          'apikey': supabaseKey,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        await supabase.from('whatsapp_messages').insert({
-          phone: selectedPhone,
-          name: selectedLead?.name ?? selectedPhone,
-          message: dbMessage,
-          direction: 'outbound',
-          status: 'sent',
+      // Send files sequentially
+      for (const pf of pendingFiles) {
+        const caption = pendingFiles.indexOf(pf) === pendingFiles.length - 1 ? newMessage.trim() : '';
+        await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ phone: selectedPhone, file: pf.base64, fileName: pf.name, fileType: pf.type, message: caption }),
         });
-        // Human took over → silence the bot
-        await supabase
-          .from('whatsapp_leads')
-          .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
-          .eq('phone', selectedPhone);
-        setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
-        setNewMessage('');
-        setPendingFile(null);
-        loadMessages(selectedPhone);
+        const dbMsg = pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
+        await supabase.from('whatsapp_messages').insert({
+          phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
+          message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
+        });
       }
+
+      // Send text-only if no files
+      if (!pendingFiles.length && newMessage.trim()) {
+        await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ phone: selectedPhone, message: newMessage.trim() }),
+        });
+        await supabase.from('whatsapp_messages').insert({
+          phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
+          message: newMessage.trim(), direction: 'outbound', status: 'sent',
+        });
+      }
+
+      // Human took over → silence the bot
+      await supabase
+        .from('whatsapp_leads')
+        .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
+        .eq('phone', selectedPhone);
+      setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
+      setNewMessage('');
+      setPendingFiles([]);
+      loadMessages(selectedPhone);
     } catch (e) {
       console.error('Erro ao enviar:', e);
     } finally {
@@ -199,15 +195,16 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande. Máximo 10 MB.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string);
-      setPendingFile({ name: file.name, type: file.type, base64 });
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const oversized = files.filter(f => f.size > 10 * 1024 * 1024);
+    if (oversized.length) { alert(`Arquivo(s) muito grande(s): ${oversized.map(f => f.name).join(', ')}. Máximo 10 MB cada.`); return; }
+    const readers = files.map(file => new Promise<{ name: string; type: string; base64: string }>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ name: file.name, type: file.type, base64: reader.result as string });
+      reader.readAsDataURL(file);
+    }));
+    Promise.all(readers).then(results => setPendingFiles(prev => [...prev, ...results]));
     e.target.value = '';
   };
 
@@ -367,17 +364,21 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             {/* Input area */}
             <div className="px-4 pb-4 pt-2 border-t border-slate-200 bg-white shrink-0">
               {/* File preview strip */}
-              {pendingFile && (
-                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[#C69C6D]/10 border border-[#C69C6D]/30 rounded-xl">
-                  {pendingFile.type.startsWith('image/') ? (
-                    <Image size={14} className="text-[#C69C6D] shrink-0" />
-                  ) : (
-                    <FileText size={14} className="text-[#C69C6D] shrink-0" />
-                  )}
-                  <span className="text-xs font-bold text-slate-700 truncate flex-1">{pendingFile.name}</span>
-                  <button onClick={() => setPendingFile(null)} className="shrink-0 text-slate-400 hover:text-slate-600">
-                    <X size={13} />
-                  </button>
+              {pendingFiles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {pendingFiles.map((pf, i) => (
+                    <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#C69C6D]/10 border border-[#C69C6D]/30 rounded-xl max-w-[180px]">
+                      {pf.type.startsWith('image/') ? (
+                        <Image size={12} className="text-[#C69C6D] shrink-0" />
+                      ) : (
+                        <FileText size={12} className="text-[#C69C6D] shrink-0" />
+                      )}
+                      <span className="text-[11px] font-bold text-slate-700 truncate flex-1">{pf.name}</span>
+                      <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} className="shrink-0 text-slate-400 hover:text-slate-600">
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-3 py-2.5 focus-within:border-[#C69C6D]/50 focus-within:bg-white transition-all">
@@ -385,6 +386,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                   className="hidden"
                   onChange={handleFileSelect}
@@ -401,14 +403,14 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={pendingFile ? 'Legenda (opcional)...' : 'Escreva uma mensagem... (Enter para enviar)'}
+                  placeholder={pendingFiles.length ? 'Legenda (opcional)...' : 'Escreva uma mensagem... (Enter para enviar)'}
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                   style={{ maxHeight: '100px' }}
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={(!newMessage.trim() && !pendingFile) || sending}
+                  disabled={(!newMessage.trim() && !pendingFiles.length) || sending}
                   className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-[#1B263B] text-[#C69C6D] disabled:opacity-30 hover:bg-[#243447] transition-all"
                 >
                   {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
