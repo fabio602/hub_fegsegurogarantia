@@ -97,7 +97,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       .select('*')
       .eq('phone', phone)
       .order('created_at', { ascending: true });
-    setMessages(data ?? []);
+    // Only update if we got data — avoid wiping messages on error
+    if (data) setMessages(data);
     setLoadingMessages(false);
   }, []);
 
@@ -177,11 +178,12 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         const resData = await res.json();
         const isAudio = pf.type.startsWith('audio/');
         const dbMsg = isAudio ? `[Áudio: ${pf.name}]` : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
-        await supabase.from('whatsapp_messages').insert({
+        const { data: inserted } = await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
-        });
+        }).select().single();
+        if (inserted) setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...m, id: inserted.id, zapi_id: inserted.zapi_id } : m));
       }
 
       // Send text-only if no files
@@ -191,11 +193,13 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           body: JSON.stringify({ phone: selectedPhone, message: msgText }),
         });
         const resData = await res.json();
-        await supabase.from('whatsapp_messages').insert({
+        const { data: inserted } = await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: msgText, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
-        });
+        }).select().single();
+        // Update optimistic message with real DB id (for edit/delete)
+        if (inserted) setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...m, id: inserted.id, zapi_id: inserted.zapi_id } : m));
       }
 
       // Human took over → silence the bot
@@ -204,8 +208,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
         .eq('phone', selectedPhone);
       setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
-      // Remove optimistic message and reload from DB after short delay
-      setTimeout(() => loadMessages(selectedPhone), 600);
+      // No reload — optimistic message stays, no flicker
     } catch (e) {
       console.error('Erro ao enviar:', e);
     } finally {
