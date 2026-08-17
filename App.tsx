@@ -293,7 +293,7 @@ const App: React.FC = () => {
                   <NavSubItem view="seg-licitante" label="Seguro Licitante" />
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                 </NavSubGroup>
-                <NavSubItem view="goals" label="Gestão Comercial" />
+                <NavSubItem view="goals" label="Registro de Vendas" />
                 <NavSubItem view="carteira" label="Carteira de Clientes" />
                 <NavSubGroup
                   groupKey="prospeccao"
