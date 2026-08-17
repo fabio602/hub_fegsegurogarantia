@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
@@ -19,6 +19,8 @@ interface Message {
   message: string;
   direction: 'inbound' | 'outbound';
   created_at: string;
+  zapi_id?: string | null;
+  audio_url?: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -65,6 +67,13 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [crmProductType, setCrmProductType] = useState<string>('Seguro Garantia');
   const [crmSaving, setCrmSaving] = useState(false);
   const [crmSuccess, setCrmSuccess] = useState(false);
+
+  // Message edit/delete state
+  const [editingMsg, setEditingMsg] = useState<{ id: string; zapi_id?: string | null; text: string } | null>(null);
+  const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
+
+  // Delete conversation
+  const [deletingConv, setDeletingConv] = useState<string | null>(null);
 
   const selectedLead = leads.find(l => l.phone === selectedPhone);
 
@@ -126,26 +135,31 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       // Send files sequentially
       for (const pf of pendingFiles) {
         const caption = pendingFiles.indexOf(pf) === pendingFiles.length - 1 ? newMessage.trim() : '';
-        await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
+        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
           method: 'POST', headers,
           body: JSON.stringify({ phone: selectedPhone, file: pf.base64, fileName: pf.name, fileType: pf.type, message: caption }),
         });
-        const dbMsg = pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
+        const resData = await res.json();
+        const isAudio = pf.type.startsWith('audio/');
+        const dbMsg = isAudio ? `[Áudio: ${pf.name}]` : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
         await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
+          zapi_id: resData?.zapiId ?? null,
         });
       }
 
       // Send text-only if no files
       if (!pendingFiles.length && newMessage.trim()) {
-        await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
+        const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
           method: 'POST', headers,
           body: JSON.stringify({ phone: selectedPhone, message: newMessage.trim() }),
         });
+        const resData = await res.json();
         await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: newMessage.trim(), direction: 'outbound', status: 'sent',
+          zapi_id: resData?.zapiId ?? null,
         });
       }
 
@@ -206,6 +220,51 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     }));
     Promise.all(readers).then(results => setPendingFiles(prev => [...prev, ...results]));
     e.target.value = '';
+  };
+
+  const getSupabaseHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const supabaseUrl = (supabase as any).supabaseUrl as string;
+    const supabaseKey = (supabase as any).supabaseKey as string;
+    return { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || supabaseKey}`, 'apikey': supabaseKey }, supabaseUrl };
+  };
+
+  const deleteConversation = async (phone: string) => {
+    await supabase.from('whatsapp_messages').delete().eq('phone', phone);
+    await supabase.from('whatsapp_leads').delete().eq('phone', phone);
+    setLeads(prev => prev.filter(l => l.phone !== phone));
+    if (selectedPhone === phone) { setSelectedPhone(null); setMessages([]); }
+    setDeletingConv(null);
+  };
+
+  const saveEditedMessage = async () => {
+    if (!editingMsg || !editingMsg.text.trim()) return;
+    const { headers, supabaseUrl } = await getSupabaseHeaders();
+    // Update in DB
+    await supabase.from('whatsapp_messages').update({ message: editingMsg.text }).eq('id', editingMsg.id);
+    // Try Z-API edit if we have the message ID
+    if (editingMsg.zapi_id && selectedPhone) {
+      await fetch(`${supabaseUrl}/functions/v1/whatsapp-message-actions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ action: 'edit', phone: selectedPhone, zapiId: editingMsg.zapi_id, newMessage: editingMsg.text }),
+      });
+    }
+    setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, message: editingMsg.text } : m));
+    setEditingMsg(null);
+  };
+
+  const deleteMessage = async (msg: Message) => {
+    const { headers, supabaseUrl } = await getSupabaseHeaders();
+    await supabase.from('whatsapp_messages').delete().eq('id', msg.id);
+    if (msg.zapi_id && selectedPhone) {
+      await fetch(`${supabaseUrl}/functions/v1/whatsapp-message-actions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ action: 'delete', phone: selectedPhone, zapiId: msg.zapi_id }),
+      });
+    }
+    setMessages(prev => prev.filter(m => m.id !== msg.id));
+    setDeletingMsgId(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -282,13 +341,20 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                     </div>
                   </div>
                 </button>
-                <div className="px-4 pb-2.5">
+                <div className="px-4 pb-2.5 flex gap-1.5">
                   <button
                     onClick={(e) => { e.stopPropagation(); openCrmModal(lead); }}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-[10px] font-black transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-[10px] font-black transition-colors"
                     title="Adicionar ao CRM"
                   >
                     <Plus size={11} /> Adicionar ao CRM
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeletingConv(lead.phone); }}
+                    className="px-2 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 transition-colors"
+                    title="Excluir conversa"
+                  >
+                    <Trash2 size={11} />
                   </button>
                 </div>
               </div>
@@ -344,16 +410,72 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 </div>
               ) : (
                 messages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                  <div key={msg.id} className={`flex group ${msg.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}>
+                    {/* Edit/delete actions for outbound */}
+                    {msg.direction === 'outbound' && (
+                      <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {editingMsg?.id !== msg.id && (
+                          <>
+                            <button onClick={() => setEditingMsg({ id: msg.id, zapi_id: msg.zapi_id, text: msg.message })} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Editar">
+                              <Pencil size={12} />
+                            </button>
+                            <button onClick={() => setDeletingMsgId(msg.id)} className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Excluir">
+                              <Trash2 size={12} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <div className={`max-w-[72%] rounded-2xl text-sm leading-relaxed shadow-sm ${
                       msg.direction === 'inbound'
                         ? 'bg-white text-slate-800 rounded-bl-md'
                         : 'bg-[#1B263B] text-white rounded-br-md'
                     }`}>
-                      <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</p>
-                      <p className={`text-[10px] mt-1 text-right ${msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/40'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      {editingMsg?.id === msg.id ? (
+                        /* Inline edit */
+                        <div className="p-2 space-y-2 min-w-[200px]">
+                          <textarea
+                            autoFocus
+                            value={editingMsg.text}
+                            onChange={e => setEditingMsg(em => em ? { ...em, text: e.target.value } : em)}
+                            rows={3}
+                            className="w-full bg-white/10 text-white text-sm p-2 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-white/30 placeholder-white/40"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setEditingMsg(null)} className="text-white/50 hover:text-white text-xs px-2 py-1 transition-colors">Cancelar</button>
+                            <button onClick={saveEditedMessage} className="bg-[#C69C6D] text-white text-xs px-3 py-1 rounded-lg font-bold hover:bg-[#b8895a] transition-colors">Salvar</button>
+                          </div>
+                        </div>
+                      ) : deletingMsgId === msg.id ? (
+                        /* Delete confirm */
+                        <div className="px-4 py-3 space-y-2">
+                          <p className="text-xs text-white/70">Excluir para todos?</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => setDeletingMsgId(null)} className="text-white/50 hover:text-white text-xs transition-colors">Não</button>
+                            <button onClick={() => deleteMessage(msg)} className="text-red-400 hover:text-red-300 text-xs font-bold transition-colors">Excluir</button>
+                          </div>
+                        </div>
+                      ) : msg.audio_url ? (
+                        /* Audio player */
+                        <div className="px-3 py-2.5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Volume2 size={13} className={msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/60'} />
+                            <span className="text-[11px] font-bold opacity-60">Áudio</span>
+                          </div>
+                          <audio controls src={msg.audio_url} className="max-w-[220px]" style={{ height: '32px' }} />
+                          <p className={`text-[10px] mt-1 text-right ${msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/40'}`}>
+                            {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      ) : (
+                        /* Normal message */
+                        <div className="px-4 py-2.5">
+                          <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</p>
+                          <p className={`text-[10px] mt-1 text-right ${msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/40'}`}>
+                            {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
@@ -387,7 +509,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                  accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                   className="hidden"
                   onChange={handleFileSelect}
                 />
@@ -500,6 +622,24 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
               </div>
             </div>
           )}
+        </div>
+      </div>
+    )}
+    {/* ── Delete conversation modal ── */}
+    {deletingConv && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+            <Trash2 size={20} className="text-red-500" />
+          </div>
+          <div>
+            <p className="font-black text-slate-800">Excluir conversa?</p>
+            <p className="text-sm text-slate-500 mt-1">Todas as mensagens serão apagadas do hub. A conversa no WhatsApp não é afetada.</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setDeletingConv(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">Cancelar</button>
+            <button onClick={() => deleteConversation(deletingConv)} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors text-sm">Excluir</button>
+          </div>
         </div>
       </div>
     )}
