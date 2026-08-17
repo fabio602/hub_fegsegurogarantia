@@ -102,7 +102,12 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     setLoadingMessages(false);
   }, []);
 
-  useEffect(() => { loadLeads(); }, [loadLeads]);
+  useEffect(() => {
+    loadLeads();
+    // Refresh leads every 10s to show new contacts created from phone sends
+    const poll = setInterval(loadLeads, 10000);
+    return () => clearInterval(poll);
+  }, [loadLeads]);
 
   // Load messages + subscribe to realtime when contact selected
   useEffect(() => {
@@ -130,32 +135,11 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     return () => { supabase.removeChannel(channel); };
   }, [selectedPhone]);
 
-  // Keep messagesRef in sync (for polling without stale closure)
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
-
-  // Silent polling: recarrega mensagens a cada 5s sem spinner
-  useEffect(() => {
-    if (!selectedPhone) return;
-    const poll = setInterval(async () => {
-      const { data } = await supabase
-        .from('whatsapp_messages')
-        .select('*')
-        .eq('phone', selectedPhone)
-        .order('created_at', { ascending: true });
-      if (data) {
-        setMessages(prev => {
-          const prevIds = new Set(prev.map(m => m.id));
-          const hasNew = data.some((m: Message) => !prevIds.has(m.id));
-          return hasNew ? data : prev;
-        });
-      }
-    }, 5000);
-    return () => clearInterval(poll);
-  }, [selectedPhone]);
 
   // Search messages in DB with debounce
   useEffect(() => {
@@ -230,7 +214,12 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           message: msgText, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
-        if (inserted) setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
+        if (inserted) {
+          setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
+        } else {
+          // Fallback: reload if insert returned no data
+          await loadMessages(selectedPhone);
+        }
       }
 
       // Silence the bot
