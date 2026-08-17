@@ -323,7 +323,7 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean }> = ({ initialSection = 'sales', hideTabs = false }) => {
+const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas }) => {
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
@@ -1585,7 +1585,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean 
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             {!hideTabs && <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
-                {(['sales', 'pendencias', 'licitante', 'contrato'] as Section[]).map((section) => (
+                {(['sales', 'pendencias'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
@@ -1596,8 +1596,6 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean 
                     >
                         {section === 'sales' && 'Vendas'}
                         {section === 'pendencias' && 'Pendências'}
-                        {section === 'licitante' && 'Seguro Licitante'}
-                        {section === 'contrato' && 'Seguro de Contrato'}
                     </button>
                 ))}
             </div>}
@@ -3440,13 +3438,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean 
 
             {activeSection === 'licitante' && (
                 <section className="animate-in slide-in-from-bottom-4 duration-500">
-                    <LicitanteAnalyzer onVerVendas={() => setActiveSection('sales')} />
+                    <LicitanteAnalyzer onVerVendas={onVerVendas ?? (() => setActiveSection('sales'))} />
                 </section>
             )}
 
             {activeSection === 'contrato' && (
                 <section className="animate-in slide-in-from-bottom-4 duration-500">
-                    <ContratoAnalyzer onVerVendas={() => setActiveSection('sales')} />
+                    <ContratoAnalyzer onVerVendas={onVerVendas ?? (() => setActiveSection('sales'))} />
                 </section>
             )}
 

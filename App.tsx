@@ -45,7 +45,7 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg'
-  | 'carteira' | 'prospeccao' | 'pnpc'
+  | 'carteira' | 'prospeccao' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -57,7 +57,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
@@ -74,6 +74,8 @@ const VIEW_TITLES: Record<View, string> = {
   carteira: 'Carteira de Clientes',
   prospeccao: 'Prospecção',
   pnpc: 'PNPC',
+  'seg-licitante': 'Seguro Licitante',
+  'seg-contrato': 'Seguro de Contrato',
   auto: 'Seguro AUTO',
   'auto-seguradoras': 'Seguradoras AUTO',
   residential: 'Seguro Residencial / Locatícia',
@@ -98,6 +100,7 @@ const App: React.FC = () => {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     garantia: false,
     prospeccao: false,
+    cotacoes: false,
     financeiro: false,
     auto: false,
     residencial: false,
@@ -119,6 +122,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
     if (['prospeccao', 'pnpc'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
+    if (['seg-licitante', 'seg-contrato'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
     if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
     if (RESIDENCIAL_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, residencial: true }));
@@ -290,6 +294,14 @@ const App: React.FC = () => {
                 >
                   <NavSubItem view="prospeccao" label="Prospecção" />
                   <NavSubItem view="pnpc" label="PNPC" />
+                </NavSubGroup>
+                <NavSubGroup
+                  groupKey="cotacoes"
+                  label="Cotações"
+                  isGroupActive={['seg-licitante', 'seg-contrato'].includes(activeView)}
+                >
+                  <NavSubItem view="seg-licitante" label="Seguro Licitante" />
+                  <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                 </NavSubGroup>
                 <NavSubItem view="directory" label="Seguradoras" />
                 <NavSubItem view="banks" label="Bancos Garantidores" />
@@ -517,6 +529,8 @@ const App: React.FC = () => {
               {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
               {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
+              {activeView === 'seg-licitante' && <ResultsDashboard key="seg-licitante" initialSection="licitante" hideTabs onVerVendas={() => navigate('goals')} />}
+              {activeView === 'seg-contrato' && <ResultsDashboard key="seg-contrato" initialSection="contrato" hideTabs onVerVendas={() => navigate('goals')} />}
               {activeView === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" hideTabs />}
               {activeView === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" hideTabs />}
               {activeView === 'directory' && (
