@@ -138,19 +138,6 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     if ((!newMessage.trim() && !pendingFiles.length) || !selectedPhone || sending) return;
     setSending(true);
 
-    // Optimistic UI — show message immediately
-    const optimisticText = pendingFiles.length
-      ? pendingFiles.map(pf => pf.type.startsWith('audio/') ? `[Áudio: ${pf.name}]` : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`).join(', ') + (newMessage.trim() ? ` — ${newMessage.trim()}` : '')
-      : newMessage.trim();
-    const optimisticMsg: Message = {
-      id: `opt-${Date.now()}`,
-      phone: selectedPhone,
-      name: selectedLead?.name ?? selectedPhone,
-      message: optimisticText,
-      direction: 'outbound',
-      created_at: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
     const msgText = newMessage.trim();
     const files = [...pendingFiles];
     setNewMessage('');
@@ -183,7 +170,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
-        if (inserted) setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...m, id: inserted.id, zapi_id: inserted.zapi_id } : m));
+        if (inserted) setMessages(prev => [...prev, inserted as Message]);
       }
 
       // Send text-only if no files
@@ -198,8 +185,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           message: msgText, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
-        // Update optimistic message with real DB id (for edit/delete)
-        if (inserted) setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...m, id: inserted.id, zapi_id: inserted.zapi_id } : m));
+        if (inserted) setMessages(prev => [...prev, inserted as Message]);
       }
 
       // Human took over → silence the bot
