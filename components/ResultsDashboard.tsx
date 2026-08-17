@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Plus,
@@ -323,8 +323,9 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas }) => {
+const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string } }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData }) => {
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
+    const saleFormRef = useRef<HTMLDivElement>(null);
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
     const [insurers, setInsurers] = useState<any[]>([]);
@@ -334,7 +335,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
-    
+
+    // Pre-fill form when arriving from WhatsApp
+    useEffect(() => {
+        if (initialSaleData) {
+            setFormData(prev => ({ ...prev, nome: initialSaleData.nome, telefone: initialSaleData.telefone }));
+            setActiveSection('sales');
+            setTimeout(() => saleFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // -- Task Fetching --
     const fetchTasks = async () => {
         try {
@@ -1735,7 +1746,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>
 
                     {/* Form Card */}
-                    <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                    <div ref={saleFormRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
                         <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
                             {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}

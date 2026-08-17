@@ -107,6 +107,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
+  const [pendingSale, setPendingSale] = useState<{ nome: string; telefone: string } | null>(null);
   const activeViewRef = React.useRef<View>('dashboard');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     garantia: false,
@@ -188,6 +189,7 @@ const App: React.FC = () => {
   const navigate = (view: View) => {
     setActiveView(view);
     if (view === 'whatsapp') setUnreadWhatsApp(0);
+    if (view !== 'goals') setPendingSale(null);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
@@ -593,7 +595,7 @@ const App: React.FC = () => {
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
               {/* Seguro Garantia */}
-              {activeView === 'goals' && <ResultsDashboard key="goals" initialSection="sales" />}
+              {activeView === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
               {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
               {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
@@ -661,7 +663,7 @@ const App: React.FC = () => {
               )}
 
               {/* Outros */}
-              {activeView === 'whatsapp' && <WhatsAppHub />}
+              {activeView === 'whatsapp' && <WhatsAppHub onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
               {activeView === 'whatsapp-blast' && <WhatsAppBlast />}
               {activeView === 'email-followup' && <EmailFollowUp />}
               {activeView === 'sureties' && <SuretiesDirectory />}

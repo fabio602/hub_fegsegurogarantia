@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
@@ -46,7 +46,7 @@ function formatTime(dateStr: string) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-export default function WhatsAppHub() {
+export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome: string; telefone: string }) => void } = {}) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -399,18 +399,32 @@ export default function WhatsAppHub() {
           )}
 
           {!crmSuccess && (
-            <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setCrmModalLead(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">
-                Cancelar
-              </button>
-              <button
-                onClick={saveToCrm}
-                disabled={crmSaving}
-                className="flex-1 py-2.5 bg-[#1B263B] hover:bg-[#243347] text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-              >
-                {crmSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                {crmSaving ? 'Salvando...' : 'Criar no CRM'}
-              </button>
+            <div className="px-6 pb-6 space-y-2.5">
+              {onGoToSale && (
+                <button
+                  onClick={() => {
+                    if (!crmModalLead) return;
+                    setCrmModalLead(null);
+                    onGoToSale({ nome: crmModalLead.name, telefone: crmModalLead.phone });
+                  }}
+                  className="w-full py-2.5 bg-[#C69C6D] hover:bg-[#b8895a] text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <FileText size={15} /> Ir para Registro de Venda
+                </button>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setCrmModalLead(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveToCrm}
+                  disabled={crmSaving}
+                  className="flex-1 py-2.5 bg-[#1B263B] hover:bg-[#243347] text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                >
+                  {crmSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                  {crmSaving ? 'Salvando...' : 'Criar no CRM'}
+                </button>
+              </div>
             </div>
           )}
         </div>
