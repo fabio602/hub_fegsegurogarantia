@@ -275,7 +275,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
             </div>
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
-                <Building2 size={15} className="text-slate-400" />
+                <Shield size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Segurado (Órgão Público)</span>
               </div>
               <p className="text-lg font-black text-slate-800 leading-tight">{result.segurado_nome || '—'}</p>

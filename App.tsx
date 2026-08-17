@@ -40,6 +40,7 @@ import ParceiroManager from './components/ParceiroManager';
 import UserManager from './components/UserManager';
 import EndossoAllseg from './components/EndossoAllseg';
 import RCInsurance from './components/RCInsurance';
+import ChatWidget from './components/ChatWidget';
 
 type View =
   | 'dashboard'
@@ -602,6 +603,8 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      <ChatWidget activeView={activeView} />
     </div>
   );
 };
