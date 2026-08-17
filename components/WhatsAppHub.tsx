@@ -97,17 +97,37 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       .select('*')
       .eq('phone', phone)
       .order('created_at', { ascending: true });
-    // Only update if we got data — avoid wiping messages on error
     if (data) setMessages(data);
     setLoadingMessages(false);
   }, []);
 
   useEffect(() => { loadLeads(); }, [loadLeads]);
 
+  // Load messages + subscribe to realtime when contact selected
   useEffect(() => {
-    if (selectedPhone) loadMessages(selectedPhone);
-    else setMessages([]);
-  }, [selectedPhone, loadMessages]);
+    if (!selectedPhone) { setMessages([]); return; }
+
+    loadMessages(selectedPhone);
+
+    // Realtime: append new messages without replacing existing ones (no flicker)
+    const channel = supabase
+      .channel(`messages:${selectedPhone}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'whatsapp_messages',
+        filter: `phone=eq.${selectedPhone}`,
+      }, (payload) => {
+        setMessages(prev => {
+          // Avoid duplicates (hub may have already added it locally)
+          if (prev.some(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new as Message];
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedPhone]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
@@ -170,7 +190,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
-        if (inserted) setMessages(prev => [...prev, inserted as Message]);
+        // Realtime will pick it up automatically — but add locally if needed
+        if (inserted) setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
       }
 
       // Send text-only if no files
@@ -185,16 +206,12 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           message: msgText, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
-        if (inserted) setMessages(prev => [...prev, inserted as Message]);
+        if (inserted) setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
       }
 
-      // Human took over → silence the bot
-      await supabase
-        .from('whatsapp_leads')
-        .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
-        .eq('phone', selectedPhone);
+      // Silence the bot
+      await supabase.from('whatsapp_leads').update({ status: 'em atendimento', updated_at: new Date().toISOString() }).eq('phone', selectedPhone);
       setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
-      // No reload — optimistic message stays, no flicker
     } catch (e) {
       console.error('Erro ao enviar:', e);
     } finally {
