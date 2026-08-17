@@ -317,7 +317,7 @@ const App: React.FC = () => {
                 label="Seguro AUTO"
                 isGroupActive={AUTO_VIEWS.includes(activeView)}
               >
-                <NavSubItem view="auto" label="Gestão Comercial" />
+                <NavSubItem view="auto" label="Registro de Vendas" />
                 <NavSubItem view="auto-seguradoras" label="Seguradoras" />
               </NavGroup>
 
@@ -328,7 +328,7 @@ const App: React.FC = () => {
                 label="Residencial / Locatícia"
                 isGroupActive={RESIDENCIAL_VIEWS.includes(activeView)}
               >
-                <NavSubItem view="residential" label="Gestão Comercial" />
+                <NavSubItem view="residential" label="Registro de Vendas" />
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
               </NavGroup>
@@ -340,7 +340,7 @@ const App: React.FC = () => {
                 label="Resp. Civil"
                 isGroupActive={RC_VIEWS.includes(activeView)}
               >
-                <NavSubItem view="rc" label="Gestão Comercial" />
+                <NavSubItem view="rc" label="Registro de Vendas" />
                 <NavSubItem view="rc-seguradoras" label="Seguradoras" />
               </NavGroup>
 
