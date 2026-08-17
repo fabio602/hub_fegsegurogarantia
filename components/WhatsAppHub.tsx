@@ -204,8 +204,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
         .eq('phone', selectedPhone);
       setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
-      // Replace optimistic message with real one from DB
-      loadMessages(selectedPhone);
+      // Remove optimistic message and reload from DB after short delay
+      setTimeout(() => loadMessages(selectedPhone), 600);
     } catch (e) {
       console.error('Erro ao enviar:', e);
     } finally {
