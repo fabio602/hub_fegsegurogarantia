@@ -131,6 +131,12 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           direction: 'outbound',
           status: 'sent',
         });
+        // Human took over → silence the bot
+        await supabase
+          .from('whatsapp_leads')
+          .update({ status: 'em atendimento', updated_at: new Date().toISOString() })
+          .eq('phone', selectedPhone);
+        setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
         setNewMessage('');
         loadMessages(selectedPhone);
       }
