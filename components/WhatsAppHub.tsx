@@ -137,26 +137,23 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
 
-  // Polling backup: picks up phone messages every 4s
+  // Silent polling: recarrega mensagens a cada 5s sem spinner
   useEffect(() => {
     if (!selectedPhone) return;
     const poll = setInterval(async () => {
-      const last = messagesRef.current[messagesRef.current.length - 1];
-      if (!last) return;
       const { data } = await supabase
         .from('whatsapp_messages')
         .select('*')
         .eq('phone', selectedPhone)
-        .gt('created_at', last.created_at)
         .order('created_at', { ascending: true });
-      if (data && data.length > 0) {
+      if (data) {
         setMessages(prev => {
-          const ids = new Set(prev.map(m => m.id));
-          const fresh = data.filter((m: Message) => !ids.has(m.id));
-          return fresh.length ? [...prev, ...fresh] : prev;
+          const prevIds = new Set(prev.map(m => m.id));
+          const hasNew = data.some((m: Message) => !prevIds.has(m.id));
+          return hasNew ? data : prev;
         });
       }
-    }, 4000);
+    }, 5000);
     return () => clearInterval(poll);
   }, [selectedPhone]);
 
