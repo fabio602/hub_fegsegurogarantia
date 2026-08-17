@@ -61,6 +61,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<Message[]>([]);
 
   // Pending file attachments
   const [pendingFiles, setPendingFiles] = useState<{ name: string; type: string; base64: string }[]>([]);
@@ -129,9 +130,35 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     return () => { supabase.removeChannel(channel); };
   }, [selectedPhone]);
 
+  // Keep messagesRef in sync (for polling without stale closure)
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
+
+  // Polling backup: picks up phone messages every 4s
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const poll = setInterval(async () => {
+      const last = messagesRef.current[messagesRef.current.length - 1];
+      if (!last) return;
+      const { data } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('phone', selectedPhone)
+        .gt('created_at', last.created_at)
+        .order('created_at', { ascending: true });
+      if (data && data.length > 0) {
+        setMessages(prev => {
+          const ids = new Set(prev.map(m => m.id));
+          const fresh = data.filter((m: Message) => !ids.has(m.id));
+          return fresh.length ? [...prev, ...fresh] : prev;
+        });
+      }
+    }, 4000);
+    return () => clearInterval(poll);
+  }, [selectedPhone]);
 
   // Search messages in DB with debounce
   useEffect(() => {
