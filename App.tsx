@@ -285,6 +285,14 @@ const App: React.FC = () => {
                 label="Seguro Garantia"
                 isGroupActive={GARANTIA_VIEWS.includes(activeView) || FINANCEIRO_VIEWS.includes(activeView)}
               >
+                <NavSubGroup
+                  groupKey="cotacoes"
+                  label="Cotações"
+                  isGroupActive={['seg-licitante', 'seg-contrato'].includes(activeView)}
+                >
+                  <NavSubItem view="seg-licitante" label="Seguro Licitante" />
+                  <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
+                </NavSubGroup>
                 <NavSubItem view="goals" label="Gestão Comercial" />
                 <NavSubItem view="carteira" label="Carteira de Clientes" />
                 <NavSubGroup
@@ -294,14 +302,6 @@ const App: React.FC = () => {
                 >
                   <NavSubItem view="prospeccao" label="Prospecção" />
                   <NavSubItem view="pnpc" label="PNPC" />
-                </NavSubGroup>
-                <NavSubGroup
-                  groupKey="cotacoes"
-                  label="Cotações"
-                  isGroupActive={['seg-licitante', 'seg-contrato'].includes(activeView)}
-                >
-                  <NavSubItem view="seg-licitante" label="Seguro Licitante" />
-                  <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                 </NavSubGroup>
                 <NavSubItem view="directory" label="Seguradoras" />
                 <NavSubItem view="banks" label="Bancos Garantidores" />
