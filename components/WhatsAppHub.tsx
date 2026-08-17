@@ -57,6 +57,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [search, setSearch] = useState('');
+  const [matchingPhones, setMatchingPhones] = useState<Set<string> | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +111,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Search messages in DB with debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!search.trim()) { setMatchingPhones(null); return; }
+    searchTimeoutRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('whatsapp_messages')
+        .select('phone')
+        .ilike('message', `%${search.trim()}%`);
+      if (data) setMatchingPhones(new Set(data.map((r: any) => r.phone)));
+    }, 350);
+  }, [search]);
 
   const updateStatus = async (phone: string, status: string) => {
     await supabase
@@ -320,7 +335,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
               <p className="text-slate-600 text-[11px] mt-1">As mensagens recebidas aparecerão aqui</p>
             </div>
           ) : (
-            leads.filter(l => !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search)).map(lead => (
+            leads.filter(l => !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search) || matchingPhones?.has(l.phone)).map(lead => (
               <div
                 key={lead.phone}
                 className={`border-b border-white/5 transition-all ${
