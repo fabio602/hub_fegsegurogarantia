@@ -1,9 +1,15 @@
 import React, { useState, useRef } from 'react';
 import {
   Send, Square, Trash2, CheckCircle2, XCircle, Clock, Loader2,
-  AlertTriangle, Upload, ChevronDown, ChevronUp,
+  AlertTriangle, Upload, ChevronDown, ChevronUp, Plus, X, Save, FileText,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+const TEMPLATES_KEY = 'blast_templates_v1';
+interface MsgTemplate { id: string; name: string; body: string; }
+function saveTemplates(tpls: MsgTemplate[]) {
+  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(tpls));
+}
 
 interface Contact {
   phone: string;
@@ -67,6 +73,36 @@ export default function WhatsAppBlast() {
   const [showPreview, setShowPreview] = useState(false);
   const abortRef = useRef(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Templates
+  const [savedTemplates, setSavedTemplates] = useState<MsgTemplate[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? '[]') as MsgTemplate[];
+      if (saved.length) return saved;
+    } catch { /* ignore */ }
+    return [{ id: 'default-1', name: 'Prospecção Licitante', body: DEFAULT_TEMPLATE }];
+  });
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const applyTemplate = (tpl: MsgTemplate) => { setTemplate(tpl.body); setShowTemplates(false); };
+
+  const saveCurrentAsTemplate = () => {
+    if (!newTemplateName.trim() || !template.trim()) return;
+    const newTpl: MsgTemplate = { id: Date.now().toString(), name: newTemplateName.trim(), body: template };
+    const updated = [...savedTemplates, newTpl];
+    setSavedTemplates(updated);
+    saveTemplates(updated);
+    setNewTemplateName('');
+    setSavingTemplate(false);
+  };
+
+  const deleteTemplate = (id: string) => {
+    const updated = savedTemplates.filter(t => t.id !== id);
+    setSavedTemplates(updated);
+    saveTemplates(updated);
+  };
 
   const contacts = parseContacts(rawList);
   const sentCount = Object.values(statuses).filter(s => s === 'sent').length;
@@ -264,18 +300,77 @@ export default function WhatsAppBlast() {
         <div className="space-y-4">
           {/* Message template */}
           <div className="bg-white rounded-[1.75rem] border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div>
                 <p className="font-black text-slate-800 text-sm">Mensagem</p>
                 <p className="text-slate-400 text-[11px] mt-0.5">Use <span className="font-mono bg-slate-100 px-1 rounded">{'{{nome}}'}</span> para personalizar</p>
               </div>
-              <button
-                onClick={() => setShowPreview(p => !p)}
-                className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-[#C69C6D] transition-colors"
-              >
-                Preview {showPreview ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowTemplates(p => !p)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#C69C6D] transition-colors border border-slate-200 rounded-xl px-3 py-1.5"
+                >
+                  <FileText size={12} /> Modelos {showTemplates ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </button>
+                <button
+                  onClick={() => setShowPreview(p => !p)}
+                  className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-[#C69C6D] transition-colors"
+                >
+                  Preview {showPreview ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
             </div>
+
+            {/* Template picker */}
+            {showTemplates && (
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelos salvos</p>
+                <div className="space-y-2">
+                  {savedTemplates.map(tpl => (
+                    <div key={tpl.id} className="flex items-center gap-2 group">
+                      <button
+                        onClick={() => applyTemplate(tpl)}
+                        className="flex-1 text-left px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5 transition-all"
+                      >
+                        <p className="text-sm font-bold text-slate-700">{tpl.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate mt-0.5">{tpl.body.slice(0, 60)}...</p>
+                      </button>
+                      {tpl.id !== 'default-1' && (
+                        <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Save current as template */}
+                {savingTemplate ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      value={newTemplateName}
+                      onChange={e => setNewTemplateName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveCurrentAsTemplate(); if (e.key === 'Escape') setSavingTemplate(false); }}
+                      placeholder="Nome do modelo..."
+                      className="flex-1 text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#C69C6D]"
+                    />
+                    <button onClick={saveCurrentAsTemplate} className="px-3 py-2 bg-[#1B263B] text-white text-xs font-bold rounded-xl hover:bg-[#243447]">
+                      <Save size={13} />
+                    </button>
+                    <button onClick={() => setSavingTemplate(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSavingTemplate(true)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-[#C69C6D] hover:text-[#b8895a] transition-colors"
+                  >
+                    <Plus size={12} /> Salvar mensagem atual como modelo
+                  </button>
+                )}
+              </div>
+            )}
             <textarea
               value={template}
               onChange={e => setTemplate(e.target.value)}
