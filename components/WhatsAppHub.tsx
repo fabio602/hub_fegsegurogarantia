@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
@@ -56,6 +56,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [search, setSearch] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -292,6 +293,21 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           </button>
         </div>
 
+        {/* Search */}
+        <div className="px-4 py-2.5 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2 border border-white/10 focus-within:border-[#C69C6D]/40">
+            <Search size={13} className="text-slate-500 shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Pesquisar contato..."
+              className="flex-1 bg-transparent text-white text-xs placeholder-slate-500 focus:outline-none"
+            />
+            {search && <button onClick={() => setSearch('')} className="text-slate-500 hover:text-white transition-colors"><X size={11} /></button>}
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex justify-center py-10">
@@ -304,7 +320,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
               <p className="text-slate-600 text-[11px] mt-1">As mensagens recebidas aparecerão aqui</p>
             </div>
           ) : (
-            leads.map(lead => (
+            leads.filter(l => !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search)).map(lead => (
               <div
                 key={lead.phone}
                 className={`border-b border-white/5 transition-all ${
