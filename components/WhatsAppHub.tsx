@@ -62,6 +62,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesRef = useRef<Message[]>([]);
+  const convOpenedAtRef = useRef<string>('');
 
   // Pending file attachments
   const [pendingFiles, setPendingFiles] = useState<{ name: string; type: string; base64: string }[]>([]);
@@ -140,6 +141,35 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
+
+  // Record when conversation was opened
+  useEffect(() => {
+    if (selectedPhone) convOpenedAtRef.current = new Date().toISOString();
+  }, [selectedPhone]);
+
+  // Incremental poll: only APPENDS new messages, never replaces state
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const poll = setInterval(async () => {
+      const prev = messagesRef.current;
+      const since = prev.length > 0
+        ? prev[prev.length - 1].created_at
+        : convOpenedAtRef.current;
+      if (!since) return;
+      const { data } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('phone', selectedPhone)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true });
+      if (data && data.length > 0) {
+        const existingIds = new Set(prev.map(m => m.id));
+        const fresh = data.filter((m: Message) => !existingIds.has(m.id));
+        if (fresh.length > 0) setMessages(p => [...p, ...fresh]);
+      }
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [selectedPhone]);
 
   // Search messages in DB with debounce
   useEffect(() => {
