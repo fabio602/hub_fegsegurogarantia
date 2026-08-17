@@ -48,23 +48,31 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
     { id: 'Leads Andréia', title: 'Leads Andréia', color: 'fg_gold_2' },
 ];
 
-const STORAGE_KEY_PREFIX = 'kanban_columns_v1';
+const STORAGE_KEY = 'kanban_columns_v1_shared';
 
-const loadColumns = (productType: string): KanbanColumn[] => {
+const loadColumns = (): KanbanColumn[] => {
     try {
-        const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
-        const saved = localStorage.getItem(key);
+        const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) return JSON.parse(saved);
+        // Migrar config anterior (por produto)
+        const legacy = localStorage.getItem('kanban_columns_v1_Seguro_Garantia');
+        if (legacy) return JSON.parse(legacy);
     } catch { /* ignore */ }
     return DEFAULT_COLUMNS;
 };
 
-const saveColumns = (productType: string, cols: KanbanColumn[]) => {
-    const key = `${STORAGE_KEY_PREFIX}_${productType.replace(/\s+/g, '_')}`;
-    localStorage.setItem(key, JSON.stringify(cols));
+const saveColumns = (cols: KanbanColumn[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cols));
 };
 
-type ProspectProductTab = 'Seguro Garantia' | 'Judicial Depósito Recursal' | 'Energia' | 'Seguro de crédito';
+const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
+
+const PRODUCT_BADGE: Record<string, string> = {
+    'Seguro Garantia':            'bg-blue-50 text-blue-700 border-blue-200',
+    'Judicial Depósito Recursal': 'bg-amber-50 text-amber-700 border-amber-200',
+    'Energia':                    'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'Seguro de crédito':          'bg-purple-50 text-purple-700 border-purple-200',
+};
 
 interface ProspectsKanbanProps {
     onProductChange?: (product: string) => void;
@@ -86,18 +94,16 @@ interface ObservationEntry {
     text: string;
 }
 
-const LeadFormFields = ({ 
-    form, 
-    setForm, 
-    columns, 
-    selectedProduct,
+const LeadFormFields = ({
+    form,
+    setForm,
+    columns,
     observationHistory,
     hideObservation
-}: { 
-    form: Partial<Prospect>; 
+}: {
+    form: Partial<Prospect>;
     setForm: (v: Partial<Prospect>) => void;
     columns: KanbanColumn[];
-    selectedProduct: string;
     observationHistory?: string;
     hideObservation?: boolean;
 }) => (
@@ -156,6 +162,17 @@ const LeadFormFields = ({
             </select>
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
+            <label className="text-sm font-bold text-slate-700">Foco do Atendimento</label>
+            <select
+                value={form.product_type || ''}
+                onChange={(e) => setForm({ ...form, product_type: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all cursor-pointer"
+            >
+                <option value="">Selecione</option>
+                {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+            </select>
+        </div>
+        <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">CEP</label>
             <input type="text" value={form.zip || ''} onChange={(e) => setForm({ ...form, zip: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="00000-000" />
         </div>
@@ -178,7 +195,7 @@ const LeadFormFields = ({
             <input type="text" value={form.source || ''} onChange={(e) => setForm({ ...form, source: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all" placeholder="Ex: Conlicitação, Portal, Indicação" />
         </div>
         {/* ── ADDITIONAL JUDICIAL FIELDS ── */}
-        {selectedProduct === 'Judicial Depósito Recursal' && (
+        {form.product_type === 'Judicial Depósito Recursal' && (
             <>
                 <div className="space-y-4 col-span-2 mt-4">
                     <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Dados do Processo</h4>
@@ -207,10 +224,10 @@ const LeadFormFields = ({
     </div>
 );
 
-const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onProductChange }) => {
+const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
 
-    const [selectedProduct, setSelectedProduct] = useState<ProspectProductTab>('Seguro Garantia');
-    const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns('Seguro Garantia'));
+    const [productFilter, setProductFilter] = useState<string>('');
+    const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns());
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
     const [loading, setLoading] = useState(true);
@@ -224,15 +241,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
     const [editingColId, setEditingColId] = useState<string | null>(null);
     const [editingColTitle, setEditingColTitle] = useState('');
 
-    // Sincroniza colunas quando o produto muda
-    useEffect(() => {
-        setColumns(loadColumns(selectedProduct));
-        setEditingColId(null);
-        setEditingColTitle('');
-        onProductChange?.(selectedProduct);
-    }, [selectedProduct]);
-
     // CSV Import State
+    const [csvProductType, setCsvProductType] = useState<string>('Seguro Garantia');
     const [importing, setImporting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -455,7 +465,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
         const id = `col_${Date.now()}`;
         const updated = [...columns, { id, title: newColTitle.trim(), color: newColColor }];
         setColumns(updated);
-        saveColumns(selectedProduct, updated);
+        saveColumns(updated);
         setNewColTitle('');
         setNewColColor('fg_blue_2');
         setIsAddColumnOpen(false);
@@ -488,7 +498,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
 
         const updated = columns.filter(c => c.id !== colId);
         setColumns(updated);
-        saveColumns(selectedProduct, updated);
+        saveColumns(updated);
     };
 
     // ---- Drag & Drop for CARDS ----
@@ -527,7 +537,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
             const [draggedCol] = updatedColumns.splice(draggedIdx, 1);
             updatedColumns.splice(targetIdx, 0, draggedCol);
             setColumns(updatedColumns);
-            saveColumns(selectedProduct, updatedColumns);
+            saveColumns(updatedColumns);
         }
         setDraggingCol(null);
     };
@@ -554,7 +564,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
         }
         setColumns(prev => {
             const updated = prev.map(c => (c.id === colId ? { ...c, title: nextTitle } : c));
-            saveColumns(selectedProduct, updated);
+            saveColumns(updated);
             return updated;
         });
         cancelRenameColumn();
@@ -977,7 +987,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                     city: getVal('city'),
                     state: getVal('state'),
                     description: getVal('description'),
-                    product_type: selectedProduct,
+                    product_type: csvProductType,
                     judicial_process_number: getVal('judicial_process_number'),
                     judicial_court: getVal('judicial_court')
                 });
@@ -1023,7 +1033,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
             const { error } = await supabase.from('prospects').insert([{ 
                 ...newLeadForm, 
                 company: newLeadForm.company || newLeadForm.name,
-                product_type: selectedProduct, // Herda o produto selecionado
+                product_type: newLeadForm.product_type || 'Seguro Garantia',
                 limites_seguradoras: finalLimites,
                 description: stampedDescription
             }]);
@@ -1038,9 +1048,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
     };
 
     const filteredProspects = prospects.filter(p => {
-        const matchesProduct =
-            p.product_type === selectedProduct ||
-            (!p.product_type && selectedProduct === 'Seguro Garantia');
+        const matchesProduct = !productFilter ||
+            p.product_type === productFilter ||
+            (!p.product_type && productFilter === 'Seguro Garantia');
         const matchesSearch = (p.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -1061,46 +1071,20 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-end pr-4 -mb-4">
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Build v3.0 (Patch Aplicado)</span>
-            </div>
-            {/* Product Switcher */}
-            <div className="flex justify-center mb-6 px-2">
-                <div className="bg-slate-100 p-1 rounded-2xl flex flex-wrap justify-center gap-1 shadow-sm border border-slate-200 max-w-full">
-                    <button
-                        type="button"
-                        onClick={() => setSelectedProduct('Seguro Garantia')}
-                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Seguro Garantia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
-                    >
-                        Seguro Garantia
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setSelectedProduct('Judicial Depósito Recursal')}
-                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Judicial Depósito Recursal' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
-                    >
-                        Judicial Depósito Recursal
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setSelectedProduct('Energia')}
-                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Energia' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
-                    >
-                        Energia
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setSelectedProduct('Seguro de crédito')}
-                        className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all whitespace-nowrap ${selectedProduct === 'Seguro de crédito' ? 'bg-[#1B263B] text-[#C69C6D] shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
-                    >
-                        Seguro de crédito
-                    </button>
-                </div>
-            </div>
 
             {/* Action Bar */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex items-center gap-3 flex-wrap">
+                    {/* Product filter */}
+                    <select
+                        value={productFilter}
+                        onChange={e => setProductFilter(e.target.value)}
+                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] shadow-sm cursor-pointer transition-all"
+                    >
+                        <option value="">Todos os produtos</option>
+                        {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                    </select>
+                    <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
                     <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-[#1B263B] hover:bg-[#243347] text-[#F5F1EA] border border-[#C69C6D]/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
                         <Plus size={18} /> Novo Lead
                     </button>
@@ -1268,6 +1252,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                                                 {prospect.segmento && prospect.segmento !== 'nan' ? (
                                                     <span className="mt-1 inline-flex text-[9px] font-black bg-[#C69C6D]/12 text-[#1B263B] px-2 py-0.5 rounded-md border border-[#C69C6D]/25 truncate max-w-[140px]">
                                                         {prospect.segmento}
+                                                    </span>
+                                                ) : null}
+                                                {prospect.product_type ? (
+                                                    <span className={`mt-0.5 inline-flex text-[9px] font-black px-2 py-0.5 rounded-md border truncate max-w-[140px] ${PRODUCT_BADGE[prospect.product_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                                        {prospect.product_type}
                                                     </span>
                                                 ) : null}
                                                     {(() => {
@@ -1507,7 +1496,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
                                     <form id="new-lead-form" onSubmit={handleCreateNewLead}>
-                                        <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} selectedProduct={selectedProduct} />
+                                        <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} />
                             </form>
                             
                             {/* Insurer Limits Section for New Lead */}
@@ -1594,7 +1583,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                                 <div className="lg:col-span-3">
                                     <form id="edit-lead-form" onSubmit={handleSaveEdit}>
-                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} selectedProduct={selectedProduct} hideObservation />
+                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} hideObservation />
                                     </form>
 
                                     <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
@@ -1777,6 +1766,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale, onPr
                                 </div>
                                 <select value={importStatus} onChange={(e) => setImportStatus(e.target.value)} className="px-4 py-2.5 bg-white border border-[#C69C6D]/30 rounded-xl text-sm font-bold text-[#1B263B] outline-none focus:ring-4 focus:ring-[#C69C6D]/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
                                     {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <div className="flex items-center gap-3">
+                                    <Tag size={18} className="text-[#C69C6D]" />
+                                    <div>
+                                        <p className="text-sm font-black text-[#1B263B]">Foco do Atendimento</p>
+                                        <p className="text-xs text-[#1B263B]/70 font-medium">Qual produto/serviço destes leads?</p>
+                                    </div>
+                                </div>
+                                <select value={csvProductType} onChange={(e) => setCsvProductType(e.target.value)} className="px-4 py-2.5 bg-white border border-[#C69C6D]/30 rounded-xl text-sm font-bold text-[#1B263B] outline-none focus:ring-4 focus:ring-[#C69C6D]/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
+                                    {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">

@@ -23,6 +23,8 @@ import {
   Users,
   Shield,
   ShieldAlert,
+  MessageSquare,
+  Mail,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
@@ -41,6 +43,9 @@ import UserManager from './components/UserManager';
 import EndossoAllseg from './components/EndossoAllseg';
 import RCInsurance from './components/RCInsurance';
 import ChatWidget from './components/ChatWidget';
+import WhatsAppHub from './components/WhatsAppHub';
+import WhatsAppBlast from './components/WhatsAppBlast';
+import EmailFollowUp from './components/EmailFollowUp';
 
 type View =
   | 'dashboard'
@@ -56,7 +61,7 @@ type View =
   // Gestão Financeira
   | 'metas-mensais' | 'metas-anuais'
   // Outros
-  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties';
+  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup';
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
@@ -91,6 +96,9 @@ const VIEW_TITLES: Record<View, string> = {
   parceiros: 'Gestão de Parceiros',
   usuarios: 'Usuários do Hub',
   sureties: 'Afiançadoras',
+  whatsapp: 'WhatsApp — Inbox',
+  'whatsapp-blast': 'WhatsApp — Prospecção',
+  'email-followup': 'Follow-up de Email',
 };
 
 const App: React.FC = () => {
@@ -98,6 +106,8 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
+  const activeViewRef = React.useRef<View>('dashboard');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     garantia: false,
     prospeccao: false,
@@ -106,6 +116,7 @@ const App: React.FC = () => {
     auto: false,
     residencial: false,
     rc: false,
+    whatsapp: false,
   });
 
   useEffect(() => {
@@ -118,6 +129,43 @@ const App: React.FC = () => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Keep ref in sync so realtime callback can read current view
+  useEffect(() => { activeViewRef.current = activeView; }, [activeView]);
+
+  // Realtime: listen for new inbound WhatsApp messages
+  useEffect(() => {
+    if (!session) return;
+
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    const channel = supabase
+      .channel('whatsapp-new-messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'whatsapp_messages', filter: 'direction=eq.inbound' },
+        (payload: any) => {
+          if (activeViewRef.current !== 'whatsapp') {
+            setUnreadWhatsApp(prev => prev + 1);
+          }
+          // Browser notification when tab is not focused
+          if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+            const msg = payload.new?.message ?? 'Nova mensagem recebida';
+            const name = payload.new?.name ?? payload.new?.phone ?? 'Contato';
+            new Notification(`WhatsApp — ${name}`, {
+              body: msg.length > 80 ? msg.substring(0, 80) + '…' : msg,
+              icon: '/logo.svg',
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session]);
 
   // Auto-expand the group that contains the active view
   useEffect(() => {
@@ -139,6 +187,7 @@ const App: React.FC = () => {
 
   const navigate = (view: View) => {
     setActiveView(view);
+    if (view === 'whatsapp') setUnreadWhatsApp(0);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
@@ -164,7 +213,7 @@ const App: React.FC = () => {
   );
 
   // ── Plain top-level nav item ────────────────────────────────────
-  const NavItem: React.FC<{ view: View; icon: React.ReactNode; label: string }> = ({ view, icon, label }) => (
+  const NavItem: React.FC<{ view: View; icon: React.ReactNode; label: string; badge?: number }> = ({ view, icon, label, badge }) => (
     <button
       onClick={() => navigate(view)}
       className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
@@ -177,7 +226,14 @@ const App: React.FC = () => {
         <span className={`${activeView === view ? 'text-[#1B263B]' : 'text-slate-400 group-hover:text-[#C69C6D]'} transition-colors`}>{icon}</span>
         <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
       </div>
-      {activeView === view && <ChevronRight size={12} className="opacity-70" />}
+      <div className="flex items-center gap-1.5">
+        {badge != null && badge > 0 && (
+          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+        {activeView === view && <ChevronRight size={12} className="opacity-70" />}
+      </div>
     </button>
   );
 
@@ -356,6 +412,17 @@ const App: React.FC = () => {
                 <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
 
+              <NavGroup
+                groupKey="whatsapp"
+                icon={<MessageSquare size={16} />}
+                label="WhatsApp"
+                isGroupActive={['whatsapp', 'whatsapp-blast'].includes(activeView)}
+              >
+                <NavSubItem view="whatsapp" label={`Inbox${unreadWhatsApp > 0 ? ` (${unreadWhatsApp})` : ''}`} />
+                <NavSubItem view="whatsapp-blast" label="Prospecção" />
+              </NavGroup>
+
+              <NavItem view="email-followup" icon={<Mail size={16} />} label="Follow-up de Email" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
               <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
@@ -594,6 +661,9 @@ const App: React.FC = () => {
               )}
 
               {/* Outros */}
+              {activeView === 'whatsapp' && <WhatsAppHub />}
+              {activeView === 'whatsapp-blast' && <WhatsAppBlast />}
+              {activeView === 'email-followup' && <EmailFollowUp />}
               {activeView === 'sureties' && <SuretiesDirectory />}
               {activeView === 'manual' && <InternalProcedures />}
               {activeView === 'agenda' && <AgendaHub />}
