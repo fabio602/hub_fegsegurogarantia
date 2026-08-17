@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
@@ -55,6 +55,10 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pending file attachment
+  const [pendingFile, setPendingFile] = useState<{ name: string; type: string; base64: string } | null>(null);
 
   // CRM Modal state
   const [crmModalLead, setCrmModalLead] = useState<Lead | null>(null);
@@ -105,13 +109,30 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPhone || sending) return;
+    if ((!newMessage.trim() && !pendingFile) || !selectedPhone || sending) return;
     setSending(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const supabaseUrl = (supabase as any).supabaseUrl as string;
       const supabaseKey = (supabase as any).supabaseKey as string;
+
+      const payload: Record<string, string> = { phone: selectedPhone };
+      let dbMessage: string;
+
+      if (pendingFile) {
+        payload.file = pendingFile.base64;
+        payload.fileName = pendingFile.name;
+        payload.fileType = pendingFile.type;
+        if (newMessage.trim()) payload.message = newMessage.trim();
+        dbMessage = pendingFile.type.startsWith('image/')
+          ? `[Imagem: ${pendingFile.name}]`
+          : `[Arquivo: ${pendingFile.name}]`;
+        if (newMessage.trim()) dbMessage += ` — ${newMessage.trim()}`;
+      } else {
+        payload.message = newMessage.trim();
+        dbMessage = newMessage.trim();
+      }
 
       const res = await fetch(`${supabaseUrl}/functions/v1/whatsapp-send`, {
         method: 'POST',
@@ -120,14 +141,14 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           'Authorization': `Bearer ${token || supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({ phone: selectedPhone, message: newMessage.trim() }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone,
           name: selectedLead?.name ?? selectedPhone,
-          message: newMessage.trim(),
+          message: dbMessage,
           direction: 'outbound',
           status: 'sent',
         });
@@ -138,6 +159,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           .eq('phone', selectedPhone);
         setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
         setNewMessage('');
+        setPendingFile(null);
         loadMessages(selectedPhone);
       }
     } catch (e) {
@@ -174,6 +196,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     } finally {
       setCrmSaving(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande. Máximo 10 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string);
+      setPendingFile({ name: file.name, type: file.type, base64 });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -331,19 +366,49 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
 
             {/* Input area */}
             <div className="px-4 pb-4 pt-2 border-t border-slate-200 bg-white shrink-0">
+              {/* File preview strip */}
+              {pendingFile && (
+                <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-[#C69C6D]/10 border border-[#C69C6D]/30 rounded-xl">
+                  {pendingFile.type.startsWith('image/') ? (
+                    <Image size={14} className="text-[#C69C6D] shrink-0" />
+                  ) : (
+                    <FileText size={14} className="text-[#C69C6D] shrink-0" />
+                  )}
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">{pendingFile.name}</span>
+                  <button onClick={() => setPendingFile(null)} className="shrink-0 text-slate-400 hover:text-slate-600">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
               <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-3 py-2.5 focus-within:border-[#C69C6D]/50 focus-within:bg-white transition-all">
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shrink-0 text-slate-400 hover:text-[#C69C6D] transition-colors"
+                  title="Anexar arquivo"
+                >
+                  <Paperclip size={16} />
+                </button>
                 <textarea
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Escreva uma mensagem... (Enter para enviar)"
+                  placeholder={pendingFile ? 'Legenda (opcional)...' : 'Escreva uma mensagem... (Enter para enviar)'}
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                   style={{ maxHeight: '100px' }}
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={!newMessage.trim() || sending}
+                  disabled={(!newMessage.trim() && !pendingFile) || sending}
                   className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-[#1B263B] text-[#C69C6D] disabled:opacity-30 hover:bg-[#243447] transition-all"
                 >
                   {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
