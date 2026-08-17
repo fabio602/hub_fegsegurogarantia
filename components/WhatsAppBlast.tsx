@@ -1,15 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Send, Square, Trash2, CheckCircle2, XCircle, Clock, Loader2,
   AlertTriangle, Upload, ChevronDown, ChevronUp, Plus, X, Save, FileText, Pencil,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const TEMPLATES_KEY = 'blast_templates_v1';
 interface MsgTemplate { id: string; name: string; body: string; }
-function saveTemplates(tpls: MsgTemplate[]) {
-  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(tpls));
-}
 
 interface Contact {
   phone: string;
@@ -74,43 +70,45 @@ export default function WhatsAppBlast() {
   const abortRef = useRef(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Templates
-  const [savedTemplates, setSavedTemplates] = useState<MsgTemplate[]>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? '[]') as MsgTemplate[];
-      if (saved.length) return saved;
-    } catch { /* ignore */ }
-    return [{ id: 'default-1', name: 'Prospecção Licitante', body: DEFAULT_TEMPLATE }];
-  });
+  // Templates — shared via Supabase
+  const [savedTemplates, setSavedTemplates] = useState<MsgTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<{ id: string; name: string; body: string } | null>(null);
 
+  useEffect(() => {
+    if (!showTemplates) return;
+    setLoadingTemplates(true);
+    supabase.from('blast_templates').select('*').order('created_at').then(({ data }) => {
+      setSavedTemplates((data ?? []).map(r => ({ id: r.id, name: r.name, body: r.body })));
+      setLoadingTemplates(false);
+    });
+  }, [showTemplates]);
+
   const applyTemplate = (tpl: MsgTemplate) => { setTemplate(tpl.body); setShowTemplates(false); };
 
-  const saveCurrentAsTemplate = () => {
+  const saveCurrentAsTemplate = async () => {
     if (!newTemplateName.trim() || !template.trim()) return;
-    const newTpl: MsgTemplate = { id: Date.now().toString(), name: newTemplateName.trim(), body: template };
-    const updated = [...savedTemplates, newTpl];
-    setSavedTemplates(updated);
-    saveTemplates(updated);
+    const { data, error } = await supabase.from('blast_templates').insert({ name: newTemplateName.trim(), body: template }).select().single();
+    if (!error && data) {
+      setSavedTemplates(prev => [...prev, { id: data.id, name: data.name, body: data.body }]);
+    }
     setNewTemplateName('');
     setSavingTemplate(false);
   };
 
-  const updateTemplate = () => {
+  const updateTemplate = async () => {
     if (!editingTemplate || !editingTemplate.name.trim() || !editingTemplate.body.trim()) return;
-    const updated = savedTemplates.map(t => t.id === editingTemplate.id ? { ...editingTemplate } : t);
-    setSavedTemplates(updated);
-    saveTemplates(updated);
+    await supabase.from('blast_templates').update({ name: editingTemplate.name, body: editingTemplate.body, updated_at: new Date().toISOString() }).eq('id', editingTemplate.id);
+    setSavedTemplates(prev => prev.map(t => t.id === editingTemplate.id ? { ...editingTemplate } : t));
     setEditingTemplate(null);
   };
 
-  const deleteTemplate = (id: string) => {
-    const updated = savedTemplates.filter(t => t.id !== id);
-    setSavedTemplates(updated);
-    saveTemplates(updated);
+  const deleteTemplate = async (id: string) => {
+    await supabase.from('blast_templates').delete().eq('id', id);
+    setSavedTemplates(prev => prev.filter(t => t.id !== id));
   };
 
   const contacts = parseContacts(rawList);
@@ -334,6 +332,7 @@ export default function WhatsAppBlast() {
             {showTemplates && (
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 space-y-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelos salvos</p>
+                {loadingTemplates && <div className="flex justify-center py-3"><Loader2 size={16} className="animate-spin text-slate-400" /></div>}
                 <div className="space-y-2">
                   {savedTemplates.map(tpl => (
                     <div key={tpl.id}>
