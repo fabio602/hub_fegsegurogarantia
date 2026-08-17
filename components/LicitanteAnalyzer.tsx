@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle, Plus, X, History
+  Info, ChevronDown, ChevronUp, AlertTriangle, Plus, X, History, Copy, Check
 } from 'lucide-react';
 
 const LICITANTE_HISTORY_KEY = 'cotacao_history_licitante';
@@ -50,12 +50,30 @@ const fmtBRL = (val?: number | null) =>
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
     : null;
 
-function Card({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: React.ReactNode; highlight?: boolean }) {
+function CopyBtn({ text, light }: { text: string; light?: boolean }) {
+  const [done, setDone] = React.useState(false);
+  const handle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setDone(true);
+    setTimeout(() => setDone(false), 1500);
+  };
+  return (
+    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-lg transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
+      {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+    </button>
+  );
+}
+
+function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactNode; label: string; value: React.ReactNode; highlight?: boolean; copyValue?: string }) {
   return (
     <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-[#1B263B] border-[#1B263B]' : 'bg-white border-slate-100'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
-        <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
+          <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+        </div>
+        {copyValue && <CopyBtn text={copyValue} light={highlight} />}
       </div>
       <div className={`text-xl font-black leading-tight ${highlight ? 'text-white' : 'text-slate-800'}`}>{value}</div>
     </div>
@@ -262,16 +280,32 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
           {/* Cabeçalho do órgão */}
           <div className="bg-[#1B263B] rounded-[2rem] p-7 text-white">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D] mb-1">
-                  {result.modalidade || 'Licitação Pública'} {result.numero_edital ? `· ${result.numero_edital}` : ''}
-                </p>
-                <h3 className="text-xl font-black text-white leading-tight">{result.orgao_nome || '—'}</h3>
+              <div className="flex-1 min-w-0 space-y-2">
+                {/* Modalidade + Edital */}
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">
+                    {result.modalidade || 'Licitação Pública'}{result.numero_edital ? ` · ${result.numero_edital}` : ''}
+                  </p>
+                  {result.numero_edital && <CopyBtn text={result.numero_edital} light />}
+                </div>
+                {/* Órgão */}
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black text-white leading-tight">{result.orgao_nome || '—'}</h3>
+                  {result.orgao_nome && <CopyBtn text={result.orgao_nome} light />}
+                </div>
+                {/* CNPJ */}
                 {result.orgao_cnpj && (
-                  <p className="text-white/50 text-sm mt-1 font-mono">{result.orgao_cnpj}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-white/50 text-sm font-mono">{result.orgao_cnpj}</p>
+                    <CopyBtn text={result.orgao_cnpj} light />
+                  </div>
                 )}
+                {/* Objeto */}
                 {result.objeto && (
-                  <p className="text-white/60 text-sm mt-3 leading-relaxed border-t border-white/10 pt-3">{result.objeto}</p>
+                  <div className="flex items-start gap-2 border-t border-white/10 pt-3 mt-1">
+                    <p className="text-white/60 text-sm leading-relaxed flex-1">{result.objeto}</p>
+                    <CopyBtn text={result.objeto} light />
+                  </div>
                 )}
               </div>
               <button onClick={reset}
@@ -287,17 +321,20 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               icon={<DollarSign size={15} />}
               label="Valor Global do Edital"
               value={fmtBRL(result.valor_global_edital) ?? '—'}
+              copyValue={fmtBRL(result.valor_global_edital) ?? undefined}
             />
             <Card
               icon={<Shield size={15} />}
               label="% Garantia de Proposta"
               value={result.percentual_garantia_proposta != null ? `${result.percentual_garantia_proposta}%` : '—'}
+              copyValue={result.percentual_garantia_proposta != null ? `${result.percentual_garantia_proposta}%` : undefined}
             />
             <Card
               icon={<DollarSign size={15} />}
               label="Valor da Garantia"
               value={fmtBRL(result.valor_garantia_proposta_calculado) ?? '—'}
               highlight={!!result.valor_garantia_proposta_calculado}
+              copyValue={fmtBRL(result.valor_garantia_proposta_calculado) ?? undefined}
             />
           </div>
 
@@ -307,6 +344,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               icon={<Calendar size={15} />}
               label="Data da Sessão Pública / Pregão"
               value={result.data_sessao_publica ?? '—'}
+              copyValue={result.data_sessao_publica ?? undefined}
             />
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">

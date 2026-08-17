@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X, History
+  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X, History, Copy, Check
 } from 'lucide-react';
 
 const CONTRATO_HISTORY_KEY = 'cotacao_history_contrato';
@@ -60,14 +60,32 @@ const fmtBRL = (val?: number | null) =>
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
     : null;
 
-function Card({ icon, label, value, sub, highlight }: {
-  icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; highlight?: boolean
+function CopyBtn({ text, light }: { text: string; light?: boolean }) {
+  const [done, setDone] = React.useState(false);
+  const handle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setDone(true);
+    setTimeout(() => setDone(false), 1500);
+  };
+  return (
+    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-lg transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
+      {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+    </button>
+  );
+}
+
+function Card({ icon, label, value, sub, highlight, copyValue }: {
+  icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; highlight?: boolean; copyValue?: string
 }) {
   return (
     <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-[#1B263B] border-[#1B263B]' : 'bg-white border-slate-100'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
-        <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
+          <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+        </div>
+        {copyValue && <CopyBtn text={copyValue} light={highlight} />}
       </div>
       <div className={`text-xl font-black leading-tight ${highlight ? 'text-white' : 'text-slate-800'}`}>{value}</div>
       {sub && <p className={`text-[10px] mt-1 uppercase tracking-[1px] ${highlight ? 'text-white/40' : 'text-slate-400'}`}>{sub}</p>}
@@ -302,14 +320,18 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
           {/* Cabeçalho do contrato */}
           <div className="bg-[#1B263B] rounded-[2rem] p-7 text-white">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 space-y-2">
                 {result.numero_contrato && (
-                  <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D] mb-1">
-                    {result.numero_contrato}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">Contrato {result.numero_contrato}</p>
+                    <CopyBtn text={result.numero_contrato} light />
+                  </div>
                 )}
                 {result.objeto_contrato && (
-                  <p className="text-white/80 text-sm mt-2 leading-relaxed border-t border-white/10 pt-3">{result.objeto_contrato}</p>
+                  <div className="flex items-start gap-2 border-t border-white/10 pt-3">
+                    <p className="text-white/80 text-sm leading-relaxed flex-1">{result.objeto_contrato}</p>
+                    <CopyBtn text={result.objeto_contrato} light />
+                  </div>
                 )}
               </div>
               <button onClick={reset}
@@ -326,9 +348,15 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <Briefcase size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Tomador (Contratada)</span>
               </div>
-              <p className="text-lg font-black text-slate-800 leading-tight">{result.tomador_nome || '—'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black text-slate-800 leading-tight flex-1">{result.tomador_nome || '—'}</p>
+                {result.tomador_nome && <CopyBtn text={result.tomador_nome} />}
+              </div>
               {result.tomador_cnpj && (
-                <p className="text-xs text-slate-400 font-mono mt-1">{result.tomador_cnpj}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-slate-400 font-mono">{result.tomador_cnpj}</p>
+                  <CopyBtn text={result.tomador_cnpj} />
+                </div>
               )}
             </div>
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
@@ -336,9 +364,15 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <Shield size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Segurado (Órgão Público)</span>
               </div>
-              <p className="text-lg font-black text-slate-800 leading-tight">{result.segurado_nome || '—'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-black text-slate-800 leading-tight flex-1">{result.segurado_nome || '—'}</p>
+                {result.segurado_nome && <CopyBtn text={result.segurado_nome} />}
+              </div>
               {result.segurado_cnpj && (
-                <p className="text-xs text-slate-400 font-mono mt-1">{result.segurado_cnpj}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-slate-400 font-mono">{result.segurado_cnpj}</p>
+                  <CopyBtn text={result.segurado_cnpj} />
+                </div>
               )}
             </div>
           </div>
@@ -349,17 +383,20 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
               icon={<DollarSign size={15} />}
               label="Valor do Contrato"
               value={fmtBRL(result.valor_contrato) ?? '—'}
+              copyValue={fmtBRL(result.valor_contrato) ?? undefined}
             />
             <Card
               icon={<Shield size={15} />}
               label="% da IS (Importância Segurada)"
               value={result.percentual_is != null ? `${result.percentual_is}%` : '—'}
+              copyValue={result.percentual_is != null ? `${result.percentual_is}%` : undefined}
             />
             <Card
               icon={<DollarSign size={15} />}
               label="Valor da IS Calculado"
               value={fmtBRL(result.valor_is_calculado) ?? '—'}
               highlight={!!result.valor_is_calculado}
+              copyValue={fmtBRL(result.valor_is_calculado) ?? undefined}
             />
           </div>
 
