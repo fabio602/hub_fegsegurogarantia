@@ -323,7 +323,7 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC<{ initialSection?: Section }> = ({ initialSection = 'sales' }) => {
+const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean }> = ({ initialSection = 'sales', hideTabs = false }) => {
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const [sales, setSales] = useState<Sale[]>([]);
     const [leadCosts, setLeadCosts] = useState<LeadCost[]>([]);
@@ -1584,7 +1584,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section }> = ({ initialSecti
                 )}
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
-            <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
+            {!hideTabs && <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
                 {(['sales', 'pendencias', 'licitante', 'contrato'] as Section[]).map((section) => (
                     <button
                         key={section}
@@ -1600,7 +1600,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section }> = ({ initialSecti
                         {section === 'contrato' && 'Seguro de Contrato'}
                     </button>
                 ))}
-            </div>
+            </div>}
 
             {activeSection === 'sales' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">

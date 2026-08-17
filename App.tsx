@@ -514,11 +514,11 @@ const App: React.FC = () => {
             <div className="animate-fade-in">
               {/* Seguro Garantia */}
               {activeView === 'goals' && <ResultsDashboard key="goals" initialSection="sales" />}
-              {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" />}
-              {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" />}
-              {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" />}
-              {activeView === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" />}
-              {activeView === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" />}
+              {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
+              {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
+              {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
+              {activeView === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" hideTabs />}
+              {activeView === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" hideTabs />}
               {activeView === 'directory' && (
                 <InsuranceDirectory
                   tableName="insurers"
