@@ -139,12 +139,15 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
   const [showClausula, setShowClausula] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const [additionalInstructions, setAdditionalInstructions] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
   const addFiles = (incoming: FileList | File[]) => {
     const arr = Array.from(incoming);
-    const invalid = arr.find(f => f.type !== 'application/pdf');
-    if (invalid) { setError('Selecione apenas arquivos PDF.'); return; }
+    const invalid = arr.find(f => !ACCEPTED_TYPES.includes(f.type));
+    if (invalid) { setError('Selecione apenas PDFs ou imagens (JPG, PNG, WEBP).'); return; }
     const tooBig = arr.find(f => f.size > 30 * 1024 * 1024);
     if (tooBig) { setError('Cada arquivo deve ter no máximo 30MB.'); return; }
     setFiles(prev => [...prev, ...arr]);
@@ -165,7 +168,11 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
     if (files.length === 0) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const pdfBase64Array = await Promise.all(files.map(toBase64));
+      const filesData = await Promise.all(files.map(async f => ({
+        data: await toBase64(f),
+        mediaType: f.type,
+        name: f.name,
+      })));
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const supabaseUrl = (supabase as any).supabaseUrl as string;
@@ -178,7 +185,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
           'Authorization': `Bearer ${token || supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({ pdfBase64Array, fileName: files[0].name }),
+        body: JSON.stringify({ filesData, additionalInstructions: additionalInstructions.trim() || undefined }),
       });
 
       const json = await res.json();
@@ -251,14 +258,14 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
             onClick={() => inputRef.current?.click()}
             className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-[#C69C6D] hover:bg-amber-50/10"
           >
-            <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden"
+            <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
             <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
               <Upload size={24} className="text-slate-400" />
             </div>
             <div className="text-center">
               <p className="font-black text-slate-700">Arraste os arquivos aqui</p>
-              <p className="text-slate-400 text-sm mt-1">Contrato, Termo de Referência, Adendos · PDF até 30MB cada</p>
+              <p className="text-slate-400 text-sm mt-1">PDF, JPG, PNG · até 30MB cada</p>
             </div>
           </div>
 
@@ -277,7 +284,19 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 </div>
               ))}
 
-              <div className="flex gap-3 pt-1">
+              {/* Additional instructions */}
+              <div className="pt-1">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1.5">Instrução adicional (opcional)</label>
+                <textarea
+                  value={additionalInstructions}
+                  onChange={e => setAdditionalInstructions(e.target.value)}
+                  placeholder="Ex: Foque na cláusula de garantia adicional. O contrato é de obras civis. Considere que o prazo adicional é 90 dias..."
+                  rows={2}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-[#C69C6D]"
+                />
+              </div>
+
+              <div className="flex gap-3">
                 <button onClick={analyze} disabled={loading}
                   className="flex-1 bg-[#1B263B] text-white px-8 py-3.5 rounded-2xl font-black hover:bg-[#243447] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
