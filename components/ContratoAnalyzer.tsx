@@ -75,8 +75,9 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
   );
 }
 
-function Card({ icon, label, value, sub, highlight, copyValue }: {
-  icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; highlight?: boolean; copyValue?: string
+function Card({ icon, label, value, sub, highlight, copyValue, editing, editValue, onEditChange, editType = 'text' }: {
+  icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string; highlight?: boolean; copyValue?: string;
+  editing?: boolean; editValue?: string; onEditChange?: (v: string) => void; editType?: 'text' | 'number' | 'textarea';
 }) {
   return (
     <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-[#1B263B] border-[#1B263B]' : 'bg-white border-slate-100'}`}>
@@ -85,10 +86,19 @@ function Card({ icon, label, value, sub, highlight, copyValue }: {
           <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
           <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
         </div>
-        {copyValue && <CopyBtn text={copyValue} light={highlight} />}
+        {!editing && copyValue && <CopyBtn text={copyValue} light={highlight} />}
       </div>
-      <div className={`text-xl font-black leading-tight ${highlight ? 'text-white' : 'text-slate-800'}`}>{value}</div>
-      {sub && <p className={`text-[10px] mt-1 uppercase tracking-[1px] ${highlight ? 'text-white/40' : 'text-slate-400'}`}>{sub}</p>}
+      {editing && onEditChange ? (
+        editType === 'textarea'
+          ? <textarea value={editValue ?? ''} onChange={e => onEditChange(e.target.value)} rows={3}
+              className="w-full text-sm font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#C69C6D] text-slate-800 placeholder-slate-400"
+              style={{ background: highlight ? 'rgba(255,255,255,0.1)' : undefined, color: highlight ? 'white' : undefined }} />
+          : <input type={editType} value={editValue ?? ''} onChange={e => onEditChange(e.target.value)}
+              className={`w-full text-xl font-black rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#C69C6D] border ${highlight ? 'bg-white/10 border-white/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+      ) : (
+        <div className={`text-xl font-black leading-tight ${highlight ? 'text-white' : 'text-slate-800'}`}>{value}</div>
+      )}
+      {!editing && sub && <p className={`text-[10px] mt-1 uppercase tracking-[1px] ${highlight ? 'text-white/40' : 'text-slate-400'}`}>{sub}</p>}
     </div>
   );
 }
@@ -136,6 +146,9 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
   const [result, setResult] = useState<ContratoData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showObs, setShowObs] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const updField = (key: keyof ContratoData, val: string | number | boolean | null) =>
+    setResult(r => r ? { ...r, [key]: val } : r);
   const [showClausula, setShowClausula] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
@@ -340,23 +353,38 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
           <div className="bg-[#1B263B] rounded-[2rem] p-7 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
-                {result.numero_contrato && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">Contrato {result.numero_contrato}</p>
-                    <CopyBtn text={result.numero_contrato} light />
-                  </div>
-                )}
-                {result.objeto_contrato && (
-                  <div className="flex items-start gap-2 border-t border-white/10 pt-3">
-                    <p className="text-white/80 text-sm leading-relaxed flex-1">{result.objeto_contrato}</p>
-                    <CopyBtn text={result.objeto_contrato} light />
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {editing
+                    ? <input value={result.numero_contrato ?? ''} onChange={e => updField('numero_contrato', e.target.value)}
+                        placeholder="Número do contrato"
+                        className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D] bg-white/10 border border-white/20 rounded-lg px-2 py-1 focus:outline-none w-full" />
+                    : result.numero_contrato
+                      ? <><p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">Contrato {result.numero_contrato}</p><CopyBtn text={result.numero_contrato} light /></>
+                      : <p className="text-[10px] font-black uppercase tracking-[3px] text-white/30">Sem número</p>
+                  }
+                </div>
+                <div className="flex items-start gap-2 border-t border-white/10 pt-3">
+                  {editing
+                    ? <textarea value={result.objeto_contrato ?? ''} onChange={e => updField('objeto_contrato', e.target.value)}
+                        rows={3} placeholder="Objeto do contrato"
+                        className="text-white/80 text-sm bg-white/10 border border-white/20 rounded-xl px-3 py-2 resize-none focus:outline-none w-full" />
+                    : <><p className="text-white/80 text-sm leading-relaxed flex-1">{result.objeto_contrato ?? '—'}</p>
+                       {result.objeto_contrato && <CopyBtn text={result.objeto_contrato} light />}</>
+                  }
+                </div>
               </div>
-              <button onClick={reset}
-                className="shrink-0 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all">
-                <RotateCcw size={13} /> Novo
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setEditing(e => !e)}
+                  className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${editing ? 'bg-[#C69C6D] text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                >
+                  <Pencil size={13} /> {editing ? 'Salvar' : 'Editar'}
+                </button>
+                <button onClick={reset}
+                  className="shrink-0 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all">
+                  <RotateCcw size={13} /> Novo
+                </button>
+              </div>
             </div>
           </div>
 
@@ -367,55 +395,57 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <Briefcase size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Tomador (Contratada)</span>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-black text-slate-800 leading-tight flex-1">{result.tomador_nome || '—'}</p>
-                {result.tomador_nome && <CopyBtn text={result.tomador_nome} />}
-              </div>
-              {result.tomador_cnpj && (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs text-slate-400 font-mono">{result.tomador_cnpj}</p>
-                  <CopyBtn text={result.tomador_cnpj} />
-                </div>
-              )}
+              {editing
+                ? <input value={result.tomador_nome ?? ''} onChange={e => updField('tomador_nome', e.target.value)} placeholder="Razão social do tomador" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D] mb-2" />
+                : <div className="flex items-center gap-2 mb-1"><p className="text-lg font-black text-slate-800 flex-1">{result.tomador_nome || '—'}</p>{result.tomador_nome && <CopyBtn text={result.tomador_nome} />}</div>
+              }
+              {editing
+                ? <input value={result.tomador_cnpj ?? ''} onChange={e => updField('tomador_cnpj', e.target.value)} placeholder="CNPJ do tomador" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                : result.tomador_cnpj && <div className="flex items-center gap-2 mt-1"><p className="text-xs text-slate-400 font-mono">{result.tomador_cnpj}</p><CopyBtn text={result.tomador_cnpj} /></div>
+              }
             </div>
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Shield size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Segurado (Órgão Público)</span>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-black text-slate-800 leading-tight flex-1">{result.segurado_nome || '—'}</p>
-                {result.segurado_nome && <CopyBtn text={result.segurado_nome} />}
-              </div>
-              {result.segurado_cnpj && (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-xs text-slate-400 font-mono">{result.segurado_cnpj}</p>
-                  <CopyBtn text={result.segurado_cnpj} />
-                </div>
-              )}
+              {editing
+                ? <input value={result.segurado_nome ?? ''} onChange={e => updField('segurado_nome', e.target.value)} placeholder="Nome do segurado" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D] mb-2" />
+                : <div className="flex items-center gap-2 mb-1"><p className="text-lg font-black text-slate-800 flex-1">{result.segurado_nome || '—'}</p>{result.segurado_nome && <CopyBtn text={result.segurado_nome} />}</div>
+              }
+              {editing
+                ? <input value={result.segurado_cnpj ?? ''} onChange={e => updField('segurado_cnpj', e.target.value)} placeholder="CNPJ do segurado" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                : result.segurado_cnpj && <div className="flex items-center gap-2 mt-1"><p className="text-xs text-slate-400 font-mono">{result.segurado_cnpj}</p><CopyBtn text={result.segurado_cnpj} /></div>
+              }
             </div>
           </div>
 
           {/* Dados financeiros */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card
-              icon={<DollarSign size={15} />}
-              label="Valor do Contrato"
+              icon={<DollarSign size={15} />} label="Valor do Contrato"
               value={fmtBRL(result.valor_contrato) ?? '—'}
               copyValue={fmtBRL(result.valor_contrato) ?? undefined}
+              editing={editing} editType="number"
+              editValue={result.valor_contrato?.toString() ?? ''}
+              onEditChange={v => updField('valor_contrato', v ? parseFloat(v) : null)}
             />
             <Card
-              icon={<Shield size={15} />}
-              label="% da IS (Importância Segurada)"
+              icon={<Shield size={15} />} label="% da IS (Importância Segurada)"
               value={result.percentual_is != null ? `${result.percentual_is}%` : '—'}
               copyValue={result.percentual_is != null ? `${result.percentual_is}%` : undefined}
+              editing={editing} editType="number"
+              editValue={result.percentual_is?.toString() ?? ''}
+              onEditChange={v => updField('percentual_is', v ? parseFloat(v) : null)}
             />
             <Card
-              icon={<DollarSign size={15} />}
-              label="Valor da IS Calculado"
+              icon={<DollarSign size={15} />} label="Valor da IS Calculado"
               value={fmtBRL(result.valor_is_calculado) ?? '—'}
               highlight={!!result.valor_is_calculado}
               copyValue={fmtBRL(result.valor_is_calculado) ?? undefined}
+              editing={editing} editType="number"
+              editValue={result.valor_is_calculado?.toString() ?? ''}
+              onEditChange={v => updField('valor_is_calculado', v ? parseFloat(v) : null)}
             />
           </div>
 
@@ -426,7 +456,13 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <Calendar size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência do Contrato</span>
               </div>
-              {result.vigencia_contrato_inicio || result.vigencia_contrato_fim ? (
+              {editing ? (
+                <div className="flex items-center gap-2">
+                  <input value={result.vigencia_contrato_inicio ?? ''} onChange={e => updField('vigencia_contrato_inicio', e.target.value)} placeholder="Início DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                  <span className="text-slate-400">→</span>
+                  <input value={result.vigencia_contrato_fim ?? ''} onChange={e => updField('vigencia_contrato_fim', e.target.value)} placeholder="Fim DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                </div>
+              ) : result.vigencia_contrato_inicio || result.vigencia_contrato_fim ? (
                 <p className="text-xl font-black text-slate-800">
                   {result.vigencia_contrato_inicio ?? '?'} → {result.vigencia_contrato_fim ?? '?'}
                 </p>
@@ -439,7 +475,9 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <Calendar size={15} className="text-slate-400" />
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência da Garantia</span>
               </div>
-              {result.vigencia_garantia ? (
+              {editing ? (
+                <textarea value={result.vigencia_garantia ?? ''} onChange={e => updField('vigencia_garantia', e.target.value)} rows={3} placeholder="Descrição da vigência da garantia" className="w-full text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-[#C69C6D]" />
+              ) : result.vigencia_garantia ? (
                 <p className="text-xl font-black text-slate-800">{result.vigencia_garantia}</p>
               ) : result.exige_dias_adicionais && result.dias_adicionais ? (
                 <div>
