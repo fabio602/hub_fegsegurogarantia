@@ -102,8 +102,11 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
     let apiMsg: ApiMessage;
     if (attachedFile) {
       const base64 = await toBase64(attachedFile);
+      const isImage = attachedFile.type.startsWith('image/');
       const blocks: ApiContentBlock[] = [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+        isImage
+          ? { type: 'image', source: { type: 'base64', media_type: attachedFile.type, data: base64 } } as any
+          : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
       ];
       if (userText) blocks.push({ type: 'text', text: userText });
       apiMsg = { role: 'user', content: blocks };
@@ -290,7 +293,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="application/pdf"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
                   className="hidden"
                   onChange={handleFileChange}
                 />
