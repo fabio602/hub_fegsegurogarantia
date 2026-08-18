@@ -129,7 +129,7 @@ export default function ImobiliariaRepasse() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Repasse Bordimezanolla</h2>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Repasse Bordin e Zanolla</h2>
           <p className="text-slate-500 font-semibold mt-1">
             Gestão de clientes com repasse via imobiliária · PIX 56.123.874/0001-90 · vencimento dia 15
           </p>

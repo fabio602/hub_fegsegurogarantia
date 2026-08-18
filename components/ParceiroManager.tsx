@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Parceiro {
@@ -8,9 +8,20 @@ interface Parceiro {
     username: string;
     password: string;
     commission_pct: number;
+    cnpj?: string;
+    email?: string;
+    banco_nome?: string;
+    pix_key?: string;
+    conta_corrente?: string;
+    agencia?: string;
+    commission_type?: string;
 }
 
-const emptyForm = { name: '', username: '', password: '', commission_pct: 20 };
+const emptyForm = {
+    name: '', username: '', password: '', commission_pct: 20,
+    cnpj: '', email: '', banco_nome: '', pix_key: '',
+    conta_corrente: '', agencia: '', commission_type: 'escalonado',
+};
 
 const ParceiroManager: React.FC = () => {
     const [parceiros, setParceiros] = useState<Parceiro[]>([]);
@@ -21,12 +32,36 @@ const ParceiroManager: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPassId, setShowPassId] = useState<number | null>(null);
+    const [testSendingId, setTestSendingId] = useState<number | null>(null);
+    const [testSuccessId, setTestSuccessId] = useState<number | null>(null);
+
+    const sendTestReport = async (p: Parceiro) => {
+        setTestSendingId(p.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const supabaseUrl = (supabase as any).supabaseUrl as string;
+            const supabaseKey = (supabase as any).supabaseKey as string;
+            const res = await fetch(`${supabaseUrl}/functions/v1/parceiro-commission-report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                body: JSON.stringify({ parceiro_name: p.name, test_mode: true, to: 'fabio@fegsegurogarantia.com.br' }),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Erro');
+            setTestSuccessId(p.id);
+            setTimeout(() => setTestSuccessId(null), 4000);
+        } catch (err: any) {
+            alert(`Erro: ${err?.message}`);
+        } finally {
+            setTestSendingId(null);
+        }
+    };
 
     const fetch = async () => {
         setLoading(true);
         const { data } = await supabase
             .from('partners')
-            .select('id, name, username, password, commission_pct')
+            .select('id, name, username, password, commission_pct, cnpj, email, banco_nome, pix_key, conta_corrente, agencia, commission_type')
             .order('name');
         setParceiros(data || []);
         setLoading(false);
@@ -36,7 +71,12 @@ const ParceiroManager: React.FC = () => {
 
     const handleEdit = (p: Parceiro) => {
         setEditingId(p.id);
-        setForm({ name: p.name, username: p.username, password: p.password, commission_pct: p.commission_pct });
+        setForm({
+            name: p.name, username: p.username, password: p.password, commission_pct: p.commission_pct,
+            cnpj: p.cnpj || '', email: p.email || '', banco_nome: p.banco_nome || '',
+            pix_key: p.pix_key || '', conta_corrente: p.conta_corrente || '',
+            agencia: p.agencia || '', commission_type: p.commission_type || 'escalonado',
+        });
         setShowForm(true);
         setError(null);
     };
@@ -68,6 +108,13 @@ const ParceiroManager: React.FC = () => {
                 username: form.username.trim(),
                 password: form.password,
                 commission_pct: Number(form.commission_pct) || 20,
+                cnpj: form.cnpj?.trim() || null,
+                email: form.email?.trim() || null,
+                banco_nome: form.banco_nome?.trim() || null,
+                pix_key: form.pix_key?.trim() || null,
+                conta_corrente: form.conta_corrente?.trim() || null,
+                agencia: form.agencia?.trim() || null,
+                commission_type: form.commission_type || 'escalonado',
             };
             if (editingId) {
                 const { error } = await supabase.from('partners').update(payload).eq('id', editingId);
@@ -147,15 +194,60 @@ const ParceiroManager: React.FC = () => {
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comissão (%)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.5"
-                                value={form.commission_pct}
+                            <input type="number" min="0" max="100" step="0.5" value={form.commission_pct}
                                 onChange={e => setForm(f => ({ ...f, commission_pct: parseFloat(e.target.value) }))}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all"
-                            />
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de comissão</label>
+                            <select value={form.commission_type} onChange={e => setForm(f => ({ ...f, commission_type: e.target.value }))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all">
+                                <option value="escalonado">Escalonado (contrato)</option>
+                                <option value="fixo">Percentual fixo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Dados de contato e pagamento */}
+                    <div className="border-t border-slate-100 pt-5 mt-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Dados de Contato e Pagamento</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CNPJ</label>
+                                <input value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))}
+                                    placeholder="Ex: 58.546.651/0001-61"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail para relatório</label>
+                                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                                    placeholder="Ex: gestao@parceiro.com.br"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banco</label>
+                                <input value={form.banco_nome} onChange={e => setForm(f => ({ ...f, banco_nome: e.target.value }))}
+                                    placeholder="Ex: BTG Pactual"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chave PIX</label>
+                                <input value={form.pix_key} onChange={e => setForm(f => ({ ...f, pix_key: e.target.value }))}
+                                    placeholder="Ex: 58.546.651/0001-61"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta Corrente</label>
+                                <input value={form.conta_corrente} onChange={e => setForm(f => ({ ...f, conta_corrente: e.target.value }))}
+                                    placeholder="Ex: 851629-5"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agência</label>
+                                <input value={form.agencia} onChange={e => setForm(f => ({ ...f, agencia: e.target.value }))}
+                                    placeholder="Ex: 0050"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
                         </div>
                     </div>
                     {error && <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">{error}</p>}
@@ -219,6 +311,15 @@ const ParceiroManager: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center gap-2">
+                                            {testSuccessId === p.id ? (
+                                                <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold px-2"><CheckCircle2 size={13} /> Enviado!</span>
+                                            ) : (
+                                                <button onClick={() => sendTestReport(p)} disabled={testSendingId === p.id}
+                                                    title="Enviar relatório de teste para mim"
+                                                    className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all disabled:opacity-40">
+                                                    {testSendingId === p.id ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                                                </button>
+                                            )}
                                             <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={15} /></button>
                                             <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={15} /></button>
                                         </div>
