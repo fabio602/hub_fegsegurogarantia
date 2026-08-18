@@ -39,9 +39,11 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Se já logado, redireciona
-    if (localStorage.getItem('parceiro_session')) {
-      window.location.href = 'parceiros.html';
+    // Se já logado, redireciona conforme o tipo
+    const sessaoExistente = localStorage.getItem('parceiro_session');
+    if (sessaoExistente) {
+      const s = JSON.parse(sessaoExistente);
+      window.location.href = s.partner_type === 'imobiliaria' ? 'imobiliaria.html' : 'parceiros.html';
     }
 
     document.getElementById('senha').addEventListener('keydown', e => {
@@ -60,7 +62,7 @@
 
       const { data, error } = await client
         .from('partners')
-        .select('id, name, username, commission_pct')
+        .select('id, name, username, commission_pct, partner_type, email, pix_key, banco_nome, conta_corrente, agencia')
         .eq('username', usuario)
         .eq('password', senha)
         .single();
@@ -74,7 +76,12 @@
       }
 
       localStorage.setItem('parceiro_session', JSON.stringify(data));
-      window.location.href = 'parceiros.html';
+      // Redireciona conforme o tipo do parceiro
+      if (data.partner_type === 'imobiliaria') {
+        window.location.href = 'imobiliaria.html';
+      } else {
+        window.location.href = 'parceiros.html';
+      }
     }
   </script>
 </body>

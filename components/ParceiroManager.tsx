@@ -15,12 +15,13 @@ interface Parceiro {
     conta_corrente?: string;
     agencia?: string;
     commission_type?: string;
+    partner_type?: string;
 }
 
 const emptyForm = {
     name: '', username: '', password: '', commission_pct: 20,
     cnpj: '', email: '', banco_nome: '', pix_key: '',
-    conta_corrente: '', agencia: '', commission_type: 'escalonado',
+    conta_corrente: '', agencia: '', commission_type: 'escalonado', partner_type: 'seguro_garantia',
 };
 
 const ParceiroManager: React.FC = () => {
@@ -56,7 +57,7 @@ const ParceiroManager: React.FC = () => {
         setLoading(true);
         const { data } = await supabase
             .from('partners')
-            .select('id, name, username, password, commission_pct, cnpj, email, banco_nome, pix_key, conta_corrente, agencia, commission_type')
+            .select('id, name, username, password, commission_pct, cnpj, email, banco_nome, pix_key, conta_corrente, agencia, commission_type, partner_type')
             .order('name');
         setParceiros(data || []);
         setLoading(false);
@@ -71,6 +72,7 @@ const ParceiroManager: React.FC = () => {
             cnpj: p.cnpj || '', email: p.email || '', banco_nome: p.banco_nome || '',
             pix_key: p.pix_key || '', conta_corrente: p.conta_corrente || '',
             agencia: p.agencia || '', commission_type: p.commission_type || 'escalonado',
+            partner_type: p.partner_type || 'seguro_garantia',
         });
         setShowForm(true);
         setError(null);
@@ -110,6 +112,7 @@ const ParceiroManager: React.FC = () => {
                 conta_corrente: form.conta_corrente?.trim() || null,
                 agencia: form.agencia?.trim() || null,
                 commission_type: form.commission_type || 'escalonado',
+                partner_type: form.partner_type || 'seguro_garantia',
             };
             if (editingId) {
                 const { error } = await supabase.from('partners').update(payload).eq('id', editingId);
@@ -186,6 +189,14 @@ const ParceiroManager: React.FC = () => {
                                 placeholder="Senha de acesso"
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all font-mono"
                             />
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Parceiro</label>
+                            <select value={form.partner_type} onChange={e => setForm(f => ({ ...f, partner_type: e.target.value }))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all">
+                                <option value="seguro_garantia">🏢 Seguro Garantia — Parceiro comercial (comissões)</option>
+                                <option value="imobiliaria">🏠 Imobiliária — Repasse mensal de seguros residenciais</option>
+                            </select>
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comissão (%)</label>
@@ -300,9 +311,14 @@ const ParceiroManager: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="inline-flex items-center px-3 py-1 bg-[#C69C6D]/10 text-[#C69C6D] rounded-lg text-xs font-black">
-                                            {p.commission_pct}%
-                                        </span>
+                                        <div className="flex flex-col gap-1">
+                                          <span className="inline-flex items-center px-3 py-1 bg-[#C69C6D]/10 text-[#C69C6D] rounded-lg text-xs font-black w-fit">
+                                              {p.commission_pct}%
+                                          </span>
+                                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md w-fit ${p.partner_type === 'imobiliaria' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+                                              {p.partner_type === 'imobiliaria' ? '🏠 Imobiliária' : '🏢 Seg. Garantia'}
+                                          </span>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center gap-2">
