@@ -44,6 +44,7 @@ import EndossoAllseg from './components/EndossoAllseg';
 import RCInsurance from './components/RCInsurance';
 import ChatWidget from './components/ChatWidget';
 import WhatsAppHub from './components/WhatsAppHub';
+import ImobiliariaRepasse from './components/ImobiliariaRepasse';
 import WhatsAppBlast from './components/WhatsAppBlast';
 import EmailFollowUp from './components/EmailFollowUp';
 
@@ -61,11 +62,11 @@ type View =
   // Gestão Financeira
   | 'metas-mensais' | 'metas-anuais'
   // Outros
-  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup';
+  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse';
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
-const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras'];
+const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
 const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
 
@@ -99,6 +100,7 @@ const VIEW_TITLES: Record<View, string> = {
   whatsapp: 'WhatsApp — Inbox',
   'whatsapp-blast': 'WhatsApp — Prospecção',
   'email-followup': 'Follow-up de Email',
+  'imobiliaria-repasse': 'Repasse Bordimezanolla',
 };
 
 const App: React.FC = () => {
@@ -390,6 +392,7 @@ const App: React.FC = () => {
                 <NavSubItem view="residential" label="Registro de Vendas" />
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
+                <NavSubItem view="imobiliaria-repasse" label="Repasse Bordimezanolla" />
               </NavGroup>
 
               {/* ── Responsabilidade Civil ──────────────── */}
@@ -651,6 +654,7 @@ const App: React.FC = () => {
               )}
 
               {/* Responsabilidade Civil */}
+              {activeView === 'imobiliaria-repasse' && <ImobiliariaRepasse />}
               {activeView === 'rc' && <RCInsurance />}
               {activeView === 'rc-seguradoras' && (
                 <InsuranceDirectory
