@@ -182,6 +182,7 @@ serve(async (req) => {
       to: [clientEmail.trim()],
       subject: isPerformance ? `Minuta para Conferência – Seguro Garantia de Contrato - ${clientName}` : `Minuta para Conferência - ${clientName}`,
       html: htmlBody,
+      bcc: ['fabio@fegsegurogarantia.com.br'],
     }
 
     if (attachment && attachmentName) {

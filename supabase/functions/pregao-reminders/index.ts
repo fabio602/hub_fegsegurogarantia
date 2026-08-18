@@ -170,6 +170,7 @@ Equipe F&G Seguro Garantia`
           to: [toEmail],
           subject: `Lembrete: pregão amanhã - ${companyName}`,
           html: htmlBody,
+          bcc: ["fabio@fegsegurogarantia.com.br"],
         }),
       })
 
@@ -256,6 +257,7 @@ Equipe F&G Seguro Garantia`
           to: [toEmail],
           subject: `Pregão hoje - ${companyName}`,
           html: htmlBody,
+          bcc: ["fabio@fegsegurogarantia.com.br"],
         }),
       })
 

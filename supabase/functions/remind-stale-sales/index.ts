@@ -213,6 +213,7 @@ serve(async (req) => {
           to: [toEmail],
           subject: `Follow-up pendente - ${clientName}`,
           html: htmlBody,
+          bcc: ["fabio@fegsegurogarantia.com.br"],
         }),
       })
 

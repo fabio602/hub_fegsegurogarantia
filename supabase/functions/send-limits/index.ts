@@ -83,6 +83,7 @@ serve(async (req) => {
         to: [clientEmail.trim()],
         subject: `Limites de Crédito Disponíveis - ${clientName}`,
         html: htmlBody,
+        bcc: ['fabio@fegsegurogarantia.com.br'],
       }),
     })
 

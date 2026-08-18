@@ -141,7 +141,8 @@ serve(async (req) => {
           to: [record.email],
           subject: record.tipo === 'Licitante' ? `Apólice e Boleto - ${record.nome}` : 'Obrigado por escolher a F&G Corretora!',
           html: htmlBody,
-          attachments: attachments || []
+          attachments: attachments || [],
+          bcc: ['fabio@fegsegurogarantia.com.br'],
         }),
       })
 
