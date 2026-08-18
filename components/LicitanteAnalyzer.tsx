@@ -10,6 +10,7 @@ const MAX_HISTORY = 5;
 
 interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
 import { supabase } from '../lib/supabase';
+import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 import MinutaValidator from './MinutaValidator';
 
 const LICITANTE_LABELS: Record<string, string> = {
@@ -149,6 +150,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao analisar');
       setResult(json.data);
+      setAnalysisContext(json.data, 'licitante', (updates) => setResult(r => r ? { ...r, ...updates } : r));
       const entry: HistoryEntry = { timestamp: new Date().toISOString(), fileName: files[0].name, data: json.data };
       saveToHistory(entry);
       setHistory(loadHistory());
@@ -159,7 +161,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
     }
   };
 
-  const reset = () => { setFiles([]); setResult(null); setError(null); };
+  const reset = () => { setFiles([]); setResult(null); setError(null); clearAnalysisContext(); };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">

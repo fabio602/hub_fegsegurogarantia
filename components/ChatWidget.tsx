@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, ChevronDown, Paperclip, FileText } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ChevronDown, Paperclip, FileText, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getAnalysisContext, applyAnalysisUpdate } from '../lib/analysisContext';
+
+const CAMPOS_MARKER = 'CAMPOS_ATUALIZADOS:';
 
 // Display messages (UI)
 interface Message {
@@ -75,7 +78,11 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
     }
   }, [messages, loading]);
 
-  const context = activeView ? VIEW_CONTEXT[activeView] ?? '' : '';
+  const baseContext = activeView ? VIEW_CONTEXT[activeView] ?? '' : '';
+  const analysisCtx = getAnalysisContext();
+  const context = analysisCtx.result
+    ? `${baseContext}\n\nDADOS ATUAIS DA ANÁLISE (${analysisCtx.type === 'contrato' ? 'Seguro de Contrato' : 'Seguro Licitante'}):\n${JSON.stringify(analysisCtx.result, null, 2)}\n\nSe solicitado corrigir ou atualizar campos, responda normalmente e inclua ao final (linha separada):\n${CAMPOS_MARKER} {"campo": "novo_valor"}`
+    : baseContext;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -142,8 +149,29 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao responder');
 
-      const assistantDisplay: Message = { role: 'assistant', content: json.text };
-      const assistantApi: ApiMessage = { role: 'assistant', content: json.text };
+      let displayText = json.text as string;
+      let appliedUpdate = false;
+
+      // Detect and apply field updates suggested by the AI
+      const markerIdx = displayText.indexOf(CAMPOS_MARKER);
+      if (markerIdx !== -1) {
+        const jsonStr = displayText.slice(markerIdx + CAMPOS_MARKER.length).trim();
+        const firstBrace = jsonStr.indexOf('{');
+        const lastBrace = jsonStr.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          try {
+            const updates = JSON.parse(jsonStr.slice(firstBrace, lastBrace + 1));
+            applyAnalysisUpdate(updates);
+            appliedUpdate = true;
+          } catch { /* ignore parse error */ }
+        }
+        // Remove the marker line from displayed text
+        displayText = displayText.slice(0, markerIdx).trim();
+        if (appliedUpdate) displayText += '\n\n✅ *Campos atualizados automaticamente.*';
+      }
+
+      const assistantDisplay: Message = { role: 'assistant', content: displayText };
+      const assistantApi: ApiMessage = { role: 'assistant', content: displayText };
       setMessages(prev => [...prev, assistantDisplay]);
       setApiMessages(prev => [...prev, assistantApi]);
       if (!open) setUnread(true);

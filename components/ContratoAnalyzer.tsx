@@ -11,6 +11,7 @@ const MAX_HISTORY = 5;
 interface HistoryEntry { timestamp: string; fileName: string; data: ContratoData; }
 import { supabase } from '../lib/supabase';
 import MinutaValidator from './MinutaValidator';
+import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 
 const CONTRATO_LABELS: Record<string, string> = {
   numero_contrato: 'Número do Contrato',
@@ -148,7 +149,12 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
   const [showObs, setShowObs] = useState(false);
   const [editing, setEditing] = useState(false);
   const updField = (key: keyof ContratoData, val: string | number | boolean | null) =>
-    setResult(r => r ? { ...r, [key]: val } : r);
+    setResult(r => {
+      if (!r) return r;
+      const updated = { ...r, [key]: val };
+      setAnalysisContext(updated as Record<string, unknown>, 'contrato', (updates) => setResult(rr => rr ? { ...rr, ...updates } : rr));
+      return updated;
+    });
   const [showClausula, setShowClausula] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
@@ -204,6 +210,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao analisar');
       setResult(json.data);
+      setAnalysisContext(json.data, 'contrato', (updates) => setResult(r => r ? { ...r, ...updates } : r));
       const entry: HistoryEntry = { timestamp: new Date().toISOString(), fileName: files[0].name, data: json.data };
       saveToHistory(entry);
       setHistory(loadHistory());
@@ -214,7 +221,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
     }
   };
 
-  const reset = () => { setFiles([]); setResult(null); setError(null); };
+  const reset = () => { setFiles([]); setResult(null); setError(null); clearAnalysisContext(); };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">
