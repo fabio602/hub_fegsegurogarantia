@@ -57,9 +57,29 @@
     .status-enc { background: #f1f5f9; color: #94a3b8; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 900; }
     .parc-badge { background: #eff6ff; color: #2563eb; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 900; }
     .empty { padding: 48px; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
+    /* Novo cliente form */
+    .form-section { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; }
+    .form-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #f1f5f9; cursor: pointer; user-select: none; }
+    .form-header h2 { font-size: 15px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+    .form-header .badge { background: #C69C6D; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 20px; }
+    .form-toggle { font-size: 12px; color: #94a3b8; }
+    .form-body { padding: 24px; display: none; }
+    .form-body.open { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group label { display: block; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; outline: none; background: #f8fafc; color: #1B263B; transition: border .2s; }
+    .form-group input:focus, .form-group select:focus { border-color: #C69C6D; background: #fff; }
+    .btn-enviar { width: 100%; padding: 13px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; margin-top: 20px; transition: background .2s; }
+    .btn-enviar:hover { background: #243447; }
+    .btn-enviar:disabled { opacity: .6; cursor: not-allowed; }
+    .form-success { background: #dcfce7; border: 1px solid #bbf7d0; color: #15803d; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
+
     .footer { text-align: center; margin-top: 28px; font-size: 11px; color: #94a3b8; }
 
     @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
       .repasse-total { flex-direction: column; }
       .repasse-valor { font-size: 22px; }
     }
@@ -78,6 +98,70 @@
         </div>
       </div>
       <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+
+    <!-- Novo Cliente -->
+    <div class="form-section">
+      <div class="form-header" onclick="toggleForm()">
+        <h2>➕ Novo Cliente <span class="badge">Solicitar cotação</span></h2>
+        <span class="form-toggle" id="form-toggle-label">▼ Abrir formulário</span>
+      </div>
+      <div class="form-body" id="form-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nome Completo do Inquilino *</label>
+            <input type="text" id="f-nome" placeholder="Nome completo" />
+          </div>
+          <div class="form-group">
+            <label>CPF / CNPJ *</label>
+            <input type="text" id="f-cpf" placeholder="000.000.000-00" />
+          </div>
+          <div class="form-group">
+            <label>E-mail *</label>
+            <input type="email" id="f-email" placeholder="email@exemplo.com" />
+          </div>
+          <div class="form-group">
+            <label>Telefone / Celular *</label>
+            <input type="text" id="f-telefone" placeholder="(00) 00000-0000" />
+          </div>
+          <div class="form-group">
+            <label>Estado Civil</label>
+            <select id="f-estado-civil">
+              <option>Casado(a)</option>
+              <option>Solteiro(a)</option>
+              <option>Divorciado(a)</option>
+              <option>Viúvo(a)</option>
+              <option>União estável</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>CEP do Imóvel</label>
+            <input type="text" id="f-cep" placeholder="00000-000" />
+          </div>
+          <div class="form-group">
+            <label>Número do Imóvel</label>
+            <input type="text" id="f-numero" placeholder="Nº" />
+          </div>
+          <div class="form-group">
+            <label>Tipo de Imóvel</label>
+            <select id="f-tipo-imovel">
+              <option>Casa</option>
+              <option>Apartamento</option>
+              <option>Comercial</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor do Imóvel (R$)</label>
+            <input type="number" id="f-valor-imovel" placeholder="0,00" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Valor do Aluguel (R$)</label>
+            <input type="number" id="f-valor-aluguel" placeholder="0,00" step="0.01" />
+          </div>
+        </div>
+        <button class="btn-enviar" id="btn-enviar" onclick="enviarSolicitacao()">Enviar Solicitação de Cotação</button>
+        <div class="form-success" id="form-success">✅ Solicitação enviada com sucesso! A F&G entrará em contato em breve.</div>
+      </div>
     </div>
 
     <!-- Repasse do Mês -->
@@ -252,6 +336,59 @@
     }
 
     carregar();
+
+    function toggleForm() {
+      const body = document.getElementById('form-body');
+      const label = document.getElementById('form-toggle-label');
+      const open = body.classList.toggle('open');
+      label.textContent = open ? '▲ Fechar formulário' : '▼ Abrir formulário';
+    }
+
+    async function enviarSolicitacao() {
+      const nome = document.getElementById('f-nome').value.trim();
+      const cpf = document.getElementById('f-cpf').value.trim();
+      const email = document.getElementById('f-email').value.trim();
+      const telefone = document.getElementById('f-telefone').value.trim();
+      if (!nome || !cpf || !email || !telefone) {
+        alert('Preencha os campos obrigatórios: Nome, CPF, E-mail e Telefone.');
+        return;
+      }
+      const btn = document.getElementById('btn-enviar');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+      try {
+        const { error } = await client.from('imobiliaria_clientes').insert({
+          inquilino_nome: nome,
+          cpf: cpf,
+          email_inquilino: email,
+          telefone: telefone,
+          cep: document.getElementById('f-cep').value.trim() || null,
+          numero_imovel: document.getElementById('f-numero').value.trim() || null,
+          tipo_imovel: document.getElementById('f-tipo-imovel').value,
+          valor_imovel: parseFloat(document.getElementById('f-valor-imovel').value) || null,
+          valor_aluguel: parseFloat(document.getElementById('f-valor-aluguel').value) || null,
+          partner_id: session.id,
+          seguradora: '',
+          numero_apolice: '',
+          valor_seguro: 0,
+          parcela_atual: 1,
+          total_parcelas: 12,
+          data_inicio: new Date().toISOString().split('T')[0],
+          status: 'aguardando_cotacao',
+        });
+        if (error) throw error;
+        document.getElementById('form-success').style.display = 'block';
+        // Reset form
+        ['f-nome','f-cpf','f-email','f-telefone','f-cep','f-numero','f-valor-imovel','f-valor-aluguel'].forEach(id => document.getElementById(id).value = '');
+        setTimeout(() => { document.getElementById('form-success').style.display = 'none'; }, 5000);
+        carregar(); // refresh portfolio
+      } catch (err) {
+        alert('Erro ao enviar: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar Solicitação de Cotação';
+      }
+    }
   </script>
 </body>
 </html>
