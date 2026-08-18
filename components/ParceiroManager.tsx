@@ -40,15 +40,14 @@ const ParceiroManager: React.FC = () => {
         try {
             const sessionResult = await supabase.auth.getSession();
             const session = sessionResult?.data?.session;
-            const supabaseUrl = (supabase as any).supabaseUrl as string;
-            const supabaseKey = (supabase as any).supabaseKey as string;
-            if (!supabaseUrl) throw new Error('URL do Supabase não encontrada');
-            const res = await fetch(`${supabaseUrl}/functions/v1/parceiro-commission-report`, {
+            const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/parceiro-commission-report`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
-                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${session?.access_token || SUPABASE_KEY}`,
+                    'apikey': SUPABASE_KEY,
                 },
                 body: JSON.stringify({ parceiro_name: p.name, test_mode: true, to: 'fabio@fegsegurogarantia.com.br' }),
             });
