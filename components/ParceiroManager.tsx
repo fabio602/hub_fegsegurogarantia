@@ -38,23 +38,11 @@ const ParceiroManager: React.FC = () => {
     const sendTestReport = async (p: Parceiro) => {
         setTestSendingId(p.id);
         try {
-            const sessionResult = await supabase.auth.getSession();
-            const session = sessionResult?.data?.session;
-            const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
-            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
-            const res = await fetch(`${SUPABASE_URL}/functions/v1/parceiro-commission-report`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token || SUPABASE_KEY}`,
-                    'apikey': SUPABASE_KEY,
-                },
-                body: JSON.stringify({ parceiro_name: p.name, test_mode: true, to: 'fabio@fegsegurogarantia.com.br' }),
+            const { data, error } = await supabase.functions.invoke('parceiro-commission-report', {
+                body: { parceiro_name: p.name, test_mode: true, to: 'fabio@fegsegurogarantia.com.br' },
             });
-            const text = await res.text();
-            let json: any = {};
-            try { json = JSON.parse(text); } catch { throw new Error(`Resposta inválida: ${text.slice(0, 100)}`); }
-            if (!json.success) throw new Error(json.error || json.message || 'Erro desconhecido');
+            if (error) throw new Error(error.message || String(error));
+            if (data && !data.success) throw new Error(data.error || data.message || 'Erro desconhecido');
             setTestSuccessId(p.id);
             setTimeout(() => setTestSuccessId(null), 4000);
         } catch (err: any) {
