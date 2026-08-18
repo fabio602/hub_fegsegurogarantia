@@ -139,6 +139,30 @@ export default function ImobiliariaRepasse() {
             <RefreshCw size={16} />
           </button>
           <button
+            onClick={async () => {
+              setSending(true); setSendError(''); setSendSuccess(false);
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const supabaseUrl = (supabase as any).supabaseUrl as string;
+                const supabaseKey = (supabase as any).supabaseKey as string;
+                const res = await fetch(`${supabaseUrl}/functions/v1/imobiliaria-report`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                  body: JSON.stringify({ test_mode: true, to: 'fabio@fegsegurogarantia.com.br' }),
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error || 'Erro');
+                setSendSuccess(true); setTimeout(() => setSendSuccess(false), 5000);
+              } catch (e) { setSendError(e instanceof Error ? e.message : 'Erro'); }
+              finally { setSending(false); }
+            }}
+            disabled={sending}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all disabled:opacity-50"
+          >
+            {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            Enviar Teste Para Mim
+          </button>
+          <button
             onClick={enviarRelatorio}
             disabled={sending || ativos.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50"
