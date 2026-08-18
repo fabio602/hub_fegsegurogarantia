@@ -38,20 +38,28 @@ const ParceiroManager: React.FC = () => {
     const sendTestReport = async (p: Parceiro) => {
         setTestSendingId(p.id);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const sessionResult = await supabase.auth.getSession();
+            const session = sessionResult?.data?.session;
             const supabaseUrl = (supabase as any).supabaseUrl as string;
             const supabaseKey = (supabase as any).supabaseKey as string;
+            if (!supabaseUrl) throw new Error('URL do Supabase não encontrada');
             const res = await fetch(`${supabaseUrl}/functions/v1/parceiro-commission-report`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+                    'apikey': supabaseKey,
+                },
                 body: JSON.stringify({ parceiro_name: p.name, test_mode: true, to: 'fabio@fegsegurogarantia.com.br' }),
             });
-            const json = await res.json();
-            if (!json.success) throw new Error(json.error || 'Erro');
+            const text = await res.text();
+            let json: any = {};
+            try { json = JSON.parse(text); } catch { throw new Error(`Resposta inválida: ${text.slice(0, 100)}`); }
+            if (!json.success) throw new Error(json.error || json.message || 'Erro desconhecido');
             setTestSuccessId(p.id);
             setTimeout(() => setTestSuccessId(null), 4000);
         } catch (err: any) {
-            alert(`Erro: ${err?.message}`);
+            alert(`Erro ao enviar relatório de teste:\n${err?.message}`);
         } finally {
             setTestSendingId(null);
         }
