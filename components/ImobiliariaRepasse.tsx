@@ -130,6 +130,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
   const saveStatus = async () => {
     if (!editingStatus) return;
+    // Auto-advance kanban when policy is emitted or approved
+    let kanban = editStatusForm.kanban_status || 'solicitado';
+    if (['emitido','aprovado'].includes(editStatusForm.status_residencial) &&
+        ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(kanban)) {
+      kanban = 'aprovado';
+    }
+    if (editStatusForm.status_residencial === 'recusado') kanban = 'recusado';
+
     await supabase.from('imobiliaria_clientes').update({
       status_residencial: editStatusForm.status_residencial,
       status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
@@ -137,7 +145,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       apolice_garantia_url: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.apolice_garantia_url || null : null,
       vigencia_fim: editStatusForm.vigencia_fim || null,
       status_apolice: editStatusForm.status_apolice || 'ativo',
-      kanban_status: editStatusForm.kanban_status || 'solicitado',
+      kanban_status: kanban,
       seguradora: editStatusForm.seguradora || null,
       numero_apolice: editStatusForm.numero_apolice || null,
       updated_at: new Date().toISOString(),
@@ -739,6 +747,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
               </div>
             </div>
+
+            {/* Auto-advance hint */}
+            {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-700">
+                <CheckCircle2 size={13} /> Ao salvar, o card moverá automaticamente para <strong>Aprovado</strong> no kanban
+              </div>
+            )}
 
             {/* Seguradora e Apólice */}
             <div className="grid grid-cols-2 gap-3">
