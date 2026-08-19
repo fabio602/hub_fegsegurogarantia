@@ -302,8 +302,9 @@
       <div class="form-group full">
         <label>Tipo de Seguro *</label>
         <select id="f-tipo-seguro">
-          <option value="residencial">🏠 Apenas Seguro Residencial</option>
-          <option value="residencial_garantia">🏠🔒 Seguro Residencial + Garantia de Aluguel</option>
+          <option value="garantia">Apenas Garantia Locatícia</option>
+          <option value="residencial">Apenas Seguro Residencial</option>
+          <option value="residencial_garantia">Garantia Locatícia &amp; Seguro Residencial</option>
         </select>
       </div>
       <div class="form-group full">
@@ -319,8 +320,12 @@
         <input type="email" id="f-email" placeholder="email@exemplo.com" />
       </div>
       <div class="form-group">
-        <label>Telefone / Celular *</label>
+        <label>Telefone / Celular 1 *</label>
         <input type="text" id="f-telefone" placeholder="(00) 00000-0000" />
+      </div>
+      <div class="form-group">
+        <label>Telefone / Celular 2</label>
+        <input type="text" id="f-telefone2" placeholder="Opcional" />
       </div>
       <div class="form-group">
         <label>Estado Civil</label>
@@ -337,7 +342,7 @@
         <label>Número do Imóvel</label>
         <input type="text" id="f-numero" placeholder="Nº" />
       </div>
-      <div class="form-group">
+      <div class="form-group full">
         <label>Tipo de Imóvel</label>
         <select id="f-tipo-imovel">
           <option>Casa</option><option>Apartamento</option><option>Comercial</option>
@@ -350,6 +355,14 @@
       <div class="form-group">
         <label>Valor do Aluguel (R$)</label>
         <input type="number" id="f-valor-aluguel" placeholder="0,00" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Data do Primeiro Pagamento do Aluguel</label>
+        <input type="date" id="f-data-aluguel" />
+      </div>
+      <div class="form-group">
+        <label>Valor IPTU e/ou Condomínio (R$)</label>
+        <input type="number" id="f-iptu" placeholder="0,00" step="0.01" />
       </div>
     </div>
     <button class="btn-primary" id="btn-enviar" onclick="enviarSolicitacao()">Enviar Solicitação</button>
@@ -754,11 +767,14 @@
       const tipoSeguro = document.getElementById('f-tipo-seguro').value;
       const payload = {
         inquilino_nome: nome, cpf, email_inquilino: email, telefone,
+        telefone2: document.getElementById('f-telefone2').value.trim()||null,
         cep: document.getElementById('f-cep').value.trim()||null,
         numero_imovel: document.getElementById('f-numero').value.trim()||null,
         tipo_imovel: document.getElementById('f-tipo-imovel').value,
         valor_imovel: parseFloat(document.getElementById('f-valor-imovel').value)||null,
         valor_aluguel: parseFloat(document.getElementById('f-valor-aluguel').value)||null,
+        data_primeiro_pag_aluguel: document.getElementById('f-data-aluguel').value||null,
+        valor_iptu: parseFloat(document.getElementById('f-iptu').value)||null,
         partner_id: session.id, tipo_seguro: tipoSeguro,
         seguradora: '', numero_apolice: '', valor_seguro: 0,
         parcela_atual: 1, total_parcelas: 12,
@@ -775,7 +791,7 @@
       const json = await res.json();
       if (!json.success) throw new Error(json.error||'Erro');
       document.getElementById('form-success').style.display = 'block';
-      ['f-nome','f-cpf','f-email','f-telefone','f-cep','f-numero','f-valor-imovel','f-valor-aluguel'].forEach(id => document.getElementById(id).value='');
+      ['f-nome','f-cpf','f-email','f-telefone','f-telefone2','f-cep','f-numero','f-valor-imovel','f-valor-aluguel','f-data-aluguel','f-iptu'].forEach(id => document.getElementById(id).value='');
       setTimeout(() => document.getElementById('form-success').style.display='none', 5000);
       await carregar();
     } catch(e) { alert('Erro: ' + e.message); }
