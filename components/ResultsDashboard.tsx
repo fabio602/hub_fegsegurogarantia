@@ -1026,7 +1026,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             await fetchData();
             setSaveSuccess(true);
 
-            // Se venda fechada com parceiro → buscar email do parceiro e mostrar aviso
+            // Se venda fechada com parceiro → dispara email de agradecimento automaticamente
             if (payload.vendeu === 'Sim' && payload.parceiro) {
                 const { data: pData } = await supabase
                     .from('partners')
@@ -1035,6 +1035,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     .single();
                 if (pData?.email) {
                     setPartnerThankYou({ name: pData.name, email: pData.email, clientName: payload.nome || '' });
+                    // Disparo automático — não bloqueia o fluxo principal
+                    fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-referral-thanks', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            partnerName: pData.name,
+                            partnerEmail: pData.email,
+                            clientName: payload.nome || '',
+                            productType: payload.tipo || payload.product_type || 'Seguro Garantia',
+                        }),
+                    }).catch(e => console.warn('Parceiro email:', e));
                 }
             }
 
@@ -1793,23 +1804,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     Venda salva com sucesso!
                                 </div>
                                 {partnerThankYou && (
-                                    <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm space-y-2">
-                                        <p className="text-blue-700 text-xs font-black uppercase tracking-widest">✉️ Agradecimento ao parceiro</p>
-                                        <p className="text-slate-600 text-xs font-medium">
-                                            Deseja enviar um agradecimento à <strong>{partnerThankYou.name}</strong> pela indicação de <strong>{partnerThankYou.clientName}</strong>?
+                                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-3">
+                                        <span className="text-blue-500 text-base">✉️</span>
+                                        <p className="text-blue-700 text-xs font-bold flex-1">
+                                            E-mail de agradecimento enviado automaticamente para <strong>{partnerThankYou.name}</strong>.
                                         </p>
-                                        <div className="flex gap-2 pt-1">
-                                            <a
-                                                href={`mailto:${partnerThankYou.email}?subject=${encodeURIComponent('Indicação convertida! ' + partnerThankYou.clientName + ' fechou uma apólice')}&body=${encodeURIComponent(`Prezados ${partnerThankYou.name},\n\nÉ com satisfação que informamos que a empresa ${partnerThankYou.clientName}, por vocês indicada, acabou de fechar uma apólice de Seguro Garantia Licitante com a F&G Seguro Garantia!\n\nAgradecemos pela confiança e pela parceria. Cada indicação de vocês é muito importante para nós.\n\nO portal de parceiros foi atualizado com os dados desta operação e a comissão correspondente já está registrada para vocês.\n\nConte sempre conosco!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
-                                                onClick={() => setPartnerThankYou(null)}
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-lg transition-all"
-                                            >
-                                                ✉️ Abrir no meu e-mail
-                                            </a>
-                                            <button onClick={() => setPartnerThankYou(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-black rounded-lg transition-all">
-                                                Agora não
-                                            </button>
-                                        </div>
+                                        <button onClick={() => setPartnerThankYou(null)} className="text-blue-300 hover:text-blue-500 text-xs">✕</button>
                                     </div>
                                 )}
                                 
