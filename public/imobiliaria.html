@@ -805,6 +805,33 @@
   }
 
   carregar();
+
+  // Realtime: update kanban and carteira when kanban_status changes
+  const channel = client
+    .channel('imobiliaria-clientes-changes')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'imobiliaria_clientes',
+      filter: `partner_id=eq.${session.id}`,
+    }, (payload) => {
+      // Update the client in todosClientes
+      const updated = payload.new;
+      const idx = todosClientes.findIndex(c => c.id === updated.id);
+      if (idx !== -1) {
+        todosClientes[idx] = { ...todosClientes[idx], ...updated };
+      } else {
+        todosClientes.push(updated);
+      }
+      renderDashboard(todosClientes);
+      renderKanban(todosClientes);
+      renderAlertasVencimento(todosClientes);
+      renderUltimas(todosClientes);
+      renderCarteira(todosClientes);
+      renderRepasse(todosClientes);
+      renderDocsPendentes(todosClientes);
+    })
+    .subscribe();
 </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
   User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil
@@ -79,6 +80,8 @@ export default function ImobiliariaRepasse() {
   const [repasseForm, setRepasseForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), data_pagamento: '', observacoes: '' });
   const [repasseFile, setRepasseFile] = useState<File | null>(null);
   const [savingRepasse, setSavingRepasse] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
 
   const salvarRepasse = async () => {
     setSavingRepasse(true);
@@ -107,6 +110,14 @@ export default function ImobiliariaRepasse() {
     } catch (e) { console.error(e); }
     finally { setSavingRepasse(false); }
   };
+  const moveCard = async (clienteId: string, newStatus: string) => {
+    setDraggingId(null); setDragOver(null);
+    await supabase.from('imobiliaria_clientes')
+      .update({ kanban_status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', clienteId);
+    setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, kanban_status: newStatus } as any : c));
+  };
+
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
   const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado' });
 
@@ -387,56 +398,94 @@ export default function ImobiliariaRepasse() {
         </div>
       )}
 
-      {/* Solicitações Pendentes */}
-      {pendentes.length > 0 && (
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-[2rem] overflow-hidden">
-          <div className="px-7 py-4 border-b border-amber-200 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <p className="font-black text-amber-800 text-sm">
-              {pendentes.length} solicitação(ões) aguardando sua atenção
-            </p>
-            <span className="text-xs text-amber-600 font-bold">Atualize o status para a imobiliária acompanhar</span>
+      {/* Kanban Board — All clients */}
+      {(() => {
+        const KANBAN_COLS = [
+          { key: 'solicitado',           label: '📬 Solicitado',             bg: 'bg-slate-50',   border: 'border-slate-200' },
+          { key: 'atendimento_iniciado', label: '🔄 F&G em atendimento',     bg: 'bg-blue-50',    border: 'border-blue-200' },
+          { key: 'aguardando_seguradora',label: '⏳ Aguardando Seguradora',  bg: 'bg-amber-50',   border: 'border-amber-200' },
+          { key: 'aprovado',             label: '✅ Aprovado',               bg: 'bg-emerald-50', border: 'border-emerald-200' },
+          { key: 'recusado',             label: '❌ Recusado',               bg: 'bg-red-50',     border: 'border-red-200' },
+        ];
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="font-black text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
+              <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {KANBAN_COLS.map(col => {
+                const colCards = clientes.filter(c => ((c as any).kanban_status || 'solicitado') === col.key);
+                const isOver = dragOver === col.key;
+                return (
+                  <div
+                    key={col.key}
+                    className={`rounded-3xl ${col.bg} border-2 ${isOver ? 'border-[#C69C6D] shadow-lg' : col.border} transition-all`}
+                    style={{ minWidth: 200, flex: 1, padding: '14px' }}
+                    onDragOver={e => { e.preventDefault(); setDragOver(col.key); }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData('clienteId');
+                      if (id) moveCard(id, col.key);
+                    }}
+                  >
+                    {/* Column header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">{col.label}</span>
+                      <span className="text-[11px] font-black bg-white/80 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">{colCards.length}</span>
+                    </div>
+                    {/* Cards */}
+                    {colCards.length === 0 ? (
+                      <div className="text-center py-5 text-xs font-bold text-slate-300">Nenhum</div>
+                    ) : (
+                      colCards.map(c => {
+                        const isDragging = draggingId === c.id;
+                        const valorStr = Number((c as any).valor_seguro) > 0 ? fmtBRL(Number((c as any).valor_seguro)) : null;
+                        const dataCriacao = new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                        const parceiro = !filterParceiro ? parceiros.find(p => p.id === (c as any).partner_id) : null;
+                        return (
+                          <div
+                            key={c.id}
+                            draggable={true}
+                            onDragStart={e => { e.dataTransfer.setData('clienteId', c.id); setDraggingId(c.id); }}
+                            onDragEnd={() => { setDraggingId(null); setDragOver(null); }}
+                            onClick={() => openEditStatus(c)}
+                            className={`bg-white rounded-2xl border border-slate-100 p-3 mb-2 transition-all select-none ${isDragging ? 'opacity-40 shadow-xl' : 'hover:shadow-md'}`}
+                            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                          >
+                            <div className="font-black text-slate-800 text-sm leading-tight mb-1.5">{c.inquilino_nome}</div>
+                            <div className="text-[10px] font-bold text-slate-400 mb-1">
+                              {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
+                            </div>
+                            {parceiro && (
+                              <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-lg inline-block mb-1">
+                                {parceiro.name.replace('Imobiliária ', '')}
+                              </div>
+                            )}
+                            {valorStr && (
+                              <div className="text-[11px] font-black text-[#1B263B] mt-1">{valorStr}</div>
+                            )}
+                            <div className="text-[9px] text-slate-300 font-bold mt-1.5">{dataCriacao}</div>
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
+                              {(c as any).doc_contrato_url && (
+                                <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md">📎 Docs</span>
+                              )}
+                              {(c as any).apolice_residencial_url && (
+                                <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md">📄 Apólice</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-amber-200 bg-amber-100/50">
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Inquilino</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Tipo</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Etapa Kanban</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Recebido em</th>
-                  <th className="px-5 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendentes.map(c => {
-                  const KMAP: Record<string, string> = { solicitado: '📬 Solicitado', atendimento_iniciado: '🔄 F&G em atendimento', aguardando_seguradora: '⏳ Aguardando Seguradora' };
-                  return (
-                    <tr key={c.id} className="border-b border-amber-100 hover:bg-amber-50 transition-colors">
-                      <td className="px-5 py-4 font-black text-slate-800 text-sm">{c.inquilino_nome}</td>
-                      <td className="px-5 py-4 text-xs text-slate-500">{(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
-                      <td className="px-5 py-4">
-                        <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-1 rounded-lg">
-                          {KMAP[(c as any).kanban_status || 'solicitado']}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-xs text-slate-400">
-                        {new Date((c as any).created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-5 py-4">
-                        <button onClick={() => openEditStatus(c)}
-                          className="px-3 py-1.5 bg-[#1B263B] hover:bg-[#243447] text-white text-xs font-black rounded-lg transition-colors flex items-center gap-1.5">
-                          <Pencil size={11} /> Atualizar Status
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Active clients table */}
       {loading ? (
@@ -580,8 +629,8 @@ export default function ImobiliariaRepasse() {
         </div>
       )}
     {/* Registrar Repasse Modal */}
-    {repasseModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    {repasseModal && createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-black text-slate-800 text-lg">Registrar Repasse</h3>
@@ -626,11 +675,12 @@ export default function ImobiliariaRepasse() {
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
-    {/* Edit Status Modal */}
-    {editingStatus && (
+    {/* Edit Status Modal — rendered via portal to escape stacking context */}
+    {editingStatus && createPortal(
       <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
         <div className="min-h-full flex items-center justify-center p-4">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md my-4">
@@ -736,7 +786,8 @@ export default function ImobiliariaRepasse() {
           </div>
         </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </div>
   );
