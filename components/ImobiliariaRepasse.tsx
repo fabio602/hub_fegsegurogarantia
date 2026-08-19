@@ -40,6 +40,8 @@ const EMPTY_FORM = {
 
 export default function ImobiliariaRepasse() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [parceiros, setParceiros] = useState<{id: number; name: string}[]>([]);
+  const [filterParceiro, setFilterParceiro] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -109,13 +111,21 @@ export default function ImobiliariaRepasse() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('imobiliaria_clientes')
-      .select('*')
-      .order('inquilino_nome');
+    // Load all imobiliária partners
+    const { data: partnerData } = await supabase
+      .from('partners')
+      .select('id, name')
+      .eq('partner_type', 'imobiliaria')
+      .order('name');
+    setParceiros(partnerData ?? []);
+
+    // Load clients filtered by partner if selected
+    let query = supabase.from('imobiliaria_clientes').select('*').order('inquilino_nome');
+    if (filterParceiro) query = query.eq('partner_id', filterParceiro);
+    const { data } = await query;
     setClientes(data ?? []);
     setLoading(false);
-  }, []);
+  }, [filterParceiro]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -193,12 +203,28 @@ export default function ImobiliariaRepasse() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Repasse Bordin e Zanolla</h2>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+            Repasse Imobiliárias
+            {filterParceiro && parceiros.find(p => p.id === filterParceiro) && (
+              <span className="text-lg text-[#C69C6D] ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
+            )}
+          </h2>
           <p className="text-slate-500 font-semibold mt-1">
-            Gestão de clientes com repasse via imobiliária · PIX 56.123.874/0001-90 · vencimento dia 15
+            Gestão de clientes residenciais por imobiliária parceira
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Filter by partner */}
+          {parceiros.length > 1 && (
+            <select
+              value={filterParceiro ?? ''}
+              onChange={e => setFilterParceiro(e.target.value ? parseInt(e.target.value) : null)}
+              className="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D] cursor-pointer"
+            >
+              <option value="">Todas as imobiliárias</option>
+              {parceiros.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          )}
           <button onClick={load} className="p-2 text-slate-400 hover:text-slate-600 transition-colors" title="Atualizar">
             <RefreshCw size={16} />
           </button>
@@ -408,6 +434,7 @@ export default function ImobiliariaRepasse() {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Inquilino</th>
+                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parceiro</th>}
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seg. Residencial</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Garantia / Docs</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
@@ -426,6 +453,13 @@ export default function ImobiliariaRepasse() {
                         <span className="font-bold text-slate-800 text-sm">{c.inquilino_nome}</span>
                       </div>
                     </td>
+                    {!filterParceiro && (
+                      <td className="px-5 py-4">
+                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-600">
+                          {parceiros.find(p => p.id === (c as any).partner_id)?.name?.replace('Imobiliária ', '') || '—'}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-5 py-4">
                       <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                         {STATUS_LABELS[c.status_residencial || 'aguardando_cotacao']}
