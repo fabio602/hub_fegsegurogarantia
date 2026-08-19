@@ -795,7 +795,7 @@ const ResidentialInsurance: React.FC = () => {
 
             {/* Table */}
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-2.5 border-b border-slate-100 bg-slate-50/40">
+                <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/40">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
                         Ordenar lista
                     </span>
@@ -830,6 +830,22 @@ const ResidentialInsurance: React.FC = () => {
                                 )}
                             </button>
                         ))}
+                    </div>
+                    {/* Search inline with sort */}
+                    <div className="relative flex-1 min-w-[200px] max-w-xs ml-auto">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Buscar nome, CPF, apólice..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
+                        />
+                        {search && (
+                            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
+                                <X size={13} />
+                            </button>
+                        )}
                     </div>
                 </div>
                 <div ref={topScrollRef} className="table-scroll-x" style={{height: 10}}>
