@@ -251,6 +251,30 @@
       <div class="pagination" id="pagination" style="display:none"></div>
     </div>
 
+    <!-- Histórico de Repasses -->
+    <div id="sec-repasses" style="display:none;margin-top:28px;">
+      <div class="table-card">
+        <div class="toolbar">
+          <h3>💸 Histórico de Repasses</h3>
+          <span style="font-size:12px;color:#94a3b8;font-weight:600;">Seus pagamentos de comissão realizados pela F&G Seguro Garantia</span>
+        </div>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>Período</th>
+                <th>Valor</th>
+                <th>Data do Pagamento</th>
+                <th>Status</th>
+                <th style="text-align:center">Comprovante</th>
+              </tr>
+            </thead>
+            <tbody id="repasses-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="footer">F&G Seguro Garantia · Portal exclusivo para parceiros</div>
   </div>
 
@@ -457,6 +481,48 @@
     }
 
     // ── CARREGAR ─────────────────────────────────────────────
+    // ── REPASSES ─────────────────────────────────────────────
+    let repassesData = [];
+
+    async function carregarRepasses() {
+      const { data } = await client.from('repasses')
+        .select('*').eq('partner_id', session.id)
+        .order('periodo_ano', { ascending: false })
+        .order('periodo_mes', { ascending: false });
+      repassesData = data || [];
+      renderRepasses();
+    }
+
+    function getStatusRepasse(dataStr) {
+      if (!dataStr) return null;
+      const mes = parseInt(dataStr.substring(5,7));
+      const ano = parseInt(dataStr.substring(0,4));
+      return repassesData.find(r => r.periodo_mes === mes && r.periodo_ano === ano) || null;
+    }
+
+    function renderRepasses() {
+      const sec = document.getElementById('sec-repasses');
+      const tbody = document.getElementById('repasses-body');
+      if (!repassesData.length) { sec.style.display='none'; return; }
+      sec.style.display='block';
+      tbody.innerHTML = repassesData.map(r => `
+        <tr>
+          <td style="padding:14px 20px;font-weight:800;color:#1B263B;">${MESES[r.periodo_mes]}/${r.periodo_ano}</td>
+          <td style="padding:14px 20px;font-weight:900;color:#C69C6D;">${fmt(r.valor_total)}</td>
+          <td style="padding:14px 20px;">${r.data_pagamento ? fmtData(r.data_pagamento) : '—'}</td>
+          <td style="padding:14px 20px;">
+            ${r.status === 'pago'
+              ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;">✅ Pago</span>'
+              : '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#fef9c3;color:#a16207;border-radius:8px;font-size:11px;font-weight:900;">⏳ Pendente</span>'}
+          </td>
+          <td style="padding:14px 20px;text-align:center;">
+            ${r.comprovante_url
+              ? `<a href="${r.comprovante_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Ver</a>`
+              : '<span style="color:#c9c2b8;font-size:12px;">—</span>'}
+          </td>
+        </tr>`).join('');
+    }
+
     async function carregar() {
       const { data, error } = await client
         .from('sales')
@@ -484,6 +550,7 @@
       }
 
       todasVendas = vendas;
+      await carregarRepasses();
 
       // Preencher anos únicos no filtro
       const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();

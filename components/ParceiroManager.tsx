@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail, DollarSign, Calendar, Upload, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+interface Repasse {
+    id: number;
+    partner_id: number;
+    partner_name: string;
+    periodo_mes: number;
+    periodo_ano: number;
+    valor_total: number;
+    data_pagamento: string | null;
+    comprovante_url: string | null;
+    status: 'pendente' | 'pago';
+    obs: string | null;
+}
 
 interface Parceiro {
     id: number;
@@ -36,6 +51,108 @@ const ParceiroManager: React.FC = () => {
     const [testSendingId, setTestSendingId] = useState<number | null>(null);
     const [testSuccessId, setTestSuccessId] = useState<number | null>(null);
     const [welcomeModal, setWelcomeModal] = useState<Parceiro | null>(null);
+
+    // ── Repasse ──────────────────────────────────────────────
+    const [repasseModal, setRepasseModal] = useState<Parceiro | null>(null);
+    const [repasseMes, setRepasseMes] = useState(new Date().getMonth() + 1);
+    const [repasseAno, setRepasseAno] = useState(new Date().getFullYear());
+    const [repasseVendas, setRepasseVendas] = useState<any[]>([]);
+    const [repasseComprovante, setRepasseComprovante] = useState<File | null>(null);
+    const [repasseObs, setRepasseObs] = useState('');
+    const [repasseDataPag, setRepasseDataPag] = useState(new Date().toISOString().slice(0,10));
+    const [loadingRepasse, setLoadingRepasse] = useState(false);
+    const [savingRepasse, setSavingRepasse] = useState(false);
+    const [repasseExistente, setRepasseExistente] = useState<Repasse | null>(null);
+    const [repasseHistorico, setRepasseHistorico] = useState<Repasse[]>([]);
+
+    const abrirRepasse = async (p: Parceiro) => {
+        setRepasseModal(p);
+        setRepasseComprovante(null);
+        setRepasseObs('');
+        setRepasseDataPag(new Date().toISOString().slice(0,10));
+        await carregarRepasseData(p, repasseMes, repasseAno);
+    };
+
+    const carregarRepasseData = async (p: Parceiro, mes: number, ano: number) => {
+        setLoadingRepasse(true);
+        const mesStr = String(mes).padStart(2,'0');
+        const inicio = `${ano}-${mesStr}-01`;
+        const fim = `${ano}-${mesStr}-31`;
+
+        const [{ data: vendas }, { data: repExist }, { data: historico }] = await Promise.all([
+            supabase.from('sales').select('id, data, nome, premio, comissao, tipo, product_type')
+                .eq('vendeu','Sim').eq('parceiro', p.name)
+                .gte('data', inicio).lte('data', fim).order('data'),
+            supabase.from('repasses').select('*')
+                .eq('partner_id', p.id).eq('periodo_mes', mes).eq('periodo_ano', ano).single(),
+            supabase.from('repasses').select('*')
+                .eq('partner_id', p.id).order('periodo_ano', { ascending: false }).order('periodo_mes', { ascending: false }),
+        ]);
+
+        setRepasseVendas(vendas || []);
+        setRepasseExistente(repExist || null);
+        setRepasseHistorico(historico || []);
+        if (repExist) {
+            setRepasseObs(repExist.obs || '');
+            setRepasseDataPag(repExist.data_pagamento || new Date().toISOString().slice(0,10));
+        }
+        setLoadingRepasse(false);
+    };
+
+    const totalComissaoRepasse = () => {
+        const pct = (repasseModal?.commission_pct || 20) / 100;
+        return repasseVendas.reduce((s, v) => {
+            const c = parseFloat(String(v.comissao || '0').replace(/[^0-9.]/g,'')) || 0;
+            return s + c * pct;
+        }, 0);
+    };
+
+    const confirmarRepasse = async () => {
+        if (!repasseModal) return;
+        setSavingRepasse(true);
+        try {
+            const valor = totalComissaoRepasse();
+            let comprovanteUrl = repasseExistente?.comprovante_url || null;
+
+            if (repasseComprovante) {
+                const path = `repasses/${repasseModal.id}/${repasseAno}-${String(repasseMes).padStart(2,'0')}.pdf`;
+                const { error: upErr } = await supabase.storage.from('apolices')
+                    .upload(path, repasseComprovante, { upsert: true, contentType: 'application/pdf' });
+                if (!upErr) {
+                    const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+                    comprovanteUrl = urlData.publicUrl;
+                }
+            }
+
+            const payload = {
+                partner_id: repasseModal.id,
+                partner_name: repasseModal.name,
+                periodo_mes: repasseMes,
+                periodo_ano: repasseAno,
+                valor_total: valor,
+                data_pagamento: repasseDataPag,
+                comprovante_url: comprovanteUrl,
+                status: 'pago' as const,
+                obs: repasseObs || null,
+            };
+
+            if (repasseExistente) {
+                await supabase.from('repasses').update(payload).eq('id', repasseExistente.id);
+            } else {
+                await supabase.from('repasses').insert([payload]);
+            }
+
+            await carregarRepasseData(repasseModal, repasseMes, repasseAno);
+            alert('✅ Repasse confirmado com sucesso!');
+        } catch (e: any) {
+            alert('Erro: ' + e.message);
+        } finally {
+            setSavingRepasse(false);
+        }
+    };
+
+    const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtData = (d: string | null) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 
     const sendTestReport = async (p: Parceiro) => {
         setTestSendingId(p.id);
@@ -332,6 +449,8 @@ const ParceiroManager: React.FC = () => {
                                                     {testSendingId === p.id ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                                                 </button>
                                             )}
+                                            <button onClick={() => abrirRepasse(p)} title="Fechar repasse do mês"
+                                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><DollarSign size={15} /></button>
                                             <button onClick={() => setWelcomeModal(p)} title="Enviar e-mail de boas-vindas"
                                                 className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Mail size={15} /></button>
                                             <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={15} /></button>
@@ -344,6 +463,147 @@ const ParceiroManager: React.FC = () => {
                     </table>
                 )}
             </div>
+
+            {/* Modal Repasse */}
+            {repasseModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setRepasseModal(null)}>
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-4" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="bg-[#1B263B] rounded-t-2xl px-6 py-5 flex items-center justify-between">
+                            <div>
+                                <p className="text-[#C69C6D] text-xs font-black uppercase tracking-widest mb-1">Fechar Repasse</p>
+                                <h3 className="text-white font-black text-lg">{repasseModal.name}</h3>
+                            </div>
+                            <button onClick={() => setRepasseModal(null)} className="p-2 text-white/50 hover:text-white"><X size={20}/></button>
+                        </div>
+
+                        <div className="p-6 space-y-5">
+                            {/* Seletor período */}
+                            <div className="flex gap-3">
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mês</label>
+                                    <select value={repasseMes} onChange={e => { setRepasseMes(+e.target.value); carregarRepasseData(repasseModal, +e.target.value, repasseAno); }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-[#C69C6D]">
+                                        {MESES.slice(1).map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano</label>
+                                    <select value={repasseAno} onChange={e => { setRepasseAno(+e.target.value); carregarRepasseData(repasseModal, repasseMes, +e.target.value); }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-[#C69C6D]">
+                                        {[2024,2025,2026,2027].map(a => <option key={a} value={a}>{a}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do pagamento</label>
+                                    <input type="date" value={repasseDataPag} onChange={e => setRepasseDataPag(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#C69C6D]"/>
+                                </div>
+                            </div>
+
+                            {/* Status existente */}
+                            {repasseExistente && (
+                                <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                                    <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0"/>
+                                    <p className="text-emerald-700 text-sm font-bold">
+                                        Repasse já confirmado em {fmtData(repasseExistente.data_pagamento)} — {fmt(repasseExistente.valor_total)}
+                                        {repasseExistente.comprovante_url && <a href={repasseExistente.comprovante_url} target="_blank" className="ml-2 underline">ver comprovante</a>}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Vendas do período */}
+                            {loadingRepasse ? (
+                                <div className="flex items-center justify-center py-8 text-slate-400"><Loader2 size={20} className="animate-spin mr-2"/> Carregando...</div>
+                            ) : repasseVendas.length === 0 ? (
+                                <div className="text-center py-8 text-slate-400 text-sm font-semibold bg-slate-50 rounded-xl">Nenhuma venda de {MESES[repasseMes]}/{repasseAno}</div>
+                            ) : (
+                                <div className="border border-slate-100 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead><tr className="bg-slate-50">
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente</th>
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Produto</th>
+                                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Comissão F&G</th>
+                                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Repasse</th>
+                                        </tr></thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {repasseVendas.map(v => {
+                                                const c = parseFloat(String(v.comissao||'0').replace(/[^0-9.]/g,''))||0;
+                                                const r = c * (repasseModal.commission_pct||20)/100;
+                                                return <tr key={v.id} className="hover:bg-slate-50/50">
+                                                    <td className="px-4 py-3 font-bold text-slate-800">{v.nome}</td>
+                                                    <td className="px-4 py-3 text-slate-500 text-xs">{v.product_type || v.tipo || '—'}</td>
+                                                    <td className="px-4 py-3 text-right text-slate-600">{fmt(c)}</td>
+                                                    <td className="px-4 py-3 text-right font-black text-[#C69C6D]">{fmt(r)}</td>
+                                                </tr>;
+                                            })}
+                                        </tbody>
+                                        <tfoot><tr className="bg-[#1B263B]">
+                                            <td colSpan={3} className="px-4 py-3 text-white font-black text-sm">Total a repassar</td>
+                                            <td className="px-4 py-3 text-right text-[#C69C6D] font-black text-base">{fmt(totalComissaoRepasse())}</td>
+                                        </tr></tfoot>
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* Comprovante + obs */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comprovante PDF</label>
+                                    <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold cursor-pointer transition-all ${repasseComprovante ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#C69C6D]'}`}>
+                                        <input type="file" accept=".pdf" className="hidden" onChange={e => setRepasseComprovante(e.target.files?.[0] || null)}/>
+                                        <Upload size={14}/> {repasseComprovante ? repasseComprovante.name.substring(0,20) : 'Anexar comprovante'}
+                                    </label>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observação</label>
+                                    <input value={repasseObs} onChange={e => setRepasseObs(e.target.value)} placeholder="Ex: PIX realizado às 14h"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#C69C6D]"/>
+                                </div>
+                            </div>
+
+                            {/* Botões */}
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={confirmarRepasse} disabled={savingRepasse || repasseVendas.length === 0}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-black text-sm rounded-xl transition-all">
+                                    {savingRepasse ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
+                                    {savingRepasse ? 'Salvando...' : repasseExistente ? 'Atualizar Repasse' : 'Confirmar Repasse'}
+                                </button>
+                                {repasseModal.email && repasseExistente?.status === 'pago' && (
+                                    <a href={`mailto:${repasseModal.email}?subject=${encodeURIComponent(`Repasse de Comissão — ${MESES[repasseMes]}/${repasseAno} — F&G Seguro Garantia`)}&body=${encodeURIComponent(`Prezada ${repasseModal.name},\n\nInformamos que realizamos o repasse de comissão referente a ${MESES[repasseMes]}/${repasseAno} no valor de ${fmt(totalComissaoRepasse())}.\n\nO comprovante está disponível no seu portal de parceiro:\nhub.fegsegurogarantia.com/parceiros-login.html\n\nAgradecemos pela parceria e pela confiança!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
+                                        className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition-all">
+                                        <Mail size={15}/> Avisar parceiro
+                                    </a>
+                                )}
+                            </div>
+
+                            {/* Histórico */}
+                            {repasseHistorico.length > 0 && (
+                                <div className="border-t border-slate-100 pt-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Histórico de Repasses</p>
+                                    <div className="space-y-2">
+                                        {repasseHistorico.map(r => (
+                                            <div key={r.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${r.status === 'pago' ? 'bg-emerald-500' : 'bg-amber-400'}`}/>
+                                                    <div>
+                                                        <p className="font-black text-slate-800 text-sm">{MESES[r.periodo_mes]}/{r.periodo_ano}</p>
+                                                        <p className="text-xs text-slate-400">{r.status === 'pago' ? `Pago em ${fmtData(r.data_pagamento)}` : 'Pendente'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-black text-[#C69C6D]">{fmt(r.valor_total)}</span>
+                                                    {r.comprovante_url && <a href={r.comprovante_url} target="_blank" className="p-1.5 text-slate-400 hover:text-slate-600"><FileText size={14}/></a>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal boas-vindas */}
             {welcomeModal && (
