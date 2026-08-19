@@ -83,6 +83,22 @@
     .btn-enviar:disabled { opacity: .6; cursor: not-allowed; }
     .form-success { background: #dcfce7; border: 1px solid #bbf7d0; color: #15803d; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
 
+    /* Documentos */
+    .docs-section { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; }
+    .docs-header { padding: 18px 24px; border-bottom: 1px solid #f1f5f9; background: #fffbf5; }
+    .docs-header h2 { font-size: 15px; font-weight: 900; color: #92400e; display: flex; align-items: center; gap: 8px; }
+    .docs-header p { font-size: 12px; color: #78716c; margin-top: 4px; }
+    .docs-list { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .doc-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; flex-wrap: wrap; gap: 10px; }
+    .doc-item.done { border-color: #bbf7d0; background: #f0fdf4; }
+    .doc-label { font-weight: 800; font-size: 13px; color: #1B263B; }
+    .doc-label small { font-weight: 500; color: #94a3b8; font-size: 11px; display: block; margin-top: 2px; }
+    .doc-input-wrap { display: flex; align-items: center; gap: 8px; }
+    .doc-file-btn { padding: 7px 14px; background: #1B263B; color: #fff; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .doc-file-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .doc-sent { background: #dcfce7; color: #15803d; padding: 5px 12px; border-radius: 10px; font-size: 12px; font-weight: 900; }
+    .doc-spinner { font-size: 12px; color: #94a3b8; }
+
     .footer { text-align: center; margin-top: 28px; font-size: 11px; color: #94a3b8; }
 
     @media (max-width: 600px) {
@@ -211,6 +227,9 @@
         </table>
       </div>
     </div>
+
+    <!-- Documentos pendentes -->
+    <div id="docs-section" style="display:none"></div>
 
     <!-- Carteira Completa -->
     <div class="carteira-section">
@@ -373,7 +392,84 @@
 
       todosClientes = data || [];
       renderRepasse(todosClientes);
+      renderDocs(todosClientes);
       renderCarteira(todosClientes);
+    }
+
+    const DOCS = [
+      { key: 'doc_contrato_url', label: 'Contrato do Aluguel', hint: 'PDF do contrato de locação assinado' },
+      { key: 'doc_termo_vistoria_url', label: 'Termo de Vistoria', hint: 'PDF do termo de vistoria do imóvel' },
+      { key: 'doc_fotos_vistoria_url', label: 'Fotos da Vistoria', hint: 'PDF com as fotos da vistoria' },
+    ];
+
+    function renderDocs(clientes) {
+      // Clientes com garantia aprovada/emitida que precisam de documentos
+      const pendentes = clientes.filter(c =>
+        c.tipo_seguro === 'residencial_garantia' &&
+        (c.status_garantia === 'aprovado' || c.status_garantia === 'emitido')
+      );
+      const section = document.getElementById('docs-section');
+      if (!pendentes.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+
+      const allDocsOk = (c) => DOCS.every(d => c[d.key]);
+
+      section.innerHTML = `
+        <div class="docs-section">
+          <div class="docs-header">
+            <h2>📎 Documentos Pendentes — Garantia Locatícia</h2>
+            <p>Envie os documentos abaixo para cada cliente com garantia aprovada.</p>
+          </div>
+          ${pendentes.map(c => `
+            <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9">
+              <p style="font-weight:900;font-size:14px;margin-bottom:12px">${c.inquilino_nome}
+                ${allDocsOk(c) ? '<span style="background:#dcfce7;color:#15803d;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px">✅ Enviados</span>' : ''}
+              </p>
+              <div class="docs-list" style="padding:0">
+                ${DOCS.map(d => `
+                  <div class="doc-item ${c[d.key] ? 'done' : ''}" id="doc-item-${c.id}-${d.key}">
+                    <div>
+                      <div class="doc-label">${d.label}<small>${d.hint}</small></div>
+                    </div>
+                    <div class="doc-input-wrap">
+                      ${c[d.key]
+                        ? `<a href="${c[d.key]}" target="_blank" class="doc-sent">✅ Enviado — Ver arquivo</a>`
+                        : `<input type="file" id="file-${c.id}-${d.key}" accept="application/pdf" style="display:none" onchange="uploadDoc('${c.id}','${d.key}',this)" />
+                           <button class="doc-file-btn" onclick="document.getElementById('file-${c.id}-${d.key}').click()" id="btn-${c.id}-${d.key}">Selecionar PDF</button>
+                           <span class="doc-spinner" id="spin-${c.id}-${d.key}" style="display:none">Enviando...</span>`
+                      }
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    async function uploadDoc(clienteId, docKey, input) {
+      const file = input.files[0];
+      if (!file) return;
+      const btn = document.getElementById(`btn-${clienteId}-${docKey}`);
+      const spin = document.getElementById(`spin-${clienteId}-${docKey}`);
+      btn.style.display = 'none'; spin.style.display = 'inline';
+      try {
+        const fileName = `${session.id}/${clienteId}/${docKey}_${Date.now()}.pdf`;
+        const { data: uploadData, error: uploadErr } = await client.storage
+          .from('imobiliaria-docs')
+          .upload(fileName, file, { contentType: 'application/pdf', upsert: true });
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(fileName);
+        const { error: dbErr } = await client.from('imobiliaria_clientes')
+          .update({ [docKey]: urlData.publicUrl, docs_enviados_em: new Date().toISOString() })
+          .eq('id', clienteId);
+        if (dbErr) throw dbErr;
+        // Refresh
+        await carregar();
+      } catch (e) {
+        alert('Erro ao enviar: ' + e.message);
+        btn.style.display = 'inline'; spin.style.display = 'none';
+      }
     }
 
     carregar();

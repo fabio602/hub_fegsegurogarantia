@@ -314,8 +314,8 @@ export default function ImobiliariaRepasse() {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Inquilino</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status Residencial</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status Garantia</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seg. Residencial</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Garantia / Docs</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
                   <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parcela</th>
                   <th className="px-5 py-3"></th>
@@ -340,12 +340,20 @@ export default function ImobiliariaRepasse() {
                     </td>
                     <td className="px-5 py-4">
                       {c.tipo_seguro === 'residencial_garantia' ? (
-                        <>
+                        <div className="space-y-1">
                           <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                             {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
                           </span>
-                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
-                        </>
+                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
+                          {/* Documentos */}
+                          <div className="flex flex-col gap-0.5 mt-1">
+                            {[['doc_contrato_url','Contrato'],['doc_termo_vistoria_url','Vistoria'],['doc_fotos_vistoria_url','Fotos']].map(([key, label]) => (
+                              (c as any)[key]
+                                ? <a key={key} href={(c as any)[key]} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 hover:underline">📎 {label}</a>
+                                : <span key={key} className="text-[10px] text-slate-300">📎 {label} pendente</span>
+                            ))}
+                          </div>
+                        </div>
                       ) : <span className="text-slate-300 text-xs">—</span>}
                     </td>
                     <td className="px-5 py-4 text-sm font-black text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
