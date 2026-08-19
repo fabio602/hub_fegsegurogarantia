@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Parceiro {
@@ -35,6 +35,7 @@ const ParceiroManager: React.FC = () => {
     const [showPassId, setShowPassId] = useState<number | null>(null);
     const [testSendingId, setTestSendingId] = useState<number | null>(null);
     const [testSuccessId, setTestSuccessId] = useState<number | null>(null);
+    const [welcomeModal, setWelcomeModal] = useState<Parceiro | null>(null);
 
     const sendTestReport = async (p: Parceiro) => {
         setTestSendingId(p.id);
@@ -331,6 +332,8 @@ const ParceiroManager: React.FC = () => {
                                                     {testSendingId === p.id ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                                                 </button>
                                             )}
+                                            <button onClick={() => setWelcomeModal(p)} title="Enviar e-mail de boas-vindas"
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Mail size={15} /></button>
                                             <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={15} /></button>
                                             <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={15} /></button>
                                         </div>
@@ -341,6 +344,53 @@ const ParceiroManager: React.FC = () => {
                     </table>
                 )}
             </div>
+
+            {/* Modal boas-vindas */}
+            {welcomeModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWelcomeModal(null)}>
+                    <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-black text-slate-800 text-lg flex items-center gap-2"><Mail size={18} className="text-blue-500" /> E-mail de Boas-vindas</h3>
+                            <button onClick={() => setWelcomeModal(null)} className="p-1 text-slate-400 hover:text-slate-600"><X size={18} /></button>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-2 border border-slate-200 font-mono text-xs leading-relaxed">
+                            <p><strong>Para:</strong> {welcomeModal.email || '⚠️ E-mail não cadastrado'}</p>
+                            <p><strong>Assunto:</strong> Bem-vindo ao Portal de Parceiros — F&G Seguro Garantia</p>
+                            <hr className="border-slate-200 my-2" />
+                            <p>Prezados {welcomeModal.name},</p>
+                            <br />
+                            <p>É com prazer que disponibilizamos o seu acesso ao <strong>Portal de Parceiros F&G Seguro Garantia</strong>, onde vocês podem acompanhar em tempo real todas as apólices emitidas através das indicações de vocês e o histórico de comissões.</p>
+                            <br />
+                            <p><strong>Acesso ao portal:</strong><br />
+                            🔗 hub.fegsegurogarantia.com/parceiros-login.html<br />
+                            👤 Login: <strong>{welcomeModal.username}</strong><br />
+                            🔒 Senha: <strong>{welcomeModal.password}</strong></p>
+                            <br />
+                            <p>Recomendamos alterar a senha no primeiro acesso — há uma opção disponível diretamente no portal.</p>
+                            <br />
+                            <p>Qualquer dúvida, estamos à disposição!</p>
+                            <br />
+                            <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong><br />fabio@fegsegurogarantia.com.br</p>
+                        </div>
+                        {!welcomeModal.email && (
+                            <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-lg">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
+                        )}
+                        <div className="flex gap-3 mt-4">
+                            {welcomeModal.email && (
+                                <a
+                                    href={`mailto:${welcomeModal.email}?subject=${encodeURIComponent('Bem-vindo ao Portal de Parceiros — F&G Seguro Garantia')}&body=${encodeURIComponent(`Prezados ${welcomeModal.name},\n\nÉ com prazer que disponibilizamos o seu acesso ao Portal de Parceiros F&G Seguro Garantia, onde vocês podem acompanhar em tempo real todas as apólices emitidas através das indicações de vocês e o histórico de comissões.\n\nAcesso ao portal:\n🔗 hub.fegsegurogarantia.com/parceiros-login.html\n👤 Login: ${welcomeModal.username}\n🔒 Senha: ${welcomeModal.password}\n\nRecomendamos alterar a senha no primeiro acesso — há uma opção disponível diretamente no portal.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
+                                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all"
+                                >
+                                    <Mail size={15} /> Abrir no meu e-mail
+                                </a>
+                            )}
+                            <button onClick={() => setWelcomeModal(null)} className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Link do portal */}
             <div className="bg-[#1B263B]/5 rounded-2xl px-6 py-4 border border-[#C69C6D]/20 flex items-center justify-between gap-4 flex-wrap">

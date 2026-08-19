@@ -47,6 +47,24 @@
     .data { color: #94a3b8; font-size: 12px; white-space: nowrap; }
     .empty { padding: 48px; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
     .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #94a3b8; }
+
+    /* Modal alterar senha */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:20px; padding:32px; width:100%; max-width:400px; box-shadow:0 8px 40px rgba(0,0,0,.15); }
+    .modal h3 { font-size:16px; font-weight:900; color:#1B263B; margin-bottom:20px; }
+    .modal label { display:block; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:5px; margin-top:14px; }
+    .modal input { width:100%; padding:11px 14px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:13px; outline:none; background:#f8fafc; color:#1B263B; box-sizing:border-box; }
+    .modal input:focus { border-color:#C69C6D; background:#fff; }
+    .modal-btns { display:flex; gap:10px; margin-top:20px; }
+    .btn-alterar { flex:1; padding:12px; background:#1B263B; color:#fff; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; }
+    .btn-alterar:hover { background:#243447; }
+    .btn-cancelar-modal { flex:1; padding:12px; background:#f1f5f9; color:#64748b; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; }
+    .modal-msg { font-size:12px; font-weight:700; text-align:center; margin-top:12px; display:none; }
+    .modal-msg.ok { color:#16a34a; }
+    .modal-msg.erro { color:#ef4444; }
+    .btn-senha { padding:7px 16px; background:rgba(198,156,109,.12); border:1px solid rgba(198,156,109,.3); border-radius:10px; font-size:12px; font-weight:700; color:#C69C6D; cursor:pointer; transition:all .2s; }
+    .btn-senha:hover { background:rgba(198,156,109,.22); }
   </style>
 </head>
 <body>
@@ -59,7 +77,28 @@
           <p id="nome-parceiro">Carregando...</p>
         </div>
       </div>
-      <button class="btn-sair" onclick="sair()">Sair</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-senha" onclick="document.getElementById('modal-senha').classList.add('open')">🔒 Alterar Senha</button>
+        <button class="btn-sair" onclick="sair()">Sair</button>
+      </div>
+    </div>
+
+    <!-- Modal alterar senha -->
+    <div class="modal-overlay" id="modal-senha">
+      <div class="modal">
+        <h3>🔒 Alterar Senha</h3>
+        <label>Senha atual</label>
+        <input type="password" id="senha-atual" placeholder="Digite sua senha atual" />
+        <label>Nova senha</label>
+        <input type="password" id="senha-nova" placeholder="Digite a nova senha" />
+        <label>Confirmar nova senha</label>
+        <input type="password" id="senha-confirm" placeholder="Confirme a nova senha" />
+        <div class="modal-btns">
+          <button class="btn-alterar" onclick="alterarSenha()">Salvar</button>
+          <button class="btn-cancelar-modal" onclick="fecharModalSenha()">Cancelar</button>
+        </div>
+        <div class="modal-msg" id="modal-msg"></div>
+      </div>
     </div>
 
     <div class="cards">
@@ -230,6 +269,38 @@
     }
 
     carregar();
+
+    function fecharModalSenha() {
+      document.getElementById('modal-senha').classList.remove('open');
+      document.getElementById('senha-atual').value = '';
+      document.getElementById('senha-nova').value = '';
+      document.getElementById('senha-confirm').value = '';
+      const msg = document.getElementById('modal-msg');
+      msg.style.display = 'none';
+      msg.textContent = '';
+    }
+
+    async function alterarSenha() {
+      const atual = document.getElementById('senha-atual').value;
+      const nova = document.getElementById('senha-nova').value;
+      const confirm = document.getElementById('senha-confirm').value;
+      const msg = document.getElementById('modal-msg');
+      msg.style.display = 'none';
+
+      if (!atual || !nova || !confirm) { msg.className='modal-msg erro'; msg.textContent='Preencha todos os campos.'; msg.style.display='block'; return; }
+      if (atual !== session.password) { msg.className='modal-msg erro'; msg.textContent='Senha atual incorreta.'; msg.style.display='block'; return; }
+      if (nova.length < 6) { msg.className='modal-msg erro'; msg.textContent='A nova senha deve ter pelo menos 6 caracteres.'; msg.style.display='block'; return; }
+      if (nova !== confirm) { msg.className='modal-msg erro'; msg.textContent='As senhas não coincidem.'; msg.style.display='block'; return; }
+
+      const { error } = await client.from('partners').update({ password: nova }).eq('id', session.id);
+      if (error) { msg.className='modal-msg erro'; msg.textContent='Erro ao salvar. Tente novamente.'; msg.style.display='block'; return; }
+
+      // Atualiza sessão local
+      session.password = nova;
+      localStorage.setItem('parceiro_session', JSON.stringify(session));
+      msg.className='modal-msg ok'; msg.textContent='✅ Senha alterada com sucesso!'; msg.style.display='block';
+      setTimeout(fecharModalSenha, 2000);
+    }
   </script>
 </body>
 </html>
