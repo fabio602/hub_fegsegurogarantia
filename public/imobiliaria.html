@@ -390,6 +390,8 @@
             <th>Inquilino</th>
             <th>Tipo</th>
             <th>Situação</th>
+            <th>Seguradora</th>
+            <th>Nº Apólice</th>
             <th>Seg. Residencial</th>
             <th>Garantia Aluguel</th>
             <th>Valor</th>
@@ -662,7 +664,7 @@
 
   function renderCarteira(cs) {
     const tbody = document.getElementById('carteira-body');
-    if (!cs.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum cliente cadastrado.</td></tr>'; return; }
+    if (!cs.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Nenhum cliente cadastrado.</td></tr>'; return; }
     tbody.innerHTML = cs.map(c => {
       const temG = c.tipo_seguro === 'residencial_garantia';
       const [bg, col, sitLabel] = SITUACAO[c.status_apolice || 'ativo'] || SITUACAO.ativo;
@@ -676,6 +678,8 @@
         <td style="font-weight:800">${c.inquilino_nome||'—'}</td>
         <td style="font-size:11px;color:#64748b">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
+        <td style="font-size:12px;font-weight:700;color:#1B263B">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
+        <td style="font-size:11px;font-family:monospace;color:#64748b">${c.numero_apolice || '—'}</td>
         <td>${colRes}</td><td>${colGar}</td>
         <td style="font-weight:700">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
         <td>${vencBadge(c.vigencia_fim)}</td>
