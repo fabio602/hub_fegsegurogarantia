@@ -533,6 +533,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <tr className="border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Inquilino</th>
                   {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parceiro</th>}
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seguradora</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Nº Apólice</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seg. Residencial</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Garantia / Docs</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
@@ -558,6 +560,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                         </span>
                       </td>
                     )}
+                    <td className="px-5 py-4 text-sm font-bold text-slate-700">{c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : <span className="text-slate-300">—</span>}</td>
+                    <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                         {STATUS_LABELS[c.status_residencial || 'aguardando_cotacao']}
