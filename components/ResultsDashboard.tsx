@@ -2077,6 +2077,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <option value="">Nenhum</option>
                                         <option value="maximusb2gov">maximusb2gov</option>
                                         <option value="Raphael Icaro Licitações">Raphael Icaro Licitações</option>
+                                        <option value="Solicita Licitações">Solicita Licitações</option>
                                     </select>
                                 </div>
                             </div>
