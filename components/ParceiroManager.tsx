@@ -61,10 +61,13 @@ const ParceiroManager: React.FC = () => {
         try {
             const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-welcome-email', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ',
+                },
                 body: JSON.stringify({ name: p.name, email: p.email, username: p.username, password: p.password }),
             });
-            if (!res.ok) throw new Error('Erro ao enviar');
+            if (!res || !res.ok) throw new Error(res ? await res.text() : 'Sem resposta do servidor');
             setWelcomeSent(true);
             setTimeout(() => { setWelcomeSent(false); setWelcomeModal(null); }, 2500);
         } catch (e: any) {
@@ -652,7 +655,7 @@ const ParceiroManager: React.FC = () => {
                             <br />
                             <p>Qualquer dúvida, estamos à disposição!</p>
                             <br />
-                            <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong><br />fabio@fegsegurogarantia.com.br</p>
+                            <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong></p>
                         </div>
                         {!welcomeModal.email && (
                             <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-lg">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
