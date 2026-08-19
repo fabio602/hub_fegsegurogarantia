@@ -411,11 +411,11 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {/* Kanban Board — All clients */}
       {(() => {
         const KANBAN_COLS = [
-          { key: 'solicitado',           label: '📬 Solicitado',             bg: 'bg-slate-50',   border: 'border-slate-200' },
-          { key: 'atendimento_iniciado', label: '🔄 F&G em atendimento',     bg: 'bg-blue-50',    border: 'border-blue-200' },
-          { key: 'aguardando_seguradora',label: '⏳ Aguardando Seguradora',  bg: 'bg-amber-50',   border: 'border-amber-200' },
-          { key: 'aprovado',             label: '✅ Aprovado',               bg: 'bg-emerald-50', border: 'border-emerald-200' },
-          { key: 'recusado',             label: '❌ Recusado',               bg: 'bg-red-50',     border: 'border-red-200' },
+          { key: 'solicitado',           label: 'Solicitado',           accent: '#94a3b8', labelColor: '#64748b' },
+          { key: 'atendimento_iniciado', label: 'F&G em Atendimento',   accent: '#C69C6D', labelColor: '#b8895a' },
+          { key: 'aguardando_seguradora',label: 'Aguardando Seguradora',accent: '#1B263B', labelColor: '#1B263B' },
+          { key: 'aprovado',             label: 'Aprovado',             accent: '#2d6a4f', labelColor: '#2d6a4f' },
+          { key: 'recusado',             label: 'Recusado',             accent: '#9b1c1c', labelColor: '#9b1c1c' },
         ];
         return (
           <div>
@@ -437,8 +437,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 return (
                   <div
                     key={col.key}
-                    className={`rounded-3xl ${col.bg} border-2 ${isOver ? 'border-[#C69C6D] shadow-lg' : col.border} transition-all`}
-                    style={{ minWidth: 0, padding: '12px' }}
+                    className="rounded-2xl transition-all"
+                    style={{ minWidth: 0, padding: '12px', background: '#fff', border: `1px solid ${isOver ? '#C69C6D' : '#e8e4dc'}`, borderTop: `3px solid ${isOver ? '#C69C6D' : col.accent}`, boxShadow: isOver ? '0 4px 20px rgba(198,156,109,.15)' : 'none' }}
                     onDragOver={e => { e.preventDefault(); setDragOver(col.key); }}
                     onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
                     onDrop={e => {
@@ -449,12 +449,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   >
                     {/* Column header */}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">{col.label}</span>
-                      <span className="text-[11px] font-black bg-white/80 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">{colCards.length}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1.5px', color: col.labelColor }}>{col.label}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 900, background: `${col.accent}18`, color: col.labelColor, padding: '2px 8px', borderRadius: '20px', minWidth: '24px', textAlign: 'center' }}>{colCards.length}</span>
                     </div>
                     {/* Cards */}
                     {colCards.length === 0 ? (
-                      <div className="text-center py-5 text-xs font-bold text-slate-300">Nenhum</div>
+                      <div className="text-center py-5" style={{ fontSize: '11px', fontWeight: 700, color: '#c9c2b8', letterSpacing: '.5px' }}>Nenhum</div>
                     ) : (
                       colCards.map(c => {
                         const isDragging = draggingId === c.id;
@@ -468,28 +468,30 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             onDragStart={e => { e.dataTransfer.setData('clienteId', c.id); setDraggingId(c.id); }}
                             onDragEnd={() => { setDraggingId(null); setDragOver(null); }}
                             onClick={() => openEditStatus(c)}
-                            className={`bg-white rounded-2xl border border-slate-100 p-3 mb-2 transition-all select-none ${isDragging ? 'opacity-40 shadow-xl' : 'hover:shadow-md'}`}
-                            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                            className={`select-none transition-all ${isDragging ? 'opacity-40' : ''}`}
+                            style={{ background: '#fafaf8', border: '1px solid #ede9e1', borderRadius: '12px', padding: '12px', marginBottom: '8px', cursor: isDragging ? 'grabbing' : 'grab', boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,.12)' : 'none' }}
+                            onMouseEnter={e => { if (!isDragging) { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = '#C69C6D40'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(27,38,59,.07)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; } }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fafaf8'; (e.currentTarget as HTMLElement).style.borderColor = '#ede9e1'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
                           >
-                            <div className="font-black text-slate-800 text-sm leading-tight mb-1.5">{c.inquilino_nome}</div>
-                            <div className="text-[10px] font-bold text-slate-400 mb-1">
+                            <div style={{ fontWeight: 900, fontSize: '12px', color: '#1B263B', lineHeight: 1.3, marginBottom: '5px' }}>{c.inquilino_nome}</div>
+                            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', marginBottom: '5px' }}>
                               {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
                             </div>
                             {parceiro && (
-                              <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-lg inline-block mb-1">
+                              <div style={{ fontSize: '10px', fontWeight: 900, color: '#78716c', background: '#f4f1ec', padding: '2px 7px', borderRadius: '8px', display: 'inline-block', marginBottom: '4px' }}>
                                 {parceiro.name.replace('Imobiliária ', '')}
                               </div>
                             )}
                             {valorStr && (
-                              <div className="text-[11px] font-black text-[#1B263B] mt-1">{valorStr}</div>
+                              <div style={{ fontSize: '11px', fontWeight: 700, color: '#1B263B' }}>{valorStr}</div>
                             )}
-                            <div className="text-[9px] text-slate-300 font-bold mt-1.5">{dataCriacao}</div>
+                            <div style={{ fontSize: '9px', color: '#c9c2b8', fontWeight: 600, marginTop: '8px' }}>{dataCriacao}</div>
                             <div className="flex gap-1 mt-1.5 flex-wrap">
                               {(c as any).doc_contrato_url && (
-                                <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md">📎 Docs</span>
+                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#f5f7fa', color: '#1B263B', border: '1px solid #dde3ec', padding: '2px 7px', borderRadius: '20px' }}>📎 Docs</span>
                               )}
                               {(c as any).apolice_residencial_url && (
-                                <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md">📄 Apólice</span>
+                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#fdf6ee', color: '#b8895a', border: '1px solid #e8d5bc', padding: '2px 7px', borderRadius: '20px' }}>📄 Apólice</span>
                               )}
                             </div>
                             {col.key === 'aprovado' && onGoToSale && (
