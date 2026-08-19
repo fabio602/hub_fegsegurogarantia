@@ -381,6 +381,7 @@
       <table>
         <thead>
           <tr>
+            <th>Dt. Emissão</th>
             <th>Inquilino</th>
             <th>Tipo</th>
             <th>Situação</th>
@@ -604,11 +605,12 @@
     const ativos = cs.filter(c => c.status === 'ativo').length;
     const emitidos = cs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
     const aguardando = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
-    const total = cs.filter(c => c.status === 'ativo').reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
+    // Repasse: só clientes is_repasse=true (programa de repasse ativo)
+    const totalRepasse = cs.filter(c => c.status === 'ativo' && c.is_repasse === true).reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('d-ativos').textContent = ativos;
     document.getElementById('d-emitidos').textContent = emitidos;
     document.getElementById('d-aguardando').textContent = aguardando;
-    document.getElementById('d-repasse').textContent = total > 0 ? fmtBRL(total) : '—';
+    document.getElementById('d-repasse').textContent = totalRepasse > 0 ? fmtBRL(totalRepasse) : '—';
   }
 
   const KANBAN_COLS = [
@@ -674,6 +676,7 @@
       const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${c.apolice_garantia_url ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#2d6a4f;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`
         : `<span style="color:#c9c2b8;font-size:12px">—</span>`;
       return `<tr>
+        <td style="font-size:11px;color:#78716c;white-space:nowrap">${fmtData(c.data_inicio)}</td>
         <td style="font-weight:900;color:#1B263B">${c.inquilino_nome||'—'}</td>
         <td style="font-size:11px;color:#78716c">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
@@ -830,7 +833,6 @@
       renderDashboard(todosClientes);
       renderKanban(todosClientes);
       renderAlertasVencimento(todosClientes);
-      renderUltimas(todosClientes);
       renderCarteira(todosClientes);
       renderRepasse(todosClientes);
       renderDocsPendentes(todosClientes);
