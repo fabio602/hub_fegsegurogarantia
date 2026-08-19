@@ -47,6 +47,7 @@ import WhatsAppHub from './components/WhatsAppHub';
 import ImobiliariaRepasse from './components/ImobiliariaRepasse';
 import WhatsAppBlast from './components/WhatsAppBlast';
 import EmailFollowUp from './components/EmailFollowUp';
+import GarantiaLocaticia from './components/GarantiaLocaticia';
 
 type View =
   | 'dashboard'
@@ -62,11 +63,11 @@ type View =
   // Gestão Financeira
   | 'metas-mensais' | 'metas-anuais'
   // Outros
-  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse';
+  | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
-const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse'];
+const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
 const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
 
@@ -101,6 +102,7 @@ const VIEW_TITLES: Record<View, string> = {
   'whatsapp-blast': 'WhatsApp — Prospecção',
   'email-followup': 'Follow-up de Email',
   'imobiliaria-repasse': 'Repasse Imobiliárias',
+  'garantia-locaticia': 'Garantia Locatícia',
 };
 
 const App: React.FC = () => {
@@ -393,6 +395,7 @@ const App: React.FC = () => {
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
                 <NavSubItem view="imobiliaria-repasse" label="Repasse Imobiliárias" />
+                <NavSubItem view="garantia-locaticia" label="Garantia Locatícia" />
               </NavGroup>
 
               {/* ── Responsabilidade Civil ──────────────── */}
@@ -655,6 +658,7 @@ const App: React.FC = () => {
 
               {/* Responsabilidade Civil */}
               {activeView === 'imobiliaria-repasse' && <ImobiliariaRepasse onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
+              {activeView === 'garantia-locaticia' && <GarantiaLocaticia />}
               {activeView === 'rc' && <RCInsurance />}
               {activeView === 'rc-seguradoras' && (
                 <InsuranceDirectory
