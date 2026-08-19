@@ -119,7 +119,9 @@ export default function ImobiliariaRepasse() {
 
   useEffect(() => { load(); }, [load]);
 
-  const ativos = clientes.filter(c => c.status === 'ativo');
+  // Pendentes = solicitações da imobiliária sem apólice ainda emitida
+  const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
+  const ativos = clientes.filter(c => c.status === 'ativo' && (c.numero_apolice || !['solicitado','atendimento_iniciado','aguardando_seguradora'].includes((c as any).kanban_status || '')));
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
@@ -331,6 +333,57 @@ export default function ImobiliariaRepasse() {
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
               {saving ? 'Salvando...' : 'Salvar Cliente'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Solicitações Pendentes */}
+      {pendentes.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-[2rem] overflow-hidden">
+          <div className="px-7 py-4 border-b border-amber-200 flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <p className="font-black text-amber-800 text-sm">
+              {pendentes.length} solicitação(ões) aguardando sua atenção
+            </p>
+            <span className="text-xs text-amber-600 font-bold">Atualize o status para a imobiliária acompanhar</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-amber-200 bg-amber-100/50">
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Inquilino</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Tipo</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Etapa Kanban</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-amber-700">Recebido em</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendentes.map(c => {
+                  const KMAP: Record<string, string> = { solicitado: '📬 Solicitado', atendimento_iniciado: '🔄 F&G em atendimento', aguardando_seguradora: '⏳ Aguardando Seguradora' };
+                  return (
+                    <tr key={c.id} className="border-b border-amber-100 hover:bg-amber-50 transition-colors">
+                      <td className="px-5 py-4 font-black text-slate-800 text-sm">{c.inquilino_nome}</td>
+                      <td className="px-5 py-4 text-xs text-slate-500">{(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
+                      <td className="px-5 py-4">
+                        <span className="text-xs font-black bg-amber-100 text-amber-800 px-2 py-1 rounded-lg">
+                          {KMAP[(c as any).kanban_status || 'solicitado']}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-xs text-slate-400">
+                        {new Date((c as any).created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-5 py-4">
+                        <button onClick={() => openEditStatus(c)}
+                          className="px-3 py-1.5 bg-[#1B263B] hover:bg-[#243447] text-white text-xs font-black rounded-lg transition-colors flex items-center gap-1.5">
+                          <Pencil size={11} /> Atualizar Status
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
