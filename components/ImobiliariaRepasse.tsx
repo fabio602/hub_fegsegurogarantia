@@ -473,7 +473,19 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             onMouseEnter={e => { if (!isDragging) { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.borderColor = '#C69C6D40'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(27,38,59,.07)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; } }}
                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fafaf8'; (e.currentTarget as HTMLElement).style.borderColor = '#ede9e1'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
                           >
-                            <div style={{ fontWeight: 900, fontSize: '12px', color: '#1B263B', lineHeight: 1.3, marginBottom: '5px' }}>{c.inquilino_nome}</div>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '5px' }}>
+                              <div style={{ fontWeight: 900, fontSize: '12px', color: '#1B263B', lineHeight: 1.3 }}>{c.inquilino_nome}</div>
+                              <button
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  if (!confirm(`Excluir ${c.inquilino_nome} do kanban?`)) return;
+                                  await supabase.from('imobiliaria_clientes').delete().eq('id', c.id);
+                                  fetchClientes();
+                                }}
+                                style={{ marginLeft: '6px', padding: '2px 5px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
+                                title="Excluir"
+                              >✕</button>
+                            </div>
                             <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', marginBottom: '5px' }}>
                               {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
                             </div>
