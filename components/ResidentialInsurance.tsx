@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
-    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink
+    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
@@ -152,10 +152,34 @@ const ResidentialInsurance: React.FC = () => {
     const [filterProduto, setFilterProduto] = useState('');
     const [filterSituacao, setFilterSituacao] = useState('');
     const [imobParceiros, setImobParceiros] = useState<string[]>([]);
+    const [uploadingApolice, setUploadingApolice] = useState(false);
     useEffect(() => {
         supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
             .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name.replace('Imobiliária ', ''))));
     }, []);
+
+    const handleApoliceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingId) return;
+        setUploadingApolice(true);
+        try {
+            const path = `apolices/residencial/${editingId}_${Date.now()}.pdf`;
+            await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+            const { data: urlData } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
+            const url = urlData.publicUrl;
+            // Save to residential_clients
+            await supabase.from('residential_clients').update({ apolice_url: url }).eq('id', editingId);
+            // Sync to imobiliaria_clientes if client has a partner
+            if (formData.parceiro_nome && formData.apolice) {
+                await supabase.from('imobiliaria_clientes')
+                    .update({ apolice_residencial_url: url, status_residencial: 'emitido', kanban_status: 'aprovado' })
+                    .eq('numero_apolice', formData.apolice);
+            }
+            setFormData(prev => ({ ...prev, apolice_url: url } as any));
+            alert('✅ PDF da apólice enviado com sucesso!');
+        } catch (err: any) { alert('Erro ao enviar PDF: ' + err.message); }
+        finally { setUploadingApolice(false); e.target.value = ''; }
+    };
     const [filterPagamento, setFilterPagamento] = useState('');
     const [filterGarantia, setFilterGarantia] = useState('');
     const [filterClienteId, setFilterClienteId] = useState('');
@@ -264,6 +288,7 @@ const ResidentialInsurance: React.FC = () => {
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
             origem_publica: !!formData.origem_publica,
             parceiro_nome: formData.parceiro_nome?.trim() || null,
+            apolice_url: (formData as any).apolice_url || null,
         };
 
         try {
@@ -691,6 +716,26 @@ const ResidentialInsurance: React.FC = () => {
                                     {imobParceiros.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                             </div>
+                            {/* Apólice PDF Upload */}
+                            {editingId && (
+                              <div className="space-y-2 col-span-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📄 PDF da Apólice</label>
+                                {(formData as any).apolice_url ? (
+                                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                                    <a href={(formData as any).apolice_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-700 hover:underline flex-1 truncate">PDF anexado — clique para ver</a>
+                                    <button onClick={() => setFormData(prev => ({ ...prev, apolice_url: null } as any))} className="text-slate-400 hover:text-red-400 transition-colors"><X size={14} /></button>
+                                  </div>
+                                ) : (
+                                  <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingApolice ? 'border-slate-200 bg-slate-50' : 'border-[#C69C6D]/40 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5'}`}>
+                                    <input type="file" accept="application/pdf" className="hidden" onChange={handleApoliceUpload} disabled={uploadingApolice} />
+                                    {uploadingApolice ? <Loader2 size={16} className="animate-spin text-slate-400" /> : <FileText size={16} className="text-[#C69C6D]" />}
+                                    <span className="text-sm font-bold text-slate-600">{uploadingApolice ? 'Enviando PDF...' : 'Clique para anexar PDF da apólice'}</span>
+                                    {formData.parceiro_nome && <span className="text-xs text-emerald-600 font-bold ml-auto">↗ Sincroniza com portal da imobiliária</span>}
+                                  </label>
+                                )}
+                              </div>
+                            )}
                         </div>
                     </div>
 
