@@ -351,7 +351,10 @@ const ResidentialInsurance: React.FC = () => {
                         const { data: partner } = await supabase.from('partners').select('id').eq('name', payload.parceiro_nome).maybeSingle();
                         if (partner) {
                             const imobUpdate: Record<string, unknown> = { partner_id: partner.id };
-                            // Se situação encerrada → reflete no portal
+                            // Sempre sincroniza vigência e apólice
+                            if (payload.fim_vigencia) imobUpdate.vigencia_fim = payload.fim_vigencia;
+                            if (payload.apolice) imobUpdate.numero_apolice = payload.apolice;
+                            // Situação → status no portal
                             if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) {
                                 imobUpdate.kanban_status = 'recusado';
                                 imobUpdate.status = 'cancelado';
@@ -359,8 +362,11 @@ const ResidentialInsurance: React.FC = () => {
                             } else if (payload.situacao === 'Ativo') {
                                 imobUpdate.status = 'ativo';
                                 imobUpdate.status_apolice = 'ativo';
+                                imobUpdate.status_residencial = payload.apolice ? 'emitido' : 'aprovado';
                             } else if (payload.situacao === 'Vencido') {
                                 imobUpdate.status_apolice = 'vencido';
+                            } else if (payload.situacao === 'Pendente Renovação' || payload.situacao === 'Em Renovação') {
+                                imobUpdate.status_apolice = 'ativo';
                             }
                             await supabase.from('imobiliaria_clientes').update(imobUpdate).eq('id', imobCliente.id);
                         }
