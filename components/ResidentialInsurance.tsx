@@ -36,6 +36,8 @@ interface ResidentialClient {
     garantia_inicio?: string;
     garantia_fim?: string;
     garantia_valor?: string;
+    apolice_garantia_url?: string | null;
+    contrato_locacao_url?: string | null;
     created_at?: string;
     /** true = formulário público (RLS anon); legado: obs com marcador */
     origem_publica?: boolean | null;
@@ -156,6 +158,24 @@ const ResidentialInsurance: React.FC = () => {
     const [filterSituacao, setFilterSituacao] = useState('');
     const [imobParceiros, setImobParceiros] = useState<string[]>([]);
     const [uploadingApolice, setUploadingApolice] = useState(false);
+    const [uploadingGarantiaDoc, setUploadingGarantiaDoc] = useState<string | null>(null);
+
+    const handleGarantiaDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'apolice_garantia_url' | 'contrato_locacao_url') => {
+        const file = e.target.files?.[0];
+        if (!file || !editingId) return;
+        setUploadingGarantiaDoc(field);
+        try {
+            const label = field === 'apolice_garantia_url' ? 'apolice-garantia' : 'contrato-locacao';
+            const path = `garantia-docs/${editingId}/${label}_${Date.now()}.pdf`;
+            await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+            const { data: urlData } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
+            const url = urlData.publicUrl;
+            await supabase.from('residential_clients').update({ [field]: url }).eq('id', editingId);
+            setFormData(prev => ({ ...prev, [field]: url }));
+            alert('✅ Documento enviado com sucesso!');
+        } catch (err: any) { alert('Erro ao enviar: ' + err.message); }
+        finally { setUploadingGarantiaDoc(null); e.target.value = ''; }
+    };
     useEffect(() => {
         supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
             .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name.replace('Imobiliária ', ''))));
@@ -303,6 +323,8 @@ const ResidentialInsurance: React.FC = () => {
             garantia_inicio: formData.tem_garantia === 'Sim' ? (formData.garantia_inicio || null) : null,
             garantia_fim: formData.tem_garantia === 'Sim' ? (formData.garantia_fim || null) : null,
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
+            apolice_garantia_url: (formData as any).apolice_garantia_url || null,
+            contrato_locacao_url: (formData as any).contrato_locacao_url || null,
             origem_publica: !!formData.origem_publica,
             parceiro_nome: formData.parceiro_nome?.trim() || null,
             apolice_url: (formData as any).apolice_url || null,
@@ -329,8 +351,17 @@ const ResidentialInsurance: React.FC = () => {
                         const { data: partner } = await supabase.from('partners').select('id').eq('name', payload.parceiro_nome).maybeSingle();
                         if (partner) {
                             const imobUpdate: Record<string, unknown> = { partner_id: partner.id };
-                            // Se situação encerrada → kanban recusado
-                            if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) imobUpdate.kanban_status = 'recusado';
+                            // Se situação encerrada → reflete no portal
+                            if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) {
+                                imobUpdate.kanban_status = 'recusado';
+                                imobUpdate.status = 'cancelado';
+                                imobUpdate.status_apolice = 'cancelado';
+                            } else if (payload.situacao === 'Ativo') {
+                                imobUpdate.status = 'ativo';
+                                imobUpdate.status_apolice = 'ativo';
+                            } else if (payload.situacao === 'Vencido') {
+                                imobUpdate.status_apolice = 'vencido';
+                            }
                             await supabase.from('imobiliaria_clientes').update(imobUpdate).eq('id', imobCliente.id);
                         }
                     } else {
@@ -802,6 +833,7 @@ const ResidentialInsurance: React.FC = () => {
                             </div>
                         </div>
                         {formData.tem_garantia === 'Sim' && (
+                            <>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4 pt-4 border-t border-slate-200">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência Garantia</label>
@@ -816,6 +848,46 @@ const ResidentialInsurance: React.FC = () => {
                                     <input type="text" id="garantia_valor" value={formData.garantia_valor || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200" />
                                 </div>
                             </div>
+                            {/* Documentos da Garantia — só aparecem ao editar */}
+                            {editingId && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200">
+                                    {/* Apólice da Garantia */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📄 Apólice da Garantia Locatícia</label>
+                                        {(formData as any).apolice_garantia_url ? (
+                                            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                                                <FileText size={15} className="text-emerald-600 shrink-0" />
+                                                <a href={(formData as any).apolice_garantia_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-700 hover:underline flex-1 truncate">Ver apólice anexada</a>
+                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, apolice_garantia_url: null }))} className="text-slate-400 hover:text-red-400"><X size={14} /></button>
+                                            </div>
+                                        ) : (
+                                            <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'apolice_garantia_url' ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/30'}`}>
+                                                <input type="file" accept="application/pdf" className="hidden" onChange={e => handleGarantiaDocUpload(e, 'apolice_garantia_url')} disabled={!!uploadingGarantiaDoc} />
+                                                {uploadingGarantiaDoc === 'apolice_garantia_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-emerald-600" />}
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'apolice_garantia_url' ? 'Enviando...' : 'Anexar PDF da apólice'}</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                    {/* Contrato de Locação */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📝 Termo de Contrato de Locação</label>
+                                        {(formData as any).contrato_locacao_url ? (
+                                            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                                                <FileText size={15} className="text-blue-600 shrink-0" />
+                                                <a href={(formData as any).contrato_locacao_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-700 hover:underline flex-1 truncate">Ver contrato anexado</a>
+                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, contrato_locacao_url: null }))} className="text-slate-400 hover:text-red-400"><X size={14} /></button>
+                                            </div>
+                                        ) : (
+                                            <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'contrato_locacao_url' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
+                                                <input type="file" accept="application/pdf" className="hidden" onChange={e => handleGarantiaDocUpload(e, 'contrato_locacao_url')} disabled={!!uploadingGarantiaDoc} />
+                                                {uploadingGarantiaDoc === 'contrato_locacao_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-blue-600" />}
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_locacao_url' ? 'Enviando...' : 'Anexar PDF do contrato'}</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            </>
                         )}
                     </div>
 
