@@ -732,9 +732,9 @@
   }
 
   function filtrar() {
-    const q = document.getElementById('busca').value.toLowerCase().trim();
-    const sit = document.getElementById('filtro-situacao').value;
-    const tipo = document.getElementById('filtro-tipo').value;
+    const q = (document.getElementById('busca')?.value || '').toLowerCase().trim();
+    const sit = document.getElementById('filtro-situacao')?.value || '';
+    const tipo = document.getElementById('filtro-tipo')?.value || '';
     const filtrado = todosClientes.filter(c => {
       if (q && !(c.inquilino_nome||'').toLowerCase().includes(q)) return false;
       if (sit && (c.status_apolice||'ativo') !== sit) return false;
