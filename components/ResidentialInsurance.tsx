@@ -178,7 +178,7 @@ const ResidentialInsurance: React.FC = () => {
     };
     useEffect(() => {
         supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
-            .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name.replace('Imobiliária ', ''))));
+            .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name)));
     }, []);
 
     const handleApoliceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
