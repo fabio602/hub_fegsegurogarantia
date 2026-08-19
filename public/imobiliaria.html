@@ -237,14 +237,7 @@
   <!-- Alertas de vencimento -->
   <div id="alertas-venc" style="display:none;margin-top:0"></div>
 
-  <!-- Últimas solicitações -->
-  <div id="ultimas-wrap" style="margin-top:28px;display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <h3 style="font-size:16px;font-weight:900;color:#1B263B">📬 Acompanhamento das Solicitações</h3>
-      <button onclick="goTo('carteira')" style="font-size:12px;font-weight:700;color:#C69C6D;background:none;border:none;cursor:pointer">Ver carteira completa →</button>
-    </div>
-    <div id="ultimas-list" style="display:flex;flex-direction:column;gap:10px"></div>
-  </div>
+  <!-- Acompanhamento das Solicitações removido da home -->
 </div>
 
 <!-- KANBAN -->
@@ -609,10 +602,12 @@
   }
 
   function renderDashboard(cs) {
-    const ativos = cs.filter(c => c.status === 'ativo').length;
-    const emitidos = cs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
-    const aguardando = cs.filter(c => c.status_residencial === 'aguardando_cotacao').length;
-    const total = cs.filter(c => c.status === 'ativo').reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
+    // Apenas clientes do portal (is_repasse=true), não os 95 importados
+    const portalCs = cs.filter(c => c.is_repasse === true);
+    const ativos = portalCs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
+    const aguardando = portalCs.filter(c => c.status_residencial === 'aguardando_cotacao' || c.status_garantia === 'aguardando_cotacao').length;
+    const emitidos = portalCs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
+    const total = cs.filter(c => c.status === 'ativo' && c.is_repasse === true).reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('d-ativos').textContent = ativos;
     document.getElementById('d-emitidos').textContent = emitidos;
     document.getElementById('d-aguardando').textContent = aguardando;
