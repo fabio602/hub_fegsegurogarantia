@@ -40,6 +40,7 @@ interface ResidentialClient {
     origem_publica?: boolean | null;
     /** Nome da imobiliária parceira que enviou a solicitação */
     parceiro_nome?: string | null;
+    nao_renovar?: boolean | null;
 }
 
 const EMPTY_FORM: Partial<ResidentialClient> = {
@@ -106,7 +107,7 @@ const PRODUTOS = [
     'Condomínio',
 ];
 const FORMAS_PAGAMENTO = ['Boleto Mensal', 'Boleto Anual', 'Cartão de Crédito', 'Débito Automático', 'PIX'];
-const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Pendente Renovação', 'Em Renovação', 'Reprovado'];
+const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Saiu do Imóvel', 'Pendente Renovação', 'Em Renovação', 'Reprovado'];
 
 // Funções de Máscara e Formatação
 const formatCPF = (value: string) => {
@@ -257,6 +258,7 @@ const ResidentialInsurance: React.FC = () => {
             garantia_fim: formData.tem_garantia === 'Sim' ? (formData.garantia_fim || null) : null,
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
             origem_publica: !!formData.origem_publica,
+            parceiro_nome: formData.parceiro_nome?.trim() || null,
         };
 
         try {
@@ -410,6 +412,7 @@ const ResidentialInsurance: React.FC = () => {
         if (s === 'Ativo') return 'bg-emerald-50 text-emerald-600';
         if (s === 'Vencido') return 'bg-red-50 text-red-600';
         if (s === 'Cancelado') return 'bg-slate-100 text-slate-500';
+        if (s === 'Saiu do Imóvel') return 'bg-orange-50 text-orange-600';
         if (s === 'Reprovado') return 'bg-red-100 text-red-700';
         return 'bg-blue-50 text-blue-600';
     };
@@ -670,6 +673,17 @@ const ResidentialInsurance: React.FC = () => {
                                 <select id="situacao" value={formData.situacao || 'Ativo'} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                     {SITUACOES.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">🏠 Parceiro / Imobiliária</label>
+                                <input
+                                    id="parceiro_nome"
+                                    type="text"
+                                    value={formData.parceiro_nome || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Ex: Bordin e Zanolla"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D]"
+                                />
                             </div>
                         </div>
                     </div>
