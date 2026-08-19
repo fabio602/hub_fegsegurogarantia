@@ -3,138 +3,255 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Relatório de Parceria — F&G Seguro Garantia</title>
+  <title>Portal do Parceiro — F&G Seguro Garantia</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; padding: 32px 16px; color: #1B263B; }
-    .container { max-width: 960px; margin: 0 auto; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; color: #1B263B; }
 
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .logo { width: 48px; height: 48px; background: #1B263B; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #C69C6D; font-weight: 900; font-size: 18px; flex-shrink: 0; }
-    .header h1 { font-size: 20px; font-weight: 900; color: #1B263B; }
-    .header p { font-size: 13px; color: #64748b; margin-top: 2px; }
-    .btn-sair { padding: 8px 18px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer; transition: all .2s; }
-    .btn-sair:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
+    /* ── TOP BAR ── */
+    .topbar { background: #1B263B; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(0,0,0,.18); }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .logo { width: 40px; height: 40px; background: #C69C6D; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #1B263B; font-weight: 900; font-size: 13px; flex-shrink: 0; }
+    .topbar-title { color: #fff; font-size: 15px; font-weight: 900; letter-spacing: -.2px; }
+    .topbar-sub { color: rgba(255,255,255,.45); font-size: 11px; font-weight: 600; margin-top: 1px; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .btn-senha-top { padding: 7px 16px; background: rgba(198,156,109,.15); border: 1px solid rgba(198,156,109,.3); border-radius: 10px; font-size: 12px; font-weight: 700; color: #C69C6D; cursor: pointer; transition: all .2s; }
+    .btn-senha-top:hover { background: rgba(198,156,109,.28); }
+    .btn-sair { padding: 7px 16px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.7); cursor: pointer; transition: all .2s; }
+    .btn-sair:hover { background: rgba(239,68,68,.2); color: #fca5a5; border-color: rgba(239,68,68,.3); }
 
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; }
-    .card .label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 6px; }
-    .card .value { font-size: 22px; font-weight: 900; color: #1B263B; }
-    .card .value.gold { color: #C69C6D; }
+    /* ── CONTENT ── */
+    .content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
 
-    .table-wrap { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
-    .table-header { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .table-header h2 { font-size: 15px; font-weight: 900; }
-    input[type=text] { border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 12px; font-size: 12px; outline: none; background: #f8fafc; color: #1B263B; }
+    /* ── WELCOME ── */
+    .welcome { margin-bottom: 28px; }
+    .welcome h2 { font-size: 22px; font-weight: 900; color: #1B263B; }
+    .welcome p { color: #78716c; font-size: 13px; margin-top: 3px; }
 
-    .scroll-x { overflow-x: scroll; scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
-    .scroll-x::-webkit-scrollbar { height: 6px; }
-    .scroll-x::-webkit-scrollbar-track { background: #f1f5f9; }
-    .scroll-x::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    /* ── STAT CARDS ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: #fff; border-radius: 18px; padding: 22px 24px; border: 1px solid #e8e4dc; transition: box-shadow .2s; }
+    .stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+    .stat-card .label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 8px; }
+    .stat-card .value { font-size: 26px; font-weight: 900; color: #1B263B; }
+    .stat-card.gold { background: #1B263B; border-color: #1B263B; }
+    .stat-card.gold .label { color: rgba(255,255,255,.45); }
+    .stat-card.gold .value { color: #C69C6D; }
+    .stat-card .change { font-size: 11px; font-weight: 700; color: #94a3b8; margin-top: 4px; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
-    thead th { padding: 12px 20px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-    tbody tr { border-bottom: 1px solid #f8fafc; transition: background .15s; }
-    tbody tr:hover { background: #fafafa; }
+    /* ── TABLE CARD ── */
+    .table-card { background: #fff; border-radius: 20px; border: 1px solid #e8e4dc; overflow: hidden; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { padding: 20px 24px; border-bottom: 1px solid #f0ece4; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .toolbar h3 { font-size: 15px; font-weight: 900; color: #1B263B; margin-right: auto; }
+    .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+    .search-input { border: 1.5px solid #e8e4dc; border-radius: 12px; padding: 9px 14px 9px 36px; font-size: 12px; outline: none; background: #fafaf8; color: #1B263B; width: 220px; transition: border .2s; }
+    .search-input:focus { border-color: #C69C6D; background: #fff; }
+
+    .select-filter { border: 1.5px solid #e8e4dc; border-radius: 12px; padding: 9px 14px; font-size: 12px; outline: none; background: #fafaf8; color: #1B263B; cursor: pointer; font-weight: 700; transition: border .2s; }
+    .select-filter:focus { border-color: #C69C6D; }
+
+    .btn-limpar { padding: 9px 14px; background: #f4f1ec; border: 1.5px solid #e8e4dc; border-radius: 12px; font-size: 12px; font-weight: 700; color: #78716c; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .btn-limpar:hover { background: #ece7df; }
+
+    /* ── RESULTS INFO ── */
+    .results-info { padding: 10px 24px; background: #fafaf8; border-bottom: 1px solid #f0ece4; font-size: 11px; font-weight: 700; color: #94a3b8; display: flex; align-items: center; justify-content: space-between; }
+    .results-info span { color: #C69C6D; }
+
+    /* ── TABLE ── */
+    .scroll-x { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
+    thead th { padding: 12px 20px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #fafaf8; border-bottom: 1px solid #f0ece4; white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { color: #C69C6D; }
+    thead th.sorted { color: #C69C6D; }
+    tbody tr { border-bottom: 1px solid #f8f5f0; transition: background .12s; }
+    tbody tr:hover { background: #fafaf8; }
     tbody tr:last-child { border-bottom: none; }
-    td { padding: 14px 20px; vertical-align: middle; }
-    .nome { font-weight: 800; }
-    .produto { color: #475569; }
-    .comissao { font-weight: 900; }
-    .parceiro-val { font-weight: 900; color: #C69C6D; font-size: 14px; }
-    .data { color: #94a3b8; font-size: 12px; white-space: nowrap; }
-    .empty { padding: 48px; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
-    .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #94a3b8; }
+    td { padding: 15px 20px; vertical-align: middle; }
+    .td-nome { font-weight: 800; color: #1B263B; max-width: 200px; }
+    .td-produto { color: #78716c; font-size: 12px; }
+    .td-data { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+    .td-valor { font-weight: 700; }
+    .td-comissao { font-weight: 900; color: #1B263B; }
+    .td-parceiro { font-weight: 900; color: #C69C6D; font-size: 14px; }
+    .badge-apolice { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; background:#dcfce7; color:#16a34a; border-radius:8px; font-size:11px; font-weight:900; text-decoration:none; transition: opacity .15s; }
+    .badge-apolice:hover { opacity: .8; }
+    .badge-boleto { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#dbeafe; color:#1d4ed8; border-radius:8px; font-size:11px; font-weight:900; text-decoration:none; margin:2px; transition: opacity .15s; }
+    .badge-boleto:hover { opacity: .8; }
+    .vazio { color: #c9c2b8; font-size: 11px; }
 
-    /* Modal alterar senha */
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center; }
+    /* ── EMPTY / LOADING ── */
+    .empty-state { padding: 64px 24px; text-align: center; }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state h4 { font-size: 16px; font-weight: 900; color: #1B263B; margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; color: #94a3b8; }
+
+    /* ── PAGINATION ── */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 20px; border-top: 1px solid #f0ece4; }
+    .pg-btn { width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid #e8e4dc; background: #fff; color: #1B263B; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+    .pg-btn:hover:not(:disabled) { border-color: #C69C6D; color: #C69C6D; }
+    .pg-btn.active { background: #1B263B; color: #C69C6D; border-color: #1B263B; }
+    .pg-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .pg-info { font-size: 12px; font-weight: 700; color: #94a3b8; padding: 0 8px; }
+
+    /* ── FOOTER ── */
+    .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #c9c2b8; font-weight: 600; }
+
+    /* ── MODAL SENHA ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999; align-items:center; justify-content:center; padding: 16px; }
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:20px; padding:32px; width:100%; max-width:400px; box-shadow:0 8px 40px rgba(0,0,0,.15); }
-    .modal h3 { font-size:16px; font-weight:900; color:#1B263B; margin-bottom:20px; }
-    .modal label { display:block; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:5px; margin-top:14px; }
-    .modal input { width:100%; padding:11px 14px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:13px; outline:none; background:#f8fafc; color:#1B263B; box-sizing:border-box; }
-    .modal input:focus { border-color:#C69C6D; background:#fff; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .modal-header h3 { font-size:16px; font-weight:900; color:#1B263B; }
+    .modal-close { background:none; border:none; font-size:20px; color:#94a3b8; cursor:pointer; line-height:1; padding: 4px; }
+    .modal-close:hover { color:#1B263B; }
+    .field-label { display:block; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:6px; margin-top:14px; }
+    .field-input { width:100%; padding:11px 14px; border:1.5px solid #e8e4dc; border-radius:12px; font-size:13px; outline:none; background:#fafaf8; color:#1B263B; transition: border .2s; }
+    .field-input:focus { border-color:#C69C6D; background:#fff; }
     .modal-btns { display:flex; gap:10px; margin-top:20px; }
-    .btn-alterar { flex:1; padding:12px; background:#1B263B; color:#fff; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; }
-    .btn-alterar:hover { background:#243447; }
-    .btn-cancelar-modal { flex:1; padding:12px; background:#f1f5f9; color:#64748b; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; }
-    .modal-msg { font-size:12px; font-weight:700; text-align:center; margin-top:12px; display:none; }
-    .modal-msg.ok { color:#16a34a; }
-    .modal-msg.erro { color:#ef4444; }
-    .btn-senha { padding:7px 16px; background:rgba(198,156,109,.12); border:1px solid rgba(198,156,109,.3); border-radius:10px; font-size:12px; font-weight:700; color:#C69C6D; cursor:pointer; transition:all .2s; }
-    .btn-senha:hover { background:rgba(198,156,109,.22); }
+    .btn-salvar { flex:1; padding:13px; background:#1B263B; color:#fff; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; transition: background .2s; }
+    .btn-salvar:hover { background:#243447; }
+    .btn-cancelar { flex:1; padding:13px; background:#f4f1ec; color:#78716c; font-weight:900; font-size:13px; border:none; border-radius:12px; cursor:pointer; }
+    .modal-msg { font-size:12px; font-weight:700; text-align:center; margin-top:12px; padding:10px; border-radius:10px; display:none; }
+    .modal-msg.ok { color:#16a34a; background:#f0fdf4; }
+    .modal-msg.erro { color:#ef4444; background:#fef2f2; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="header-left">
-        <div class="logo">F&G</div>
-        <div>
-          <h1>Relatório de Parceria</h1>
-          <p id="nome-parceiro">Carregando...</p>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn-senha" onclick="document.getElementById('modal-senha').classList.add('open')">🔒 Alterar Senha</button>
-        <button class="btn-sair" onclick="sair()">Sair</button>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">F&G</div>
+      <div>
+        <div class="topbar-title">Portal do Parceiro</div>
+        <div class="topbar-sub" id="nome-parceiro">Carregando...</div>
       </div>
     </div>
+    <div class="topbar-actions">
+      <button class="btn-senha-top" onclick="abrirModalSenha()">🔒 Alterar Senha</button>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
 
-    <!-- Modal alterar senha -->
-    <div class="modal-overlay" id="modal-senha">
-      <div class="modal">
+  <!-- MODAL SENHA -->
+  <div class="modal-overlay" id="modal-senha">
+    <div class="modal">
+      <div class="modal-header">
         <h3>🔒 Alterar Senha</h3>
-        <label>Senha atual</label>
-        <input type="password" id="senha-atual" placeholder="Digite sua senha atual" />
-        <label>Nova senha</label>
-        <input type="password" id="senha-nova" placeholder="Digite a nova senha" />
-        <label>Confirmar nova senha</label>
-        <input type="password" id="senha-confirm" placeholder="Confirme a nova senha" />
-        <div class="modal-btns">
-          <button class="btn-alterar" onclick="alterarSenha()">Salvar</button>
-          <button class="btn-cancelar-modal" onclick="fecharModalSenha()">Cancelar</button>
+        <button class="modal-close" onclick="fecharModalSenha()">×</button>
+      </div>
+      <label class="field-label">Senha atual</label>
+      <input type="password" class="field-input" id="senha-atual" placeholder="Digite sua senha atual" />
+      <label class="field-label">Nova senha</label>
+      <input type="password" class="field-input" id="senha-nova" placeholder="Mínimo 6 caracteres" />
+      <label class="field-label">Confirmar nova senha</label>
+      <input type="password" class="field-input" id="senha-confirm" placeholder="Repita a nova senha" />
+      <div class="modal-btns">
+        <button class="btn-salvar" onclick="alterarSenha()">Salvar</button>
+        <button class="btn-cancelar" onclick="fecharModalSenha()">Cancelar</button>
+      </div>
+      <div class="modal-msg" id="modal-msg"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- WELCOME -->
+    <div class="welcome">
+      <h2>Olá, <span id="nome-curto">parceiro</span>! 👋</h2>
+      <p>Aqui você acompanha todas as suas indicações convertidas e comissões geradas.</p>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Vendas no período</div>
+        <div class="value" id="card-vendas">—</div>
+        <div class="change" id="card-periodo-label">Todos os meses</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Prêmio total</div>
+        <div class="value" id="card-premio">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Comissão F&G</div>
+        <div class="value" id="card-comissao">—</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="label">Sua comissão</div>
+        <div class="value" id="card-parceiro">—</div>
+      </div>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="table-card">
+      <div class="toolbar">
+        <h3>Clientes e comissões</h3>
+        <div class="filter-group">
+          <!-- Busca por cliente -->
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input class="search-input" id="busca" type="text" placeholder="Buscar cliente..." oninput="aplicarFiltros()" />
+          </div>
+          <!-- Filtro de ano -->
+          <select class="select-filter" id="filtro-ano" onchange="aplicarFiltros()">
+            <option value="">Todos os anos</option>
+          </select>
+          <!-- Filtro de mês -->
+          <select class="select-filter" id="filtro-mes" onchange="aplicarFiltros()">
+            <option value="">Todos os meses</option>
+            <option value="01">Janeiro</option>
+            <option value="02">Fevereiro</option>
+            <option value="03">Março</option>
+            <option value="04">Abril</option>
+            <option value="05">Maio</option>
+            <option value="06">Junho</option>
+            <option value="07">Julho</option>
+            <option value="08">Agosto</option>
+            <option value="09">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+          <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar</button>
         </div>
-        <div class="modal-msg" id="modal-msg"></div>
       </div>
-    </div>
 
-    <div class="cards">
-      <div class="card"><div class="label">Vendas fechadas</div><div class="value" id="total-vendas">—</div></div>
-      <div class="card"><div class="label">Prêmio total</div><div class="value" id="total-premio">—</div></div>
-      <div class="card"><div class="label">Comissão F&G</div><div class="value" id="total-comissao">—</div></div>
-      <div class="card"><div class="label">Sua comissão</div><div class="value gold" id="total-parceiro">—</div></div>
-    </div>
-
-    <div class="table-wrap">
-      <div class="table-header">
-        <h2>Clientes e comissões</h2>
-        <input type="text" id="busca" placeholder="Buscar cliente..." oninput="filtrar()" />
+      <div class="results-info" id="results-info" style="display:none">
+        Exibindo <span id="results-count">0</span> resultado(s)
+        <span id="results-periodo"></span>
       </div>
-      <div class="scroll-x" id="top-scroll"><div id="top-inner" style="height:1px"></div></div>
-      <div class="scroll-x" id="tabela-scroll">
+
+      <div class="scroll-x">
         <table>
           <thead>
             <tr>
-              <th>Data</th>
-              <th>Cliente</th>
+              <th onclick="ordenar('data')">Data <span id="sort-data"></span></th>
+              <th onclick="ordenar('nome')">Cliente <span id="sort-nome"></span></th>
               <th>Produto</th>
-              <th>Prêmio</th>
-              <th>Comissão F&G</th>
-              <th>Sua comissão</th>
+              <th onclick="ordenar('premio')">Prêmio <span id="sort-premio"></span></th>
+              <th onclick="ordenar('comissao')">Comissão F&G <span id="sort-comissao"></span></th>
+              <th>Sua Comissão</th>
               <th style="text-align:center">Apólice</th>
-              <th style="text-align:center">Boleto</th>
+              <th style="text-align:center">Boleto(s)</th>
             </tr>
           </thead>
           <tbody id="tabela-body">
-            <tr><td colspan="8" class="empty">Carregando...</td></tr>
+            <tr><td colspan="8"><div class="empty-state"><div class="icon">⏳</div><h4>Carregando...</h4></div></td></tr>
           </tbody>
         </table>
       </div>
+
+      <div class="pagination" id="pagination" style="display:none"></div>
     </div>
-    <div class="footer">F&G Corretora de Seguros · Uso exclusivo para parceiros</div>
+
+    <div class="footer">F&G Seguro Garantia · Portal exclusivo para parceiros</div>
   </div>
 
   <script>
@@ -146,19 +263,11 @@
     if (!session) { window.location.href = 'parceiros-login.html'; }
 
     const PCT = (session?.commission_pct || 20) / 100;
-    document.getElementById('nome-parceiro').textContent = session?.name || '';
+    const nomeParceiro = session?.name || '';
+    document.getElementById('nome-parceiro').textContent = nomeParceiro;
+    document.getElementById('nome-curto').textContent = nomeParceiro.split(' ')[0];
 
-    const topScroll = document.getElementById('top-scroll');
-    const tabelaScroll = document.getElementById('tabela-scroll');
-    const topInner = document.getElementById('top-inner');
-    tabelaScroll.addEventListener('scroll', () => topScroll.scrollLeft = tabelaScroll.scrollLeft);
-    topScroll.addEventListener('scroll', () => tabelaScroll.scrollLeft = topScroll.scrollLeft);
-
-    function sair() {
-      localStorage.removeItem('parceiro_session');
-      window.location.href = 'parceiros-login.html';
-    }
-
+    // ── UTILS ────────────────────────────────────────────────
     function fmt(v) {
       if (!v || v === 0) return '—';
       return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -173,63 +282,178 @@
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
     }
+    const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+    // ── ESTADO ───────────────────────────────────────────────
     let todasVendas = [];
+    let vendasFiltradas = [];
+    let sortKey = 'data';
+    let sortAsc = false;
+    let paginaAtual = 1;
+    const POR_PAGINA = 20;
 
-    function filtrar() {
-      const busca = document.getElementById('busca').value.toLowerCase();
-      const filtradas = todasVendas.filter(v => !busca || (v.nome || '').toLowerCase().includes(busca));
-      renderTabela(filtradas);
-      atualizarCards(filtradas);
+    // ── FILTROS ──────────────────────────────────────────────
+    function aplicarFiltros() {
+      const busca = document.getElementById('busca').value.toLowerCase().trim();
+      const mes = document.getElementById('filtro-mes').value;
+      const ano = document.getElementById('filtro-ano').value;
+
+      vendasFiltradas = todasVendas.filter(v => {
+        const nomeOk = !busca || (v.nome || '').toLowerCase().includes(busca);
+        const dataStr = v.data || '';
+        const mesOk = !mes || dataStr.substring(5, 7) === mes;
+        const anoOk = !ano || dataStr.substring(0, 4) === ano;
+        return nomeOk && mesOk && anoOk;
+      });
+
+      ordenarVendas();
+      paginaAtual = 1;
+      atualizarCards();
+      renderTabela();
+      renderPaginacao();
+      atualizarResultsInfo();
     }
 
-    function renderTabela(vendas) {
+    function limparFiltros() {
+      document.getElementById('busca').value = '';
+      document.getElementById('filtro-mes').value = '';
+      document.getElementById('filtro-ano').value = '';
+      aplicarFiltros();
+    }
+
+    function atualizarResultsInfo() {
+      const info = document.getElementById('results-info');
+      const busca = document.getElementById('busca').value.trim();
+      const mes = document.getElementById('filtro-mes').value;
+      const ano = document.getElementById('filtro-ano').value;
+      const ativo = busca || mes || ano;
+      info.style.display = ativo ? 'flex' : 'none';
+      document.getElementById('results-count').textContent = vendasFiltradas.length;
+      let periodo = '';
+      if (mes && ano) periodo = ` · ${MESES[parseInt(mes)]} ${ano}`;
+      else if (mes) periodo = ` · ${MESES[parseInt(mes)]}`;
+      else if (ano) periodo = ` · ${ano}`;
+      document.getElementById('results-periodo').textContent = periodo;
+
+      // Atualiza label do card
+      let label = 'Todos os meses';
+      if (mes && ano) label = `${MESES[parseInt(mes)]} ${ano}`;
+      else if (mes) label = MESES[parseInt(mes)];
+      else if (ano) label = `Ano ${ano}`;
+      document.getElementById('card-periodo-label').textContent = label;
+    }
+
+    // ── ORDENAÇÃO ────────────────────────────────────────────
+    function ordenar(key) {
+      if (sortKey === key) { sortAsc = !sortAsc; }
+      else { sortKey = key; sortAsc = false; }
+      ['data','nome','premio','comissao'].forEach(k => {
+        document.getElementById('sort-' + k).textContent = '';
+      });
+      document.getElementById('sort-' + key).textContent = sortAsc ? ' ↑' : ' ↓';
+      ordenarVendas();
+      paginaAtual = 1;
+      renderTabela();
+      renderPaginacao();
+    }
+
+    function ordenarVendas() {
+      vendasFiltradas.sort((a, b) => {
+        let va = a[sortKey] || '';
+        let vb = b[sortKey] || '';
+        if (sortKey === 'premio' || sortKey === 'comissao') {
+          va = parseVal(va); vb = parseVal(vb);
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // ── CARDS ────────────────────────────────────────────────
+    function atualizarCards() {
+      const totalPremio = vendasFiltradas.reduce((s, v) => s + parseVal(v.premio), 0);
+      const totalComissao = vendasFiltradas.reduce((s, v) => s + parseVal(v.comissao), 0);
+      document.getElementById('card-vendas').textContent = vendasFiltradas.length;
+      document.getElementById('card-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
+      document.getElementById('card-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
+      document.getElementById('card-parceiro').textContent = totalComissao > 0 ? fmt(totalComissao * PCT) : '—';
+    }
+
+    // ── TABELA ───────────────────────────────────────────────
+    function renderTabela() {
       const tbody = document.getElementById('tabela-body');
-      if (!vendas.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma venda encontrada.</td></tr>';
+      const inicio = (paginaAtual - 1) * POR_PAGINA;
+      const pagina = vendasFiltradas.slice(inicio, inicio + POR_PAGINA);
+
+      if (vendasFiltradas.length === 0) {
+        const busca = document.getElementById('busca').value.trim();
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+          <div class="icon">${busca ? '🔍' : '📋'}</div>
+          <h4>${busca ? 'Nenhum resultado encontrado' : 'Nenhuma venda no período'}</h4>
+          <p>${busca ? 'Tente buscar por outro nome.' : 'Selecione outro período ou aguarde novas emissões.'}</p>
+        </div></td></tr>`;
         return;
       }
-      tbody.innerHTML = vendas.map(v => {
+
+      tbody.innerHTML = pagina.map(v => {
         const comissao = parseVal(v.comissao);
         const parceiro = comissao * PCT;
-        const btnApolice = v.apolice_url
-          ? `<a href="${v.apolice_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Apólice</a>`
-          : `<span style="color:#cbd5e1;font-size:11px;">—</span>`;
 
-        // Boletos: lista de parcelas
-        let boletoHtml = '<span style="color:#cbd5e1;font-size:11px;">—</span>';
+        const btnApolice = v.apolice_url
+          ? `<a href="${v.apolice_url}" target="_blank" class="badge-apolice">⬇ Apólice</a>`
+          : `<span class="vazio">—</span>`;
+
+        let boletoHtml = `<span class="vazio">—</span>`;
         if (v._boletos && v._boletos.length > 0) {
           boletoHtml = v._boletos.map(b =>
-            `<a href="${b.url}" target="_blank" rel="noopener noreferrer"
-              style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;margin:2px;">
-              ⬇ Parc. ${b.parcela}${b.vencimento ? ' <span style=\'font-weight:500;font-size:10px;opacity:.7\'>(' + fmtData(b.vencimento) + ')</span>' : ''}
-            </a>`
+            `<a href="${b.url}" target="_blank" class="badge-boleto">⬇ Parc. ${b.parcela}${b.vencimento ? `<span style="font-weight:500;font-size:10px;opacity:.7"> (${fmtData(b.vencimento)})</span>` : ''}</a>`
           ).join('');
         }
 
         return `<tr>
-          <td class="data">${fmtData(v.data)}</td>
-          <td class="nome">${v.nome || '—'}</td>
-          <td class="produto">${v.product_type || v.tipo || '—'}</td>
-          <td>${fmt(parseVal(v.premio))}</td>
-          <td class="comissao">${fmt(comissao)}</td>
-          <td class="parceiro-val">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
+          <td class="td-data">${fmtData(v.data)}</td>
+          <td class="td-nome">${v.nome || '—'}</td>
+          <td class="td-produto">${v.product_type || v.tipo || '—'}</td>
+          <td class="td-valor">${fmt(parseVal(v.premio))}</td>
+          <td class="td-comissao">${fmt(comissao)}</td>
+          <td class="td-parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
           <td style="text-align:center">${btnApolice}</td>
-          <td style="min-width:140px">${boletoHtml}</td>
+          <td style="min-width:140px;text-align:center">${boletoHtml}</td>
         </tr>`;
       }).join('');
-      setTimeout(() => { topInner.style.width = tabelaScroll.scrollWidth + 'px'; }, 100);
     }
 
-    function atualizarCards(vendas) {
-      const totalPremio = vendas.reduce((s, v) => s + parseVal(v.premio), 0);
-      const totalComissao = vendas.reduce((s, v) => s + parseVal(v.comissao), 0);
-      document.getElementById('total-vendas').textContent = vendas.length;
-      document.getElementById('total-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
-      document.getElementById('total-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
-      document.getElementById('total-parceiro').textContent = totalComissao > 0 ? fmt(totalComissao * PCT) : '—';
+    // ── PAGINAÇÃO ────────────────────────────────────────────
+    function renderPaginacao() {
+      const total = Math.ceil(vendasFiltradas.length / POR_PAGINA);
+      const pag = document.getElementById('pagination');
+      if (total <= 1) { pag.style.display = 'none'; return; }
+      pag.style.display = 'flex';
+
+      let html = `<button class="pg-btn" onclick="irPagina(${paginaAtual - 1})" ${paginaAtual === 1 ? 'disabled' : ''}>‹</button>`;
+      for (let i = 1; i <= total; i++) {
+        if (total > 7 && i > 2 && i < total - 1 && Math.abs(i - paginaAtual) > 1) {
+          if (i === 3 || i === total - 2) html += `<span class="pg-info">…</span>`;
+          continue;
+        }
+        html += `<button class="pg-btn ${i === paginaAtual ? 'active' : ''}" onclick="irPagina(${i})">${i}</button>`;
+      }
+      html += `<button class="pg-btn" onclick="irPagina(${paginaAtual + 1})" ${paginaAtual === total ? 'disabled' : ''}>›</button>`;
+      html += `<span class="pg-info">Página ${paginaAtual} de ${total}</span>`;
+      pag.innerHTML = html;
     }
 
+    function irPagina(n) {
+      const total = Math.ceil(vendasFiltradas.length / POR_PAGINA);
+      if (n < 1 || n > total) return;
+      paginaAtual = n;
+      renderTabela();
+      renderPaginacao();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── CARREGAR ─────────────────────────────────────────────
     async function carregar() {
       const { data, error } = await client
         .from('sales')
@@ -239,45 +463,59 @@
         .order('data', { ascending: false });
 
       if (error) {
-        document.getElementById('tabela-body').innerHTML = '<tr><td colspan="8" class="empty">Erro ao carregar dados.</td></tr>';
+        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">⚠️</div><h4>Erro ao carregar</h4><p>Tente recarregar a página.</p></div></td></tr>`;
         return;
       }
 
       const vendas = data || [];
 
-      // Buscar boletos para todas as vendas encontradas
+      // Boletos
       if (vendas.length > 0) {
         const ids = vendas.map(v => v.id);
         const { data: bData } = await client
-          .from('boletos')
-          .select('sale_id, parcela, vencimento, url')
-          .in('sale_id', ids)
-          .order('parcela');
-
+          .from('boletos').select('sale_id, parcela, vencimento, url')
+          .in('sale_id', ids).order('parcela');
         const bMap = {};
-        (bData || []).forEach(b => {
-          if (!bMap[b.sale_id]) bMap[b.sale_id] = [];
-          bMap[b.sale_id].push(b);
-        });
-
+        (bData || []).forEach(b => { if (!bMap[b.sale_id]) bMap[b.sale_id] = []; bMap[b.sale_id].push(b); });
         vendas.forEach(v => { v._boletos = bMap[v.id] || []; });
       }
 
       todasVendas = vendas;
-      renderTabela(todasVendas);
-      atualizarCards(todasVendas);
+
+      // Preencher anos únicos no filtro
+      const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();
+      const selectAno = document.getElementById('filtro-ano');
+      anos.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a; opt.textContent = a;
+        selectAno.appendChild(opt);
+      });
+
+      // Aplicar filtro padrão (mês atual)
+      const hoje = new Date();
+      const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+      const anoAtual = String(hoje.getFullYear());
+      document.getElementById('filtro-ano').value = anoAtual;
+      document.getElementById('filtro-mes').value = mesAtual;
+
+      aplicarFiltros();
     }
 
     carregar();
 
+    // ── SAIR ─────────────────────────────────────────────────
+    function sair() {
+      localStorage.removeItem('parceiro_session');
+      window.location.href = 'parceiros-login.html';
+    }
+
+    // ── ALTERAR SENHA ────────────────────────────────────────
+    function abrirModalSenha() { document.getElementById('modal-senha').classList.add('open'); }
     function fecharModalSenha() {
       document.getElementById('modal-senha').classList.remove('open');
-      document.getElementById('senha-atual').value = '';
-      document.getElementById('senha-nova').value = '';
-      document.getElementById('senha-confirm').value = '';
+      ['senha-atual','senha-nova','senha-confirm'].forEach(id => document.getElementById(id).value = '');
       const msg = document.getElementById('modal-msg');
-      msg.style.display = 'none';
-      msg.textContent = '';
+      msg.style.display = 'none'; msg.textContent = '';
     }
 
     async function alterarSenha() {
@@ -287,19 +525,25 @@
       const msg = document.getElementById('modal-msg');
       msg.style.display = 'none';
 
-      if (!atual || !nova || !confirm) { msg.className='modal-msg erro'; msg.textContent='Preencha todos os campos.'; msg.style.display='block'; return; }
-      if (atual !== session.password) { msg.className='modal-msg erro'; msg.textContent='Senha atual incorreta.'; msg.style.display='block'; return; }
-      if (nova.length < 6) { msg.className='modal-msg erro'; msg.textContent='A nova senha deve ter pelo menos 6 caracteres.'; msg.style.display='block'; return; }
-      if (nova !== confirm) { msg.className='modal-msg erro'; msg.textContent='As senhas não coincidem.'; msg.style.display='block'; return; }
+      if (!atual || !nova || !confirm) { showMsg('erro', 'Preencha todos os campos.'); return; }
+      if (atual !== session.password) { showMsg('erro', 'Senha atual incorreta.'); return; }
+      if (nova.length < 6) { showMsg('erro', 'A nova senha deve ter pelo menos 6 caracteres.'); return; }
+      if (nova !== confirm) { showMsg('erro', 'As senhas não coincidem.'); return; }
 
       const { error } = await client.from('partners').update({ password: nova }).eq('id', session.id);
-      if (error) { msg.className='modal-msg erro'; msg.textContent='Erro ao salvar. Tente novamente.'; msg.style.display='block'; return; }
+      if (error) { showMsg('erro', 'Erro ao salvar. Tente novamente.'); return; }
 
-      // Atualiza sessão local
       session.password = nova;
       localStorage.setItem('parceiro_session', JSON.stringify(session));
-      msg.className='modal-msg ok'; msg.textContent='✅ Senha alterada com sucesso!'; msg.style.display='block';
+      showMsg('ok', '✅ Senha alterada com sucesso!');
       setTimeout(fecharModalSenha, 2000);
+    }
+
+    function showMsg(tipo, texto) {
+      const msg = document.getElementById('modal-msg');
+      msg.className = 'modal-msg ' + tipo;
+      msg.textContent = texto;
+      msg.style.display = 'block';
     }
   </script>
 </body>
