@@ -548,9 +548,10 @@
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const alertas = cs.filter(c => {
       if (!c.vigencia_fim) return false;
+      if (c.status_apolice === 'cancelado') return false; // excluir cancelados
       const venc = new Date(c.vigencia_fim);
       const dias = Math.round((venc - hoje) / 86400000);
-      return dias <= 30;
+      return dias <= 60; // mostra até 60 dias à frente
     }).sort((a, b) => new Date(a.vigencia_fim) - new Date(b.vigencia_fim));
 
     const el = document.getElementById('alertas-venc');
