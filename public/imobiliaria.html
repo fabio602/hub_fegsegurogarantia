@@ -105,6 +105,22 @@
     .rep-table .nome { font-weight: 800; color: #fff; }
     .rep-table .valor { font-weight: 900; color: #C69C6D; }
 
+    /* Histórico repasses */
+    .hist-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .hist-controls select { padding: 9px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 13px; font-weight: 700; background: #fff; color: #1B263B; outline: none; cursor: pointer; }
+    .hist-controls select:focus { border-color: #C69C6D; }
+    .hist-card { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; margin-top: 20px; }
+    .hist-card h4 { font-size: 14px; font-weight: 900; color: #1B263B; margin-bottom: 16px; }
+    .hist-list { display: flex; flex-direction: column; gap: 12px; }
+    .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border-radius: 14px; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 10px; }
+    .hist-item.pago { border-color: #bbf7d0; background: #f0fdf4; }
+    .hist-mes { font-weight: 900; font-size: 14px; color: #1B263B; }
+    .hist-valor { font-weight: 900; color: #C69C6D; font-size: 15px; }
+    .hist-status-pago { background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
+    .hist-status-pend { background: #fef9c3; color: #854d0e; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
+    .hist-data { font-size: 12px; color: #64748b; }
+    .btn-comp { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #dbeafe; color: #1d4ed8; border-radius: 8px; font-size: 11px; font-weight: 900; text-decoration: none; }
+
     /* ── DOCS ── */
     .docs-pending { background: #fffbf5; border: 1.5px solid #fde68a; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
     .docs-pending h4 { font-size: 13px; font-weight: 900; color: #92400e; margin-bottom: 4px; }
@@ -282,7 +298,13 @@
 <div class="page" id="page-repasse">
   <div class="section-header">
     <h2>💰 Repasse do Mês</h2>
-    <p>Clientes com parcela em aberto que precisam de repasse.</p>
+    <p>Clientes com parcela em aberto e histórico de pagamentos.</p>
+  </div>
+  <div class="hist-controls">
+    <select id="sel-mes" onchange="renderRepasse(todosClientes)">
+      <option value="0">📅 Mês atual</option>
+    </select>
+    <span style="font-size:12px;color:#94a3b8">Selecione para ver meses anteriores</span>
   </div>
   <div class="repasse-hero">
     <div class="repasse-hero-top">
@@ -301,6 +323,11 @@
       <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th></tr></thead>
       <tbody id="repasse-body"><tr><td colspan="5" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
     </table>
+  </div>
+  <!-- Histórico -->
+  <div class="hist-card" id="hist-repasses" style="display:none;margin-top:20px">
+    <h4>📅 Histórico de Repasses</h4>
+    <div class="hist-list" id="hist-list"><p style="color:#94a3b8;font-size:13px">Nenhum repasse registrado ainda.</p></div>
   </div>
 </div>
 
@@ -347,6 +374,19 @@
 
   let todosClientes = [];
 
+  // Populate month selector (last 12 months)
+  (function() {
+    const sel = document.getElementById('sel-mes');
+    const now = new Date();
+    for (let i = 1; i <= 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const opt = document.createElement('option');
+      opt.value = `${d.getMonth()+1}-${d.getFullYear()}`;
+      opt.textContent = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      sel.appendChild(opt);
+    }
+  })();
+
   async function carregar() {
     const { data } = await client.from('imobiliaria_clientes').select('*')
       .eq('partner_id', session.id).order('status').order('inquilino_nome');
@@ -355,6 +395,31 @@
     renderCarteira(todosClientes);
     renderRepasse(todosClientes);
     renderDocsPendentes(todosClientes);
+    carregarHistorico();
+  }
+
+  async function carregarHistorico() {
+    const { data } = await client.from('imobiliaria_repasses').select('*')
+      .eq('partner_id', session.id).order('ano', { ascending: false }).order('mes', { ascending: false });
+    const hist = data || [];
+    const card = document.getElementById('hist-repasses');
+    const list = document.getElementById('hist-list');
+    if (!hist.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    list.innerHTML = hist.map(h => `
+      <div class="hist-item ${h.status === 'pago' ? 'pago' : ''}">
+        <div>
+          <div class="hist-mes">${MESES[h.mes]} de ${h.ano}</div>
+          <div class="hist-data">${h.data_pagamento ? '📅 Pago em ' + h.data_pagamento.split('-').reverse().join('/') : 'Aguardando pagamento'}</div>
+          ${h.observacoes ? `<div style="font-size:11px;color:#64748b;margin-top:2px">${h.observacoes}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="hist-valor">${fmtBRL(h.valor_total)}</span>
+          <span class="${h.status === 'pago' ? 'hist-status-pago' : 'hist-status-pend'}">${h.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</span>
+          ${h.comprovante_url ? `<a href="${h.comprovante_url}" target="_blank" class="btn-comp">📎 Comprovante</a>` : ''}
+        </div>
+      </div>`).join('');
   }
 
   function renderDashboard(cs) {
@@ -395,9 +460,19 @@
   }
 
   function renderRepasse(cs) {
+    const selVal = document.getElementById('sel-mes').value;
+    let mesRef, anoRef, mesNome;
+    if (!selVal || selVal === '0') {
+      const now = new Date();
+      mesRef = now.getMonth() + 1; anoRef = now.getFullYear();
+      mesNome = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    } else {
+      const [m, a] = selVal.split('-');
+      mesRef = parseInt(m); anoRef = parseInt(a);
+      mesNome = new Date(anoRef, mesRef - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
     const ativos = cs.filter(c => c.status === 'ativo');
     const total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
-    const mesNome = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     document.getElementById('r-total').textContent = total > 0 ? fmtBRL(total) : '—';
     document.getElementById('r-mes').textContent = `Clientes com parcela em aberto — ${mesNome}`;
     if (session?.pix_key) document.getElementById('r-pix').textContent = `PIX: ${session.pix_key}`;

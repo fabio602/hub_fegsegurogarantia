@@ -49,6 +49,38 @@ export default function ImobiliariaRepasse() {
   const [sendError, setSendError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showEncerrados, setShowEncerrados] = useState(false);
+  const [repasseModal, setRepasseModal] = useState(false);
+  const [repasseForm, setRepasseForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), data_pagamento: '', observacoes: '' });
+  const [repasseFile, setRepasseFile] = useState<File | null>(null);
+  const [savingRepasse, setSavingRepasse] = useState(false);
+
+  const salvarRepasse = async () => {
+    setSavingRepasse(true);
+    try {
+      let comprovante_url = null;
+      if (repasseFile) {
+        const path = `${repasseForm.ano}/${repasseForm.mes}/${Date.now()}_${repasseFile.name}`;
+        await supabase.storage.from('repasse-comprovantes').upload(path, repasseFile, { upsert: true });
+        const { data: urlData } = supabase.storage.from('repasse-comprovantes').getPublicUrl(path);
+        comprovante_url = urlData.publicUrl;
+      }
+      const valor_total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
+      await supabase.from('imobiliaria_repasses').upsert({
+        partner_id: ativos[0]?.partner_id || null,
+        mes: repasseForm.mes,
+        ano: repasseForm.ano,
+        valor_total,
+        data_pagamento: repasseForm.data_pagamento || null,
+        comprovante_url,
+        status: repasseForm.data_pagamento ? 'pago' : 'pendente',
+        observacoes: repasseForm.observacoes || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'partner_id,mes,ano' });
+      setRepasseModal(false);
+      setRepasseFile(null);
+    } catch (e) { console.error(e); }
+    finally { setSavingRepasse(false); }
+  };
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
   const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '' });
 
@@ -202,6 +234,12 @@ export default function ImobiliariaRepasse() {
             className="flex items-center gap-2 px-4 py-2 bg-[#C69C6D] hover:bg-[#b8895a] text-white font-bold text-sm rounded-xl transition-all"
           >
             <Plus size={15} /> Novo Cliente
+          </button>
+          <button
+            onClick={() => setRepasseModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-all"
+          >
+            <CheckCircle2 size={15} /> Registrar Repasse
           </button>
         </div>
       </div>
@@ -427,6 +465,56 @@ export default function ImobiliariaRepasse() {
           )}
         </div>
       )}
+    {/* Registrar Repasse Modal */}
+    {repasseModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-slate-800 text-lg">Registrar Repasse</h3>
+            <button onClick={() => setRepasseModal(false)}><X size={18} className="text-slate-400" /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mês</label>
+              <select value={repasseForm.mes} onChange={e => setRepasseForm(f => ({...f, mes: parseInt(e.target.value)}))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i) =>
+                  <option key={i+1} value={i+1}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ano</label>
+              <input type="number" value={repasseForm.ano} onChange={e => setRepasseForm(f => ({...f, ano: parseInt(e.target.value)}))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Data do Pagamento</label>
+            <input type="date" value={repasseForm.data_pagamento} onChange={e => setRepasseForm(f => ({...f, data_pagamento: e.target.value}))}
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
+            <input type="file" accept="application/pdf,image/*" onChange={e => setRepasseFile(e.target.files?.[0] || null)}
+              className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:font-bold file:text-slate-700" />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
+            <input value={repasseForm.observacoes} onChange={e => setRepasseForm(f => ({...f, observacoes: e.target.value}))}
+              placeholder="Opcional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setRepasseModal(false)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm">Cancelar</button>
+            <button onClick={salvarRepasse} disabled={savingRepasse}
+              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+              {savingRepasse ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              {savingRepasse ? 'Salvando...' : 'Salvar Repasse'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Edit Status Modal */}
     {editingStatus && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
