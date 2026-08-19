@@ -19,8 +19,8 @@
     .btn-sair:hover { background: rgba(239,68,68,.2); color: #fca5a5; border-color: rgba(239,68,68,.3); }
 
     /* ── NAV TABS ── */
-    .nav { background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; padding: 0 32px; gap: 0; }
-    .nav-btn { padding: 16px 20px; font-size: 13px; font-weight: 700; color: #94a3b8; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
+    .nav { background: #fff; border-bottom: 1px solid #e8e4dc; display: flex; padding: 0 32px; gap: 0; }
+    .nav-btn { padding: 16px 20px; font-size: 13px; font-weight: 700; color: #78716c; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
     .nav-btn:hover { color: #1B263B; }
     .nav-btn.active { color: #1B263B; border-bottom-color: #C69C6D; }
     .nav-btn .icon { margin-right: 6px; }
@@ -33,62 +33,62 @@
     /* ── DASHBOARD ── */
     .dash-welcome { margin-bottom: 28px; }
     .dash-welcome h2 { font-size: 24px; font-weight: 900; color: #1B263B; }
-    .dash-welcome p { color: #64748b; font-size: 13px; margin-top: 4px; }
+    .dash-welcome p { color: #78716c; font-size: 13px; margin-top: 4px; }
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card { background: #fff; border-radius: 20px; padding: 22px; border: 1px solid #e2e8f0; }
+    .stat-card { background: #fff; border-radius: 16px; padding: 22px; border: 1px solid #e8e4dc; }
     .stat-card .label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 8px; }
     .stat-card .value { font-size: 26px; font-weight: 900; color: #1B263B; }
     .stat-card.gold { background: #1B263B; }
     .stat-card.gold .label { color: rgba(255,255,255,.5); }
     .stat-card.gold .value { color: #C69C6D; }
     .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .action-card { background: #fff; border-radius: 20px; padding: 28px; border: 1px solid #e2e8f0; cursor: pointer; transition: all .2s; text-align: center; }
-    .action-card:hover { border-color: #C69C6D; box-shadow: 0 4px 20px rgba(198,156,109,.15); transform: translateY(-2px); }
+    .action-card { background: #fff; border-radius: 16px; padding: 28px; border: 1px solid #e8e4dc; cursor: pointer; transition: all .2s; text-align: center; }
+    .action-card:hover { border-color: #C69C6D; box-shadow: 0 4px 20px rgba(198,156,109,.12); transform: translateY(-2px); }
     .action-card .emoji { font-size: 36px; margin-bottom: 12px; }
     .action-card h3 { font-size: 15px; font-weight: 900; color: #1B263B; margin-bottom: 6px; }
-    .action-card p { font-size: 12px; color: #94a3b8; }
+    .action-card p { font-size: 12px; color: #78716c; }
 
     /* ── FORM SECTION ── */
     .section-header { margin-bottom: 24px; }
     .section-header h2 { font-size: 20px; font-weight: 900; }
-    .section-header p { font-size: 13px; color: #64748b; margin-top: 4px; }
-    .form-card { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 32px; }
+    .section-header p { font-size: 13px; color: #78716c; margin-top: 4px; }
+    .form-card { background: #fff; border-radius: 16px; border: 1px solid #e8e4dc; padding: 32px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-group label { display: block; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
-    .form-group input, .form-group select { width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 13px; outline: none; background: #f8fafc; color: #1B263B; transition: border .2s; }
+    .form-group input, .form-group select { width: 100%; padding: 11px 14px; border: 1.5px solid #e8e4dc; border-radius: 12px; font-size: 13px; outline: none; background: #fafaf8; color: #1B263B; transition: border .2s; }
     .form-group input:focus, .form-group select:focus { border-color: #C69C6D; background: #fff; }
     .btn-primary { padding: 13px 28px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; transition: background .2s; margin-top: 8px; }
     .btn-primary:hover { background: #243447; }
     .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-    .form-success { background: #dcfce7; border: 1px solid #bbf7d0; color: #15803d; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
+    .form-success { background: #f5faf7; border: 1px solid #c3dfd4; color: #2d6a4f; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
 
     /* ── CARTEIRA ── */
-    .table-card { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
-    .table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #f1f5f9; gap: 12px; flex-wrap: wrap; }
+    .table-card { background: #fff; border-radius: 16px; border: 1px solid #e8e4dc; overflow: hidden; }
+    .table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #e8e4dc; gap: 12px; flex-wrap: wrap; }
     .table-toolbar h3 { font-size: 15px; font-weight: 900; }
-    .search-input { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; font-size: 12px; outline: none; background: #f8fafc; color: #1B263B; min-width: 220px; }
+    .search-input { border: 1px solid #e8e4dc; border-radius: 10px; padding: 8px 14px; font-size: 12px; outline: none; background: #fafaf8; color: #1B263B; min-width: 220px; }
     .search-input:focus { border-color: #C69C6D; }
     .scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     table td:first-child, table th:first-child { min-width: 220px; white-space: nowrap; }
-    thead th { padding: 11px 18px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-    tbody tr { border-bottom: 1px solid #f8fafc; transition: background .15s; }
-    tbody tr:hover { background: #fafafa; }
+    thead th { padding: 11px 18px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #fafaf8; border-bottom: 1px solid #e8e4dc; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #f4f1ec; transition: background .15s; }
+    tbody tr:hover { background: #fafaf8; }
     tbody tr:last-child { border-bottom: none; }
     td { padding: 14px 18px; vertical-align: middle; }
-    .empty { padding: 56px; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 600; }
+    .empty { padding: 56px; text-align: center; color: #c9c2b8; font-size: 14px; font-weight: 700; }
 
     /* Status badges */
     .sb { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; display: inline-block; white-space: nowrap; }
-    .sb-aguardando { background: #fef9c3; color: #854d0e; }
-    .sb-analise    { background: #dbeafe; color: #1d4ed8; }
-    .sb-aprovado   { background: #d1fae5; color: #065f46; }
-    .sb-emitido    { background: #dcfce7; color: #15803d; }
-    .sb-recusado   { background: #fee2e2; color: #b91c1c; }
-    .sb-parc       { background: #eff6ff; color: #2563eb; }
-    .btn-doc       { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: #dcfce7; color: #15803d; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 3px; }
-    .btn-doc:hover { background: #bbf7d0; }
+    .sb-aguardando { background: #fafaf8; color: #78716c; border: 1px solid #e8e4dc; }
+    .sb-analise    { background: #f5f7fa; color: #1B263B; border: 1px solid #dde3ec; }
+    .sb-aprovado   { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; }
+    .sb-emitido    { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; }
+    .sb-recusado   { background: #fdf2f0; color: #9b1c1c; border: 1px solid #ecc9c4; }
+    .sb-parc       { background: #f0f2f5; color: #1B263B; border: 1px solid #dde3ec; }
+    .btn-doc       { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 3px; }
+    .btn-doc:hover { background: #e8f5ef; }
 
     /* ── KANBAN ── */
     .kanban-wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding-bottom: 8px; align-items: flex-start; }
@@ -138,34 +138,34 @@
 
     /* Histórico repasses */
     .hist-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .hist-controls select { padding: 9px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 13px; font-weight: 700; background: #fff; color: #1B263B; outline: none; cursor: pointer; }
+    .hist-controls select { padding: 9px 14px; border: 1.5px solid #e8e4dc; border-radius: 12px; font-size: 13px; font-weight: 700; background: #fff; color: #1B263B; outline: none; cursor: pointer; }
     .hist-controls select:focus { border-color: #C69C6D; }
-    .hist-card { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; margin-top: 20px; }
+    .hist-card { background: #fff; border-radius: 14px; border: 1px solid #e8e4dc; padding: 24px; margin-top: 20px; }
     .hist-card h4 { font-size: 14px; font-weight: 900; color: #1B263B; margin-bottom: 16px; }
     .hist-list { display: flex; flex-direction: column; gap: 12px; }
-    .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #f8fafc; border-radius: 14px; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 10px; }
-    .hist-item.pago { border-color: #bbf7d0; background: #f0fdf4; }
+    .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #fafaf8; border-radius: 14px; border: 1px solid #e8e4dc; flex-wrap: wrap; gap: 10px; }
+    .hist-item.pago { border-color: #c3dfd4; background: #f5faf7; }
     .hist-mes { font-weight: 900; font-size: 14px; color: #1B263B; }
     .hist-valor { font-weight: 900; color: #C69C6D; font-size: 15px; }
-    .hist-status-pago { background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
-    .hist-status-pend { background: #fef9c3; color: #854d0e; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
-    .hist-data { font-size: 12px; color: #64748b; }
-    .btn-comp { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #dbeafe; color: #1d4ed8; border-radius: 8px; font-size: 11px; font-weight: 900; text-decoration: none; }
-    .venc-ok   { background: #dcfce7; color: #15803d; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
-    .venc-warn { background: #fef9c3; color: #854d0e; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
-    .venc-exp  { background: #fee2e2; color: #b91c1c; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
-    .alert-box { background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; }
-    .alert-box h4 { font-size: 13px; font-weight: 900; color: #92400e; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #fef3c7; font-size: 13px; }
+    .hist-status-pago { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
+    .hist-status-pend { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
+    .hist-data { font-size: 12px; color: #78716c; }
+    .btn-comp { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #f5f7fa; color: #1B263B; border: 1px solid #dde3ec; border-radius: 8px; font-size: 11px; font-weight: 900; text-decoration: none; }
+    .venc-ok   { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
+    .venc-warn { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
+    .venc-exp  { background: #fdf2f0; color: #9b1c1c; border: 1px solid #ecc9c4; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
+    .alert-box { background: #faf8f5; border: 1.5px solid rgba(198,156,109,.25); border-left: 3px solid #C69C6D; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; }
+    .alert-box h4 { font-size: 13px; font-weight: 900; color: #1B263B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ede9e1; font-size: 13px; color: #1B263B; }
     .alert-item:last-child { border-bottom: none; }
 
     /* ── DOCS ── */
-    .docs-pending { background: #fffbf5; border: 1.5px solid #fde68a; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
-    .docs-pending h4 { font-size: 13px; font-weight: 900; color: #92400e; margin-bottom: 4px; }
+    .docs-pending { background: #fdf6ee; border: 1.5px solid #e8d5bc; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
+    .docs-pending h4 { font-size: 13px; font-weight: 900; color: #b8895a; margin-bottom: 4px; }
     .docs-pending p { font-size: 12px; color: #78716c; }
-    .doc-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 8px; }
+    .doc-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #ede9e1; flex-wrap: wrap; gap: 8px; }
     .doc-row:last-child { border-bottom: none; }
-    .doc-name { font-weight: 700; font-size: 13px; }
+    .doc-name { font-weight: 700; font-size: 13px; color: #1B263B; }
     .doc-hint { font-size: 11px; color: #94a3b8; margin-top: 2px; }
     .btn-upload { padding: 7px 16px; background: #1B263B; color: #fff; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
     .btn-upload:disabled { opacity: .5; }
@@ -526,7 +526,7 @@
         <div>
           <div class="hist-mes">${MESES[h.mes]} de ${h.ano}</div>
           <div class="hist-data">${h.data_pagamento ? '📅 Pago em ' + h.data_pagamento.split('-').reverse().join('/') : 'Aguardando pagamento'}</div>
-          ${h.observacoes ? `<div style="font-size:11px;color:#64748b;margin-top:2px">${h.observacoes}</div>` : ''}
+          ${h.observacoes ? `<div style="font-size:11px;color:#78716c;margin-top:2px">${h.observacoes}</div>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span class="hist-valor">${fmtBRL(h.valor_total)}</span>
@@ -586,7 +586,7 @@
       const sGar = c.status_garantia || 'aguardando_cotacao';
       const [clsG, lblG] = STATUS[sGar] || STATUS['aguardando_cotacao'];
       const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
-      return `<div style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer" onclick="goTo('carteira')">
+      return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer" onclick="goTo('carteira')">
         <div>
           <div style="font-weight:900;font-size:14px;color:#1B263B">${c.inquilino_nome || '—'}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:3px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Residencial'} · Enviado em ${dataEnvio}</div>
@@ -665,10 +665,10 @@
   }
 
   const SITUACAO = {
-    ativo:              ['#dcfce7','#15803d','🟢 Ativo'],
-    pagamento_atrasado: ['#fef9c3','#854d0e','🟡 Pgto. atrasado'],
-    cancelado:          ['#fee2e2','#b91c1c','🔴 Cancelado'],
-    em_renovacao:       ['#dbeafe','#1d4ed8','🔵 Em renovação'],
+    ativo:              ['#f5faf7','#2d6a4f','🟢 Ativo'],
+    pagamento_atrasado: ['#fdf6ee','#b8895a','🟡 Pgto. atrasado'],
+    cancelado:          ['#fdf2f0','#9b1c1c','🔴 Cancelado'],
+    em_renovacao:       ['#f5f7fa','#1B263B','🔵 Em renovação'],
   };
 
   function renderCarteira(cs) {
@@ -678,15 +678,15 @@
       const temG = c.tipo_seguro === 'residencial_garantia';
       const [bg, col, sitLabel] = SITUACAO[c.status_apolice || 'ativo'] || SITUACAO.ativo;
       const situacaoBadge = `<span style="background:${bg};color:${col};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:900;display:inline-block">${sitLabel}</span>`;
-      const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${c.apolice_residencial_url ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#15803d;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`;
-      const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${c.apolice_garantia_url ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#15803d;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`
-        : `<span style="color:#cbd5e1;font-size:12px">—</span>`;
+      const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${c.apolice_residencial_url ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#2d6a4f;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`;
+      const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${c.apolice_garantia_url ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#2d6a4f;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`
+        : `<span style="color:#c9c2b8;font-size:12px">—</span>`;
       return `<tr>
-        <td style="font-weight:800">${c.inquilino_nome||'—'}</td>
-        <td style="font-size:11px;color:#64748b">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
+        <td style="font-weight:900;color:#1B263B">${c.inquilino_nome||'—'}</td>
+        <td style="font-size:11px;color:#78716c">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
         <td style="font-size:12px;font-weight:700;color:#1B263B">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
-        <td style="font-size:11px;font-family:monospace;color:#64748b">${c.numero_apolice || '—'}</td>
+        <td style="font-size:11px;font-family:monospace;color:#78716c">${c.numero_apolice || '—'}</td>
         <td>${colRes}</td><td>${colGar}</td>
         <td style="font-weight:700">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
         <td>${vencBadge(c.vigencia_fim)}</td>
@@ -737,9 +737,9 @@
       <h4>📎 Documentos necessários — Garantia Locatícia</h4>
       <p style="margin-bottom:16px">Envie os documentos para os clientes com garantia aprovada.</p>
       ${pendentes.map(c => `
-        <div style="background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:12px;border:1px solid #e2e8f0">
+        <div style="background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:12px;border:1px solid #e8e4dc">
           <p style="font-weight:900;font-size:14px;margin-bottom:12px">${c.inquilino_nome}
-            ${DOCS_DEF.every(d => c[d.key]) ? '<span style="background:#dcfce7;color:#15803d;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px">✅ Completo</span>' : ''}
+            ${DOCS_DEF.every(d => c[d.key]) ? '<span style="background:#f5faf7;color:#2d6a4f;border:1px solid #c3dfd4;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px">✅ Completo</span>' : ''}
           </p>
           ${DOCS_DEF.map(d => `<div class="doc-row">
             <div><div class="doc-name">${d.label}</div><div class="doc-hint">${d.hint}</div></div>
