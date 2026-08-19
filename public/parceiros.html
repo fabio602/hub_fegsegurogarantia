@@ -252,7 +252,7 @@
     </div>
 
     <!-- Histórico de Repasses -->
-    <div id="sec-repasses" style="display:none;margin-top:28px;">
+    <div id="sec-repasses" style="margin-top:28px;">
       <div class="table-card">
         <div class="toolbar">
           <h3>💸 Histórico de Repasses</h3>
@@ -503,8 +503,11 @@
     function renderRepasses() {
       const sec = document.getElementById('sec-repasses');
       const tbody = document.getElementById('repasses-body');
-      if (!repassesData.length) { sec.style.display='none'; return; }
-      sec.style.display='block';
+      sec.style.display = 'block';
+      if (!repassesData.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">💸</div><h4>Nenhum repasse registrado ainda</h4><p>Os pagamentos de comissão realizados pela F&G aparecerão aqui.</p></div></td></tr>`;
+        return;
+      }
       tbody.innerHTML = repassesData.map(r => `
         <tr>
           <td style="padding:14px 20px;font-weight:800;color:#1B263B;">${MESES[r.periodo_mes]}/${r.periodo_ano}</td>
