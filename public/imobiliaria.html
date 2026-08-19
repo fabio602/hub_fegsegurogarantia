@@ -601,12 +601,10 @@
   }
 
   function renderDashboard(cs) {
-    // Apenas clientes do portal (is_repasse=true), não os 95 importados
-    const portalCs = cs.filter(c => c.is_repasse === true);
-    const ativos = portalCs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
-    const aguardando = portalCs.filter(c => c.status_residencial === 'aguardando_cotacao' || c.status_garantia === 'aguardando_cotacao').length;
-    const emitidos = portalCs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
-    const total = cs.filter(c => c.status === 'ativo' && c.is_repasse === true).reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
+    const ativos = cs.filter(c => c.status === 'ativo').length;
+    const emitidos = cs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
+    const aguardando = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
+    const total = cs.filter(c => c.status === 'ativo').reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('d-ativos').textContent = ativos;
     document.getElementById('d-emitidos').textContent = emitidos;
     document.getElementById('d-aguardando').textContent = aguardando;
