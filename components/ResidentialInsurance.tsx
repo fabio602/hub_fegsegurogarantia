@@ -333,6 +333,19 @@ const ResidentialInsurance: React.FC = () => {
         // Situações que encerram o fluxo → kanban_status = 'recusado' no portal
         const SITUACOES_RECUSADAS = ['Desistiu da Locação', 'Optou Não Contratar', 'Cancelado', 'Reprovado', 'Saiu do Imóvel'];
 
+        // Mapeamento hub situacao → portal status_apolice
+        const SITUACAO_MAP: Record<string, string> = {
+            'Ativo':               'ativo',
+            'Vencido':             'vencido',
+            'Cancelado':           'cancelado',
+            'Reprovado':           'reprovado',
+            'Saiu do Imóvel':      'saiu_imovel',
+            'Desistiu da Locação': 'desistiu',
+            'Optou Não Contratar': 'desistiu',
+            'Pendente Renovação':  'pendente_renovacao',
+            'Em Renovação':        'em_renovacao',
+        };
+
         try {
             if (editingId) {
                 const { error } = await supabase.from('residential_clients').update(payload).eq('id', editingId);
@@ -354,19 +367,15 @@ const ResidentialInsurance: React.FC = () => {
                             // Sempre sincroniza vigência e apólice
                             if (payload.fim_vigencia) imobUpdate.vigencia_fim = payload.fim_vigencia;
                             if (payload.apolice) imobUpdate.numero_apolice = payload.apolice;
-                            // Situação → status no portal
+                            // Situação → status no portal (mapeamento completo)
+                            const statusPortal = SITUACAO_MAP[payload.situacao ?? ''];
+                            if (statusPortal) imobUpdate.status_apolice = statusPortal;
                             if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) {
                                 imobUpdate.kanban_status = 'recusado';
                                 imobUpdate.status = 'cancelado';
-                                imobUpdate.status_apolice = 'cancelado';
                             } else if (payload.situacao === 'Ativo') {
                                 imobUpdate.status = 'ativo';
-                                imobUpdate.status_apolice = 'ativo';
                                 imobUpdate.status_residencial = payload.apolice ? 'emitido' : 'aprovado';
-                            } else if (payload.situacao === 'Vencido') {
-                                imobUpdate.status_apolice = 'vencido';
-                            } else if (payload.situacao === 'Pendente Renovação' || payload.situacao === 'Em Renovação') {
-                                imobUpdate.status_apolice = 'ativo';
                             }
                             await supabase.from('imobiliaria_clientes').update(imobUpdate).eq('id', imobCliente.id);
                         }

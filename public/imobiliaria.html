@@ -667,13 +667,34 @@
     ativo:              ['#f5faf7','#2d6a4f','🟢 Ativo'],
     pagamento_atrasado: ['#fdf6ee','#b8895a','🟡 Pgto. atrasado'],
     cancelado:          ['#fdf2f0','#9b1c1c','🔴 Cancelado'],
-    em_renovacao:       ['#f5f7fa','#1B263B','🔵 Em renovação'],
+    em_renovacao:       ['#eef2ff','#3730a3','🔵 Em Renovação'],
+    pendente_renovacao: ['#fef9c3','#a16207','🟡 Pendente Renovação'],
+    vencido:            ['#fdf2f0','#9b1c1c','🔴 Vencido'],
+    saiu_imovel:        ['#f5f3ff','#6d28d9','🚪 Saiu do Imóvel'],
+    desistiu:           ['#f8fafc','#64748b','⛔ Desistiu'],
+    reprovado:          ['#fdf2f0','#9b1c1c','❌ Reprovado'],
   };
+
+  // Prioridade para deduplicação: menor índice = mais prioritário
+  const PRIORIDADE = ['ativo','em_renovacao','pendente_renovacao','pagamento_atrasado','vencido','cancelado','saiu_imovel','desistiu','reprovado'];
 
   function renderCarteira(cs) {
     const tbody = document.getElementById('carteira-body');
     if (!cs.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Nenhum cliente cadastrado.</td></tr>'; return; }
-    tbody.innerHTML = cs.map(c => {
+
+    // Deduplicar por nome: manter apenas o registro com status mais prioritário
+    const mapa = new Map();
+    cs.forEach(c => {
+      const nome = (c.inquilino_nome || '').toUpperCase().trim();
+      const existing = mapa.get(nome);
+      if (!existing) { mapa.set(nome, c); return; }
+      const priAtual  = PRIORIDADE.indexOf(existing.status_apolice || 'cancelado');
+      const priNovo   = PRIORIDADE.indexOf(c.status_apolice || 'cancelado');
+      if (priNovo < priAtual) mapa.set(nome, c); // novo é mais prioritário
+    });
+    const lista = [...mapa.values()].sort((a,b) => (a.inquilino_nome||'').localeCompare(b.inquilino_nome||'', 'pt-BR'));
+
+    tbody.innerHTML = lista.map(c => {
       const temG = c.tipo_seguro === 'residencial_garantia';
       const [bg, col, sitLabel] = SITUACAO[c.status_apolice || 'ativo'] || SITUACAO.ativo;
       const situacaoBadge = `<span style="background:${bg};color:${col};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:900;display:inline-block">${sitLabel}</span>`;
