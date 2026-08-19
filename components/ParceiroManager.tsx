@@ -51,6 +51,28 @@ const ParceiroManager: React.FC = () => {
     const [testSendingId, setTestSendingId] = useState<number | null>(null);
     const [testSuccessId, setTestSuccessId] = useState<number | null>(null);
     const [welcomeModal, setWelcomeModal] = useState<Parceiro | null>(null);
+    const [sendingWelcome, setSendingWelcome] = useState(false);
+    const [welcomeSent, setWelcomeSent] = useState(false);
+
+    const enviarBoasVindas = async (p: Parceiro) => {
+        if (!p.email) return;
+        setSendingWelcome(true);
+        setWelcomeSent(false);
+        try {
+            const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-welcome-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: p.name, email: p.email, username: p.username, password: p.password }),
+            });
+            if (!res.ok) throw new Error('Erro ao enviar');
+            setWelcomeSent(true);
+            setTimeout(() => { setWelcomeSent(false); setWelcomeModal(null); }, 2500);
+        } catch (e: any) {
+            alert('Erro ao enviar: ' + e.message);
+        } finally {
+            setSendingWelcome(false);
+        }
+    };
 
     // ── Repasse ──────────────────────────────────────────────
     const [repasseModal, setRepasseModal] = useState<Parceiro | null>(null);
@@ -637,12 +659,17 @@ const ParceiroManager: React.FC = () => {
                         )}
                         <div className="flex gap-3 mt-4">
                             {welcomeModal.email && (
-                                <a
-                                    href={`mailto:${welcomeModal.email}?subject=${encodeURIComponent('Bem-vindo ao Portal de Parceiros — F&G Seguro Garantia')}&body=${encodeURIComponent(`Prezados ${welcomeModal.name},\n\nÉ com prazer que disponibilizamos o seu acesso ao Portal de Parceiros F&G Seguro Garantia, onde vocês podem acompanhar em tempo real todas as apólices emitidas através das indicações de vocês e o histórico de comissões.\n\nAcesso ao portal:\n🔗 hub.fegsegurogarantia.com/parceiros-login.html\n👤 Login: ${welcomeModal.username}\n🔒 Senha: ${welcomeModal.password}\n\nRecomendamos alterar a senha no primeiro acesso — há uma opção disponível diretamente no portal.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
-                                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all"
-                                >
-                                    <Mail size={15} /> Abrir no meu e-mail
-                                </a>
+                                welcomeSent ? (
+                                    <div className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-700 font-black text-sm rounded-xl border border-emerald-200">
+                                        <CheckCircle2 size={15}/> E-mail enviado com sucesso!
+                                    </div>
+                                ) : (
+                                    <button onClick={() => enviarBoasVindas(welcomeModal)} disabled={sendingWelcome}
+                                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
+                                        {sendingWelcome ? <Loader2 size={15} className="animate-spin"/> : <Mail size={15}/>}
+                                        {sendingWelcome ? 'Enviando...' : 'Enviar e-mail de boas-vindas'}
+                                    </button>
+                                )
                             )}
                             <button onClick={() => setWelcomeModal(null)} className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
                                 Fechar
