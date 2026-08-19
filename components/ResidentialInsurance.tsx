@@ -170,10 +170,24 @@ const ResidentialInsurance: React.FC = () => {
             // Save to residential_clients
             await supabase.from('residential_clients').update({ apolice_url: url }).eq('id', editingId);
             // Sync to imobiliaria_clientes if client has a partner
-            if (formData.parceiro_nome && formData.apolice) {
-                await supabase.from('imobiliaria_clientes')
-                    .update({ apolice_residencial_url: url, status_residencial: 'emitido', kanban_status: 'aprovado' })
-                    .eq('numero_apolice', formData.apolice);
+            if (formData.parceiro_nome && formData.nome) {
+                const syncPayload = { apolice_residencial_url: url, status_residencial: 'emitido', kanban_status: 'aprovado', numero_apolice: formData.apolice || undefined };
+                // Tenta por apólice primeiro; fallback por nome do inquilino
+                if (formData.apolice) {
+                    const { data: byApolice } = await supabase.from('imobiliaria_clientes')
+                        .update(syncPayload)
+                        .eq('numero_apolice', formData.apolice)
+                        .select('id');
+                    if (!byApolice?.length) {
+                        await supabase.from('imobiliaria_clientes')
+                            .update(syncPayload)
+                            .ilike('inquilino_nome', formData.nome.trim());
+                    }
+                } else {
+                    await supabase.from('imobiliaria_clientes')
+                        .update(syncPayload)
+                        .ilike('inquilino_nome', formData.nome.trim());
+                }
             }
             setFormData(prev => ({ ...prev, apolice_url: url } as any));
             alert('✅ PDF da apólice enviado com sucesso!');
