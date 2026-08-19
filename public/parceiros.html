@@ -189,8 +189,20 @@
       </div>
     </div>
 
+    <!-- TABS -->
+    <div style="display:flex;gap:0;border-bottom:2px solid #e8e4dc;margin-bottom:0;">
+      <button id="tab-clientes" onclick="trocarAba('clientes')"
+        style="padding:12px 24px;font-size:13px;font-weight:900;color:#1B263B;border:none;background:none;cursor:pointer;border-bottom:3px solid #C69C6D;margin-bottom:-2px;transition:all .2s;">
+        📋 Clientes e Comissões
+      </button>
+      <button id="tab-repasses" onclick="trocarAba('repasses')"
+        style="padding:12px 24px;font-size:13px;font-weight:900;color:#94a3b8;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;">
+        💸 Histórico de Repasses
+      </button>
+    </div>
+
     <!-- TABLE CARD -->
-    <div class="table-card">
+    <div id="aba-clientes" class="table-card" style="border-radius:0 0 20px 20px;">
       <div class="toolbar">
         <h3>Clientes e comissões</h3>
         <div class="filter-group">
@@ -251,9 +263,9 @@
       <div class="pagination" id="pagination" style="display:none"></div>
     </div>
 
-    <!-- Histórico de Repasses -->
-    <div id="sec-repasses" style="margin-top:28px;">
-      <div class="table-card">
+    <!-- Histórico de Repasses (aba) -->
+    <div id="aba-repasses" style="display:none;">
+      <div class="table-card" style="border-radius:0 0 20px 20px;">
         <div class="toolbar">
           <h3>💸 Histórico de Repasses</h3>
           <span style="font-size:12px;color:#94a3b8;font-weight:600;">Seus pagamentos de comissão realizados pela F&G Seguro Garantia</span>
@@ -572,6 +584,16 @@
       document.getElementById('filtro-mes').value = mesAtual;
 
       aplicarFiltros();
+    }
+
+    function trocarAba(aba) {
+      const isClientes = aba === 'clientes';
+      document.getElementById('aba-clientes').style.display = isClientes ? 'block' : 'none';
+      document.getElementById('aba-repasses').style.display = isClientes ? 'none' : 'block';
+      document.getElementById('tab-clientes').style.color = isClientes ? '#1B263B' : '#94a3b8';
+      document.getElementById('tab-clientes').style.borderBottomColor = isClientes ? '#C69C6D' : 'transparent';
+      document.getElementById('tab-repasses').style.color = isClientes ? '#94a3b8' : '#1B263B';
+      document.getElementById('tab-repasses').style.borderBottomColor = isClientes ? 'transparent' : '#C69C6D';
     }
 
     carregar();
