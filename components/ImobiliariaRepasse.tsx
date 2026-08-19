@@ -176,7 +176,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   // Pendentes = solicitações da imobiliária sem apólice ainda emitida
   const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
-  const ativos = clientes.filter(c => c.status === 'ativo' && (c.numero_apolice || !['solicitado','atendimento_iniciado','aguardando_seguradora'].includes((c as any).kanban_status || '')));
+  const ativos = clientes.filter(c => c.status === 'ativo' && (c as any).is_repasse === true);
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
@@ -525,7 +525,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
             <p className="font-black text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
-            <p className="text-xs font-bold text-slate-400">Clique em "Avançar Parcela" quando o pagamento do mês for confirmado</p>
+            <p className="text-xs font-bold text-slate-400">Clique em "Avançar Parcela" nos clientes com repasse quando o pagamento for confirmado</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -603,13 +603,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                           title="Atualizar status e apólice">
                           <Pencil size={12} className="inline mr-1" /> Status
                         </button>
-                        <button
-                          onClick={() => avancarParcela(c)}
-                          className="px-3 py-1.5 bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-xs font-black rounded-lg transition-colors"
-                          title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
-                        >
-                          {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
-                        </button>
+                        {(c as any).is_repasse && (
+                          <button
+                            onClick={() => avancarParcela(c)}
+                            className="px-3 py-1.5 bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-xs font-black rounded-lg transition-colors"
+                            title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
+                          >
+                            {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
+                          </button>
+                        )}
                         {confirmDelete === c.id ? (
                           <div className="flex items-center gap-1">
                             <button onClick={() => deletar(c.id)} className="text-red-500 text-xs font-bold hover:text-red-700">Confirmar</button>

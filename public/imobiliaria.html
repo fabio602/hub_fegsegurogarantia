@@ -705,7 +705,7 @@
       mesRef = parseInt(m); anoRef = parseInt(a);
       mesNome = new Date(anoRef, mesRef - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     }
-    const ativos = cs.filter(c => c.status === 'ativo');
+    const ativos = cs.filter(c => c.status === 'ativo' && c.is_repasse === true);
     const total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('r-total').textContent = total > 0 ? fmtBRL(total) : '—';
     document.getElementById('r-mes').textContent = `Clientes com parcela em aberto — ${mesNome}`;
@@ -793,6 +793,7 @@
         status: 'ativo', status_residencial: 'aguardando_cotacao',
         status_garantia: tipoSeguro === 'residencial_garantia' ? 'aguardando_cotacao' : null,
         kanban_status: 'solicitado',
+        is_repasse: true,
       };
       const res = await fetch(`${SUPABASE_URL}/functions/v1/imobiliaria-nova-cotacao`, {
         method: 'POST',
