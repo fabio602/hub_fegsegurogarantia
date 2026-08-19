@@ -88,6 +88,35 @@
     .btn-doc       { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: #dcfce7; color: #15803d; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 3px; }
     .btn-doc:hover { background: #bbf7d0; }
 
+    /* ── KANBAN ── */
+    .kanban-wrap { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+    .kanban-col { background: #f1f5f9; border-radius: 18px; padding: 14px; min-width: 220px; flex: 1; }
+    .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .kanban-col-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    .kanban-count { background: #e2e8f0; color: #64748b; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 20px; }
+    .kanban-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; border: 1px solid #e2e8f0; cursor: default; transition: box-shadow .2s; }
+    .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .kanban-card .kc-nome { font-weight: 900; font-size: 13px; color: #1B263B; margin-bottom: 4px; }
+    .kanban-card .kc-tipo { font-size: 10px; color: #94a3b8; font-weight: 600; }
+    .kanban-card .kc-data { font-size: 10px; color: #cbd5e1; margin-top: 8px; }
+    .kanban-card .kc-badge { display: inline-block; font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 20px; margin-top: 6px; }
+    .col-solicitado .kanban-col-title { color: #64748b; }
+    .col-solicitado .kanban-count { background: #e2e8f0; }
+    .col-atendimento { background: #eff6ff; }
+    .col-atendimento .kanban-col-title { color: #2563eb; }
+    .col-atendimento .kanban-count { background: #dbeafe; color: #2563eb; }
+    .col-seguradora { background: #fefce8; }
+    .col-seguradora .kanban-col-title { color: #854d0e; }
+    .col-seguradora .kanban-count { background: #fef9c3; color: #854d0e; }
+    .col-aprovado { background: #f0fdf4; }
+    .col-aprovado .kanban-col-title { color: #15803d; }
+    .col-aprovado .kanban-count { background: #dcfce7; color: #15803d; }
+    .col-recusado { background: #fff1f2; }
+    .col-recusado .kanban-col-title { color: #b91c1c; }
+    .col-recusado .kanban-count { background: #fee2e2; color: #b91c1c; }
+    .kanban-empty { text-align: center; padding: 20px 10px; color: #cbd5e1; font-size: 12px; font-weight: 600; }
+    .kanban-apolice { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; background: #dcfce7; color: #15803d; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 6px; }
+
     /* ── REPASSE ── */
     .repasse-hero { background: #1B263B; border-radius: 20px; padding: 28px; margin-bottom: 20px; }
     .repasse-hero-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
@@ -168,8 +197,9 @@
 <div class="nav">
   <button class="nav-btn active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
   <button class="nav-btn" onclick="goTo('cotacao')"><span class="icon">➕</span> Solicitar Cotação</button>
+  <button class="nav-btn" onclick="goTo('kanban')"><span class="icon">📊</span> Minhas Solicitações</button>
   <button class="nav-btn" onclick="goTo('carteira')"><span class="icon">📋</span> Carteira de Clientes</button>
-  <button class="nav-btn" onclick="goTo('fatura')"><span class="icon">💰</span> Repasse do Mês</button>
+  <button class="nav-btn" onclick="goTo('fatura')"><span class="icon">💰</span> Fatura Mensal</button>
 </div>
 
 <!-- DASHBOARD -->
@@ -212,6 +242,51 @@
       <button onclick="goTo('carteira')" style="font-size:12px;font-weight:700;color:#C69C6D;background:none;border:none;cursor:pointer">Ver carteira completa →</button>
     </div>
     <div id="ultimas-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
+<!-- KANBAN -->
+<div class="page" id="page-kanban">
+  <div class="section-header">
+    <h2>📊 Minhas Solicitações</h2>
+    <p>Acompanhe em tempo real o andamento de cada cotação solicitada.</p>
+  </div>
+  <div class="kanban-wrap">
+    <div class="kanban-col col-solicitado">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title">📬 Solicitado</span>
+        <span class="kanban-count" id="k-count-solicitado">0</span>
+      </div>
+      <div id="k-col-solicitado"><div class="kanban-empty">Nenhum</div></div>
+    </div>
+    <div class="kanban-col col-atendimento">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title">🔄 F&G em atendimento</span>
+        <span class="kanban-count" id="k-count-atendimento">0</span>
+      </div>
+      <div id="k-col-atendimento"><div class="kanban-empty">Nenhum</div></div>
+    </div>
+    <div class="kanban-col col-seguradora">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title">⏳ Aguardando Seguradora</span>
+        <span class="kanban-count" id="k-count-seguradora">0</span>
+      </div>
+      <div id="k-col-seguradora"><div class="kanban-empty">Nenhum</div></div>
+    </div>
+    <div class="kanban-col col-aprovado">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title">✅ Aprovado</span>
+        <span class="kanban-count" id="k-count-aprovado">0</span>
+      </div>
+      <div id="k-col-aprovado"><div class="kanban-empty">Nenhum</div></div>
+    </div>
+    <div class="kanban-col col-recusado">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title">❌ Recusado</span>
+        <span class="kanban-count" id="k-count-recusado">0</span>
+      </div>
+      <div id="k-col-recusado"><div class="kanban-empty">Nenhum</div></div>
+    </div>
   </div>
 </div>
 
@@ -366,7 +441,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + id).classList.add('active');
-    const idx = ['dashboard','cotacao','carteira','repasse'].indexOf(id);
+    const idx = ['dashboard','cotacao','kanban','carteira','fatura'].indexOf(id);
     document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
   }
 
@@ -411,6 +486,7 @@
       .eq('partner_id', session.id).order('status').order('inquilino_nome');
     todosClientes = data || [];
     renderDashboard(todosClientes);
+    renderKanban(todosClientes);
     renderAlertasVencimento(todosClientes);
     renderUltimas(todosClientes);
     renderCarteira(todosClientes);
@@ -524,6 +600,37 @@
     document.getElementById('d-emitidos').textContent = emitidos;
     document.getElementById('d-aguardando').textContent = aguardando;
     document.getElementById('d-repasse').textContent = total > 0 ? fmtBRL(total) : '—';
+  }
+
+  const KANBAN_COLS = [
+    { key: 'solicitado',          id: 'solicitado',   label: '📬 Solicitado' },
+    { key: 'atendimento_iniciado',id: 'atendimento',  label: '🔄 F&G em atendimento' },
+    { key: 'aguardando_seguradora',id:'seguradora',   label: '⏳ Aguardando Seguradora' },
+    { key: 'aprovado',            id: 'aprovado',     label: '✅ Aprovado' },
+    { key: 'recusado',            id: 'recusado',     label: '❌ Recusado' },
+  ];
+
+  function renderKanban(cs) {
+    // Only show clients with a kanban_status (not yet in carteira as "active policy")
+    KANBAN_COLS.forEach(col => {
+      const cards = cs.filter(c => (c.kanban_status || 'solicitado') === col.key);
+      document.getElementById('k-count-' + col.id).textContent = cards.length;
+      const el = document.getElementById('k-col-' + col.id);
+      if (!cards.length) { el.innerHTML = '<div class="kanban-empty">Nenhum</div>'; return; }
+      el.innerHTML = cards.map(c => {
+        const temG = c.tipo_seguro === 'residencial_garantia';
+        const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR');
+        const apoliceLink = col.key === 'aprovado' && c.apolice_residencial_url
+          ? `<a href="${c.apolice_residencial_url}" target="_blank" class="kanban-apolice">⬇ Apólice</a>` : '';
+        return `<div class="kanban-card">
+          <div class="kc-nome">${c.inquilino_nome || '—'}</div>
+          <div class="kc-tipo">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
+          ${c.valor_seguro > 0 ? `<div style="font-size:11px;font-weight:700;color:#1B263B;margin-top:6px">${fmtBRL(c.valor_seguro)}</div>` : ''}
+          ${apoliceLink}
+          <div class="kc-data">Enviado em ${dataEnvio}</div>
+        </div>`;
+      }).join('');
+    });
   }
 
   const SITUACAO = {
@@ -657,6 +764,7 @@
         data_inicio: new Date().toISOString().split('T')[0],
         status: 'ativo', status_residencial: 'aguardando_cotacao',
         status_garantia: tipoSeguro === 'residencial_garantia' ? 'aguardando_cotacao' : null,
+        kanban_status: 'solicitado',
       };
       const res = await fetch(`${SUPABASE_URL}/functions/v1/imobiliaria-nova-cotacao`, {
         method: 'POST',
