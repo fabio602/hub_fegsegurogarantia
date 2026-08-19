@@ -331,7 +331,7 @@ const ResidentialInsurance: React.FC = () => {
         };
 
         // Situações que encerram o fluxo → kanban_status = 'recusado' no portal
-        const SITUACOES_RECUSADAS = ['Desistiu da Locação', 'Optou Não Contratar', 'Cancelado', 'Reprovado'];
+        const SITUACOES_RECUSADAS = ['Desistiu da Locação', 'Optou Não Contratar', 'Cancelado', 'Reprovado', 'Saiu do Imóvel'];
 
         try {
             if (editingId) {
