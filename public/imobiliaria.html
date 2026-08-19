@@ -378,8 +378,27 @@
   <div id="docs-pending-area"></div>
   <div class="table-card">
     <div class="table-toolbar">
-      <h3>Todos os clientes</h3>
-      <input type="text" class="search-input" id="busca" placeholder="Buscar inquilino..." oninput="filtrar()" />
+      <h3>Todos os clientes <span id="carteira-count" style="font-size:12px;font-weight:600;color:#94a3b8;margin-left:8px"></span></h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" class="search-input" id="busca" placeholder="Buscar inquilino..." oninput="filtrar()" style="min-width:200px;" />
+        <select class="search-input" id="filtro-situacao" onchange="filtrar()" style="min-width:160px;cursor:pointer;">
+          <option value="">Todas situações</option>
+          <option value="ativo">🟢 Ativo</option>
+          <option value="em_renovacao">🔵 Em Renovação</option>
+          <option value="pendente_renovacao">🟡 Pendente Renovação</option>
+          <option value="vencido">🔴 Vencido</option>
+          <option value="cancelado">🔴 Cancelado</option>
+          <option value="saiu_imovel">🚪 Saiu do Imóvel</option>
+          <option value="desistiu">⛔ Desistiu</option>
+          <option value="reprovado">❌ Reprovado</option>
+        </select>
+        <select class="search-input" id="filtro-tipo" onchange="filtrar()" style="min-width:160px;cursor:pointer;">
+          <option value="">Todos os tipos</option>
+          <option value="residencial">🏠 Apenas Residencial</option>
+          <option value="garantia">🏠🔒 Com Garantia</option>
+        </select>
+        <button onclick="limparFiltrosCarteira()" style="padding:8px 14px;background:#f4f1ec;border:1.5px solid #e8e4dc;border-radius:12px;font-size:12px;font-weight:700;color:#78716c;cursor:pointer;">✕ Limpar</button>
+      </div>
     </div>
     <div class="scroll">
       <table>
@@ -693,6 +712,8 @@
       if (priNovo < priAtual) mapa.set(nome, c); // novo é mais prioritário
     });
     const lista = [...mapa.values()].sort((a,b) => (a.inquilino_nome||'').localeCompare(b.inquilino_nome||'', 'pt-BR'));
+    const count = document.getElementById('carteira-count');
+    if (count) count.textContent = lista.length !== todosClientes.length ? `(${lista.length} de ${todosClientes.length})` : `(${lista.length})`;
 
     tbody.innerHTML = lista.map(c => {
       const temG = c.tipo_seguro === 'residencial_garantia';
@@ -716,8 +737,24 @@
   }
 
   function filtrar() {
-    const q = document.getElementById('busca').value.toLowerCase();
-    renderCarteira(q ? todosClientes.filter(c => (c.inquilino_nome||'').toLowerCase().includes(q)) : todosClientes);
+    const q = document.getElementById('busca').value.toLowerCase().trim();
+    const sit = document.getElementById('filtro-situacao').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    const filtrado = todosClientes.filter(c => {
+      if (q && !(c.inquilino_nome||'').toLowerCase().includes(q)) return false;
+      if (sit && (c.status_apolice||'ativo') !== sit) return false;
+      if (tipo === 'residencial' && c.tipo_seguro === 'residencial_garantia') return false;
+      if (tipo === 'garantia' && c.tipo_seguro !== 'residencial_garantia') return false;
+      return true;
+    });
+    renderCarteira(filtrado);
+  }
+
+  function limparFiltrosCarteira() {
+    document.getElementById('busca').value = '';
+    document.getElementById('filtro-situacao').value = '';
+    document.getElementById('filtro-tipo').value = '';
+    filtrar();
   }
 
   function renderRepasse(cs) {
