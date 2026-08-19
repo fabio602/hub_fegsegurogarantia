@@ -19,6 +19,11 @@
     button:hover { background: #243447; }
     button:disabled { opacity: .6; cursor: not-allowed; }
     .erro { color: #ef4444; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; display: none; }
+    .link-forgot { text-align: center; margin-top: 14px; font-size: 12px; color: #94a3b8; }
+    .link-forgot a { color: #C69C6D; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .link-forgot a:hover { text-decoration: underline; }
+    .forgot-form { display: none; }
+    .msg-ok { color: #16a34a; font-size: 13px; font-weight: 700; text-align: center; margin-top: 12px; background: #f0fdf4; padding: 10px; border-radius: 10px; display: none; }
   </style>
 </head>
 <body>
@@ -32,6 +37,15 @@
     <input type="password" id="senha" placeholder="Sua senha" autocomplete="current-password" />
     <button id="btn-login" onclick="login()">Entrar</button>
     <div class="erro" id="erro">Usuário ou senha incorretos.</div>
+    <div class="link-forgot"><a onclick="toggleForgot()">Esqueci minha senha</a></div>
+
+    <!-- Formulário recuperação -->
+    <div class="forgot-form" id="forgot-form" style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:20px;">
+      <label>E-mail cadastrado</label>
+      <input type="email" id="forgot-email" placeholder="seu@email.com" />
+      <button onclick="recuperarSenha()" id="btn-forgot" style="margin-top:8px;">Enviar minha senha</button>
+      <div class="msg-ok" id="msg-ok">✅ Se o e-mail estiver cadastrado, você receberá suas credenciais em instantes.</div>
+    </div>
   </div>
 
   <script>
@@ -76,12 +90,33 @@
       }
 
       localStorage.setItem('parceiro_session', JSON.stringify(data));
-      // Redireciona conforme o tipo do parceiro
       if (data.partner_type === 'imobiliaria') {
         window.location.href = 'imobiliaria.html';
       } else {
         window.location.href = 'parceiros.html';
       }
+    }
+
+    function toggleForgot() {
+      const f = document.getElementById('forgot-form');
+      f.style.display = f.style.display === 'none' || !f.style.display ? 'block' : 'none';
+    }
+
+    async function recuperarSenha() {
+      const email = document.getElementById('forgot-email').value.trim();
+      if (!email) return;
+      const btn = document.getElementById('btn-forgot');
+      btn.disabled = true; btn.textContent = 'Enviando...';
+
+      await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      btn.disabled = false; btn.textContent = 'Enviar minha senha';
+      document.getElementById('msg-ok').style.display = 'block';
+      document.getElementById('forgot-email').value = '';
     }
   </script>
 </body>
