@@ -565,7 +565,7 @@
       }
 
       todasVendas = vendas;
-      await carregarRepasses();
+      try { await carregarRepasses(); } catch(e) { console.warn('Repasses:', e); }
 
       // Preencher anos únicos no filtro
       const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();
