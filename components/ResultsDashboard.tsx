@@ -1002,13 +1002,24 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             // Upload boleto PDF to Storage if provided
             if (selectedBoleto && savedId && payload.vendeu === 'Sim') {
                 const ext = selectedBoleto.name.split('.').pop() || 'pdf';
-                const path = `${savedId}/boleto.${ext}`;
+                const path = `${savedId}/boletos/parcela-1.${ext}`;
                 const { error: uploadError } = await supabase.storage
                     .from('apolices')
                     .upload(path, selectedBoleto, { upsert: true, contentType: 'application/pdf' });
                 if (!uploadError) {
                     const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
-                    await supabase.from('sales').update({ boleto_url: urlData.publicUrl }).eq('id', savedId);
+                    const boletoUrl = urlData.publicUrl;
+                    // Salva em sales.boleto_url (retrocompatibilidade)
+                    await supabase.from('sales').update({ boleto_url: boletoUrl }).eq('id', savedId);
+                    // Registra na tabela boletos (aparece no portal do parceiro)
+                    // Upsert para evitar duplicata se o usuário re-salvar
+                    const { data: existing } = await supabase.from('boletos')
+                        .select('id').eq('sale_id', savedId).eq('parcela', 1).single();
+                    if (existing) {
+                        await supabase.from('boletos').update({ url: boletoUrl }).eq('id', existing.id);
+                    } else {
+                        await supabase.from('boletos').insert({ sale_id: savedId, parcela: 1, url: boletoUrl, pago: false });
+                    }
                 }
             }
 
