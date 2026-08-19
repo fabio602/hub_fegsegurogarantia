@@ -670,10 +670,8 @@
       const temG = c.tipo_seguro === 'residencial_garantia';
       const [bg, col, sitLabel] = SITUACAO[c.status_apolice || 'ativo'] || SITUACAO.ativo;
       const situacaoBadge = `<span style="background:${bg};color:${col};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:900;display:inline-block">${sitLabel}</span>`;
-      const colRes = `<div>${sbadge(c.status_residencial||'aguardando_cotacao')}
-        ${c.apolice_residencial_url ? `<br><a href="${c.apolice_residencial_url}" target="_blank" class="btn-doc">⬇ Apólice</a>` : ''}</div>`;
-      const colGar = temG ? `<div>${sbadge(c.status_garantia||'aguardando_cotacao')}
-        ${c.apolice_garantia_url ? `<br><a href="${c.apolice_garantia_url}" target="_blank" class="btn-doc">⬇ Apólice</a>` : ''}</div>`
+      const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${c.apolice_residencial_url ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#15803d;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`;
+      const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${c.apolice_garantia_url ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#15803d;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`
         : `<span style="color:#cbd5e1;font-size:12px">—</span>`;
       return `<tr>
         <td style="font-weight:800">${c.inquilino_nome||'—'}</td>
