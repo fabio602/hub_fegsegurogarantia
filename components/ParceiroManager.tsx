@@ -59,15 +59,11 @@ const ParceiroManager: React.FC = () => {
         setSendingWelcome(true);
         setWelcomeSent(false);
         try {
-            const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-welcome-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ',
-                },
-                body: JSON.stringify({ name: p.name, email: p.email, username: p.username, password: p.password }),
+            const { data, error } = await supabase.functions.invoke('parceiro-welcome-email', {
+                body: { name: p.name, email: p.email, username: p.username, password: p.password },
             });
-            if (!res || !res.ok) throw new Error(res ? await res.text() : 'Sem resposta do servidor');
+            if (error) throw new Error(error.message || String(error));
+            if (data && !data.success) throw new Error(data.error || 'Erro desconhecido');
             setWelcomeSent(true);
             setTimeout(() => { setWelcomeSent(false); setWelcomeModal(null); }, 2500);
         } catch (e: any) {

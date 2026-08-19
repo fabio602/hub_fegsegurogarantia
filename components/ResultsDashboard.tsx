@@ -1036,16 +1036,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 if (pData?.email) {
                     setPartnerThankYou({ name: pData.name, email: pData.email, clientName: payload.nome || '' });
                     // Disparo automático — não bloqueia o fluxo principal
-                    fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parceiro-referral-thanks', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    supabase.functions.invoke('parceiro-referral-thanks', {
+                        body: {
                             partnerName: pData.name,
                             partnerEmail: pData.email,
                             clientName: payload.nome || '',
-                            productType: payload.tipo || payload.product_type || 'Seguro Garantia',
-                        }),
-                    }).catch(e => console.warn('Parceiro email:', e));
+                            productType: payload.tipo || (payload as any).product_type || 'Seguro Garantia',
+                        },
+                    }).catch((e: any) => console.warn('Parceiro referral email:', e));
                 }
             }
 
