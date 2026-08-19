@@ -312,15 +312,28 @@ const ResidentialInsurance: React.FC = () => {
             if (editingId) {
                 const { error } = await supabase.from('residential_clients').update(payload).eq('id', editingId);
                 if (error) throw error;
-                // Se situação virou "encerrada", sincroniza kanban do portal imobiliária
-                if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) {
-                    let q = supabase.from('imobiliaria_clientes').update({ kanban_status: 'recusado' });
-                    if (payload.apolice) {
-                        q = q.eq('numero_apolice', payload.apolice);
-                    } else if (payload.parceiro_nome && payload.nome) {
-                        q = q.eq('parceiro_nome', payload.parceiro_nome).eq('nome', payload.nome);
+
+                // ── Sync imobiliaria_clientes: a tag é a fonte de verdade ──
+                // Encontra o registro correspondente por apólice ou nome
+                const findQuery = payload.apolice
+                    ? supabase.from('imobiliaria_clientes').select('id').eq('numero_apolice', payload.apolice).maybeSingle()
+                    : supabase.from('imobiliaria_clientes').select('id').ilike('inquilino_nome', payload.nome ?? '').maybeSingle();
+                const { data: imobCliente } = await findQuery;
+
+                if (imobCliente) {
+                    if (payload.parceiro_nome) {
+                        // Busca partner_id pelo nome da imobiliária
+                        const { data: partner } = await supabase.from('partners').select('id').eq('name', payload.parceiro_nome).maybeSingle();
+                        if (partner) {
+                            const imobUpdate: Record<string, unknown> = { partner_id: partner.id };
+                            // Se situação encerrada → kanban recusado
+                            if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) imobUpdate.kanban_status = 'recusado';
+                            await supabase.from('imobiliaria_clientes').update(imobUpdate).eq('id', imobCliente.id);
+                        }
+                    } else {
+                        // Tag removida → desvincula do portal (partner_id = null)
+                        await supabase.from('imobiliaria_clientes').update({ partner_id: null }).eq('id', imobCliente.id);
                     }
-                    await q;
                 }
             } else {
                 const { error } = await supabase.from('residential_clients').insert([payload]);
