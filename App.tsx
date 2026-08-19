@@ -654,7 +654,7 @@ const App: React.FC = () => {
               )}
 
               {/* Responsabilidade Civil */}
-              {activeView === 'imobiliaria-repasse' && <ImobiliariaRepasse />}
+              {activeView === 'imobiliaria-repasse' && <ImobiliariaRepasse onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
               {activeView === 'rc' && <RCInsurance />}
               {activeView === 'rc-seguradoras' && (
                 <InsuranceDirectory

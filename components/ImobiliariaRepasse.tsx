@@ -63,7 +63,7 @@ function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; fi
   );
 }
 
-export default function ImobiliariaRepasse() {
+export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data: { nome: string; telefone: string }) => void } = {}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [parceiros, setParceiros] = useState<{id: number; name: string}[]>([]);
   const [filterParceiro, setFilterParceiro] = useState<number | null>(null);
@@ -415,7 +415,14 @@ export default function ImobiliariaRepasse() {
             </div>
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
               {KANBAN_COLS.map(col => {
-                const colCards = clientes.filter(c => ((c as any).kanban_status || 'solicitado') === col.key);
+                // Pending always show; approved/rejected only last 3 days
+                const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+                const colCards = clientes.filter(c => {
+                  const status = (c as any).kanban_status || 'solicitado';
+                  if (status !== col.key) return false;
+                  if (['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(status)) return true;
+                  return new Date(c.created_at) >= tresDiasAtras;
+                });
                 const isOver = dragOver === col.key;
                 return (
                   <div
@@ -475,6 +482,14 @@ export default function ImobiliariaRepasse() {
                                 <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md">📄 Apólice</span>
                               )}
                             </div>
+                            {col.key === 'aprovado' && onGoToSale && (
+                              <button
+                                onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
+                                className="mt-2 w-full text-[10px] font-black bg-[#C69C6D] hover:bg-[#b8895a] text-white py-1.5 rounded-lg transition-colors"
+                              >
+                                → Registro de Venda
+                              </button>
+                            )}
                           </div>
                         );
                       })
