@@ -645,12 +645,20 @@
         const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR');
         const apoliceLink = col.key === 'aprovado' && c.apolice_residencial_url
           ? `<a href="${c.apolice_residencial_url}" target="_blank" class="kanban-apolice">⬇ Apólice</a>` : '';
+        // Status badges
+        const sResLabel = { aguardando_cotacao:'Aguardando', em_analise:'Em análise', aprovado:'Aprovado', emitido:'Emitido', recusado:'Recusado' };
+        const sResColor = { aguardando_cotacao:'#78716c', em_analise:'#1e40af', aprovado:'#2d6a4f', emitido:'#C69C6D', recusado:'#9b1c1c' };
+        const sRes = c.status_residencial || 'aguardando_cotacao';
+        const sGar = c.status_garantia || 'aguardando_cotacao';
+        const resBadge = `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sRes]||'#78716c'};background:${sResColor[sRes]||'#78716c'}18;padding:2px 7px;border-radius:20px">Residencial: ${sResLabel[sRes]||sRes}</span>`;
+        const garBadge = temG ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sGar]||'#78716c'};background:${sResColor[sGar]||'#78716c'}18;padding:2px 7px;border-radius:20px">Garantia: ${sResLabel[sGar]||sGar}</span>` : '';
         return `<div class="kanban-card">
           <div class="kc-nome">${c.inquilino_nome || '—'}</div>
-          <div class="kc-tipo">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
-          ${c.valor_seguro > 0 ? `<div style="font-size:11px;font-weight:700;color:#1B263B;margin-top:6px">${fmtBRL(c.valor_seguro)}</div>` : ''}
+          <div class="kc-tipo" style="margin-bottom:6px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px">${resBadge}${garBadge}</div>
+          ${c.valor_seguro > 0 ? `<div style="font-size:11px;font-weight:700;color:#1B263B">${fmtBRL(c.valor_seguro)}</div>` : ''}
           ${apoliceLink}
-          <div class="kc-data">Enviado em ${dataEnvio}</div>
+          <div class="kc-data">${dataEnvio}</div>
         </div>`;
       }).join('');
     });
