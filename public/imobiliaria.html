@@ -192,6 +192,10 @@
       <div class="sub">Portal Imobiliária — F&G Seguro Garantia</div>
     </div>
   </div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.45);font-weight:700;">
+    <span id="rt-status" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;transition:background .5s;"></span>
+    AO VIVO
+  </div>
   <button class="btn-sair" onclick="sair()">Sair</button>
 </div>
 
@@ -813,31 +817,48 @@
 
   carregar();
 
-  // Realtime: update kanban and carteira when kanban_status changes
-  const channel = client
-    .channel('imobiliaria-clientes-changes')
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'imobiliaria_clientes',
-      filter: `partner_id=eq.${session.id}`,
-    }, (payload) => {
-      // Update the client in todosClientes
-      const updated = payload.new;
-      const idx = todosClientes.findIndex(c => c.id === updated.id);
-      if (idx !== -1) {
-        todosClientes[idx] = { ...todosClientes[idx], ...updated };
-      } else {
-        todosClientes.push(updated);
-      }
-      renderDashboard(todosClientes);
-      renderKanban(todosClientes);
-      renderAlertasVencimento(todosClientes);
-      renderCarteira(todosClientes);
-      renderRepasse(todosClientes);
-      renderDocsPendentes(todosClientes);
-    })
-    .subscribe();
+  // ── REALTIME — zero delay ────────────────────────────────
+  function iniciarRealtime() {
+    return client
+      .channel('imobiliaria-clientes-rt-' + Date.now())
+      .on('postgres_changes', {
+        event: '*', // INSERT + UPDATE + DELETE
+        schema: 'public',
+        table: 'imobiliaria_clientes',
+        filter: `partner_id=eq.${session.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          todosClientes = todosClientes.filter(c => c.id !== payload.old.id);
+        } else {
+          const updated = payload.new;
+          const idx = todosClientes.findIndex(c => c.id === updated.id);
+          if (idx !== -1) {
+            todosClientes[idx] = { ...todosClientes[idx], ...updated };
+          } else {
+            todosClientes.push(updated);
+          }
+        }
+        renderDashboard(todosClientes);
+        renderKanban(todosClientes);
+        renderAlertasVencimento(todosClientes);
+        renderCarteira(todosClientes);
+        renderRepasse(todosClientes);
+        renderDocsPendentes(todosClientes);
+      })
+      .subscribe((status) => {
+        const dot = document.getElementById('rt-status');
+        if (dot) dot.style.background = status === 'SUBSCRIBED' ? '#22c55e' : '#f59e0b';
+      });
+  }
+
+  let rtChannel = iniciarRealtime();
+
+  // Reconecta automaticamente se a conexão cair
+  setInterval(() => {
+    if (rtChannel.state === 'closed' || rtChannel.state === 'errored') {
+      rtChannel = iniciarRealtime();
+    }
+  }, 10000);
 </script>
 </body>
 </html>
