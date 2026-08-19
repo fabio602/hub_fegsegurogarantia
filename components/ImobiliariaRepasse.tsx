@@ -244,7 +244,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -423,7 +423,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <h3 className="font-black text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
                 // Pending always show; approved/rejected only last 3 days
                 const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
@@ -438,7 +438,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   <div
                     key={col.key}
                     className={`rounded-3xl ${col.bg} border-2 ${isOver ? 'border-[#C69C6D] shadow-lg' : col.border} transition-all`}
-                    style={{ minWidth: 200, flex: 1, padding: '14px' }}
+                    style={{ minWidth: 0, padding: '12px' }}
                     onDragOver={e => { e.preventDefault(); setDragOver(col.key); }}
                     onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
                     onDrop={e => {
