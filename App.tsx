@@ -100,7 +100,7 @@ const VIEW_TITLES: Record<View, string> = {
   whatsapp: 'WhatsApp — Inbox',
   'whatsapp-blast': 'WhatsApp — Prospecção',
   'email-followup': 'Follow-up de Email',
-  'imobiliaria-repasse': 'Repasse Bordin e Zanolla',
+  'imobiliaria-repasse': 'Repasse Imobiliárias',
 };
 
 const App: React.FC = () => {
@@ -392,7 +392,7 @@ const App: React.FC = () => {
                 <NavSubItem view="residential" label="Registro de Vendas" />
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
-                <NavSubItem view="imobiliaria-repasse" label="Repasse Bordin e Zanolla" />
+                <NavSubItem view="imobiliaria-repasse" label="Repasse Imobiliárias" />
               </NavGroup>
 
               {/* ── Responsabilidade Civil ──────────────── */}
