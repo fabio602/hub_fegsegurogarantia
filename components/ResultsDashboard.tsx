@@ -549,7 +549,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 { data: boletosAllData },
                 { data: parceirosData }
             ] = await Promise.all([
-                supabase.from('sales').select('*').order('data', { ascending: false }),
+                supabase.from('sales').select('*').order('created_at', { ascending: false }),
                 supabase.from('lead_costs').select('*'),
                 supabase.from('insurers').select('*').order('nome'),
                 supabase.from('sellers').select('*').order('name'),
