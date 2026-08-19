@@ -247,6 +247,8 @@
               <th onclick="ordenar('data')">Data <span id="sort-data"></span></th>
               <th onclick="ordenar('nome')">Cliente <span id="sort-nome"></span></th>
               <th>Produto</th>
+              <th>Segurado / Órgão</th>
+              <th>IS Garantida</th>
               <th onclick="ordenar('premio')">Prêmio <span id="sort-premio"></span></th>
               <th onclick="ordenar('comissao')">Comissão F&G <span id="sort-comissao"></span></th>
               <th>Sua Comissão</th>
@@ -255,7 +257,7 @@
             </tr>
           </thead>
           <tbody id="tabela-body">
-            <tr><td colspan="8"><div class="empty-state"><div class="icon">⏳</div><h4>Carregando...</h4></div></td></tr>
+            <tr><td colspan="10"><div class="empty-state"><div class="icon">⏳</div><h4>Carregando...</h4></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -447,6 +449,8 @@
           ).join('');
         }
 
+        const seguradoOrgao = v.segurado || v.orgaoLicitante || '—';
+        const isVal = v.is ? fmt(parseVal(v.is)) : '—';
         return `<tr>
           <td class="td-data">${fmtData(v.data)}</td>
           <td class="td-nome">${v.nome || '—'}</td>
@@ -454,6 +458,8 @@
             ${v.product_type || 'Seguro Garantia'}
             ${v.tipo ? `<br><span style="font-size:11px;font-weight:700;color:#C69C6D;background:rgba(198,156,109,.1);padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;">${v.tipo}</span>` : ''}
           </td>
+          <td style="font-size:12px;color:#475569;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${seguradoOrgao}">${seguradoOrgao}</td>
+          <td style="font-weight:700;color:#1B263B;white-space:nowrap">${isVal}</td>
           <td class="td-valor">${fmt(parseVal(v.premio))}</td>
           <td class="td-comissao">${fmt(comissao)}</td>
           <td class="td-parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
@@ -541,7 +547,7 @@
     async function carregar() {
       const { data, error } = await client
         .from('sales')
-        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url')
+        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, segurado, is, orgaoLicitante')
         .eq('vendeu', 'Sim')
         .eq('parceiro', session.name)
         .order('data', { ascending: false });
