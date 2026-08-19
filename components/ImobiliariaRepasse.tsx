@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
-  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle
+  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -14,7 +14,12 @@ interface Cliente {
   parcela_atual: number;
   total_parcelas: number;
   data_inicio: string;
-  status: 'ativo' | 'encerrado';
+  status: 'ativo' | 'encerrado' | 'aguardando_cotacao';
+  tipo_seguro?: string;
+  status_residencial?: string;
+  status_garantia?: string | null;
+  apolice_residencial_url?: string | null;
+  apolice_garantia_url?: string | null;
   observacoes?: string;
   created_at: string;
 }
@@ -44,6 +49,28 @@ export default function ImobiliariaRepasse() {
   const [sendError, setSendError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showEncerrados, setShowEncerrados] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
+  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '' });
+
+  const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Recusado' };
+  const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-red-50 text-red-700' };
+
+  const openEditStatus = (c: Cliente) => {
+    setEditingStatus(c);
+    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '' });
+  };
+  const saveStatus = async () => {
+    if (!editingStatus) return;
+    await supabase.from('imobiliaria_clientes').update({
+      status_residencial: editStatusForm.status_residencial,
+      status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
+      apolice_residencial_url: editStatusForm.apolice_residencial_url || null,
+      apolice_garantia_url: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.apolice_garantia_url || null : null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', editingStatus.id);
+    setEditingStatus(null);
+    load();
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -287,8 +314,8 @@ export default function ImobiliariaRepasse() {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Inquilino</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seguradora</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Apólice</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status Residencial</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status Garantia</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
                   <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parcela</th>
                   <th className="px-5 py-3"></th>
@@ -305,8 +332,22 @@ export default function ImobiliariaRepasse() {
                         <span className="font-bold text-slate-800 text-sm">{c.inquilino_nome}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-600">{c.seguradora}</td>
-                    <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice}</td>
+                    <td className="px-5 py-4">
+                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                        {STATUS_LABELS[c.status_residencial || 'aguardando_cotacao']}
+                      </span>
+                      {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
+                    </td>
+                    <td className="px-5 py-4">
+                      {c.tipo_seguro === 'residencial_garantia' ? (
+                        <>
+                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                            {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
+                          </span>
+                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
+                        </>
+                      ) : <span className="text-slate-300 text-xs">—</span>}
+                    </td>
                     <td className="px-5 py-4 text-sm font-black text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
                     <td className="px-5 py-4 text-center">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${
@@ -319,6 +360,11 @@ export default function ImobiliariaRepasse() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2 justify-end">
+                        <button onClick={() => openEditStatus(c)}
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-black rounded-lg transition-colors"
+                          title="Atualizar status e apólice">
+                          <Pencil size={12} className="inline mr-1" /> Status
+                        </button>
                         <button
                           onClick={() => avancarParcela(c)}
                           className="px-3 py-1.5 bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-xs font-black rounded-lg transition-colors"
@@ -373,6 +419,52 @@ export default function ImobiliariaRepasse() {
           )}
         </div>
       )}
+    {/* Edit Status Modal */}
+    {editingStatus && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
+            <button onClick={() => setEditingStatus(null)}><X size={18} className="text-slate-400" /></button>
+          </div>
+          <p className="text-sm font-bold text-slate-600">{editingStatus.inquilino_nome}</p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status — Seg. Residencial</label>
+              <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Link Apólice Residencial</label>
+              <input value={editStatusForm.apolice_residencial_url} onChange={e => setEditStatusForm(f => ({...f, apolice_residencial_url: e.target.value}))}
+                placeholder="https://..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+            </div>
+            {editingStatus.tipo_seguro === 'residencial_garantia' && (<>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status — Garantia de Aluguel</label>
+                <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                  {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Link Apólice Garantia</label>
+                <input value={editStatusForm.apolice_garantia_url} onChange={e => setEditStatusForm(f => ({...f, apolice_garantia_url: e.target.value}))}
+                  placeholder="https://..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+              </div>
+            </>)}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditingStatus(null)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
+            <button onClick={saveStatus} className="flex-1 py-2.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm transition-colors">Salvar</button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
