@@ -38,6 +38,8 @@ interface ResidentialClient {
     created_at?: string;
     /** true = formulário público (RLS anon); legado: obs com marcador */
     origem_publica?: boolean | null;
+    /** Nome da imobiliária parceira que enviou a solicitação */
+    parceiro_nome?: string | null;
 }
 
 const EMPTY_FORM: Partial<ResidentialClient> = {
@@ -881,6 +883,11 @@ const ResidentialInsurance: React.FC = () => {
                                                 {isNovoLead(c) && (
                                                     <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
                                                         Novo lead
+                                                    </span>
+                                                )}
+                                                {c.parceiro_nome && (
+                                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                                        🏠 {c.parceiro_nome.replace('Imobiliária ', '')}
                                                     </span>
                                                 )}
                                             </div>
