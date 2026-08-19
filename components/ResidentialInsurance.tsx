@@ -151,6 +151,11 @@ const ResidentialInsurance: React.FC = () => {
     const [search, setSearch] = useState('');
     const [filterProduto, setFilterProduto] = useState('');
     const [filterSituacao, setFilterSituacao] = useState('');
+    const [imobParceiros, setImobParceiros] = useState<string[]>([]);
+    useEffect(() => {
+        supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
+            .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name.replace('Imobiliária ', ''))));
+    }, []);
     const [filterPagamento, setFilterPagamento] = useState('');
     const [filterGarantia, setFilterGarantia] = useState('');
     const [filterClienteId, setFilterClienteId] = useState('');
@@ -676,14 +681,15 @@ const ResidentialInsurance: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">🏠 Parceiro / Imobiliária</label>
-                                <input
+                                <select
                                     id="parceiro_nome"
-                                    type="text"
                                     value={formData.parceiro_nome || ''}
                                     onChange={handleInputChange}
-                                    placeholder="Ex: Bordin e Zanolla"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D]"
-                                />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] cursor-pointer"
+                                >
+                                    <option value="">— Sem parceiro —</option>
+                                    {imobParceiros.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>
