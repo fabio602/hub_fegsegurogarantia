@@ -486,8 +486,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 title="Excluir"
                               >✕</button>
                             </div>
-                            <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', marginBottom: '5px' }}>
-                              {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>
+                                {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
+                              </span>
+                              {(c as any).intencao === 'contratar' ? (
+                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', border: '1px solid #c3dfd4', padding: '1px 6px', borderRadius: '20px' }}>✅ Contratar</span>
+                              ) : (
+                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '20px' }}>📋 Cotação</span>
+                              )}
                             </div>
                             {parceiro && (
                               <div style={{ fontSize: '10px', fontWeight: 900, color: '#78716c', background: '#f4f1ec', padding: '2px 7px', borderRadius: '8px', display: 'inline-block', marginBottom: '4px' }}>
