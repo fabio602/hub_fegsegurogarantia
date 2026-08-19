@@ -412,7 +412,15 @@ const ResidentialInsurance: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         if (!confirm('Deseja excluir este cliente?')) return;
+        // Busca o cliente antes de deletar para saber o nome e desvinculá-lo do portal
+        const clientToDelete = clients.find(c => c.id === id);
         await supabase.from('residential_clients').delete().eq('id', id);
+        // Remove do portal da imobiliária (partner_id = null)
+        if (clientToDelete?.nome) {
+            await supabase.from('imobiliaria_clientes')
+                .update({ partner_id: null })
+                .ilike('inquilino_nome', clientToDelete.nome.trim());
+        }
         fetchClients();
     };
 
