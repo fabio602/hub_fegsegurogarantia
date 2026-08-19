@@ -38,6 +38,30 @@ const EMPTY_FORM = {
   observacoes: '',
 };
 
+function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; field: string; onUploaded: (url: string) => void }) {
+  const [uploading, setUploading] = React.useState(false);
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const path = `apolices/${clienteId}/${field}_${Date.now()}.pdf`;
+      const { error: upErr } = await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
+      onUploaded(data.publicUrl);
+    } catch (err: any) { alert('Erro ao enviar PDF: ' + err.message); }
+    finally { setUploading(false); e.target.value = ''; }
+  };
+  return (
+    <label className={`flex items-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-slate-200 bg-slate-50' : 'border-[#C69C6D]/40 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5'}`}>
+      <input type="file" accept="application/pdf" className="hidden" onChange={handleFile} disabled={uploading} />
+      {uploading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-[#C69C6D]" />}
+      <span className="text-sm font-bold text-slate-600">{uploading ? 'Enviando...' : 'Clique para anexar PDF da apólice'}</span>
+    </label>
+  );
+}
+
 export default function ImobiliariaRepasse() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [parceiros, setParceiros] = useState<{id: number; name: string}[]>([]);
@@ -607,73 +631,110 @@ export default function ImobiliariaRepasse() {
 
     {/* Edit Status Modal */}
     {editingStatus && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
-            <button onClick={() => setEditingStatus(null)}><X size={18} className="text-slate-400" /></button>
+      <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+        <div className="min-h-full flex items-center justify-center p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md my-4">
+          {/* Header */}
+          <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
+              <p className="text-sm text-slate-500 mt-0.5">{editingStatus.inquilino_nome}</p>
+            </div>
+            <button onClick={() => setEditingStatus(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
           </div>
-          <p className="text-sm font-bold text-slate-600">{editingStatus.inquilino_nome}</p>
 
-          <div className="space-y-3">
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
-              <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
-                <option value="solicitado">📬 Solicitado</option>
-                <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
-                <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
-                <option value="aprovado">✅ Aprovado</option>
-                <option value="recusado">❌ Recusado</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Situação da Apólice</label>
-              <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
-                <option value="ativo">🟢 Ativo</option>
-                <option value="pagamento_atrasado">🟡 Pagamento atrasado</option>
-                <option value="em_renovacao">🔵 Em renovação</option>
-                <option value="cancelado">🔴 Cancelado</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vencimento da Apólice</label>
-              <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status — Seg. Residencial</label>
-              <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
-                {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Link Apólice Residencial</label>
-              <input value={editStatusForm.apolice_residencial_url} onChange={e => setEditStatusForm(f => ({...f, apolice_residencial_url: e.target.value}))}
-                placeholder="https://..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
-            </div>
-            {editingStatus.tipo_seguro === 'residencial_garantia' && (<>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status — Garantia de Aluguel</label>
-                <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
+          <div className="px-7 py-5 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
+                <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                  <option value="solicitado">📬 Solicitado</option>
+                  <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
+                  <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
+                  <option value="aprovado">✅ Aprovado</option>
+                  <option value="recusado">❌ Recusado</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Situação</label>
+                <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                  <option value="ativo">🟢 Ativo</option>
+                  <option value="pagamento_atrasado">🟡 Pgto. atrasado</option>
+                  <option value="em_renovacao">🔵 Em renovação</option>
+                  <option value="cancelado">🔴 Cancelado</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vencimento</label>
+                <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+              </div>
+            </div>
+
+            {/* Apólice Residencial */}
+            <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seguro Residencial</p>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
+                <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#C69C6D]">
                   {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Link Apólice Garantia</label>
-                <input value={editStatusForm.apolice_garantia_url} onChange={e => setEditStatusForm(f => ({...f, apolice_garantia_url: e.target.value}))}
-                  placeholder="https://..." className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
+                {editStatusForm.apolice_residencial_url
+                  ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                      <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
+                      <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} className="text-slate-400 hover:text-red-400"><X size={13} /></button>
+                    </div>
+                  : <ApoliceUpload
+                      clienteId={editingStatus.id}
+                      field="apolice_residencial_url"
+                      onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_residencial_url: url}))}
+                    />
+                }
               </div>
-            </>)}
+            </div>
+
+            {/* Garantia */}
+            {(editingStatus as any).tipo_seguro === 'residencial_garantia' && (
+              <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Garantia de Aluguel</p>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
+                  <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#C69C6D]">
+                    {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
+                  {editStatusForm.apolice_garantia_url
+                    ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                        <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
+                        <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} className="text-slate-400 hover:text-red-400"><X size={13} /></button>
+                      </div>
+                    : <ApoliceUpload
+                        clienteId={editingStatus.id}
+                        field="apolice_garantia_url"
+                        onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_garantia_url: url}))}
+                      />
+                  }
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 px-7 pb-7 pt-2">
             <button onClick={() => setEditingStatus(null)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
             <button onClick={saveStatus} className="flex-1 py-2.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm transition-colors">Salvar</button>
           </div>
+        </div>
         </div>
       </div>
     )}

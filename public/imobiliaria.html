@@ -250,7 +250,7 @@
 <div class="page" id="page-kanban">
   <div class="section-header">
     <h2>📊 Minhas Solicitações</h2>
-    <p>Acompanhe em tempo real o andamento de cada cotação solicitada.</p>
+    <p>Acompanhe o andamento das cotações. Após 3 dias de aprovadas ou recusadas, vão para a Carteira de Clientes.</p>
   </div>
   <div class="kanban-wrap">
     <div class="kanban-col col-solicitado">
@@ -625,9 +625,15 @@
   ];
 
   function renderKanban(cs) {
-    // Only show clients with a kanban_status (not yet in carteira as "active policy")
+    const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    // Kanban: pending always | approved/rejected only if < 3 days old
+    const kanbanCs = cs.filter(c => {
+      const status = c.kanban_status || 'solicitado';
+      if (['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(status)) return true;
+      return new Date(c.created_at) >= tresDiasAtras;
+    });
     KANBAN_COLS.forEach(col => {
-      const cards = cs.filter(c => (c.kanban_status || 'solicitado') === col.key);
+      const cards = kanbanCs.filter(c => (c.kanban_status || 'solicitado') === col.key);
       document.getElementById('k-count-' + col.id).textContent = cards.length;
       const el = document.getElementById('k-col-' + col.id);
       if (!cards.length) { el.innerHTML = '<div class="kanban-empty">Nenhum</div>'; return; }
