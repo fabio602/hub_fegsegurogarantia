@@ -331,6 +331,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [insurers, setInsurers] = useState<any[]>([]);
     const [sellers, setSellers] = useState<Seller[]>([]);
     const [monthlyTargets, setMonthlyTargets] = useState<MonthlyTarget[]>([]);
+    const [parceiros, setParceiros] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -545,20 +546,23 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 { data: insurersData },
                 { data: sellersData },
                 { data: mtData },
-                { data: boletosAllData }
+                { data: boletosAllData },
+                { data: parceirosData }
             ] = await Promise.all([
                 supabase.from('sales').select('*').order('data', { ascending: false }),
                 supabase.from('lead_costs').select('*'),
                 supabase.from('insurers').select('*').order('nome'),
                 supabase.from('sellers').select('*').order('name'),
                 supabase.from('monthly_targets').select('*'),
-                supabase.from('boletos').select('sale_id, pago')
+                supabase.from('boletos').select('sale_id, pago'),
+                supabase.from('partners').select('id, name').neq('partner_type', 'imobiliaria').order('name')
             ]);
             setSales((salesData || []).map((row) => normalizeSaleFromDb(row as Record<string, unknown>)));
             setLeadCosts(costsData || []);
             setInsurers(insurersData || []);
             setSellers((sellersData || []).map((row) => normalizeSellerRow(row as Record<string, unknown>)));
             setMonthlyTargets((mtData || []).map((row) => normalizeMonthlyTargetRow(row as Record<string, unknown>)));
+            setParceiros((parceirosData || []) as { id: number; name: string }[]);
             const summary: Record<number, { total: number; emAberto: number }> = {};
             (boletosAllData || []).forEach((b: { sale_id: number; pago: boolean }) => {
                 if (!summary[b.sale_id]) summary[b.sale_id] = { total: 0, emAberto: 0 };
@@ -2075,9 +2079,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Parceiro</label>
                                     <select id="parceiro" value={(formData as any).parceiro || ''} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Nenhum</option>
-                                        <option value="maximusb2gov">maximusb2gov</option>
-                                        <option value="Raphael Icaro Licitações">Raphael Icaro Licitações</option>
-                                        <option value="Solicita Licitações">Solicita Licitações</option>
+                                        {parceiros.map(p => (
+                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
