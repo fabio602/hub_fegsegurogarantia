@@ -414,7 +414,10 @@
         return `<tr>
           <td class="td-data">${fmtData(v.data)}</td>
           <td class="td-nome">${v.nome || '—'}</td>
-          <td class="td-produto">${v.product_type || v.tipo || '—'}</td>
+          <td class="td-produto">
+            ${v.product_type || 'Seguro Garantia'}
+            ${v.tipo ? `<br><span style="font-size:11px;font-weight:700;color:#C69C6D;background:rgba(198,156,109,.1);padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;">${v.tipo}</span>` : ''}
+          </td>
           <td class="td-valor">${fmt(parseVal(v.premio))}</td>
           <td class="td-comissao">${fmt(comissao)}</td>
           <td class="td-parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
