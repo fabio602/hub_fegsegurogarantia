@@ -291,10 +291,23 @@ const ResidentialInsurance: React.FC = () => {
             apolice_url: (formData as any).apolice_url || null,
         };
 
+        // Situações que encerram o fluxo → kanban_status = 'recusado' no portal
+        const SITUACOES_RECUSADAS = ['Desistiu da Locação', 'Optou Não Contratar', 'Cancelado', 'Reprovado'];
+
         try {
             if (editingId) {
                 const { error } = await supabase.from('residential_clients').update(payload).eq('id', editingId);
                 if (error) throw error;
+                // Se situação virou "encerrada", sincroniza kanban do portal imobiliária
+                if (SITUACOES_RECUSADAS.includes(payload.situacao ?? '')) {
+                    let q = supabase.from('imobiliaria_clientes').update({ kanban_status: 'recusado' });
+                    if (payload.apolice) {
+                        q = q.eq('numero_apolice', payload.apolice);
+                    } else if (payload.parceiro_nome && payload.nome) {
+                        q = q.eq('parceiro_nome', payload.parceiro_nome).eq('nome', payload.nome);
+                    }
+                    await q;
+                }
             } else {
                 const { error } = await supabase.from('residential_clients').insert([payload]);
                 if (error) throw error;
