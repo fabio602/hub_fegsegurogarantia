@@ -259,15 +259,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Filter by partner */}
-          {parceiros.length > 1 && (
+          {/* Filter by partner — always visible */}
+          {parceiros.length > 0 && (
             <select
               value={filterParceiro ?? ''}
               onChange={e => setFilterParceiro(e.target.value ? parseInt(e.target.value) : null)}
               className="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D] cursor-pointer"
             >
               <option value="">Todas as imobiliárias</option>
-              {parceiros.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {parceiros.map(p => <option key={p.id} value={p.id}>{p.name.replace('Imobiliária ', '')}</option>)}
             </select>
           )}
           <button onClick={load} className="p-2 text-slate-400 hover:text-slate-600 transition-colors" title="Atualizar">
