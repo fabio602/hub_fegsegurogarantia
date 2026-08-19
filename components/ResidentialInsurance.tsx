@@ -149,6 +149,7 @@ const ResidentialInsurance: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showModal, setShowModal] = useState(false);
+    const formRef = useRef<HTMLDivElement>(null);
     const [formData, setFormData] = useState<Partial<ResidentialClient>>(EMPTY_FORM);
     const [search, setSearch] = useState('');
     const [filterProduto, setFilterProduto] = useState('');
@@ -375,6 +376,7 @@ const ResidentialInsurance: React.FC = () => {
             valor_iptu_condominio: pickDbOrParsed(client.valor_iptu_condominio, fromObs.valor_iptu_condominio),
         });
         setShowModal(true);
+        setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' }), 50);
     };
 
     const handleDelete = async (id: number) => {
@@ -596,23 +598,11 @@ const ResidentialInsurance: React.FC = () => {
             </div>
 
             {/* Form */}
-            <div className={showModal && editingId ? 'fixed inset-0 z-[9999] overflow-y-auto bg-black/50 backdrop-blur-sm flex items-start justify-center pt-8 pb-8 px-4' : ''} onClick={showModal && editingId ? (e => { if (e.target === e.currentTarget) resetForm(); }) : undefined}>
-            <div className={`bg-white shadow-sm border border-slate-100 ${showModal && editingId ? 'rounded-[2rem] w-full max-w-4xl' : 'rounded-[2rem] p-8'}`}>
-            <div className={showModal && editingId ? 'px-8 pb-8' : ''}>
-                {showModal && editingId ? (
-                    <div className="sticky top-0 bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between rounded-t-[2rem] z-10 mb-6">
-                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                            <div className="w-1.5 h-5 bg-[#C69C6D] rounded-full"></div>
-                            Editar Cliente
-                        </h3>
-                        <button type="button" onClick={resetForm} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"><X size={20}/></button>
-                    </div>
-                ) : (
-                    <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
-                        {editingId ? 'Editar Cliente' : 'Novo Cliente'}
-                    </h3>
-                )}
+            <div ref={formRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+                    {editingId ? 'Editar Cliente' : 'Novo Cliente'}
+                </h3>
 
                 {editingId && (formData.created_at || formData.origem_publica) && (
                     <div className="mb-6 flex flex-wrap gap-3 items-center text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -847,8 +837,6 @@ const ResidentialInsurance: React.FC = () => {
                         </button>
                     </div>
                 </form>
-            </div>
-            </div>
             </div>
 
             {/* Table */}
