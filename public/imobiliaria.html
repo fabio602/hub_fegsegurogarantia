@@ -1089,7 +1089,7 @@
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const alertas = cs.filter(c => {
       if (!c.vigencia_fim) return false;
-      if (c.status_apolice === 'cancelado') return false; // excluir cancelados
+      if (['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
       const venc = new Date(c.vigencia_fim);
       const dias = Math.round((venc - hoje) / 86400000);
       return dias <= 60; // mostra até 60 dias à frente
@@ -1153,7 +1153,7 @@
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const em30 = new Date(hoje); em30.setDate(em30.getDate() + 30);
     const kpiVenc = cs.filter(c => {
-      if (!c.vigencia_fim || c.status_apolice === 'cancelado') return false;
+      if (!c.vigencia_fim || ['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
       const v = new Date(c.vigencia_fim);
       return v >= hoje && v <= em30;
     }).length;
@@ -1361,7 +1361,7 @@
       if (tipo === 'residencial' && c.tipo_seguro === 'residencial_garantia') return false;
       if (tipo === 'garantia' && c.tipo_seguro !== 'residencial_garantia') return false;
       if (filtroVencimento30) {
-        if (!c.vigencia_fim || c.status_apolice === 'cancelado') return false;
+        if (!c.vigencia_fim || ['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
         const v = new Date(c.vigencia_fim);
         return v >= hoje && v <= em30;
       }
