@@ -225,6 +225,33 @@ const ResidentialInsurance: React.FC = () => {
     const [filterClienteId, setFilterClienteId] = useState('');
     const [sortBy, setSortBy] = useState<'entrada' | 'vigencia' | 'nome'>('entrada');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+    // Batch selection state
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [batchMode, setBatchMode] = useState(false);
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const selectAll = (ids: number[]) => setSelectedIds(new Set(ids));
+    const clearSelection = () => { setSelectedIds(new Set()); setBatchMode(false); };
+
+    const batchChangeSituacao = async (situacao: string) => {
+        if (selectedIds.size === 0) return;
+        const confirmed = await confirmDialog(`Alterar situação de ${selectedIds.size} cliente(s) para "${situacao}"?`);
+        if (!confirmed) return;
+        await supabase.from('residential_clients')
+            .update({ situacao })
+            .in('id', [...selectedIds]);
+        toast(`${selectedIds.size} cliente(s) atualizados`, 'success');
+        clearSelection();
+        fetchClients();
+    };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [publicFormCopied, setPublicFormCopied] = useState(false);
@@ -1028,6 +1055,14 @@ const ResidentialInsurance: React.FC = () => {
                             </button>
                         ))}
                     </div>
+                    {/* Batch mode toggle */}
+                    <button
+                        onClick={() => { setBatchMode(b => !b); clearSelection(); }}
+                        className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all shrink-0 ${batchMode ? 'bg-[#1B263B] text-white border-[#1B263B]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#C69C6D]'}`}
+                    >
+                        {batchMode ? `✓ ${selectedIds.size} selecionados` : '☰ Selecionar'}
+                    </button>
+
                     {/* Search inline with sort */}
                     <div className="relative flex-1 min-w-[200px] max-w-xs ml-auto">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -1045,13 +1080,76 @@ const ResidentialInsurance: React.FC = () => {
                         )}
                     </div>
                 </div>
-                <div ref={topScrollRef} className="table-scroll-x" style={{height: 10}}>
+                {batchMode && selectedIds.size > 0 && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-[#1B263B]/5 border-b border-[#C69C6D]/20">
+                        <span className="text-sm font-black text-[#1B263B]">{selectedIds.size} selecionado(s)</span>
+                        <div className="flex gap-2 ml-auto flex-wrap">
+                            <select
+                                value=""
+                                onChange={e => { const v = e.target.value; if (v) batchChangeSituacao(v); }}
+                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-[#C69C6D]"
+                            >
+                                <option value="">Mudar situação...</option>
+                                {SITUACOES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <button
+                                onClick={clearSelection}
+                                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                )}
+                <div ref={topScrollRef} className="table-scroll-x res-top-scroll" style={{height: 10}}>
                     <div ref={topScrollInnerRef} style={{height: 1}} />
                 </div>
-                <div ref={tableScrollRef} className="table-scroll-x">
+                {/* Mobile card view */}
+                <style>{`
+                  @media (max-width: 768px) {
+                    .res-table-wrapper { display: none !important; }
+                    .res-mobile-cards { display: flex !important; }
+                    .res-top-scroll { display: none !important; }
+                  }
+                  .res-mobile-cards { display: none; flex-direction: column; gap: 10px; padding: 16px; }
+                `}</style>
+                <div className="res-mobile-cards">
+                    {filtered.map(c => (
+                        <div key={c.id} className="bg-white rounded-2xl border border-slate-100 p-4">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <p className="font-black text-slate-800 text-sm">{c.nome}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">{c.produto || '—'}</p>
+                                </div>
+                                <span className={`text-[10px] font-black px-2 py-1 rounded-full ${situacaoColor(c.situacao)}`}>{c.situacao}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div><span className="text-slate-400">Apólice:</span> <span className="font-bold">{c.apolice || '—'}</span></div>
+                                <div><span className="text-slate-400">Prêmio:</span> <span className="font-bold">{c.premio_total || '—'}</span></div>
+                                <div><span className="text-slate-400">Vence:</span> <span className="font-bold">{c.fim_vigencia ? new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</span></div>
+                                <div><span className="text-slate-400">Parceiro:</span> <span className="font-bold">{c.parceiro_nome?.replace('Imobiliária ', '') || '—'}</span></div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                                <button onClick={() => handleEdit(c)} className="flex-1 py-2 bg-[#1B263B] text-white text-xs font-black rounded-xl">Editar</button>
+                                <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-red-50 text-red-500 text-xs font-black rounded-xl border border-red-100">✕</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="res-table-wrapper table-scroll-x" ref={tableScrollRef}>
                     <table className="w-full text-left">
                         <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                             <tr>
+                                {batchMode && (
+                                    <th className="px-4 py-3 w-10">
+                                        <input
+                                            type="checkbox"
+                                            onChange={e => e.target.checked ? selectAll(filtered.map(c => c.id)) : clearSelection()}
+                                            checked={selectedIds.size > 0 && selectedIds.size === filtered.length}
+                                        />
+                                    </th>
+                                )}
                                 <th className="px-4 py-5 text-center align-top">Ações</th>
                                 <th className="px-6 py-5 align-top">
                                     <span className="block">Cliente</span>
@@ -1134,7 +1232,7 @@ const ResidentialInsurance: React.FC = () => {
                         <tbody className="divide-y divide-slate-50">
                             {filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-16 text-center text-slate-400 font-bold text-sm">
+                                    <td colSpan={batchMode ? 12 : 11} className="px-6 py-16 text-center text-slate-400 font-bold text-sm">
                                         {search || hasTableFilters ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
                                     </td>
                                 </tr>
@@ -1145,6 +1243,15 @@ const ResidentialInsurance: React.FC = () => {
                                 const nearExpiry = dias !== null && dias <= 30 && dias >= 0 && c.situacao === 'Ativo';
                                 return (
                                     <tr key={c.id} className={`group hover:bg-slate-50/80 transition-all ${nearExpiry ? 'bg-amber-50/40' : ''}`}>
+                                        {batchMode && (
+                                            <td className="px-4 py-3 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(c.id)}
+                                                    onChange={() => toggleSelect(c.id)}
+                                                />
+                                            </td>
+                                        )}
                                         <td className="px-4 py-5">
                                             <div className="flex justify-center gap-2">
                                                 <button onClick={() => handleEdit(c)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>

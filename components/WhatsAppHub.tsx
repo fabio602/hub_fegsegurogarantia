@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { WhatsAppClientCard } from './WhatsAppClientCard.tsx';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
 
@@ -495,6 +496,9 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 ))}
               </select>
             </div>
+
+            {/* Client info card */}
+            <WhatsAppClientCard phone={selectedLead?.phone ?? ''} leadName={selectedLead?.name ?? ''} />
 
             {/* Messages area */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
