@@ -1204,16 +1204,28 @@
         const esperaBg  = diasEspera <= 3 ? '#dcfce7' : diasEspera <= 7 ? '#fef9c3' : '#fee2e2';
         const esperaHtml = `<span style="font-size:9px;font-weight:900;background:${esperaBg};color:${esperaCor};padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;">${diasEspera}d nesta etapa</span>`;
         // Botão "Autorizar Contratação" — só aparece na coluna Aprovado quando intenção era cotação
-        const btnAutorizar = col.key === 'aprovado' && c.intencao !== 'contratar' ? `
-          <button onclick="autorizarContratacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}')"
-            style="margin-top:8px;width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;transition:all .15s;"
-            onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
-            ✅ Autorizar Contratação
-          </button>` : '';
+        const btnAutorizar = col.key === 'aprovado' && !['contratar','nao_contratar'].includes(c.intencao) ? `
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+            <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','contratar')"
+              style="width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+              onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
+              ✅ Autorizar Contratação
+            </button>
+            <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','declinar')"
+              style="width:100%;padding:8px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+              onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
+              ❌ Não vamos contratar
+            </button>
+          </div>` : '';
 
         const jaAutorizou = col.key === 'aprovado' && c.intencao === 'contratar' ? `
           <div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:900;color:#166534;text-align:center;">
             ✓ Contratação autorizada
+          </div>` : '';
+
+        const jaDeclinada = col.key === 'aprovado' && c.intencao === 'nao_contratar' ? `
+          <div style="margin-top:8px;padding:6px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:900;color:#dc2626;text-align:center;">
+            ✕ Não irá contratar
           </div>` : '';
 
         // Upload de documentos de garantia — visível quando aprovado/em atendimento + garantia
@@ -1244,6 +1256,7 @@
           ${docsGarantia}
           ${btnAutorizar}
           ${jaAutorizou}
+          ${jaDeclinada}
         </div>`;
       }).join('');
     });
@@ -1582,16 +1595,19 @@
     document.getElementById('form-cotacao-section').scrollIntoView({behavior:'smooth'});
   }
 
-  async function autorizarContratacao(clientId, inquilinoNome, parceiroNome) {
+  async function chamarDecisao(clientId, inquilinoNome, parceiroNome, acao) {
+    const msg = acao === 'declinar'
+      ? `Confirma que não irá contratar a garantia de ${inquilinoNome}?`
+      : `Confirma a autorização de contratação para ${inquilinoNome}?`;
+    if (!confirm(msg)) return;
     try {
-      await client.from('imobiliaria_clientes').update({ intencao: 'contratar' }).eq('id', clientId);
       await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-liberar-contratacao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-        body: JSON.stringify({ client_id: clientId, inquilino_nome: inquilinoNome, parceiro_nome: parceiroNome }),
+        body: JSON.stringify({ client_id: clientId, inquilino_nome: inquilinoNome, parceiro_nome: parceiroNome, acao }),
       });
       await carregar();
-    } catch(e) { alert('Erro ao autorizar: ' + e.message); }
+    } catch(e) { alert('Erro: ' + e.message); }
   }
 
   async function uploadDocGarantia(clientId, field, input) {
