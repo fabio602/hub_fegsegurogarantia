@@ -110,12 +110,42 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     } catch (e) { console.error(e); }
     finally { setSavingRepasse(false); }
   };
+  // Modal de configuração de repasse ao aprovar cliente do portal
+  const [repasseSetupModal, setRepasseSetupModal] = useState<{ clienteId: string; nome: string; newStatus: string } | null>(null);
+  const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '' });
+
   const moveCard = async (clienteId: string, newStatus: string) => {
     setDraggingId(null); setDragOver(null);
+    // Se movendo para Aprovado, verifica se é cliente novo do portal (is_repasse = false)
+    if (newStatus === 'aprovado') {
+      const cliente = clientes.find(c => c.id === clienteId);
+      if (cliente && !(cliente as any).is_repasse) {
+        setRepasseSetupForm({ total_parcelas: 12, valor_seguro: '' });
+        setRepasseSetupModal({ clienteId, nome: cliente.inquilino_nome, newStatus });
+        return; // aguarda confirmação no modal
+      }
+    }
     await supabase.from('imobiliaria_clientes')
       .update({ kanban_status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', clienteId);
     setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, kanban_status: newStatus } as any : c));
+  };
+
+  const confirmarRepasseSetup = async () => {
+    if (!repasseSetupModal) return;
+    const valor = parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    await supabase.from('imobiliaria_clientes').update({
+      kanban_status: repasseSetupModal.newStatus,
+      is_repasse: true,
+      total_parcelas: repasseSetupForm.total_parcelas,
+      parcela_atual: 1,
+      valor_seguro: valor,
+      updated_at: new Date().toISOString(),
+    }).eq('id', repasseSetupModal.clienteId);
+    setClientes(prev => prev.map(c => c.id === repasseSetupModal.clienteId
+      ? { ...c, kanban_status: repasseSetupModal.newStatus, is_repasse: true, total_parcelas: repasseSetupForm.total_parcelas, valor_seguro: valor } as any
+      : c));
+    setRepasseSetupModal(null);
   };
 
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
@@ -708,6 +738,59 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         </div>
       )}
     {/* Registrar Repasse Modal */}
+    {/* Modal de configuração de repasse para novos clientes do portal */}
+    {repasseSetupModal && createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div>
+            <h3 className="font-black text-slate-800 text-lg">Configurar Repasse</h3>
+            <p className="text-slate-500 text-sm mt-1">Cliente novo do portal — configure o repasse antes de aprovar.</p>
+          </div>
+          <div className="bg-[#1B263B]/5 rounded-xl px-4 py-3 border border-[#C69C6D]/20">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="font-black text-slate-800">{repasseSetupModal.nome}</p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Mensal do Seguro (R$)</label>
+              <input
+                type="text" placeholder="Ex: 182,49"
+                value={repasseSetupForm.valor_seguro}
+                onChange={e => setRepasseSetupForm(f => ({ ...f, valor_seguro: e.target.value }))}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#C69C6D]"
+              />
+              <p className="text-xs text-slate-400">Este valor será cobrado mensalmente no repasse da imobiliária.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[6, 12, 24].map(n => (
+                  <button key={n} type="button"
+                    onClick={() => setRepasseSetupForm(f => ({ ...f, total_parcelas: n }))}
+                    className={`py-3 rounded-xl font-black text-sm transition-all ${repasseSetupForm.total_parcelas === n ? 'bg-[#1B263B] text-[#C69C6D]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    {n}x
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400">A 1ª parcela é paga diretamente pela inquilina. As demais entram no repasse mensal.</p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={confirmarRepasseSetup}
+              disabled={!repasseSetupForm.valor_seguro}
+              className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
+              ✅ Aprovar e configurar repasse
+            </button>
+            <button onClick={() => setRepasseSetupModal(null)}
+              className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
     {repasseModal && createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
