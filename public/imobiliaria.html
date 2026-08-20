@@ -1104,56 +1104,77 @@
 
   function renderAlertasVencimento(cs) {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const alertas = cs.filter(c => {
+    // Separa vencidos dos próximos de vencer
+    const proximos = cs.filter(c => {
       if (!c.vigencia_fim) return false;
       if (['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
-      const venc = new Date(c.vigencia_fim);
-      const dias = Math.round((venc - hoje) / 86400000);
-      return dias <= 30; // alerta com 30 dias de antecedência
+      const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
+      return dias >= 0 && dias <= 30;
     }).sort((a, b) => new Date(a.vigencia_fim) - new Date(b.vigencia_fim));
 
     const el = document.getElementById('alertas-venc');
     if (!el) return;
-    if (!alertas.length) { el.style.display = 'none'; return; }
+    if (!proximos.length) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    el.innerHTML = `<div class="alert-box">
-      <h4>⚠️ Seguros próximos ao vencimento — confirme a renovação</h4>
-      <p style="font-size:12px;color:#78716c;margin:-4px 0 12px;font-weight:600;">Por favor confirme se cada inquilino irá renovar para que possamos agir a tempo.</p>
-      ${alertas.map(c => {
-        const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
-        const conf = c.renovacao_confirmacao;
-        const dataVenc = new Date(c.vigencia_fim).toLocaleDateString('pt-BR');
-        const prazo = dias < 0 ? `<span class="venc-exp">⛔ Vencido — ${dataVenc}</span>`
-                                : `<span class="venc-warn">⚠️ Vence em ${dias}d — ${dataVenc}</span>`;
-        if (conf === 'vai_renovar') {
-          return `<div class="alert-item" style="flex-wrap:wrap;gap:8px;">
-            <div><span style="font-weight:800">${c.inquilino_nome}</span><br>${prazo}</div>
-            <span style="padding:5px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;font-size:11px;font-weight:900;">✅ Vai renovar</span>
-          </div>`;
-        }
-        if (conf === 'nao_vai_renovar') {
-          return `<div class="alert-item" style="flex-wrap:wrap;gap:8px;">
-            <div><span style="font-weight:800">${c.inquilino_nome}</span><br>${prazo}</div>
-            <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;">❌ Não vai renovar</span>
-          </div>`;
-        }
-        return `<div class="alert-item" style="flex-wrap:wrap;gap:8px;align-items:center;">
-          <div style="flex:1;min-width:200px;">
-            <span style="font-weight:800">${c.inquilino_nome}</span><br>${prazo}
+
+    el.innerHTML = `
+      <div style="background:#fff;border-radius:20px;border:1px solid #e8e4dc;overflow:hidden;margin-bottom:4px;">
+        <div style="background:#1B263B;padding:16px 24px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:18px;">⚠️</span>
+          <div>
+            <div style="color:#fff;font-size:14px;font-weight:900;">Seguros vencendo em 30 dias — confirme a renovação</div>
+            <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;font-weight:600;">Por favor confirme se cada inquilino irá renovar para que possamos agir a tempo.</div>
           </div>
-          <div style="display:flex;gap:8px;flex-shrink:0;">
-            <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
-              style="padding:7px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;">
-              ✅ Vai renovar
-            </button>
-            <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
-              style="padding:7px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;">
-              ❌ Não vai renovar
-            </button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
+        </div>
+        <div style="padding:8px 0;">
+          ${proximos.map(c => {
+            const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
+            const conf = c.renovacao_confirmacao;
+            const dataVenc = new Date(c.vigencia_fim).toLocaleDateString('pt-BR');
+            const urgencia = dias <= 7 ? '#dc2626' : '#d97706';
+            const urgBg   = dias <= 7 ? '#fef2f2' : '#fffbeb';
+            const prazoLabel = dias === 0 ? 'Vence hoje!' : `Vence em ${dias} dia${dias!==1?'s':''}`;
+
+            if (conf === 'vai_renovar') return `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
+                </div>
+                <span style="padding:5px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">✅ Vai renovar</span>
+              </div>`;
+
+            if (conf === 'nao_vai_renovar') return `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
+                </div>
+                <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
+              </div>`;
+
+            return `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                  <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:${urgBg};color:${urgencia};border-radius:8px;font-size:11px;font-weight:900;">
+                    ⏰ ${prazoLabel} — ${dataVenc}
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
+                  <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
+                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    ✅ Vai renovar
+                  </button>
+                  <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
+                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    ❌ Não vai renovar
+                  </button>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
   }
 
   function renderUltimas(cs) {
