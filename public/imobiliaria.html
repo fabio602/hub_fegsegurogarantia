@@ -182,6 +182,89 @@
       .stat-grid { grid-template-columns: 1fr 1fr; }
       .action-grid { grid-template-columns: 1fr; }
     }
+
+    /* Mobile bottom nav */
+    @media (max-width: 768px) {
+      .nav { display: none !important; }
+      .mobile-nav { display: flex !important; }
+      .topbar { padding: 0 16px; }
+      .page, #page-kanban { padding: 16px; }
+    }
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1B263B;
+      border-top: 1px solid rgba(255,255,255,.1);
+      z-index: 200;
+      padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    }
+    .mob-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,.45);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      transition: color .2s;
+    }
+    .mob-btn:hover, .mob-btn.active { color: #C69C6D; }
+    .mob-btn .mob-icon { font-size: 20px; line-height: 1; }
+    /* Padding bottom on mobile to account for nav */
+    @media (max-width: 768px) {
+      body { padding-bottom: 72px; }
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: #C69C6D;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 20px rgba(198,156,109,.4);
+      z-index: 150;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(198,156,109,.5); }
+    .fab-tooltip {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      background: #1B263B;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 10px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      z-index: 150;
+    }
+    @media (max-width: 768px) {
+      .fab { bottom: 80px; }
+      .fab-tooltip { bottom: 146px; }
+    }
   </style>
 </head>
 <body>
@@ -217,7 +300,29 @@
     <h2>Olá, Equipe Bordin e Zanolla! Bem-vinda ao seu portal. 👋</h2>
     <p>Acompanhe seus clientes, apólices e repasses em um só lugar.</p>
   </div>
-  <!-- stats removidos a pedido -->
+  <!-- KPI cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;">
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorStatus('')" title="Ver carteira completa">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Clientes Ativos</div>
+      <div id="kpi-ativos" style="font-size:28px;font-weight:900;color:#1B263B;">—</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">apólices emitidas</div>
+    </div>
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorStatus('pendente_renovacao')" title="Ver pendentes de renovação">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Vencem em 30 dias</div>
+      <div id="kpi-vencendo" style="font-size:28px;font-weight:900;color:#a16207;">—</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">renovações próximas</div>
+    </div>
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="goTo('kanban')" title="Ver solicitações">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Aguardando F&amp;G</div>
+      <div id="kpi-pendentes" style="font-size:28px;font-weight:900;color:#1d4ed8;">—</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">em atendimento</div>
+    </div>
+    <div style="background:#1B263B;border-radius:18px;padding:20px;border:1px solid #1B263B;">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.45);margin-bottom:8px;">Total Carteira</div>
+      <div id="kpi-total" style="font-size:28px;font-weight:900;color:#C69C6D;">—</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">inquilinos cadastrados</div>
+    </div>
+  </div>
   <div class="action-grid">
     <div class="action-card" onclick="goTo('cotacao')">
       <div class="emoji">➕</div>
@@ -579,6 +684,7 @@
   </div>
   <!-- Docs pendentes -->
   <div id="docs-pending-area"></div>
+  <div id="carteira-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;"></div>
   <div class="table-card">
     <div class="table-toolbar">
       <h3>Todos os clientes <span id="carteira-count" style="font-size:12px;font-weight:600;color:#94a3b8;margin-left:8px"></span></h3>
@@ -662,6 +768,31 @@
   </div>
 </div>
 
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button class="mob-btn active" id="mob-dashboard" onclick="goTo('dashboard')">
+    <span class="mob-icon">🏠</span>Início
+  </button>
+  <button class="mob-btn" id="mob-cotacao" onclick="goTo('cotacao')">
+    <span class="mob-icon">➕</span>Cotação
+  </button>
+  <button class="mob-btn" id="mob-kanban" onclick="goTo('kanban')">
+    <span class="mob-icon">📊</span>Pipeline
+  </button>
+  <button class="mob-btn" id="mob-carteira" onclick="goTo('carteira')">
+    <span class="mob-icon">📋</span>Carteira
+  </button>
+  <button class="mob-btn" id="mob-fatura" onclick="goTo('fatura')">
+    <span class="mob-icon">💰</span>Fatura
+  </button>
+</nav>
+
+<!-- FAB -->
+<div class="fab-tooltip" id="fab-tooltip">Nova Solicitação</div>
+<button class="fab" onclick="goTo('cotacao')" onmouseenter="document.getElementById('fab-tooltip').style.opacity=1" onmouseleave="document.getElementById('fab-tooltip').style.opacity=0" title="Nova Solicitação">
+  ➕
+</button>
+
 <script>
   const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
@@ -679,11 +810,22 @@
   function goTo(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mob-btn').forEach(b => b.classList.remove('active'));
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
     const navBtns = document.querySelectorAll('.nav-btn');
     const navMap = {dashboard:0, cotacao:1, kanban:2, carteira:3, fatura:4};
     if (navMap[id] !== undefined && navBtns[navMap[id]]) navBtns[navMap[id]].classList.add('active');
+    const mobIds = {dashboard:'mob-dashboard', cotacao:'mob-cotacao', kanban:'mob-kanban', carteira:'mob-carteira', fatura:'mob-fatura'};
+    if (mobIds[id]) { const mb = document.getElementById(mobIds[id]); if(mb) mb.classList.add('active'); }
+  }
+
+  function filtrarCarteiraPorStatus(sit) {
+    goTo('carteira');
+    setTimeout(() => {
+      const sel = document.getElementById('filtro-situacao');
+      if (sel) { sel.value = sit; filtrar(); }
+    }, 100);
   }
 
   function fmtBRL(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
@@ -833,15 +975,22 @@
   }
 
   function renderDashboard(cs) {
-    const ativos = cs.filter(c => c.status === 'ativo').length;
-    const emitidos = cs.filter(c => c.status_residencial === 'emitido' || c.status_garantia === 'emitido').length;
-    const aguardando = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
-    // Repasse: só clientes is_repasse=true (programa de repasse ativo)
-    const totalRepasse = cs.filter(c => c.status === 'ativo' && c.is_repasse === true).reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
-    document.getElementById('d-ativos').textContent = ativos;
-    document.getElementById('d-emitidos').textContent = emitidos;
-    document.getElementById('d-aguardando').textContent = aguardando;
-    document.getElementById('d-repasse').textContent = totalRepasse > 0 ? fmtBRL(totalRepasse) : '—';
+    // KPI cards
+    const kpiAtivos = cs.filter(c => c.status_apolice === 'ativo' || c.status === 'ativo').length;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const em30 = new Date(hoje); em30.setDate(em30.getDate() + 30);
+    const kpiVenc = cs.filter(c => {
+      if (!c.vigencia_fim || c.status_apolice === 'cancelado') return false;
+      const v = new Date(c.vigencia_fim);
+      return v >= hoje && v <= em30;
+    }).length;
+    const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
+    const kpiTotal = cs.length;
+    const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    setKpi('kpi-ativos', kpiAtivos);
+    setKpi('kpi-vencendo', kpiVenc);
+    setKpi('kpi-pendentes', kpiPend);
+    setKpi('kpi-total', kpiTotal);
   }
 
   const KANBAN_COLS = [
@@ -877,6 +1026,10 @@
         const sGar = c.status_garantia || 'aguardando_cotacao';
         const resBadge = `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sRes]||'#78716c'};background:${sResColor[sRes]||'#78716c'}18;padding:2px 7px;border-radius:20px">Residencial: ${sResLabel[sRes]||sRes}</span>`;
         const garBadge = temG ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sGar]||'#78716c'};background:${sResColor[sGar]||'#78716c'}18;padding:2px 7px;border-radius:20px">Garantia: ${sResLabel[sGar]||sGar}</span>` : '';
+        const diasEspera = Math.round((Date.now() - new Date(c.created_at).getTime()) / 86400000);
+        const esperaCor = diasEspera <= 3 ? '#16a34a' : diasEspera <= 7 ? '#a16207' : '#dc2626';
+        const esperaBg  = diasEspera <= 3 ? '#dcfce7' : diasEspera <= 7 ? '#fef9c3' : '#fee2e2';
+        const esperaHtml = `<span style="font-size:9px;font-weight:900;background:${esperaBg};color:${esperaCor};padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;">${diasEspera}d nesta etapa</span>`;
         return `<div class="kanban-card">
           <div class="kc-nome">${c.inquilino_nome || '—'}</div>
           <div class="kc-tipo" style="margin-bottom:6px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
@@ -884,6 +1037,7 @@
           ${c.valor_seguro > 0 ? `<div style="font-size:11px;font-weight:700;color:#1B263B">${fmtBRL(c.valor_seguro)}</div>` : ''}
           ${apoliceLink}
           <div class="kc-data">${dataEnvio}</div>
+          ${esperaHtml}
         </div>`;
       }).join('');
     });
@@ -921,6 +1075,18 @@
     const lista = [...mapa.values()].sort((a,b) => (a.inquilino_nome||'').localeCompare(b.inquilino_nome||'', 'pt-BR'));
     const count = document.getElementById('carteira-count');
     if (count) count.textContent = lista.length !== todosClientes.length ? `(${lista.length} de ${todosClientes.length})` : `(${lista.length})`;
+
+    const sumEl = document.getElementById('carteira-summary');
+    if (sumEl) {
+      const counts = {};
+      lista.forEach(c => { const s = c.status_apolice||'ativo'; counts[s]=(counts[s]||0)+1; });
+      const labels = {ativo:'🟢 Ativo',vencido:'🔴 Vencido',cancelado:'🔴 Cancelado',em_renovacao:'🔵 Em Renovação',pendente_renovacao:'🟡 Pend. Renovação',saiu_imovel:'🚪 Saiu',desistiu:'⛔ Desistiu',reprovado:'❌ Reprovado'};
+      sumEl.innerHTML = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+        <div onclick="document.getElementById('filtro-situacao').value='${k}';filtrar();" style="background:#fff;border:1px solid #e8e4dc;border-radius:12px;padding:10px 14px;cursor:pointer;transition:border .2s;" onmouseover="this.style.borderColor='#C69C6D'" onmouseout="this.style.borderColor='#e8e4dc'">
+          <div style="font-size:18px;font-weight:900;color:#1B263B;">${v}</div>
+          <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-top:2px;">${labels[k]||k}</div>
+        </div>`).join('');
+    }
 
     tbody.innerHTML = lista.map(c => {
       const temG = c.tipo_seguro === 'residencial_garantia';
