@@ -95,9 +95,10 @@ export default function InadimplentesResidencial() {
         if (headerIdx < 0) throw new Error('Formato não reconhecido. Cabeçalho não encontrado.');
 
         const header: string[] = rows[headerIdx].map((c: any) => String(c || ''));
-        const iNome    = header.findIndex(h => h.includes('Segurado'));
+        const iNome    = header.findIndex(h => h.trim() === 'Segurado');
         const iCpf     = header.findIndex(h => h.toLowerCase().includes('cpf'));
-        const iApolice = header.findIndex(h => h.toLowerCase().includes('negócio') || h.toLowerCase().includes('negocio'));
+        // Apólice = coluna "Negócio" (match exato, não "Parceiro de Negócio")
+        const iApolice = header.findIndex(h => h.trim().toLowerCase() === 'negócio' || h.trim().toLowerCase() === 'negocio');
         const iEndosso = header.findIndex(h => h.toLowerCase().includes('endosso'));
         const iTel     = header.findIndex(h => h.toLowerCase().includes('telefone'));
         const iParcela = header.findIndex(h => h.toLowerCase().includes('parcela'));
@@ -127,8 +128,17 @@ export default function InadimplentesResidencial() {
           }));
 
         if (!dados.length) throw new Error('Nenhum inadimplente encontrado no arquivo.');
-        setPreview(dados);
-        toast(`${dados.length} inadimplente(s) extraído(s) do Excel`, 'success');
+
+        // Lookup de telefone na base por CPF
+        const { data: clientes } = await supabase.from('residential_clients').select('cpf, telefone');
+        const dadosComTel = dados.map((d: any) => {
+          const cpfD = d.cpf?.replace(/\D/g, '');
+          const match = (clientes || []).find((c: any) => c.cpf?.replace(/\D/g, '') === cpfD);
+          return { ...d, telefone_base: match?.telefone || null };
+        });
+
+        setPreview(dadosComTel);
+        toast(`${dadosComTel.length} inadimplente(s) extraído(s) do Excel`, 'success');
 
       } else {
         // PDF → Edge Function
