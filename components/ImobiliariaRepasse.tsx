@@ -560,7 +560,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                   e.stopPropagation();
                                   if (!confirm(`Excluir ${c.inquilino_nome} do kanban?`)) return;
                                   await supabase.from('imobiliaria_clientes').delete().eq('id', c.id);
-                                  fetchClientes();
+                                  load();
                                 }}
                                 style={{ marginLeft: '6px', padding: '2px 5px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
                                 title="Excluir"
