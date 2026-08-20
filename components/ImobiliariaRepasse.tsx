@@ -23,6 +23,8 @@ interface Cliente {
   apolice_garantia_url?: string | null;
   observacoes?: string;
   created_at: string;
+  dia_vencimento_aluguel?: number | null;
+  repasse_pago_em?: string | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -112,7 +114,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
   // Modal de configuração de repasse ao aprovar cliente do portal
   const [repasseSetupModal, setRepasseSetupModal] = useState<{ clienteId: string; nome: string; newStatus: string } | null>(null);
-  const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '' });
+  const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '', dia_vencimento_aluguel: '' });
 
   const moveCard = async (clienteId: string, newStatus: string) => {
     setDraggingId(null); setDragOver(null);
@@ -134,12 +136,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const confirmarRepasseSetup = async () => {
     if (!repasseSetupModal) return;
     const valor = parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    const diaVenc = parseInt(repasseSetupForm.dia_vencimento_aluguel) || null;
     await supabase.from('imobiliaria_clientes').update({
       kanban_status: repasseSetupModal.newStatus,
       is_repasse: true,
       total_parcelas: repasseSetupForm.total_parcelas,
       parcela_atual: 1,
       valor_seguro: valor,
+      dia_vencimento_aluguel: diaVenc,
       updated_at: new Date().toISOString(),
     }).eq('id', repasseSetupModal.clienteId);
     setClientes(prev => prev.map(c => c.id === repasseSetupModal.clienteId
@@ -149,14 +153,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '' });
 
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Recusado' };
   const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-red-50 text-red-700' };
 
   const openEditStatus = (c: Cliente) => {
     setEditingStatus(c);
-    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '' });
+    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '' });
   };
   const saveStatus = async () => {
     if (!editingStatus) return;
@@ -168,6 +172,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     }
     if (editStatusForm.status_residencial === 'recusado') kanban = 'recusado';
 
+    const diaVencEdit = parseInt(editStatusForm.dia_vencimento_aluguel) || null;
+    const valorSegEdit = parseFloat(editStatusForm.valor_seguro.replace(',', '.')) || undefined;
     await supabase.from('imobiliaria_clientes').update({
       status_residencial: editStatusForm.status_residencial,
       status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
@@ -178,6 +184,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       kanban_status: kanban,
       seguradora: editStatusForm.seguradora || null,
       numero_apolice: editStatusForm.numero_apolice || null,
+      dia_vencimento_aluguel: diaVencEdit,
+      ...(valorSegEdit !== undefined ? { valor_seguro: valorSegEdit } : {}),
       updated_at: new Date().toISOString(),
     }).eq('id', editingStatus.id);
     setEditingStatus(null);
@@ -666,6 +674,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seg. Residencial</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Garantia / Docs</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Venc.</th>
                   <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parcela</th>
                   <th className="px-5 py-3"></th>
                 </tr>
@@ -715,6 +724,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                       ) : <span className="text-slate-300 text-xs">—</span>}
                     </td>
                     <td className="px-5 py-4 text-sm font-black text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
+                    <td className="px-5 py-4 text-center">
+                      {c.dia_vencimento_aluguel ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                          dia {c.dia_vencimento_aluguel}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-4 text-center">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${
                         c.parcela_atual === c.total_parcelas
@@ -810,6 +828,18 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#C69C6D]"
               />
               <p className="text-xs text-slate-400">Este valor será cobrado mensalmente no repasse da imobiliária.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dia de Vencimento do Aluguel</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" min="1" max="28" placeholder="Ex: 20"
+                  value={repasseSetupForm.dia_vencimento_aluguel}
+                  onChange={e => setRepasseSetupForm(f => ({ ...f, dia_vencimento_aluguel: e.target.value }))}
+                  className="w-28 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#C69C6D]"
+                />
+                <p className="text-xs text-slate-400 flex-1">O aviso de repasse será enviado automaticamente 10 dias antes deste dia.</p>
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
@@ -954,6 +984,32 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
                   placeholder="Ex: APL-2026-001" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-[#C69C6D]" />
               </div>
+            </div>
+
+            {/* Repasse */}
+            <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
+              <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Repasse Mensal</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Valor Mensal (R$)</label>
+                  <input
+                    type="text" placeholder="Ex: 182,49"
+                    value={editStatusForm.valor_seguro}
+                    onChange={e => setEditStatusForm(f => ({...f, valor_seguro: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Dia Venc. Aluguel</label>
+                  <input
+                    type="number" min="1" max="28" placeholder="Ex: 20"
+                    value={editStatusForm.dia_vencimento_aluguel}
+                    onChange={e => setEditStatusForm(f => ({...f, dia_vencimento_aluguel: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-amber-600">Aviso enviado 10 dias antes do vencimento</p>
             </div>
 
             {/* Apólice Residencial */}
