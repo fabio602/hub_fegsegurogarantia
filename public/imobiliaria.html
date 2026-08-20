@@ -64,28 +64,171 @@
     .form-success { background: #f5faf7; border: 1px solid #c3dfd4; color: #2d6a4f; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
 
     /* ── CARTEIRA ── */
-    .table-card { background: #fff; border-radius: 16px; border: 1px solid #e8e4dc; overflow: hidden; }
-    .table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid #e8e4dc; gap: 12px; flex-wrap: wrap; }
-    .table-toolbar h3 { font-size: 15px; font-weight: 900; }
-    .search-input { border: 1px solid #e8e4dc; border-radius: 10px; padding: 8px 14px; font-size: 12px; outline: none; background: #fafaf8; color: #1B263B; min-width: 220px; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: #fff;
+      border: 1px solid #e8e4dc;
+      border-radius: 16px;
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card:hover {
+      border-color: #C69C6D;
+      box-shadow: 0 4px 20px rgba(198,156,109,.12);
+      transform: translateY(-1px);
+    }
+    .kpi-card.active-filter {
+      border-color: #1B263B;
+      background: #1B263B;
+    }
+    .kpi-card.active-filter .kpi-count { color: #C69C6D; }
+    .kpi-card.active-filter .kpi-label { color: rgba(255,255,255,.5); }
+    .kpi-count {
+      font-size: 28px;
+      font-weight: 900;
+      color: #1B263B;
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -1px;
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94a3b8;
+    }
+    .kpi-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .table-card {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid #e8e4dc;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.03);
+    }
+    .toolbar {
+      padding: 18px 24px;
+      border-bottom: 1px solid #f0ece4;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #fafaf8;
+    }
+    .toolbar h3 {
+      font-size: 14px;
+      font-weight: 900;
+      color: #1B263B;
+      margin-right: auto;
+      letter-spacing: -.2px;
+    }
+    .carteira-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f1ec;
+      color: #78716c;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-left: 8px;
+    }
+    .search-input {
+      border: 1.5px solid #e8e4dc;
+      border-radius: 10px;
+      padding: 8px 14px 8px 34px;
+      font-size: 12px;
+      outline: none;
+      background: #fff;
+      color: #1B263B;
+      min-width: 180px;
+      font-weight: 600;
+      transition: border .2s;
+    }
     .search-input:focus { border-color: #C69C6D; }
+    .select-filter {
+      border: 1.5px solid #e8e4dc;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      outline: none;
+      background: #fff;
+      color: #1B263B;
+      cursor: pointer;
+      transition: border .2s;
+    }
+    .select-filter:focus { border-color: #C69C6D; }
+    .btn-limpar {
+      padding: 8px 14px;
+      background: transparent;
+      border: 1.5px solid #e8e4dc;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-limpar:hover { border-color: #C69C6D; color: #C69C6D; background: #fef9f0; }
+    .scroll-x { overflow-x: auto; }
+    .scroll-x::-webkit-scrollbar { height: 4px; }
+    .scroll-x::-webkit-scrollbar-track { background: #f8f5f0; }
+    .scroll-x::-webkit-scrollbar-thumb { background: #C69C6D40; border-radius: 4px; }
+    .scroll-x::-webkit-scrollbar-thumb:hover { background: #C69C6D; }
     .scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     table td:first-child, table th:first-child { min-width: 220px; white-space: nowrap; }
-    thead th { padding: 11px 18px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; background: #fafaf8; border-bottom: 1px solid #e8e4dc; white-space: nowrap; }
-    tbody tr { border-bottom: 1px solid #f4f1ec; transition: background .15s; }
+    thead th {
+      padding: 11px 20px;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: #94a3b8;
+      background: #fafaf8;
+      border-bottom: 1px solid #f0ece4;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: color .15s;
+    }
+    thead th:hover { color: #C69C6D; }
+    tbody tr { border-bottom: 1px solid #f8f5f0; transition: background .1s; }
     tbody tr:hover { background: #fafaf8; }
     tbody tr:last-child { border-bottom: none; }
-    td { padding: 14px 18px; vertical-align: middle; }
+    td { padding: 14px 20px; vertical-align: middle; font-size: 13px; }
+    .td-nome { font-weight: 800; color: #1B263B; white-space: nowrap; letter-spacing: -.1px; }
+    .td-data { color: #94a3b8; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .td-tipo { font-size: 11px; color: #78716c; }
+    .td-apolice { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #78716c; letter-spacing: .5px; }
+    .td-valor { font-weight: 700; color: #1B263B; white-space: nowrap; }
     .empty { padding: 56px; text-align: center; color: #c9c2b8; font-size: 14px; font-weight: 700; }
 
     /* Status badges */
     .sb { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; display: inline-block; white-space: nowrap; }
-    .sb-aguardando { background: #fafaf8; color: #78716c; border: 1px solid #e8e4dc; }
-    .sb-analise    { background: #f5f7fa; color: #1B263B; border: 1px solid #dde3ec; }
-    .sb-aprovado   { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; }
-    .sb-emitido    { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; }
-    .sb-recusado   { background: #fdf2f0; color: #9b1c1c; border: 1px solid #ecc9c4; }
+    .sb-aguardando { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+    .sb-analise    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .sb-aprovado   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .sb-emitido    { background: #fef9f0; color: #92400e; border: 1px solid #fde68a; }
+    .sb-recusado   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .sb-parc       { background: #f0f2f5; color: #1B263B; border: 1px solid #dde3ec; }
     .btn-doc       { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 3px; }
     .btn-doc:hover { background: #e8f5ef; }
@@ -151,9 +294,10 @@
     .hist-status-pend { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
     .hist-data { font-size: 12px; color: #78716c; }
     .btn-comp { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #f5f7fa; color: #1B263B; border: 1px solid #dde3ec; border-radius: 8px; font-size: 11px; font-weight: 900; text-decoration: none; }
-    .venc-ok   { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
-    .venc-warn { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
-    .venc-exp  { background: #fdf2f0; color: #9b1c1c; border: 1px solid #ecc9c4; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-block; }
+    /* venc-* classes kept for backward compat but overridden by inline vencBadge styles */
+    .venc-ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
+    .venc-warn { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
+    .venc-exp  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
     .alert-box { background: #faf8f5; border: 1.5px solid rgba(198,156,109,.25); border-left: 3px solid #C69C6D; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; }
     .alert-box h4 { font-size: 13px; font-weight: 900; color: #1B263B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
     .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ede9e1; font-size: 13px; color: #1B263B; }
@@ -678,39 +822,37 @@
 
 <!-- CARTEIRA -->
 <div class="page" id="page-carteira">
-  <div class="section-header">
-    <h2>📋 Carteira de Clientes</h2>
-    <p>Todos os seus inquilinos e o status de cada apólice.</p>
+  <div style="margin-bottom:20px;">
+    <h2 style="font-size:22px;font-weight:900;color:#1B263B;letter-spacing:-.3px;margin-bottom:4px;">📋 Carteira de Clientes</h2>
+    <p style="font-size:13px;color:#94a3b8;font-weight:600;">Todos os seus inquilinos e o status de cada apólice.</p>
   </div>
   <!-- Docs pendentes -->
   <div id="docs-pending-area"></div>
-  <div id="carteira-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;"></div>
+  <div id="carteira-summary"></div>
   <div class="table-card">
-    <div class="table-toolbar">
-      <h3>Todos os clientes <span id="carteira-count" style="font-size:12px;font-weight:600;color:#94a3b8;margin-left:8px"></span></h3>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="text" class="search-input" id="busca" placeholder="Buscar inquilino..." oninput="filtrar()" style="min-width:200px;" />
-        <select class="search-input" id="filtro-situacao" onchange="filtrar()" style="min-width:160px;cursor:pointer;">
-          <option value="">Todas situações</option>
-          <option value="ativo">🟢 Ativo</option>
-          <option value="em_renovacao">🔵 Em Renovação</option>
-          <option value="pendente_renovacao">🟡 Pendente Renovação</option>
-          <option value="vencido">🔴 Vencido</option>
-          <option value="cancelado">🔴 Cancelado</option>
-          <option value="saiu_imovel">🚪 Saiu do Imóvel</option>
-          <option value="desistiu">⛔ Desistiu</option>
-          <option value="reprovado">❌ Reprovado</option>
-        </select>
-        <select class="search-input" id="filtro-tipo" onchange="filtrar()" style="min-width:160px;cursor:pointer;">
-          <option value="">Todos os tipos</option>
-          <option value="residencial">🏠 Apenas Residencial</option>
-          <option value="garantia">🏠🔒 Com Garantia</option>
-        </select>
-        <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fef9c3;border:1px solid #fde68a;border-radius:12px;font-size:11px;font-weight:900;color:#a16207;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#a16207;font-weight:900;font-size:13px;line-height:1;">×</button></span>
-        <button onclick="limparFiltrosCarteira()" style="padding:8px 14px;background:#f4f1ec;border:1.5px solid #e8e4dc;border-radius:12px;font-size:12px;font-weight:700;color:#78716c;cursor:pointer;">✕ Limpar</button>
-      </div>
+    <div class="toolbar">
+      <h3>Todos os clientes <span class="carteira-count-badge" id="carteira-count"></span></h3>
+      <input type="text" class="search-input" id="busca" placeholder="🔍 Buscar inquilino..." oninput="filtrar()" style="padding-left:14px;" />
+      <select class="select-filter" id="filtro-situacao" onchange="filtrar()">
+        <option value="">Todas situações</option>
+        <option value="ativo">Ativo</option>
+        <option value="em_renovacao">Em Renovação</option>
+        <option value="pendente_renovacao">Pendente Renovação</option>
+        <option value="vencido">Vencido</option>
+        <option value="cancelado">Cancelado</option>
+        <option value="saiu_imovel">Saiu do Imóvel</option>
+        <option value="desistiu">Desistiu</option>
+        <option value="reprovado">Reprovado</option>
+      </select>
+      <select class="select-filter" id="filtro-tipo" onchange="filtrar()">
+        <option value="">Todos os tipos</option>
+        <option value="residencial">Apenas Residencial</option>
+        <option value="garantia">Com Garantia</option>
+      </select>
+      <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:11px;font-weight:900;color:#d97706;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#d97706;font-weight:900;font-size:13px;line-height:1;margin-left:2px;">×</button></span>
+      <button class="btn-limpar" onclick="limparFiltrosCarteira()">✕ Limpar</button>
     </div>
-    <div class="scroll">
+    <div class="scroll scroll-x">
       <table>
         <thead>
           <tr>
@@ -859,8 +1001,15 @@
     recusado:           ['sb-recusado',   '❌ Recusado'],
   };
   function sbadge(s) {
-    const [cls, lbl] = STATUS[s] || STATUS['aguardando_cotacao'];
-    return `<span class="sb ${cls}">${lbl}</span>`;
+    const MAP = {
+      aguardando_cotacao: { bg:'#f9fafb', color:'#6b7280', label:'Aguardando' },
+      em_analise:         { bg:'#eff6ff', color:'#1e40af', label:'Em análise' },
+      aprovado:           { bg:'#f0fdf4', color:'#166534', label:'Aprovado' },
+      emitido:            { bg:'#fef9f0', color:'#92400e', label:'Emitido' },
+      recusado:           { bg:'#fef2f2', color:'#dc2626', label:'Recusado' },
+    };
+    const cfg = MAP[s] || MAP.aguardando_cotacao;
+    return `<span style="display:inline-flex;align-items:center;padding:3px 10px;background:${cfg.bg};color:${cfg.color};border-radius:6px;font-size:10px;font-weight:900;">${cfg.label}</span>`;
   }
 
   const DOCS_DEF = [
@@ -921,15 +1070,15 @@
       </div>`).join('');
   }
 
-  function vencBadge(vigencia_fim) {
-    if (!vigencia_fim) return '<span style="color:#cbd5e1;font-size:11px">—</span>';
+  function vencBadge(v) {
+    if (!v) return '<span style="color:#c9c2b8;font-size:12px;">—</span>';
     const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const venc = new Date(vigencia_fim);
+    const venc = new Date(v + 'T12:00:00');
     const dias = Math.round((venc - hoje) / 86400000);
-    const str = venc.toLocaleDateString('pt-BR');
-    if (dias < 0)  return `<span class="venc-exp">⛔ Vencido (${str})</span>`;
-    if (dias <= 30) return `<span class="venc-warn">⚠️ ${dias}d — ${str}</span>`;
-    return `<span class="venc-ok">✅ ${str}</span>`;
+    const str = venc.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+    if (dias < 0) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:900;">⚠ ${str}</span>`;
+    if (dias <= 30) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:8px;font-size:10px;font-weight:900;">⏰ ${str}</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:900;">✓ ${str}</span>`;
   }
 
   function renderAlertasVencimento(cs) {
@@ -1064,15 +1213,21 @@
   }
 
   const SITUACAO = {
-    ativo:              ['#f5faf7','#2d6a4f','🟢 Ativo'],
-    pagamento_atrasado: ['#fdf6ee','#b8895a','🟡 Pgto. atrasado'],
-    cancelado:          ['#fdf2f0','#9b1c1c','🔴 Cancelado'],
-    em_renovacao:       ['#eef2ff','#3730a3','🔵 Em Renovação'],
-    pendente_renovacao: ['#fef9c3','#a16207','🟡 Pendente Renovação'],
-    vencido:            ['#fdf2f0','#9b1c1c','🔴 Vencido'],
-    saiu_imovel:        ['#f5f3ff','#6d28d9','🚪 Saiu do Imóvel'],
-    desistiu:           ['#f8fafc','#64748b','⛔ Desistiu'],
-    reprovado:          ['#fdf2f0','#9b1c1c','❌ Reprovado'],
+    ativo:              { bg:'#f0fdf4', color:'#166534', border:'#bbf7d0', dot:'#16a34a', label:'Ativo' },
+    cancelado:          { bg:'#f9fafb', color:'#6b7280', border:'#e5e7eb', dot:'#9ca3af', label:'Cancelado' },
+    vencido:            { bg:'#fef2f2', color:'#991b1b', border:'#fecaca', dot:'#dc2626', label:'Vencido' },
+    em_renovacao:       { bg:'#eff6ff', color:'#1e40af', border:'#bfdbfe', dot:'#3b82f6', label:'Em Renovação' },
+    pendente_renovacao: { bg:'#fffbeb', color:'#92400e', border:'#fde68a', dot:'#f59e0b', label:'Pend. Renovação' },
+    pagamento_atrasado: { bg:'#fff7ed', color:'#9a3412', border:'#fed7aa', dot:'#f97316', label:'Pgto. Atrasado' },
+    saiu_imovel:        { bg:'#f5f3ff', color:'#5b21b6', border:'#ddd6fe', dot:'#7c3aed', label:'Saiu do Imóvel' },
+    desistiu:           { bg:'#f9fafb', color:'#6b7280', border:'#e5e7eb', dot:'#9ca3af', label:'Desistiu' },
+    reprovado:          { bg:'#fef2f2', color:'#991b1b', border:'#fecaca', dot:'#dc2626', label:'Reprovado' },
+  };
+
+  const dotColors = {
+    ativo:'#16a34a', vencido:'#dc2626', cancelado:'#6b7280',
+    em_renovacao:'#3b82f6', pendente_renovacao:'#d97706',
+    saiu_imovel:'#7c3aed', desistiu:'#6b7280', reprovado:'#dc2626'
   };
 
   // Prioridade para deduplicação: menor índice = mais prioritário
@@ -1100,30 +1255,42 @@
     if (sumEl) {
       const counts = {};
       lista.forEach(c => { const s = c.status_apolice||'ativo'; counts[s]=(counts[s]||0)+1; });
-      const labels = {ativo:'🟢 Ativo',vencido:'🔴 Vencido',cancelado:'🔴 Cancelado',em_renovacao:'🔵 Em Renovação',pendente_renovacao:'🟡 Pend. Renovação',saiu_imovel:'🚪 Saiu',desistiu:'⛔ Desistiu',reprovado:'❌ Reprovado'};
-      sumEl.innerHTML = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
-        <div onclick="document.getElementById('filtro-situacao').value='${k}';filtrar();" style="background:#fff;border:1px solid #e8e4dc;border-radius:12px;padding:10px 14px;cursor:pointer;transition:border .2s;" onmouseover="this.style.borderColor='#C69C6D'" onmouseout="this.style.borderColor='#e8e4dc'">
-          <div style="font-size:18px;font-weight:900;color:#1B263B;">${v}</div>
-          <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-top:2px;">${labels[k]||k}</div>
-        </div>`).join('');
+      const labels = {ativo:'Ativo',vencido:'Vencido',cancelado:'Cancelado',em_renovacao:'Em Renovação',pendente_renovacao:'Pend. Renovação',saiu_imovel:'Saiu do Imóvel',desistiu:'Desistiu',reprovado:'Reprovado'};
+      sumEl.innerHTML = `<div class="kpi-grid">${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+        <div class="kpi-card" onclick="document.getElementById('filtro-situacao').value='${k}';filtrar();" title="Filtrar por ${labels[k]||k}">
+          <div class="kpi-count">${v}</div>
+          <div class="kpi-label">
+            <span class="kpi-dot" style="background:${dotColors[k]||'#94a3b8'};"></span>
+            ${labels[k]||k}
+          </div>
+        </div>`).join('')}</div>`;
     }
 
     tbody.innerHTML = lista.map(c => {
       const temG = c.tipo_seguro === 'residencial_garantia';
-      const [bg, col, sitLabel] = SITUACAO[c.status_apolice || 'ativo'] || SITUACAO.ativo;
-      const situacaoBadge = `<span style="background:${bg};color:${col};padding:3px 9px;border-radius:20px;font-size:10px;font-weight:900;display:inline-block">${sitLabel}</span>`;
-      const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${c.apolice_residencial_url ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#2d6a4f;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`;
-      const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${c.apolice_garantia_url ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:900;color:#2d6a4f;text-decoration:none;opacity:.8" title="Baixar apólice">⬇ PDF</a>` : ''}</div>`
-        : `<span style="color:#c9c2b8;font-size:12px">—</span>`;
+      const sit = SITUACAO[c.status_apolice||'ativo'] || SITUACAO.ativo;
+      const situacaoBadge = `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;background:${sit.bg};color:${sit.color};border:1px solid ${sit.border};border-radius:20px;font-size:10px;font-weight:900;white-space:nowrap;letter-spacing:.3px;">
+        <span style="width:5px;height:5px;border-radius:50%;background:${sit.dot};flex-shrink:0;"></span>
+        ${sit.label}
+      </span>`;
+      const btnApoliceRes = c.apolice_residencial_url
+        ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:900;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        : '';
+      const btnApoliceGar = c.apolice_garantia_url
+        ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:900;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        : '';
+      const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${btnApoliceRes}</div>`;
+      const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${btnApoliceGar}</div>`
+        : `<span style="color:#c9c2b8;font-size:12px;">—</span>`;
       return `<tr>
-        <td style="font-size:11px;color:#78716c;white-space:nowrap">${fmtData(c.data_inicio)}</td>
-        <td style="font-weight:900;color:#1B263B">${c.inquilino_nome||'—'}</td>
-        <td style="font-size:11px;color:#78716c">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
+        <td class="td-data">${fmtData(c.data_inicio)}</td>
+        <td class="td-nome">${c.inquilino_nome||'—'}</td>
+        <td class="td-tipo">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
-        <td style="font-size:12px;font-weight:700;color:#1B263B">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
-        <td style="font-size:11px;font-family:monospace;color:#78716c">${c.numero_apolice || '—'}</td>
+        <td style="font-size:12px;font-weight:700;color:#1B263B;">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
+        <td class="td-apolice">${c.numero_apolice || '—'}</td>
         <td>${colRes}</td><td>${colGar}</td>
-        <td style="font-weight:700">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
+        <td class="td-valor">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
         <td>${vencBadge(c.vigencia_fim)}</td>
       </tr>`;
     }).join('');
