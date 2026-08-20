@@ -137,7 +137,7 @@ export default function InadimplentesResidencial() {
     let novoStatus: Inadimplente['status'] = 'contatado';
 
     if (tipo === 'cobranca') {
-      message = `Olá ${nome}! Tudo bem? 😊\n\nAqui é a F&G Seguro Garantia.\n\nSou o corretor responsável pelo seu seguro residencial e gostaria de te ajudar com uma pendência no seu seguro (apólice ${item.apolice || '—'}, parcela ${item.parcela || '—'} de ${valor}).\n\nQuando tiver um minutinho, podemos resolver isso juntos? É bem rápido 🙏`;
+      message = `Olá ${nome}! Tudo bem? 😊\n\nAqui é a F&G Seguro Garantia.\n\nSou o corretor responsável pelo seu seguro residencial Tokio Marine e gostaria de te ajudar com uma pendência no seu seguro (apólice ${item.apolice || '—'}, parcela ${item.parcela || '—'} de ${valor}).\n\nQuando tiver um minutinho, podemos resolver isso juntos? É bem rápido 🙏`;
     } else {
       message = `Certo, vou providenciar o boleto atualizado e te envio em instantes.\n\nUm momento! 😊`;
       novoStatus = 'boleto_solicitado';
