@@ -120,6 +120,28 @@
     .modal-msg { font-size:12px; font-weight:700; text-align:center; margin-top:12px; padding:10px; border-radius:10px; display:none; }
     .modal-msg.ok { color:#16a34a; background:#f0fdf4; }
     .modal-msg.erro { color:#ef4444; background:#fef2f2; }
+
+    /* ── MOBILE CARDS ── */
+    #mobile-cards { display: none; flex-direction: column; gap: 12px; padding: 16px; }
+    @media (max-width: 600px) {
+      .scroll-x { overflow: visible !important; }
+      table { display: none !important; }
+      #mobile-cards { display: flex !important; }
+      .topbar { padding: 0 16px; }
+      .content { padding: 20px 16px 48px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .search-input, .select-filter { width: 100%; }
+      .filter-group { flex-direction: column; }
+      .pg-btn { width: 44px; height: 44px; }
+    }
+
+    /* ── TOUCH TARGETS ── */
+    button, a.badge-apolice, a.badge-boleto, .pg-btn { min-height: 44px; }
+
+    /* ── REDUCED MOTION ── */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -201,6 +223,11 @@
       </button>
     </div>
 
+    <!-- LICITANTE INFO BANNER -->
+    <div id="licitante-info-banner" style="display:none;background:#fef9f0;border:1px solid #C69C6D40;border-radius:14px;padding:14px 18px;margin-bottom:16px;font-size:12px;color:#78716c;line-height:1.6;">
+      ℹ️ <strong style="color:#1B263B;">Sobre Seguro Garantia Licitante:</strong> Esta modalidade gera comissão apenas quando a apólice é emitida e o contrato é firmado. Indicações em análise ainda não geram valor.
+    </div>
+
     <!-- TABLE CARD -->
     <div id="aba-clientes" class="table-card" style="border-radius:0 0 20px 20px;">
       <div class="toolbar">
@@ -240,6 +267,34 @@
         <span id="results-periodo"></span>
       </div>
 
+      <!-- Zero state: sem nenhum negócio ainda -->
+      <div id="zero-state" style="display:none;background:#fff;border-radius:20px;border:1px solid #e8e4dc;padding:40px 32px;text-align:center;margin:16px 16px 0;">
+        <div style="font-size:48px;margin-bottom:16px;">🤝</div>
+        <h3 style="font-size:18px;font-weight:900;color:#1B263B;margin-bottom:8px;">Bem-vindo ao Portal de Parceiros!</h3>
+        <p style="font-size:13px;color:#78716c;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6;">Suas indicações aparecerão aqui à medida que as apólices forem emitidas. Comece indicando um cliente para a F&G Seguro Garantia.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:380px;margin:0 auto 24px;text-align:left;">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+            <div><strong style="font-size:13px;color:#1B263B;">Indique um cliente</strong><br><span style="font-size:12px;color:#78716c;">Entre em contato com a F&G via WhatsApp com os dados do cliente.</span></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+            <div><strong style="font-size:13px;color:#1B263B;">F&G faz a cotação</strong><br><span style="font-size:12px;color:#78716c;">Nossa equipe prepara a proposta e entra em contato com o cliente.</span></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#C69C6D;color:#1B263B;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+            <div><strong style="font-size:13px;color:#1B263B;">Você recebe sua comissão</strong><br><span style="font-size:12px;color:#78716c;">Após a emissão da apólice, sua comissão aparece aqui automaticamente.</span></div>
+          </div>
+        </div>
+        <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:#16a34a;color:#fff;border-radius:14px;font-weight:900;font-size:14px;text-decoration:none;">💬 Indicar pelo WhatsApp</a>
+      </div>
+
+      <!-- Pipeline: negócios em andamento (não emitidos) -->
+      <div id="pipeline-section" style="margin:16px 16px 0;display:none;">
+        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:10px;padding:0 4px;">Em andamento</div>
+        <div id="pipeline-cards" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
       <div class="scroll-x">
         <table>
           <thead>
@@ -251,16 +306,21 @@
               <th>IS Garantida</th>
               <th onclick="ordenar('premio')">Prêmio <span id="sort-premio"></span></th>
               <th onclick="ordenar('comissao')">Comissão F&G <span id="sort-comissao"></span></th>
+              <th>% Parceiro</th>
               <th>Sua Comissão</th>
+              <th>Status</th>
               <th style="text-align:center">Apólice</th>
               <th style="text-align:center">Boleto(s)</th>
             </tr>
           </thead>
           <tbody id="tabela-body">
-            <tr><td colspan="10"><div class="empty-state"><div class="icon">⏳</div><h4>Carregando...</h4></div></td></tr>
+            <tr><td colspan="12"><div class="empty-state"><div class="icon">⏳</div><h4>Carregando...</h4></div></td></tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Mobile cards (hidden on desktop) -->
+      <div id="mobile-cards"></div>
 
       <div class="pagination" id="pagination" style="display:none"></div>
     </div>
@@ -410,12 +470,64 @@
 
     // ── CARDS ────────────────────────────────────────────────
     function atualizarCards() {
-      const totalPremio = vendasFiltradas.reduce((s, v) => s + parseVal(v.premio), 0);
-      const totalComissao = vendasFiltradas.reduce((s, v) => s + parseVal(v.comissao), 0);
-      document.getElementById('card-vendas').textContent = vendasFiltradas.length;
+      // Stats only count emitted deals
+      const emitidos = vendasFiltradas.filter(v => v.vendeu === 'Sim');
+      const totalPremio = emitidos.reduce((s, v) => s + parseVal(v.premio), 0);
+      const totalComissao = emitidos.reduce((s, v) => s + parseVal(v.comissao), 0);
+      document.getElementById('card-vendas').textContent = emitidos.length;
       document.getElementById('card-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
       document.getElementById('card-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
       document.getElementById('card-parceiro').textContent = totalComissao > 0 ? fmt(totalComissao * PCT) : '—';
+      renderPipeline(todasVendas);
+      renderZeroState();
+    }
+
+    // ── PIPELINE ─────────────────────────────────────────────
+    function renderPipeline(vendas) {
+      const sec = document.getElementById('pipeline-section');
+      const cards = document.getElementById('pipeline-cards');
+      const pending = vendas.filter(v => v.vendeu !== 'Sim');
+      if (!pending.length) { sec.style.display = 'none'; return; }
+      sec.style.display = 'block';
+
+      cards.innerHTML = pending.map(v => {
+        const stages = [
+          { key: 'recebida', label: 'Recebida',   icon: '📥', done: true,  date: fmtData(v.data) },
+          { key: 'analise',  label: 'Em análise', icon: '🔍', done: true,  date: null },
+          { key: 'cotada',   label: 'Cotada',     icon: '📋', done: false, date: null },
+          { key: 'emitida',  label: 'Emitida',    icon: '✅', done: false, date: null },
+        ];
+        const timelineHtml = stages.map((s, i) => `
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;background:${s.done ? '#1B263B' : '#f8f5f0'};border:2px solid ${s.done ? '#1B263B' : '#e8e4dc'};margin-bottom:4px;">${s.icon}</div>
+            <div style="font-size:9px;font-weight:900;color:${s.done ? '#1B263B' : '#94a3b8'};text-align:center;text-transform:uppercase;letter-spacing:.5px;">${s.label}</div>
+            ${s.date ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">${s.date}</div>` : ''}
+          </div>
+          ${i < stages.length - 1 ? `<div style="flex:0 0 24px;height:2px;background:${stages[i + 1].done ? '#1B263B' : '#e8e4dc'};margin-top:16px;"></div>` : ''}
+        `).join('');
+
+        return `<div style="background:#fff;border:1px solid #e8e4dc;border-radius:16px;padding:16px 20px;border-left:4px solid #C69C6D;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:#1B263B;">${v.nome || '—'}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${v.product_type || 'Seguro Garantia'}${v.tipo ? ' · ' + v.tipo : ''}</div>
+            </div>
+            <span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;">⏳ Aguardando F&G</span>
+          </div>
+          <div style="display:flex;align-items:center;">${timelineHtml}</div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:11px;color:#78716c;">Prazo médio de emissão: <strong style="color:#1B263B;">3 a 5 dias úteis</strong></div>
+            <a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá! Acompanhando a demanda: ' + (v.nome || '') + ' (' + fmtData(v.data) + ')')}" target="_blank" style="font-size:11px;font-weight:900;color:#16a34a;text-decoration:none;display:flex;align-items:center;gap:4px;">💬 Falar com F&G</a>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── ZERO STATE ───────────────────────────────────────────
+    function renderZeroState() {
+      const el = document.getElementById('zero-state');
+      if (!el) return;
+      el.style.display = todasVendas.length === 0 ? 'block' : 'none';
     }
 
     // ── TABELA ───────────────────────────────────────────────
@@ -426,17 +538,23 @@
 
       if (vendasFiltradas.length === 0) {
         const busca = document.getElementById('busca').value.trim();
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">
           <div class="icon">${busca ? '🔍' : '📋'}</div>
           <h4>${busca ? 'Nenhum resultado encontrado' : 'Nenhuma venda no período'}</h4>
           <p>${busca ? 'Tente buscar por outro nome.' : 'Selecione outro período ou aguarde novas emissões.'}</p>
         </div></td></tr>`;
+        renderMobileCards([]);
         return;
       }
 
       tbody.innerHTML = pagina.map(v => {
         const comissao = parseVal(v.comissao);
         const parceiro = comissao * PCT;
+        const pctStr = `${Math.round(PCT * 100)}%`;
+
+        const statusComissao = v.vendeu === 'Sim'
+          ? '<span style="font-size:10px;font-weight:900;background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;">✅ Prevista</span>'
+          : '<span style="font-size:10px;font-weight:900;background:#f8f5f0;color:#94a3b8;padding:2px 8px;border-radius:6px;">—</span>';
 
         const btnApolice = v.apolice_url
           ? `<a href="${v.apolice_url}" target="_blank" class="badge-apolice">⬇ Apólice</a>`
@@ -462,10 +580,44 @@
           <td style="font-weight:700;color:#1B263B;white-space:nowrap">${isVal}</td>
           <td class="td-valor">${fmt(parseVal(v.premio))}</td>
           <td class="td-comissao">${fmt(comissao)}</td>
+          <td style="font-size:12px;color:#94a3b8;">${pctStr}</td>
           <td class="td-parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
+          <td>${statusComissao}</td>
           <td style="text-align:center">${btnApolice}</td>
           <td style="min-width:140px;text-align:center">${boletoHtml}</td>
         </tr>`;
+      }).join('');
+
+      renderMobileCards(pagina);
+    }
+
+    // ── MOBILE CARDS ─────────────────────────────────────────
+    function renderMobileCards(lista) {
+      const el = document.getElementById('mobile-cards');
+      if (!el) return;
+      if (!lista.length) { el.innerHTML = ''; return; }
+      el.innerHTML = lista.map(v => {
+        const comissao = parseVal(v.comissao);
+        const parceiro = comissao * PCT;
+        return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+            <div>
+              <div style="font-size:14px;font-weight:900;color:#1B263B;">${v.nome || '—'}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmtData(v.data)} · ${v.product_type || '—'}${v.tipo ? ' · ' + v.tipo : ''}</div>
+            </div>
+            ${v.apolice_url ? `<a href="${v.apolice_url}" target="_blank" style="padding:6px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;flex-shrink:0;display:inline-flex;align-items:center;">⬇ Apólice</a>` : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#f8f5f0;border-radius:10px;padding:10px;">
+              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:3px;">Prêmio</div>
+              <div style="font-size:14px;font-weight:900;color:#1B263B;">${fmt(parseVal(v.premio))}</div>
+            </div>
+            <div style="background:#1B263B;border-radius:10px;padding:10px;">
+              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">Sua Comissão</div>
+              <div style="font-size:14px;font-weight:900;color:#C69C6D;">${parceiro > 0 ? fmt(parceiro) : '—'}</div>
+            </div>
+          </div>
+        </div>`;
       }).join('');
     }
 
@@ -519,9 +671,7 @@
     }
 
     function renderRepasses() {
-      const sec = document.getElementById('sec-repasses');
       const tbody = document.getElementById('repasses-body');
-      sec.style.display = 'block';
       if (!repassesData.length) {
         tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">💸</div><h4>Nenhum repasse registrado ainda</h4><p>Os pagamentos de comissão realizados pela F&G aparecerão aqui.</p></div></td></tr>`;
         return;
@@ -539,7 +689,7 @@
           <td style="padding:14px 20px;text-align:center;">
             ${r.comprovante_url
               ? `<a href="${r.comprovante_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Ver</a>`
-              : '<span style="color:#c9c2b8;font-size:12px;">—</span>'}
+              : `<a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá, preciso do comprovante do repasse de '+MESES[r.periodo_mes]+'/'+r.periodo_ano)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#fef9c3;color:#a16207;border:1px solid #fde68a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">💬 Solicitar</a>`}
           </td>
         </tr>`).join('');
     }
@@ -547,21 +697,23 @@
     async function carregar() {
       const { data, error } = await client
         .from('sales')
-        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, segurado, is, orgaoLicitante')
-        .eq('vendeu', 'Sim')
+        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, vendeu, obs, segurado, orgaoLicitante, is')
         .eq('parceiro', session.name)
         .order('data', { ascending: false });
 
       if (error) {
-        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">⚠️</div><h4>Erro ao carregar</h4><p>Tente recarregar a página.</p></div></td></tr>`;
+        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon">⚠️</div><h4>Erro ao carregar</h4><p>Tente recarregar a página.</p></div></td></tr>`;
         return;
       }
 
       const vendas = data || [];
+      const emitidos = vendas.filter(v => v.vendeu === 'Sim');
+      const emAnalise = vendas.filter(v => v.vendeu !== 'Sim');
+      todasVendas = vendas;
 
-      // Boletos
-      if (vendas.length > 0) {
-        const ids = vendas.map(v => v.id);
+      // Boletos (apenas para emitidos que têm id)
+      if (emitidos.length > 0) {
+        const ids = emitidos.map(v => v.id);
         const { data: bData } = await client
           .from('boletos').select('sale_id, parcela, vencimento, url')
           .in('sale_id', ids).order('parcela');
@@ -570,10 +722,9 @@
         vendas.forEach(v => { v._boletos = bMap[v.id] || []; });
       }
 
-      todasVendas = vendas;
       try { await carregarRepasses(); } catch(e) { console.warn('Repasses:', e); }
 
-      // Preencher anos únicos no filtro
+      // Preencher anos únicos no filtro (baseado em todos os negócios)
       const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();
       const selectAno = document.getElementById('filtro-ano');
       anos.forEach(a => {
@@ -589,7 +740,14 @@
       document.getElementById('filtro-ano').value = anoAtual;
       document.getElementById('filtro-mes').value = mesAtual;
 
+      renderPipeline(todasVendas);
+      renderZeroState();
       aplicarFiltros();
+
+      // Licitante banner
+      const temLicitante = todasVendas.some(v => v.tipo === 'Licitante');
+      const bannerEl = document.getElementById('licitante-info-banner');
+      if (bannerEl) bannerEl.style.display = temLicitante ? 'block' : 'none';
     }
 
     function trocarAba(aba) {

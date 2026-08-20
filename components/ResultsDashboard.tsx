@@ -1035,7 +1035,16 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     .single();
                 if (pData?.email) {
                     setPartnerThankYou({ name: pData.name, email: pData.email, clientName: payload.nome || '' });
-                    // Disparo automático — não bloqueia o fluxo principal
+                    // P6: Notifica o parceiro que a apólice foi emitida
+                    supabase.functions.invoke('parceiro-status-changed', {
+                        body: {
+                            saleId: savedId,
+                            oldVendeu: 'Não',
+                            newVendeu: 'Sim',
+                            parceiro: payload.parceiro,
+                        },
+                    }).catch((e: any) => console.warn('P6 status email:', e));
+                    // Disparo automático de agradecimento
                     supabase.functions.invoke('parceiro-referral-thanks', {
                         body: {
                             partnerName: pData.name,
