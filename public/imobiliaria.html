@@ -1247,7 +1247,11 @@
       const priNovo   = PRIORIDADE.indexOf(c.status_apolice || 'cancelado');
       if (priNovo < priAtual) mapa.set(nome, c); // novo é mais prioritário
     });
-    const lista = [...mapa.values()].sort((a,b) => (a.inquilino_nome||'').localeCompare(b.inquilino_nome||'', 'pt-BR'));
+    const lista = [...mapa.values()].sort((a,b) => {
+      const da = a.data_inicio ? new Date(a.data_inicio).getTime() : 0;
+      const db = b.data_inicio ? new Date(b.data_inicio).getTime() : 0;
+      return db - da; // mais recente primeiro
+    });
     const count = document.getElementById('carteira-count');
     if (count) count.textContent = lista.length !== todosClientes.length ? `(${lista.length} de ${todosClientes.length})` : `(${lista.length})`;
 
@@ -1285,7 +1289,7 @@
       return `<tr>
         <td class="td-data">${fmtData(c.data_inicio)}</td>
         <td class="td-nome">${c.inquilino_nome||'—'}</td>
-        <td class="td-tipo">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
+        <td class="td-tipo" style="white-space:nowrap;">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
         <td style="font-size:12px;font-weight:700;color:#1B263B;">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
         <td class="td-apolice">${c.numero_apolice || '—'}</td>
