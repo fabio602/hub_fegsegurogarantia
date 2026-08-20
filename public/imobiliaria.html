@@ -473,7 +473,8 @@
       <h3>Solicitar Cotação</h3>
       <p>Envie os dados de um novo inquilino para cotação de seguro residencial ou garantia de aluguel.</p>
     </div>
-    <div class="action-card" onclick="goTo('carteira')">
+    <div class="action-card" onclick="filtrarCarteiraPorStatus('');goTo('carteira');" style="position:relative;">
+      <span id="badge-cancelados" style="display:none;position:absolute;top:12px;right:12px;background:#dc2626;color:#fff;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;align-items:center;"></span>
       <div class="emoji">📋</div>
       <h3>Carteira de Clientes</h3>
       <p>Veja todos os seus inquilinos, status das apólices e faça download dos documentos.</p>
@@ -485,8 +486,11 @@
     </div>
   </div>
 
+  <!-- Alerta crítico: sem cobertura -->
+  <div id="alerta-cancelados" style="display:none;margin-top:20px;"></div>
+
   <!-- Alertas de vencimento -->
-  <div id="alertas-venc" style="display:none;margin-top:0"></div>
+  <div id="alertas-venc" style="display:none;margin-top:20px;"></div>
 
   <!-- Acompanhamento das Solicitações removido da home -->
 </div>
@@ -1110,10 +1114,7 @@
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
       const url = urlData.publicUrl;
 
-      // Salva URL no banco
-      await client.from('imobiliaria_clientes').update({ distrato_url: url }).eq('id', clientId);
-
-      // Notifica Fábio via Edge Function
+      // Notifica Fábio e salva URL via Edge Function (usa service role)
       await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-confirmacao-renovacao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
@@ -1269,6 +1270,46 @@
     }).join('');
   }
 
+  function renderAlertaCancelados(cs) {
+    const el = document.getElementById('alerta-cancelados');
+    if (!el) return;
+    const cancelados = cs.filter(c => ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice));
+    if (!cancelados.length) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:20px;overflow:hidden;">
+        <div style="background:#dc2626;padding:16px 24px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:22px;">🚨</span>
+          <div style="flex:1;">
+            <div style="color:#fff;font-size:15px;font-weight:900;">${cancelados.length} inquilino${cancelados.length>1?'s':''} SEM cobertura de seguro ativa</div>
+            <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px;font-weight:600;">Imóveis desprotegidos. Em caso de sinistro, a imobiliária pode ser responsabilizada.</div>
+          </div>
+          <button onclick="filtrarCarteiraPorStatus('cancelado');goTo('carteira');"
+            style="padding:8px 16px;background:#fff;color:#dc2626;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+            Ver todos →
+          </button>
+        </div>
+        <div style="padding:8px 0;">
+          ${cancelados.slice(0,5).map(c => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid #fee2e2;gap:12px;flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome||'—'}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Apólice ${c.numero_apolice||'—'} · ${c.seguradora&&c.seguradora!=='Importado'?c.seguradora:'—'}</div>
+              </div>
+              <button onclick="
+                document.getElementById('f-nome').value='${(c.inquilino_nome||'').replace(/'/g,\"\\'\")}';
+                document.getElementById('f-tipo-seguro').value='residencial';
+                goTo('cotacao');
+                setTimeout(()=>document.querySelector('#page-cotacao .form-card')?.scrollIntoView({behavior:'smooth'}),200);"
+                style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+                + Solicitar nova cotação
+              </button>
+            </div>`).join('')}
+          ${cancelados.length > 5 ? `<div style="padding:12px 24px;font-size:12px;font-weight:700;color:#dc2626;text-align:center;cursor:pointer;" onclick="filtrarCarteiraPorStatus('cancelado');goTo('carteira');">Ver mais ${cancelados.length-5} →</div>` : ''}
+        </div>
+      </div>`;
+  }
+
   function renderDashboard(cs) {
     // KPI cards
     const kpiAtivos = cs.filter(c => c.status_apolice === 'ativo' || c.status === 'ativo').length;
@@ -1279,6 +1320,7 @@
       const v = new Date(c.vigencia_fim);
       return v >= hoje && v <= em30;
     }).length;
+    const kpiCancelados = cs.filter(c => ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice)).length;
     const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
     const kpiTotal = cs.length;
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
@@ -1286,6 +1328,12 @@
     setKpi('kpi-vencendo', kpiVenc);
     setKpi('kpi-pendentes', kpiPend);
     setKpi('kpi-total', kpiTotal);
+
+    // Badge vermelho no card Carteira
+    const badgeCart = document.getElementById('badge-cancelados');
+    if (badgeCart) { badgeCart.textContent = kpiCancelados > 0 ? kpiCancelados : ''; badgeCart.style.display = kpiCancelados > 0 ? 'inline-flex' : 'none'; }
+
+    renderAlertaCancelados(cs);
   }
 
   const KANBAN_COLS = [
@@ -1458,9 +1506,10 @@
       const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${btnApoliceRes}</div>`;
       const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${btnApoliceGar}</div>`
         : `<span style="color:#c9c2b8;font-size:12px;">—</span>`;
-      return `<tr>
+      const isCancelado = ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice);
+      return `<tr style="${isCancelado ? 'background:#fff5f5;' : ''}">
         <td class="td-data">${fmtData(c.data_inicio)}</td>
-        <td class="td-nome">${c.inquilino_nome||'—'}</td>
+        <td class="td-nome" style="${isCancelado ? 'display:flex;align-items:center;gap:8px;' : ''}">${isCancelado ? '<span style="color:#dc2626;font-size:14px;" title="Sem cobertura ativa">⚠</span>' : ''}${c.inquilino_nome||'—'}</td>
         <td class="td-tipo" style="white-space:nowrap;">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
         <td>${situacaoBadge}</td>
         <td style="font-size:12px;font-weight:700;color:#1B263B;">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
