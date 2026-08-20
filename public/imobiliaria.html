@@ -1203,6 +1203,36 @@
         const esperaCor = diasEspera <= 3 ? '#16a34a' : diasEspera <= 7 ? '#a16207' : '#dc2626';
         const esperaBg  = diasEspera <= 3 ? '#dcfce7' : diasEspera <= 7 ? '#fef9c3' : '#fee2e2';
         const esperaHtml = `<span style="font-size:9px;font-weight:900;background:${esperaBg};color:${esperaCor};padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;">${diasEspera}d nesta etapa</span>`;
+        // Botão "Autorizar Contratação" — só aparece na coluna Aprovado quando intenção era cotação
+        const btnAutorizar = col.key === 'aprovado' && c.intencao !== 'contratar' ? `
+          <button onclick="autorizarContratacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}')"
+            style="margin-top:8px;width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
+            ✅ Autorizar Contratação
+          </button>` : '';
+
+        const jaAutorizou = col.key === 'aprovado' && c.intencao === 'contratar' ? `
+          <div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:900;color:#166534;text-align:center;">
+            ✓ Contratação autorizada
+          </div>` : '';
+
+        // Upload de documentos de garantia — visível quando aprovado/em atendimento + garantia
+        const docsGarantia = temG && ['aprovado','atendimento_iniciado'].includes(col.key) ? `
+          <div style="margin-top:8px;border-top:1px solid #f0ece4;padding-top:8px;">
+            <div style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">📎 Documentos</div>
+            ${[
+              {key:'doc_contrato_url', label:'Contrato'},
+              {key:'doc_termo_vistoria_url', label:'Vistoria'},
+              {key:'doc_fotos_vistoria_url', label:'Fotos'},
+            ].map(d => c[d.key]
+              ? `<div style="font-size:9px;font-weight:700;color:#16a34a;margin-bottom:3px;">✓ ${d.label}</div>`
+              : `<label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;color:#94a3b8;cursor:pointer;margin-bottom:3px;">
+                  <input type="file" accept="application/pdf,image/*" style="display:none" onchange="uploadDocGarantia('${c.id}','${d.key}',this)" />
+                  ⬆ ${d.label}
+                 </label>`
+            ).join('')}
+          </div>` : '';
+
         return `<div class="kanban-card">
           <div class="kc-nome">${c.inquilino_nome || '—'}</div>
           <div class="kc-tipo" style="margin-bottom:6px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
@@ -1211,6 +1241,9 @@
           ${apoliceLink}
           <div class="kc-data">${dataEnvio}</div>
           ${esperaHtml}
+          ${docsGarantia}
+          ${btnAutorizar}
+          ${jaAutorizou}
         </div>`;
       }).join('');
     });
@@ -1547,6 +1580,32 @@
     if (a) document.getElementById('f-valor-aluguel').value = a;
     if (i) document.getElementById('f-iptu').value = i;
     document.getElementById('form-cotacao-section').scrollIntoView({behavior:'smooth'});
+  }
+
+  async function autorizarContratacao(clientId, inquilinoNome, parceiroNome) {
+    try {
+      await client.from('imobiliaria_clientes').update({ intencao: 'contratar' }).eq('id', clientId);
+      await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-liberar-contratacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ client_id: clientId, inquilino_nome: inquilinoNome, parceiro_nome: parceiroNome }),
+      });
+      await carregar();
+    } catch(e) { alert('Erro ao autorizar: ' + e.message); }
+  }
+
+  async function uploadDocGarantia(clientId, field, input) {
+    const file = input.files[0]; if (!file) return;
+    const label = input.closest('label');
+    if (label) label.innerHTML = '⏳ Enviando...';
+    try {
+      const path = `${session.id}/${clientId}/${field}_${Date.now()}`;
+      const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType: file.type, upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
+      await client.from('imobiliaria_clientes').update({ [field]: urlData.publicUrl }).eq('id', clientId);
+      await carregar();
+    } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '⬆ Tentar novamente'; }
   }
 
   carregar();

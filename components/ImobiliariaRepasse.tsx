@@ -65,7 +65,7 @@ function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; fi
 
 export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data: { nome: string; telefone: string }) => void } = {}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [parceiros, setParceiros] = useState<{id: number; name: string}[]>([]);
+  const [parceiros, setParceiros] = useState<{id: number; name: string; email?: string}[]>([]);
   const [filterParceiro, setFilterParceiro] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -159,7 +159,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     // Load all imobiliária partners
     const { data: partnerData } = await supabase
       .from('partners')
-      .select('id, name')
+      .select('id, name, email')
       .eq('partner_type', 'imobiliaria')
       .order('name');
     setParceiros(partnerData ?? []);
@@ -519,6 +519,33 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 className="mt-2 w-full text-[10px] font-black bg-[#C69C6D] hover:bg-[#b8895a] text-white py-1.5 rounded-lg transition-colors"
                               >
                                 → Registro de Venda
+                              </button>
+                            )}
+                            {col.key === 'aprovado' && (c as any).tipo_seguro === 'residencial_garantia' && (
+                              <button
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  const partner = parceiros.find(p => p.id === (c as any).partner_id);
+                                  if (!partner) { alert('Parceiro sem email cadastrado.'); return; }
+                                  const docsEmFalta = [
+                                    !(c as any).doc_contrato_url && 'Contrato de Locação',
+                                    !(c as any).doc_termo_vistoria_url && 'Termo de Vistoria',
+                                    !(c as any).doc_fotos_vistoria_url && 'Fotos da Vistoria',
+                                  ].filter(Boolean);
+                                  if (docsEmFalta.length === 0) { alert('Todos os documentos já foram enviados!'); return; }
+                                  await supabase.functions.invoke('imobiliaria-solicitar-docs', {
+                                    body: {
+                                      parceiro_email: (partner as any).email || '',
+                                      parceiro_nome: partner.name,
+                                      inquilino_nome: c.inquilino_nome,
+                                      docs_faltando: docsEmFalta,
+                                    },
+                                  });
+                                  alert(`✅ Email enviado solicitando ${docsEmFalta.length} documento(s).`);
+                                }}
+                                className="mt-1 w-full text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg transition-colors border border-slate-200"
+                              >
+                                📎 Solicitar Documentos
                               </button>
                             )}
                           </div>
