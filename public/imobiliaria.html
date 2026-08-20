@@ -307,7 +307,7 @@
       <div id="kpi-ativos" style="font-size:28px;font-weight:900;color:#1B263B;">—</div>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px;">apólices emitidas</div>
     </div>
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorStatus('pendente_renovacao')" title="Ver pendentes de renovação">
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorVencimento30()" title="Ver apólices vencendo em 30 dias">
       <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Vencem em 30 dias</div>
       <div id="kpi-vencendo" style="font-size:28px;font-weight:900;color:#a16207;">—</div>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px;">renovações próximas</div>
@@ -706,6 +706,7 @@
           <option value="residencial">🏠 Apenas Residencial</option>
           <option value="garantia">🏠🔒 Com Garantia</option>
         </select>
+        <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fef9c3;border:1px solid #fde68a;border-radius:12px;font-size:11px;font-weight:900;color:#a16207;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#a16207;font-weight:900;font-size:13px;line-height:1;">×</button></span>
         <button onclick="limparFiltrosCarteira()" style="padding:8px 14px;background:#f4f1ec;border:1.5px solid #e8e4dc;border-radius:12px;font-size:12px;font-weight:700;color:#78716c;cursor:pointer;">✕ Limpar</button>
       </div>
     </div>
@@ -820,11 +821,30 @@
     if (mobIds[id]) { const mb = document.getElementById(mobIds[id]); if(mb) mb.classList.add('active'); }
   }
 
+  // Filtro extra por vencimento (aplicado junto com os outros filtros)
+  let filtroVencimento30 = false;
+
   function filtrarCarteiraPorStatus(sit) {
+    filtroVencimento30 = false;
     goTo('carteira');
     setTimeout(() => {
       const sel = document.getElementById('filtro-situacao');
       if (sel) { sel.value = sit; filtrar(); }
+    }, 100);
+  }
+
+  function filtrarCarteiraPorVencimento30() {
+    filtroVencimento30 = true;
+    goTo('carteira');
+    setTimeout(() => {
+      // Limpa os outros filtros para mostrar apenas os vencendo
+      const sit = document.getElementById('filtro-situacao');
+      const tipo = document.getElementById('filtro-tipo');
+      const busca = document.getElementById('busca');
+      if (sit) sit.value = '';
+      if (tipo) tipo.value = '';
+      if (busca) busca.value = '';
+      filtrar();
     }, 100);
   }
 
@@ -1113,13 +1133,23 @@
     const q = (document.getElementById('busca')?.value || '').toLowerCase().trim();
     const sit = document.getElementById('filtro-situacao')?.value || '';
     const tipo = document.getElementById('filtro-tipo')?.value || '';
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const em30 = new Date(hoje); em30.setDate(em30.getDate() + 30);
     const filtrado = todosClientes.filter(c => {
       if (q && !(c.inquilino_nome||'').toLowerCase().includes(q)) return false;
       if (sit && (c.status_apolice||'ativo') !== sit) return false;
       if (tipo === 'residencial' && c.tipo_seguro === 'residencial_garantia') return false;
       if (tipo === 'garantia' && c.tipo_seguro !== 'residencial_garantia') return false;
+      if (filtroVencimento30) {
+        if (!c.vigencia_fim || c.status_apolice === 'cancelado') return false;
+        const v = new Date(c.vigencia_fim);
+        return v >= hoje && v <= em30;
+      }
       return true;
     });
+    // Mostra badge de filtro ativo
+    const badge = document.getElementById('filtro-venc-badge');
+    if (badge) badge.style.display = filtroVencimento30 ? 'inline-flex' : 'none';
     renderCarteira(filtrado);
   }
 
@@ -1127,6 +1157,7 @@
     document.getElementById('busca').value = '';
     document.getElementById('filtro-situacao').value = '';
     document.getElementById('filtro-tipo').value = '';
+    filtroVencimento30 = false;
     filtrar();
   }
 
