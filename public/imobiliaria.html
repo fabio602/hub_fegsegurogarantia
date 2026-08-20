@@ -1285,7 +1285,7 @@
   function renderAlertaCancelados(cs) {
     const el = document.getElementById('alerta-cancelados');
     if (!el) return;
-    const cancelados = cs.filter(c => ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice));
+    const cancelados = cs.filter(c => c.status_apolice === 'cancelado');
     if (!cancelados.length) { el.style.display = 'none'; return; }
     el.style.display = 'block';
     el.innerHTML = `
@@ -1328,7 +1328,7 @@
       const v = new Date(c.vigencia_fim);
       return v >= hoje && v <= em30;
     }).length;
-    const kpiCancelados = cs.filter(c => ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice)).length;
+    const kpiCancelados = cs.filter(c => c.status_apolice === 'cancelado').length;
     const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
     const kpiTotal = cs.length;
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
@@ -1514,7 +1514,7 @@
       const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${btnApoliceRes}</div>`;
       const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${btnApoliceGar}</div>`
         : `<span style="color:#c9c2b8;font-size:12px;">—</span>`;
-      const isCancelado = ['cancelado','desistiu','reprovado','saiu_imovel'].includes(c.status_apolice);
+      const isCancelado = c.status_apolice === 'cancelado';
       return `<tr style="${isCancelado ? 'background:#fff5f5;' : ''}">
         <td class="td-data">${fmtData(c.data_inicio)}</td>
         <td class="td-nome" style="${isCancelado ? 'display:flex;align-items:center;gap:8px;' : ''}">${isCancelado ? '<span style="color:#dc2626;font-size:14px;" title="Sem cobertura ativa">⚠</span>' : ''}${c.inquilino_nome||'—'}</td>
