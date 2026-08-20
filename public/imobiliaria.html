@@ -1270,6 +1270,18 @@
     }).join('');
   }
 
+  function novaCotacaoParaCliente(clientId) {
+    const c = todosClientes.find(x => x.id === clientId);
+    if (c) {
+      const nome = document.getElementById('f-nome');
+      const tipo = document.getElementById('f-tipo-seguro');
+      if (nome) nome.value = c.inquilino_nome || '';
+      if (tipo) tipo.value = 'residencial';
+    }
+    goTo('cotacao');
+    setTimeout(() => document.querySelector('#page-cotacao .form-card')?.scrollIntoView({ behavior: 'smooth' }), 200);
+  }
+
   function renderAlertaCancelados(cs) {
     const el = document.getElementById('alerta-cancelados');
     if (!el) return;
@@ -1296,11 +1308,7 @@
                 <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome||'—'}</div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Apólice ${c.numero_apolice||'—'} · ${c.seguradora&&c.seguradora!=='Importado'?c.seguradora:'—'}</div>
               </div>
-              <button onclick="
-                document.getElementById('f-nome').value='${(c.inquilino_nome||'').replace(/'/g,\"\\'\")}';
-                document.getElementById('f-tipo-seguro').value='residencial';
-                goTo('cotacao');
-                setTimeout(()=>document.querySelector('#page-cotacao .form-card')?.scrollIntoView({behavior:'smooth'}),200);"
+              <button onclick="novaCotacaoParaCliente('${c.id}')"
                 style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;flex-shrink:0;">
                 + Solicitar nova cotação
               </button>
