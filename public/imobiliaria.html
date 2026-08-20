@@ -1153,7 +1153,7 @@
                 <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
               </div>`;
 
-            // Vencidos: só badge, sem botões
+            // Vencidos: com botões também
             if (dias < 0) return `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
                 <div>
@@ -1161,6 +1161,16 @@
                   <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:11px;font-weight:900;">
                     ⛔ Vencido — ${dataVenc}
                   </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
+                  <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
+                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    ✅ Vai renovar
+                  </button>
+                  <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
+                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    ❌ Não vai renovar
+                  </button>
                 </div>
               </div>`;
 
