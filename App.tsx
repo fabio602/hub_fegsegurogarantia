@@ -597,7 +597,103 @@ const App: React.FC = () => {
           <div className="max-w-[1400px] mx-auto pb-16">
 
             {/* ── Visão Geral ──────────────────────────────────── */}
-            {activeView === 'dashboard' && <ResultsDashboard key="dashboard" initialSection="goals" />}
+            {activeView === 'dashboard' && (
+              <div className="space-y-8 animate-fade-in">
+                <div className="bg-[#1B263B] rounded-[2.5rem] p-8 lg:p-14 text-white relative overflow-hidden shadow-3xl">
+                  <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-[#C69C6D]/20 text-[#C69C6D] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-[#C69C6D]/20">
+                        <Zap size={11} fill="currentColor" />
+                        Acesso Master v2.7
+                      </div>
+                      <h1 className="text-4xl lg:text-5xl font-black mb-6 tracking-tighter leading-[0.9]">
+                        Eficiência em <br /><span className="text-[#C69C6D]">Seguros Corporativos.</span>
+                      </h1>
+                      <p className="text-slate-400 max-w-lg text-base leading-relaxed font-medium">
+                        O Hub centralizado da F&G Corretora permite que você gerencie cálculos, documentos e metas com precisão absoluta.
+                      </p>
+                      <div className="mt-8 flex flex-wrap gap-4">
+                        <button onClick={() => navigate('goals')} className="bg-[#C69C6D] text-white px-8 py-4 rounded-2xl font-black hover:bg-[#b58a5b] transition-all shadow-xl shadow-[#C69C6D]/20 active:scale-95 flex items-center gap-2">
+                          Registro de Vendas <ChevronRight size={14} />
+                        </button>
+                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-8 py-4 rounded-2xl font-black hover:bg-white/10 transition-all">Analisar Performance</button>
+                      </div>
+                    </div>
+                    <div className="hidden lg:flex justify-end">
+                      <div className="relative">
+                        <div className="w-64 h-64 bg-gradient-to-br from-[#C69C6D] to-[#1B263B] rounded-[4rem] flex items-center justify-center shadow-2xl p-0.5 rotate-3">
+                          <div className="bg-[#1B263B] w-full h-full rounded-[3.8rem] flex items-center justify-center -rotate-3 overflow-hidden">
+                            <ShieldCheck size={112} className="text-[#C69C6D] opacity-40" />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl animate-bounce duration-[3000ms]">
+                          <Target size={26} className="text-[#C69C6D]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
+                  <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-6 px-2">
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Atalhos Operacionais</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {([
+                      { title: 'Garantia', desc: 'Registro de Vendas', icon: <FileText size={22} />, view: 'goals' as View, color: 'bg-indigo-50 text-indigo-600' },
+                      { title: 'Residencial', desc: 'Registro de Clientes', icon: <Home size={22} />, view: 'residential' as View, color: 'bg-emerald-50 text-emerald-600' },
+                      { title: 'WhatsApp', desc: 'Central de Mensagens', icon: <Users size={22} />, view: 'whatsapp' as View, color: 'bg-amber-50 text-amber-600' },
+                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros' as View, color: 'bg-slate-100 text-[#1B263B]' },
+                    ] as { title: string; desc: string; icon: React.ReactNode; view: View; color: string }[]).map((item, idx) => (
+                      <button key={idx} onClick={() => navigate(item.view)}
+                        className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-[#C69C6D] hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
+                        <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 shadow-sm`}>
+                          {item.icon}
+                        </div>
+                        <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
+                        <p className="text-[11px] text-slate-400 uppercase font-black tracking-widest opacity-80">{item.desc}</p>
+                        <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
+                          <span className="text-xs font-black text-[#C69C6D] uppercase tracking-widest group-hover:translate-x-1 transition-transform">Abrir Módulo</span>
+                          <ChevronRight size={13} className="text-slate-300 group-hover:text-[#C69C6D] transition-colors" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-6 px-2">
+                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Portais Públicos</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Links para enviar aos clientes/parceiros</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: '🤝' },
+                      { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: '🏠' },
+                    ].map((portal, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="text-2xl">{portal.icon}</div>
+                          <div>
+                            <p className="font-black text-slate-800 text-sm">{portal.label}</p>
+                            <p className="text-xs text-slate-400 font-medium mt-0.5">{portal.desc}</p>
+                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#C69C6D] font-bold hover:underline mt-1 block truncate max-w-[260px]">
+                              {portal.url.replace('https://', '')}
+                            </a>
+                          </div>
+                        </div>
+                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-black px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl transition-all">
+                          Copiar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
