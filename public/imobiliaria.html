@@ -1320,7 +1320,15 @@
   function renderAlertaCancelados(cs) {
     const el = document.getElementById('alerta-cancelados');
     if (!el) return;
-    const cancelados = cs.filter(c => c.status_apolice === 'cancelado');
+    // Excluir cancelados que já têm outra solicitação ativa para o mesmo inquilino
+    const nomesComSolicitacaoAtiva = new Set(
+      cs.filter(c => c.status_apolice !== 'cancelado' || c.kanban_status === 'solicitado' || c.kanban_status === 'atendimento_iniciado')
+        .map(c => (c.inquilino_nome||'').toUpperCase().trim())
+    );
+    const cancelados = cs.filter(c =>
+      c.status_apolice === 'cancelado' &&
+      !nomesComSolicitacaoAtiva.has((c.inquilino_nome||'').toUpperCase().trim())
+    );
     if (!cancelados.length) { el.style.display = 'none'; return; }
     el.style.display = 'block';
     el.innerHTML = `
