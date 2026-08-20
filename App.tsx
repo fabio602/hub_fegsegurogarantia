@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calculator as CalcIcon,
   FileText,
@@ -48,6 +48,8 @@ import ImobiliariaRepasse from './components/ImobiliariaRepasse';
 import WhatsAppBlast from './components/WhatsAppBlast';
 import EmailFollowUp from './components/EmailFollowUp';
 import GarantiaLocaticia from './components/GarantiaLocaticia';
+import { ToastProvider } from './components/Toast.tsx';
+import { FeatureTip } from './components/FeatureTip.tsx';
 
 type View =
   | 'dashboard'
@@ -105,12 +107,60 @@ const VIEW_TITLES: Record<View, string> = {
   'garantia-locaticia': 'Garantia Locatícia',
 };
 
+const BadgeDot = ({ count }: { count: number }) => {
+    if (count <= 0) return null;
+    return (
+        <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: '18px', height: '18px', padding: '0 4px',
+            background: '#ef4444', color: '#fff', borderRadius: '9px',
+            fontSize: '10px', fontWeight: 900, lineHeight: 1, marginLeft: 'auto',
+        }}>
+            {count > 99 ? '99+' : count}
+        </span>
+    );
+};
+
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
+  const [badges, setBadges] = useState<{
+    whatsapp: number;
+    imobiliaria: number;
+    vencimentos: number;
+  }>({ whatsapp: 0, imobiliaria: 0, vencimentos: 0 });
+
+  const loadBadges = useCallback(async () => {
+    try {
+      const { count: wppCount } = await supabase
+        .from('whatsapp_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('bot_active', false);
+
+      const { count: imobCount } = await supabase
+        .from('imobiliaria_clientes')
+        .select('*', { count: 'exact', head: true })
+        .in('kanban_status', ['solicitado', 'atendimento_iniciado']);
+
+      const hoje = new Date().toISOString().slice(0, 10);
+      const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+      const { count: vencCount } = await supabase
+        .from('residential_clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('situacao', 'Ativo')
+        .gte('fim_vigencia', hoje)
+        .lte('fim_vigencia', em30);
+
+      setBadges({
+        whatsapp: wppCount || 0,
+        imobiliaria: imobCount || 0,
+        vencimentos: vencCount || 0,
+      });
+    } catch (e) { /* silent fail */ }
+  }, []);
   const [pendingSale, setPendingSale] = useState<{ nome: string; telefone: string } | null>(null);
   const activeViewRef = React.useRef<View>('dashboard');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -134,6 +184,13 @@ const App: React.FC = () => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    loadBadges();
+    const interval = setInterval(loadBadges, 120000);
+    return () => clearInterval(interval);
+  }, [loadBadges, session]);
 
   // Keep ref in sync so realtime callback can read current view
   useEffect(() => { activeViewRef.current = activeView; }, [activeView]);
@@ -281,16 +338,17 @@ const App: React.FC = () => {
   };
 
   // ── Sub-item inside a group ──────────────────────────────────────
-  const NavSubItem: React.FC<{ view: View; label: string }> = ({ view, label }) => (
+  const NavSubItem: React.FC<{ view: View; label: string; badge?: number }> = ({ view, label, badge }) => (
     <button
       onClick={() => navigate(view)}
-      className={`flex items-center w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
+      className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
         activeView === view
           ? 'bg-[#C69C6D] text-[#1B263B] shadow-md shadow-[#C69C6D]/20'
           : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-[#243347]'
       }`}
     >
-      {label}
+      <span>{label}</span>
+      {badge != null && badge > 0 && <BadgeDot count={badge} />}
     </button>
   );
 
@@ -325,6 +383,7 @@ const App: React.FC = () => {
   };
 
   return (
+    <ToastProvider>
     <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
       {/* Sidebar */}
       <aside
@@ -391,11 +450,18 @@ const App: React.FC = () => {
                 label="Residencial / Locatícia"
                 isGroupActive={RESIDENCIAL_VIEWS.includes(activeView)}
               >
-                <NavSubItem view="residential" label="Registro de Vendas" />
+                <NavSubItem view="residential" label="Registro de Vendas" badge={badges.vencimentos} />
                 <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
                 <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
-                <NavSubItem view="imobiliaria-repasse" label="Repasse Imobiliárias" />
-                <NavSubItem view="garantia-locaticia" label="Garantia Locatícia" />
+                <NavSubItem view="imobiliaria-repasse" label="Repasse Imobiliárias" badge={badges.imobiliaria} />
+                <FeatureTip
+                  id="garantia-calc-2026"
+                  title="Calculadora de Garantia"
+                  description="Simule o valor da garantia locatícia em segundos e gere a mensagem pronta para o cliente."
+                  position="right"
+                >
+                  <NavSubItem view="garantia-locaticia" label="Garantia Locatícia" />
+                </FeatureTip>
               </NavGroup>
 
               {/* ── Responsabilidade Civil ──────────────── */}
@@ -420,20 +486,33 @@ const App: React.FC = () => {
                 <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
 
-              <NavGroup
-                groupKey="whatsapp"
-                icon={<MessageSquare size={16} />}
-                label="WhatsApp"
-                isGroupActive={['whatsapp', 'whatsapp-blast'].includes(activeView)}
+              <FeatureTip
+                id="whatsapp-hub-2026"
+                title="WhatsApp Hub integrado"
+                description="Gerencie todas as conversas, envie mensagens em massa e vincule contatos ao CRM direto por aqui."
               >
-                <NavSubItem view="whatsapp" label={`Inbox${unreadWhatsApp > 0 ? ` (${unreadWhatsApp})` : ''}`} />
-                <NavSubItem view="whatsapp-blast" label="Prospecção" />
-              </NavGroup>
+                <NavGroup
+                  groupKey="whatsapp"
+                  icon={<MessageSquare size={16} />}
+                  label="WhatsApp"
+                  isGroupActive={['whatsapp', 'whatsapp-blast'].includes(activeView)}
+                >
+                  <NavSubItem view="whatsapp" label={`Inbox${unreadWhatsApp > 0 ? ` (${unreadWhatsApp})` : ''}`} />
+                  <NavSubItem view="whatsapp-blast" label="Prospecção" />
+                </NavGroup>
+              </FeatureTip>
 
               <NavItem view="email-followup" icon={<Mail size={16} />} label="Follow-up de Email" />
               <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
               <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
-              <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
+              <FeatureTip
+                id="parceiros-portal-2026"
+                title="Portal de Parceiros"
+                description="Envie e-mail de boas-vindas, acompanhe comissões e registre repasses mensais para cada parceiro."
+                position="right"
+              >
+                <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
+              </FeatureTip>
               {session?.user?.email === 'fabio@fegsegurogarantia.com.br' && (
                 <NavItem view="usuarios" icon={<ShieldCheck size={16} />} label="Usuários do Hub" />
               )}
@@ -686,6 +765,7 @@ const App: React.FC = () => {
 
       <ChatWidget activeView={activeView} />
     </div>
+    </ToastProvider>
   );
 };
 

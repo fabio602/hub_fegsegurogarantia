@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
+import { FeatureTip } from './FeatureTip.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface ResidentialClient {
@@ -146,6 +148,7 @@ const formatCurrency = (value: string) => {
 };
 
 const ResidentialInsurance: React.FC = () => {
+    const { toast, confirm: confirmDialog } = useToast();
     const [clients, setClients] = useState<ResidentialClient[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -172,8 +175,8 @@ const ResidentialInsurance: React.FC = () => {
             const url = urlData.publicUrl;
             await supabase.from('residential_clients').update({ [field]: url }).eq('id', editingId);
             setFormData(prev => ({ ...prev, [field]: url }));
-            alert('✅ Documento enviado com sucesso!');
-        } catch (err: any) { alert('Erro ao enviar: ' + err.message); }
+            toast('Documento enviado com sucesso!', 'success');
+        } catch (err: any) { toast('Erro ao enviar: ' + err.message, 'error'); }
         finally { setUploadingGarantiaDoc(null); e.target.value = ''; }
     };
     useEffect(() => {
@@ -213,8 +216,8 @@ const ResidentialInsurance: React.FC = () => {
                 }
             }
             setFormData(prev => ({ ...prev, apolice_url: url } as any));
-            alert('✅ PDF da apólice enviado com sucesso!');
-        } catch (err: any) { alert('Erro ao enviar PDF: ' + err.message); }
+            toast('PDF da apólice enviado com sucesso!', 'success');
+        } catch (err: any) { toast('Erro ao enviar PDF: ' + err.message, 'error'); }
         finally { setUploadingApolice(false); e.target.value = ''; }
     };
     const [filterPagamento, setFilterPagamento] = useState('');
@@ -287,6 +290,29 @@ const ResidentialInsurance: React.FC = () => {
             value = formatCurrency(value);
         }
 
+        // A1: Auto-fill fim_vigencia = data_emissao + 1 ano (último dia antes do aniversário)
+        if (id === 'data_emissao' && value) {
+            const d = new Date(value);
+            if (!isNaN(d.getTime())) {
+                d.setFullYear(d.getFullYear() + 1);
+                d.setDate(d.getDate() - 1);
+                const fim = d.toISOString().slice(0, 10);
+                setFormData(prev => ({ ...prev, data_emissao: value, fim_vigencia: fim }));
+                return;
+            }
+        }
+
+        // A2: Auto-fill comissao = 30% do prêmio total
+        if (id === 'premio_total') {
+            const numericStr = value.replace(/[^\d,]/g, '').replace(',', '.');
+            const numeric = parseFloat(numericStr) || 0;
+            const comissao = numeric > 0
+                ? (numeric * 0.30).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : '';
+            setFormData(prev => ({ ...prev, premio_total: value, comissao }));
+            return;
+        }
+
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
@@ -295,6 +321,22 @@ const ResidentialInsurance: React.FC = () => {
         setSaving(true);
         setSaveError(null);
         setSaveSuccess(false);
+
+        // A3: Verificar duplicata por CPF ou nome (somente para novos clientes)
+        if (!editingId && formData.cpf) {
+            const cpfClean = (formData.cpf || '').replace(/\D/g, '');
+            const dupCheck = clients.find(c =>
+                c.id !== editingId &&
+                (c.cpf?.replace(/\D/g, '') === cpfClean ||
+                 c.nome?.toLowerCase().trim() === formData.nome?.toLowerCase().trim())
+            );
+            if (dupCheck) {
+                const proceed = await confirmDialog(
+                    `Já existe um cliente com este CPF ou nome: "${dupCheck.nome}". Deseja continuar mesmo assim?`
+                );
+                if (!proceed) { setSaving(false); return; }
+            }
+        }
 
         const payload = {
             nome: formData.nome || null,
@@ -426,7 +468,7 @@ const ResidentialInsurance: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Deseja excluir este cliente?')) return;
+        if (!(await confirmDialog('Deseja excluir este cliente? Esta ação não pode ser desfeita.'))) return;
         // Busca o cliente antes de deletar para saber o nome e desvinculá-lo do portal
         const clientToDelete = clients.find(c => c.id === id);
         await supabase.from('residential_clients').delete().eq('id', id);
@@ -440,7 +482,7 @@ const ResidentialInsurance: React.FC = () => {
     };
 
     const handleNaoRenovar = async (id: number) => {
-        if (!confirm('Marcar este cliente como "Não irá renovar"? Ele sairá do alerta de vencimento.')) return;
+        if (!(await confirmDialog('Marcar este cliente como "Não irá renovar"? Ele sairá do alerta de vencimento.'))) return;
         await supabase.from('residential_clients').update({ nao_renovar: true }).eq('id', id);
         fetchClients();
     };
@@ -778,7 +820,7 @@ const ResidentialInsurance: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Prêmio Total</label>
-                                <input type="text" id="premio_total" value={formData.premio_total || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                <input type="text" id="premio_total" value={formData.premio_total || ''} onChange={handleInputChange} placeholder="R$ 0,00" title="A comissão será calculada automaticamente (30%)" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Comissão</label>
@@ -786,7 +828,7 @@ const ResidentialInsurance: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Data Emissão</label>
-                                <input type="date" id="data_emissao" value={formData.data_emissao || ''} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                <input type="date" id="data_emissao" value={formData.data_emissao || ''} onChange={handleInputChange} title="O fim da vigência será preenchido automaticamente (1 ano)" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Fim de Vigência</label>
@@ -819,6 +861,12 @@ const ResidentialInsurance: React.FC = () => {
                             </div>
                             {/* Apólice PDF Upload */}
                             {editingId && (
+                              <FeatureTip
+                                id="apolice-pdf-sync-2026"
+                                title="PDF sincroniza com o portal"
+                                description="Ao anexar o PDF da apólice, ele aparece automaticamente no portal da imobiliária para o parceiro baixar."
+                                position="top"
+                              >
                               <div className="space-y-2 col-span-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📄 PDF da Apólice</label>
                                 {(formData as any).apolice_url ? (
@@ -836,11 +884,18 @@ const ResidentialInsurance: React.FC = () => {
                                   </label>
                                 )}
                               </div>
+                              </FeatureTip>
                             )}
                         </div>
                     </div>
 
                     {/* Block 3: Garantia Locatícia */}
+                    <FeatureTip
+                      id="garantia-docs-2026"
+                      title="Documentos da garantia"
+                      description="Com garantia ativa, você pode anexar a apólice e o contrato de locação. Eles aparecem na carteira da imobiliária."
+                      position="top"
+                    >
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-4 mb-4">
                             <Home size={18} className="text-[#C69C6D]" />
@@ -913,6 +968,7 @@ const ResidentialInsurance: React.FC = () => {
                             </>
                         )}
                     </div>
+                    </FeatureTip>
 
                     {/* Block 4: Obs */}
                     <div className="space-y-2">

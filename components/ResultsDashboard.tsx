@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import {
     Plus,
@@ -324,6 +325,7 @@ function loadExpiryReminderDismissed(): Set<string> {
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
 const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string } }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData }) => {
+    const { toast, confirm: confirmDialog } = useToast();
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const saleFormRef = useRef<HTMLDivElement>(null);
     const [sales, setSales] = useState<Sale[]>([]);
@@ -439,7 +441,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleDispatchEmails = async () => {
-        if (!emailTemplate.trim()) { alert('Por favor, insira o código HTML do email antes de enviar.'); return; }
+        if (!emailTemplate.trim()) { toast('Por favor, insira o código HTML do email antes de enviar.', 'warning'); return; }
         setEmailDispatchStatus('sending');
         const url = WEBHOOK_URLS[activeKanbanProduct] || WEBHOOK_URLS['Seguro Garantia'];
         try {
@@ -724,7 +726,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleDeleteSeller = async (id: string, name: string) => {
-        if (!confirm(`Excluir o vendedor "${name}"? As metas mensais associadas serão removidas.`)) return;
+        if (!(await confirmDialog(`Excluir o vendedor "${name}"? As metas mensais associadas serão removidas.`))) return;
         setSellerCrudBusy(true);
         setSellerMgmtError(null);
         try {
@@ -743,6 +745,29 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, type } = e.target as HTMLInputElement;
         let value = e.target.value;
+
+        // C1: Auto-fill vigencia_fim = vigencia_inicio + 1 ano (último dia antes do aniversário)
+        if (id === 'vigencia_inicio' && value) {
+            const d = new Date(value);
+            if (!isNaN(d.getTime())) {
+                d.setFullYear(d.getFullYear() + 1);
+                d.setDate(d.getDate() - 1);
+                setFormData(prev => ({ ...prev, vigencia_inicio: value, vigencia_fim: d.toISOString().slice(0, 10) }));
+                return;
+            }
+        }
+
+        // C2: Auto-fill comissao = 20% do prêmio (padrão seguro garantia)
+        if (id === 'premio' && value) {
+            const digits = value.replace(/\D/g, '');
+            const num = digits ? parseFloat(digits) / 100 : 0;
+            if (num > 0) {
+                const comissao = (num * 0.20).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const premioFormatted = formatCurrency(num);
+                setFormData(prev => ({ ...prev, premio: premioFormatted, comissao }));
+                return;
+            }
+        }
 
         if (id === 'comissaoPerc') {
             const perc = parseFloat(value.replace(',', '.'));
@@ -889,7 +914,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             setImportedFields(filled);
         } catch (err) {
             console.error('Import PDF error:', err);
-            alert(`Erro ao importar o PDF:\n${String(err)}`);
+            toast(`Erro ao importar o PDF: ${String(err)}`, 'error');
         } finally {
             setImportingPdf(false);
             e.target.value = '';
@@ -1173,7 +1198,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Deseja realmente excluir este registro?')) return;
+        if (!(await confirmDialog('Deseja realmente excluir este registro? Esta ação não pode ser desfeita.'))) return;
         try {
             await supabase.from('sales').delete().eq('id', id);
             await fetchData();
@@ -1228,7 +1253,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             setBoletoForm({ parcela: '', vencimento: '', file: null });
         } catch (err: any) {
             console.error('Erro ao enviar boleto:', err);
-            alert(`Erro ao enviar boleto: ${err?.message || 'Tente novamente.'}`);
+            toast(`Erro ao enviar boleto: ${err?.message || 'Tente novamente.'}`, 'error');
         } finally {
             setUploadingBoleto(false);
         }
@@ -1252,7 +1277,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleDeleteBoleto = async (boletoId: number) => {
-        if (!confirm('Remover este boleto?')) return;
+        if (!(await confirmDialog('Remover este boleto?'))) return;
         await supabase.from('boletos').delete().eq('id', boletoId);
         setBoletos(prev => prev.filter(b => b.id !== boletoId));
     };
@@ -1271,7 +1296,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             await fetchData();
         } catch (err) {
             console.error('Erro ao fazer upload da apólice:', err);
-            alert('Erro ao enviar apólice. Tente novamente.');
+            toast('Erro ao enviar apólice. Tente novamente.', 'error');
         } finally {
             setUploadingApoliceId(null);
         }
