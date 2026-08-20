@@ -196,7 +196,7 @@ const ParceiroManager: React.FC = () => {
         setLoading(true);
         const { data } = await supabase
             .from('partners')
-            .select('id, name, username, password, commission_pct, cnpj, email, banco_nome, pix_key, conta_corrente, agencia, commission_type, partner_type')
+            .select('id, name, username, password, commission_pct, cnpj, email, email_2, banco_nome, pix_key, conta_corrente, agencia, commission_type, partner_type')
             .order('name');
         setParceiros(data || []);
         setLoading(false);
@@ -246,6 +246,7 @@ const ParceiroManager: React.FC = () => {
                 commission_pct: Number(form.commission_pct) || 20,
                 cnpj: form.cnpj?.trim() || null,
                 email: form.email?.trim() || null,
+                email_2: (form as any).email_2?.trim() || null,
                 banco_nome: form.banco_nome?.trim() || null,
                 pix_key: form.pix_key?.trim() || null,
                 conta_corrente: form.conta_corrente?.trim() || null,
@@ -364,9 +365,15 @@ const ParceiroManager: React.FC = () => {
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail para relatório</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail 1</label>
                                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                     placeholder="Ex: gestao@parceiro.com.br"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail 2 <span className="font-normal text-slate-300">(opcional)</span></label>
+                                <input type="email" value={(form as any).email_2 || ''} onChange={e => setForm(f => ({ ...f, email_2: e.target.value }))}
+                                    placeholder="Ex: financeiro@parceiro.com.br"
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
                             </div>
                             <div className="space-y-1">

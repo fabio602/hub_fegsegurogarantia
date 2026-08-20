@@ -40,6 +40,17 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{}' | tee /dev/stderr
 
+      - name: Call Edge Function (inadimplentes follow-up)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/inadimplentes-followup" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{}' | tee /dev/stderr
+
       - name: Call Edge Function (imobiliária renewal reminders)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
