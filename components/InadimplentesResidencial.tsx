@@ -75,24 +75,77 @@ export default function InadimplentesResidencial() {
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append('pdf', file);
-      const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parse-inadimplentes-pdf', {
-        method: 'POST',
-        headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ' },
-        body: form,
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      setPreview(json.dados);
-      toast(`${json.total} inadimplente(s) extraído(s) do PDF`, 'success');
+      const ext = file.name.split('.').pop()?.toLowerCase();
+
+      if (ext === 'xls' || ext === 'xlsx') {
+        // Parse Excel no browser com SheetJS
+        const XLSX = await import('https://esm.sh/xlsx@0.18.5' as any);
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+        // Encontra linha de cabeçalho (contém "Segurado")
+        const headerIdx = rows.findIndex((r: any[]) => r.some((c: any) => String(c).includes('Segurado')));
+        if (headerIdx < 0) throw new Error('Formato não reconhecido. Cabeçalho não encontrado.');
+
+        const header: string[] = rows[headerIdx].map((c: any) => String(c || ''));
+        const iNome    = header.findIndex(h => h.includes('Segurado'));
+        const iCpf     = header.findIndex(h => h.toLowerCase().includes('cpf'));
+        const iApolice = header.findIndex(h => h.toLowerCase().includes('negócio') || h.toLowerCase().includes('negocio'));
+        const iEndosso = header.findIndex(h => h.toLowerCase().includes('endosso'));
+        const iTel     = header.findIndex(h => h.toLowerCase().includes('telefone'));
+        const iParcela = header.findIndex(h => h.toLowerCase().includes('parcela'));
+        const iVenc    = header.findIndex(h => h.toLowerCase().includes('vencimento'));
+        const iValor   = header.findIndex(h => h.toLowerCase().includes('valor'));
+
+        const toIso = (d: string) => {
+          if (!d) return null;
+          const p = String(d).split('/');
+          if (p.length === 3) return `${p[2]}-${p[1]}-${p[0]}`;
+          return null;
+        };
+
+        const dados = rows.slice(headerIdx + 1)
+          .filter((r: any[]) => r[iCpf] && String(r[iCpf]).match(/\d{3}/))
+          .map((r: any[]) => ({
+            nome:       String(r[iNome] || '').trim(),
+            cpf:        String(r[iCpf] || '').trim(),
+            apolice:    String(r[iApolice] || '').trim(),
+            endosso:    String(r[iEndosso] || '').trim(),
+            telefone_pdf: r[iTel] ? String(r[iTel]).trim() : null,
+            parcela:    r[iParcela] ? parseInt(String(r[iParcela])) : null,
+            vencimento: toIso(String(r[iVenc] || '')),
+            valor:      r[iValor] ? parseFloat(String(r[iValor])) : null,
+            telefone_base: null,
+            relatorio_data: null,
+          }));
+
+        if (!dados.length) throw new Error('Nenhum inadimplente encontrado no arquivo.');
+        setPreview(dados);
+        toast(`${dados.length} inadimplente(s) extraído(s) do Excel`, 'success');
+
+      } else {
+        // PDF → Edge Function
+        const form = new FormData();
+        form.append('pdf', file);
+        const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parse-inadimplentes-pdf', {
+          method: 'POST',
+          headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ' },
+          body: form,
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Erro ao processar PDF');
+        setPreview(json.dados);
+        toast(`${json.total} inadimplente(s) extraído(s) do PDF`, 'success');
+      }
     } catch (err: any) {
-      toast('Erro ao processar PDF: ' + err.message, 'error');
+      toast('Erro ao processar arquivo: ' + err.message, 'error');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -191,8 +244,8 @@ export default function InadimplentesResidencial() {
           </button>
           <label className="flex items-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all cursor-pointer">
             {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-            {uploading ? 'Processando...' : 'Importar PDF Tokio'}
-            <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} disabled={uploading} />
+            {uploading ? 'Processando...' : 'Importar Relatório Tokio'}
+            <input type="file" accept=".pdf,.xls,.xlsx" className="hidden" onChange={handleFileUpload} disabled={uploading} />
           </label>
         </div>
       </div>
