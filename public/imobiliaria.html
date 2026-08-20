@@ -804,6 +804,15 @@
         <label>Valor IPTU e/ou Condomínio (R$)</label>
         <input type="number" id="f-iptu" placeholder="0,00" step="0.01" />
       </div>
+      <div class="form-group full" style="margin-top:4px;">
+        <label>Dia de Vencimento do Aluguel <span style="color:#dc2626;">*</span></label>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+          <input type="number" id="f-dia-vencimento" min="1" max="28" placeholder="Ex: 20"
+            style="width:120px;padding:11px 14px;border:1.5px solid #e8e4dc;border-radius:12px;font-size:15px;font-weight:900;outline:none;background:#fafaf8;color:#1B263B;"
+            oninput="this.style.borderColor='#C69C6D'" required />
+          <span style="font-size:12px;color:#78716c;line-height:1.5;">Todo mês, o repasse do seguro deve ser enviado para a F&G <strong>10 dias antes</strong> deste dia.<br/>Ex: aluguel vence dia 20 → repasse enviado até dia 10.</span>
+        </div>
+      </div>
     </div>
     <div class="form-group full" style="margin-top:8px;">
       <label>Intenção da Solicitação</label>
@@ -1726,7 +1735,9 @@
     const cpf = document.getElementById('f-cpf').value.trim();
     const email = document.getElementById('f-email').value.trim();
     const telefone = document.getElementById('f-telefone').value.trim();
+    const diaVenc = parseInt(document.getElementById('f-dia-vencimento').value);
     if (!nome || !cpf || !email || !telefone) { alert('Preencha: Nome, CPF, E-mail e Telefone.'); return; }
+    if (!diaVenc || diaVenc < 1 || diaVenc > 28) { alert('Informe o Dia de Vencimento do Aluguel (1 a 28).'); document.getElementById('f-dia-vencimento').focus(); return; }
     const btn = document.getElementById('btn-enviar');
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
@@ -1741,6 +1752,7 @@
         valor_aluguel: parseFloat(document.getElementById('f-valor-aluguel').value)||null,
         data_primeiro_pag_aluguel: document.getElementById('f-data-aluguel').value||null,
         valor_iptu: parseFloat(document.getElementById('f-iptu').value)||null,
+        dia_vencimento_aluguel: diaVenc,
         intencao: intencaoAtual,
         partner_id: session.id, tipo_seguro: tipoSeguro,
         seguradora: '', numero_apolice: '', valor_seguro: 0,
@@ -1759,7 +1771,7 @@
       const json = await res.json();
       if (!json.success) throw new Error(json.error||'Erro');
       document.getElementById('form-success').style.display = 'block';
-      ['f-nome','f-cpf','f-email','f-telefone','f-telefone2','f-cep','f-numero','f-valor-imovel','f-valor-aluguel','f-data-aluguel','f-iptu'].forEach(id => document.getElementById(id).value='');
+      ['f-nome','f-cpf','f-email','f-telefone','f-telefone2','f-cep','f-numero','f-valor-imovel','f-valor-aluguel','f-data-aluguel','f-iptu','f-dia-vencimento'].forEach(id => document.getElementById(id).value='');
       setIntencao('cotacao');
       setTimeout(() => document.getElementById('form-success').style.display='none', 5000);
       await carregar();

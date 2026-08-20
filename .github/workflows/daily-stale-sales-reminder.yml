@@ -40,6 +40,27 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{}' | tee /dev/stderr
 
+      - name: Call Edge Function (repasse reminder imobiliária)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/imobiliaria-repasse-reminder" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{}' | tee /dev/stderr
+
+      - name: Call Edge Function (repasse aviso 10 dias)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/imobiliaria-repasse-aviso" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --data '{}' | tee /dev/stderr
+
       - name: Call Edge Function (inadimplentes follow-up)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
