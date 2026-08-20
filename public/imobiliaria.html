@@ -1091,15 +1091,40 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
         body: JSON.stringify({
-          client_id: clientId,
-          inquilino_nome: inquilinoNome,
-          parceiro_nome: session.name,
-          confirmacao,
-          vigencia_fim: vigenciaFim,
+          client_id: clientId, inquilino_nome: inquilinoNome,
+          parceiro_nome: session.name, confirmacao, vigencia_fim: vigenciaFim,
         }),
       });
       await carregar();
     } catch(e) { alert('Erro: ' + e.message); }
+  }
+
+  async function uploadDistrato(clientId, inquilinoNome, input) {
+    const file = input.files[0]; if (!file) return;
+    const btn = input.closest('label');
+    if (btn) btn.innerHTML = '⏳ Enviando...';
+    try {
+      const path = `${session.id}/${clientId}/distrato_${Date.now()}.pdf`;
+      const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
+      const url = urlData.publicUrl;
+
+      // Salva URL no banco
+      await client.from('imobiliaria_clientes').update({ distrato_url: url }).eq('id', clientId);
+
+      // Notifica Fábio via Edge Function
+      await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-confirmacao-renovacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({
+          client_id: clientId, inquilino_nome: inquilinoNome,
+          parceiro_nome: session.name, confirmacao: 'distrato_enviado',
+          vigencia_fim: '', distrato_url: url,
+        }),
+      });
+      await carregar();
+    } catch(e) { alert('Erro ao enviar distrato: ' + e.message); if (btn) btn.innerHTML = '📄 Tentar novamente'; }
   }
 
   function renderAlertasVencimento(cs) {
@@ -1145,12 +1170,21 @@
               </div>`;
 
             if (conf === 'nao_vai_renovar') return `
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
-                <div>
-                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
-                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
+              <div style="padding:14px 24px;border-bottom:1px solid #f8f5f0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                  <div>
+                    <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
+                  </div>
+                  <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
                 </div>
-                <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
+                ${c.distrato_url
+                  ? `<a href="${c.distrato_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ Distrato enviado — clique para ver</a>`
+                  : `<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
+                      <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
+                      📄 Anexar distrato de locação
+                    </label>`
+                }
               </div>`;
 
             // Vencidos: com botões também
