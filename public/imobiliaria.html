@@ -474,7 +474,7 @@
       <p>Envie os dados de um novo inquilino para cotação de seguro residencial ou garantia de aluguel.</p>
     </div>
     <div class="action-card" onclick="filtrarCarteiraPorStatus('');goTo('carteira');" style="position:relative;">
-      <span id="badge-cancelados" style="display:none;position:absolute;top:12px;right:12px;background:#dc2626;color:#fff;font-size:11px;font-weight:900;padding:2px 8px;border-radius:20px;align-items:center;"></span>
+      <span id="badge-cancelados" style="display:none;position:absolute;top:10px;right:10px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;padding:4px 8px;border-radius:10px;align-items:center;gap:3px;flex-direction:column;text-align:center;line-height:1.2;"></span>
       <div class="emoji">📋</div>
       <h3>Carteira de Clientes</h3>
       <p>Veja todos os seus inquilinos, status das apólices e faça download dos documentos.</p>
@@ -1388,7 +1388,10 @@
 
     // Badge vermelho no card Carteira
     const badgeCart = document.getElementById('badge-cancelados');
-    if (badgeCart) { badgeCart.textContent = kpiCancelados > 0 ? kpiCancelados : ''; badgeCart.style.display = kpiCancelados > 0 ? 'inline-flex' : 'none'; }
+    if (badgeCart) {
+      badgeCart.innerHTML = kpiCancelados > 0 ? `<span style="font-size:13px;font-weight:900;">${kpiCancelados}</span><span style="font-size:9px;opacity:.85;">sem seguro</span>` : '';
+      badgeCart.style.display = kpiCancelados > 0 ? 'inline-flex' : 'none';
+    }
 
     renderAlertaCancelados(cs);
   }
