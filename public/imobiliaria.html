@@ -1270,6 +1270,24 @@
     }).join('');
   }
 
+  async function naoVaiRenovarCancelado(clientId, inquilinoNome) {
+    if (!confirm(`Confirma que ${inquilinoNome} não irá renovar o seguro?\n\nO cliente será removido do seu portal e a F&G será avisada.`)) return;
+    try {
+      // Remove do portal e notifica Fábio
+      await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-confirmacao-renovacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({
+          client_id: clientId, inquilino_nome: inquilinoNome,
+          parceiro_nome: session.name, confirmacao: 'nao_vai_renovar', vigencia_fim: '',
+          remove_from_portal: true,
+        }),
+      });
+      // Remoção do portal já é feita com remove_from_portal=true na Edge Function
+      await carregar();
+    } catch(e) { alert('Erro: ' + e.message); }
+  }
+
   function novaCotacaoParaCliente(clientId) {
     const c = todosClientes.find(x => x.id === clientId);
     goTo('cotacao');
@@ -1325,10 +1343,16 @@
                 <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome||'—'}</div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Apólice ${c.numero_apolice||'—'} · ${c.seguradora&&c.seguradora!=='Importado'?c.seguradora:'—'}</div>
               </div>
-              <button onclick="novaCotacaoParaCliente('${c.id}')"
-                style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-                + Solicitar nova cotação
-              </button>
+              <div style="display:flex;gap:8px;flex-shrink:0;">
+                <button onclick="novaCotacaoParaCliente('${c.id}')"
+                  style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                  + Solicitar nova cotação
+                </button>
+                <button onclick="naoVaiRenovarCancelado('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}')"
+                  style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                  ❌ Não vai renovar
+                </button>
+              </div>
             </div>`).join('')}
           ${cancelados.length > 5 ? `<div style="padding:12px 24px;font-size:12px;font-weight:700;color:#dc2626;text-align:center;cursor:pointer;" onclick="filtrarCarteiraPorStatus('cancelado');goTo('carteira');">Ver mais ${cancelados.length-5} →</div>` : ''}
         </div>
