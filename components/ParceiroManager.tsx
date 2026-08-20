@@ -458,9 +458,16 @@ const ParceiroManager: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
-                                          <span className="inline-flex items-center px-3 py-1 bg-[#C69C6D]/10 text-[#C69C6D] rounded-lg text-xs font-black w-fit">
-                                              {p.commission_pct}%
-                                          </span>
+                                          {p.partner_type !== 'imobiliaria' && (
+                                            <span className="inline-flex items-center px-3 py-1 bg-[#C69C6D]/10 text-[#C69C6D] rounded-lg text-xs font-black w-fit">
+                                                {p.commission_pct}%
+                                            </span>
+                                          )}
+                                          {p.partner_type === 'imobiliaria' && (
+                                            <span className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold w-fit">
+                                                Repasse mensal
+                                            </span>
+                                          )}
                                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-md w-fit ${p.partner_type === 'imobiliaria' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
                                               {p.partner_type === 'imobiliaria' ? '🏠 Imobiliária' : '🏢 Seg. Garantia'}
                                           </span>
