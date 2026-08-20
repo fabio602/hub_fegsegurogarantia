@@ -305,7 +305,15 @@ export default function InadimplentesResidencial() {
                     <td className="px-3 py-2">{fmtData(p.vencimento)}</td>
                     <td className="px-3 py-2 font-bold text-red-700">{fmtBRL(p.valor)}</td>
                     <td className="px-3 py-2 text-xs">{p.telefone_pdf || '—'}</td>
-                    <td className="px-3 py-2 text-xs text-emerald-700 font-bold">{p.telefone_base || <span className="text-slate-300">não encontrado</span>}</td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        value={p.telefone_base || ''}
+                        onChange={e => setPreview(prev => prev!.map((item, idx) => idx === i ? { ...item, telefone_base: e.target.value } : item))}
+                        placeholder="(00) 00000-0000"
+                        className="w-full text-xs font-bold text-emerald-700 bg-transparent border-b border-dashed border-amber-300 outline-none focus:border-amber-500 placeholder:text-slate-300 placeholder:font-normal"
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
