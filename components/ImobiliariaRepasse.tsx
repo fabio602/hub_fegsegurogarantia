@@ -181,6 +181,56 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       updated_at: new Date().toISOString(),
     }).eq('id', editingStatus.id);
     setEditingStatus(null);
+
+    // ── Sync para residential_clients quando emitido ──────────────
+    if (editStatusForm.status_residencial === 'emitido' && editingStatus.inquilino_nome) {
+      const parceiroNome = (editingStatus as any).parceiro_nome ||
+        parceiros.find(p => p.id === (editingStatus as any).partner_id)?.name || null;
+
+      // Busca o registro correspondente em residential_clients
+      const { data: rcList } = await supabase
+        .from('residential_clients')
+        .select('id, situacao')
+        .ilike('nome', editingStatus.inquilino_nome.trim())
+        .limit(1);
+
+      const rcUpdate: Record<string, unknown> = {
+        situacao: 'Ativo',
+        parceiro_nome: parceiroNome,
+      };
+      if (editStatusForm.seguradora) rcUpdate.seguradora_residencial = editStatusForm.seguradora; // campo extra se existir
+      if (editStatusForm.numero_apolice) rcUpdate.apolice = editStatusForm.numero_apolice;
+      if (editStatusForm.vigencia_fim) rcUpdate.fim_vigencia = editStatusForm.vigencia_fim;
+      if (editStatusForm.apolice_residencial_url) rcUpdate.apolice_url = editStatusForm.apolice_residencial_url;
+
+      if (rcList && rcList.length > 0) {
+        // Atualiza registro existente
+        await supabase.from('residential_clients').update(rcUpdate).eq('id', rcList[0].id);
+      } else {
+        // Cria novo registro no Residencial
+        await supabase.from('residential_clients').insert({
+          nome: editingStatus.inquilino_nome,
+          cpf: (editingStatus as any).cpf || null,
+          telefone: (editingStatus as any).telefone || null,
+          email: (editingStatus as any).email_inquilino || null,
+          produto: 'Residencial',
+          apolice: editStatusForm.numero_apolice || null,
+          fim_vigencia: editStatusForm.vigencia_fim || null,
+          apolice_url: editStatusForm.apolice_residencial_url || null,
+          situacao: 'Ativo',
+          parceiro_nome: parceiroNome,
+          obs: 'Criado automaticamente via Repasse Imobiliárias',
+        });
+      }
+    }
+
+    // Email para imobiliária quando apólice é adicionada
+    const apoliceNova = editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (editingStatus.apolice_residencial_url || '');
+    if (apoliceNova && (editingStatus as any).partner_id) {
+      supabase.functions.invoke('imobiliaria-envia-apolice', {
+        body: { client_id: editingStatus.id },
+      }).catch(e => console.warn('Email apólice:', e));
+    }
     load();
   };
 
