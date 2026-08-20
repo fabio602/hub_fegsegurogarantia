@@ -596,15 +596,8 @@ const App: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
           <div className="max-w-[1400px] mx-auto pb-16">
 
-            {/* ── Dashboard / Centro de Comando ──────────────── */}
-            {activeView === 'dashboard' && (
-              <div className="animate-fade-in">
-                <CommandCenter
-                  onNavigate={(v) => setActiveView(v as View)}
-                  userEmail={session?.user?.email}
-                />
-              </div>
-            )}
+            {/* ── Visão Geral ──────────────────────────────────── */}
+            {activeView === 'dashboard' && <ResultsDashboard key="dashboard" initialSection="goals" />}
 
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
