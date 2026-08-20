@@ -1386,7 +1386,15 @@
       const v = new Date(c.vigencia_fim);
       return v >= hoje && v <= em30;
     }).length;
-    const kpiCancelados = cs.filter(c => c.status_apolice === 'cancelado').length;
+    // Cancelados sem nova solicitação ativa (mesma lógica do banner)
+    const _nomesAtivos = new Set(
+      cs.filter(c => c.status_apolice !== 'cancelado' || ['solicitado','atendimento_iniciado'].includes(c.kanban_status||''))
+        .map(c => (c.inquilino_nome||'').toUpperCase().trim())
+    );
+    const kpiCancelados = cs.filter(c =>
+      c.status_apolice === 'cancelado' &&
+      !_nomesAtivos.has((c.inquilino_nome||'').toUpperCase().trim())
+    ).length;
     const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
     const kpiTotal = cs.length;
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
