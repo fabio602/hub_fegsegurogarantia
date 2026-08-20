@@ -1272,14 +1272,31 @@
 
   function novaCotacaoParaCliente(clientId) {
     const c = todosClientes.find(x => x.id === clientId);
-    if (c) {
-      const nome = document.getElementById('f-nome');
-      const tipo = document.getElementById('f-tipo-seguro');
-      if (nome) nome.value = c.inquilino_nome || '';
-      if (tipo) tipo.value = 'residencial';
-    }
     goTo('cotacao');
-    setTimeout(() => document.querySelector('#page-cotacao .form-card')?.scrollIntoView({ behavior: 'smooth' }), 200);
+    setTimeout(() => {
+      // Preenche todos os campos disponíveis
+      const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+      if (c) {
+        set('f-tipo-seguro', c.tipo_seguro || 'residencial');
+        set('f-nome', c.inquilino_nome);
+        set('f-cpf', c.cpf);
+        set('f-email', c.email_inquilino);
+        set('f-telefone', c.telefone);
+        set('f-telefone2', c.telefone2);
+        set('f-cep', c.cep);
+        set('f-numero', c.numero_imovel);
+        set('f-tipo-imovel', c.tipo_imovel);
+        set('f-valor-imovel', c.valor_imovel);
+        set('f-valor-aluguel', c.valor_aluguel);
+        set('f-data-aluguel', c.data_primeiro_pag_aluguel);
+        set('f-iptu', c.valor_iptu);
+        // Preenche calculadora também
+        if (c.valor_aluguel) { set('glc-aluguel', c.valor_aluguel); calcGarantia(); }
+      }
+      // Rola direto para o formulário de dados (ignora a calculadora no topo)
+      const formSection = document.getElementById('form-cotacao-section');
+      if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
   }
 
   function renderAlertaCancelados(cs) {
