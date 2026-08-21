@@ -104,6 +104,64 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     setLoadingMessages(false);
   }, []);
 
+  const [syncing, setSyncing] = useState(false);
+  // Busca mensagens recentes da Z-API e importa as enviadas pelo celular que estão faltando
+  const syncFromZAPI = useCallback(async (phone: string) => {
+    if (!phone || syncing) return;
+    setSyncing(true);
+    try {
+      const ZAPI_INSTANCE = '3F7C45AF93AD91301C9696FEEDA07377';
+      const ZAPI_TOKEN = '8E9F5BD8488D8591141B0834';
+      const ZAPI_CLIENT = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
+      const res = await fetch(
+        `https://api.z-api.io/instances/${ZAPI_INSTANCE}/token/${ZAPI_TOKEN}/chats/${phone}/messages?page=1&pageSize=40`,
+        { headers: { 'Client-Token': ZAPI_CLIENT } }
+      );
+      if (!res.ok) throw new Error(`Z-API ${res.status}`);
+      const data = await res.json();
+      const msgs: any[] = Array.isArray(data) ? data : (data.messages ?? data.value ?? []);
+
+      // Carrega IDs já salvos para dedup
+      const { data: existing } = await supabase
+        .from('whatsapp_messages')
+        .select('zapi_id')
+        .eq('phone', phone)
+        .not('zapi_id', 'is', null);
+      const savedIds = new Set((existing ?? []).map((m: any) => m.zapi_id));
+
+      let imported = 0;
+      for (const m of msgs) {
+        const mid = m.messageId ?? m.id ?? m.zaapId;
+        if (!mid || savedIds.has(mid)) continue;
+        // Só importa fromMe (enviadas pelo celular)
+        if (!m.fromMe && !m.isFromMe) continue;
+        const text = m.text?.message ?? m.body ?? m.caption ?? m.content ?? '';
+        if (!text) continue;
+        const ts = m.timestamp ? new Date(m.timestamp * 1000).toISOString() : new Date().toISOString();
+        await supabase.from('whatsapp_messages').insert({
+          phone,
+          name: selectedLead?.name ?? phone,
+          message: text,
+          direction: 'outbound',
+          status: 'sent',
+          zapi_id: mid,
+          created_at: ts,
+        });
+        imported++;
+      }
+      if (imported > 0) {
+        await loadMessages(phone);
+      } else {
+        // Reload anyway to catch anything new
+        await loadMessages(phone);
+      }
+    } catch (e) {
+      console.warn('[syncFromZAPI]', e);
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, selectedLead, loadMessages]);
+
   useEffect(() => {
     loadLeads();
     // Refresh leads every 10s to show new contacts created from phone sends
@@ -111,7 +169,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     return () => clearInterval(poll);
   }, [loadLeads]);
 
-  // Load messages + subscribe to realtime when contact selected
+  // Load messages + subscribe to realtime + auto-sync Z-API when contact selected
   useEffect(() => {
     if (!selectedPhone) { setMessages([]); return; }
 
@@ -127,15 +185,23 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         filter: `phone=eq.${selectedPhone}`,
       }, (payload) => {
         setMessages(prev => {
-          // Avoid duplicates (hub may have already added it locally)
           if (prev.some(m => m.id === payload.new.id)) return prev;
           return [...prev, payload.new as Message];
         });
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [selectedPhone]);
+    // Auto-sync mensagens enviadas pelo celular (Z-API não dispara webhook para fromMe)
+    // Sincroniza imediatamente ao abrir e depois a cada 10s
+    const doSync = () => syncFromZAPI(selectedPhone);
+    doSync();
+    const syncInterval = setInterval(doSync, 10000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(syncInterval);
+    };
+  }, [selectedPhone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -486,15 +552,20 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 </div>
               </div>
 
-              <select
-                value={selectedLead?.status ?? 'novo'}
-                onChange={e => updateStatus(selectedPhone, e.target.value)}
-                className="text-xs font-bold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D]/50 cursor-pointer"
-              >
-                {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                {syncing && (
+                  <RefreshCw size={12} className="animate-spin text-slate-300" title="Sincronizando mensagens do celular..." />
+                )}
+                <select
+                  value={selectedLead?.status ?? 'novo'}
+                  onChange={e => updateStatus(selectedPhone, e.target.value)}
+                  className="text-xs font-bold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D]/50 cursor-pointer"
+                >
+                  {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Client info card */}
