@@ -98,6 +98,21 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{}' | tee /dev/stderr
 
+      - name: Call Edge Function (cobrança inadimplentes Seguro Garantia)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Missing secrets SUPABASE_URL and/or SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/garantia-cobranca" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{}' | tee /dev/stderr
+
       - name: Call Edge Function (pesquisa de satisfação pós-emissão)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

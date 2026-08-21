@@ -964,6 +964,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSaveError(null);
         setSaveSuccess(false);
 
+        // Validação: vencimento_boleto obrigatório quando vendeu = 'Sim'
+        if (formData.vendeu === 'Sim' && !(formData as any).vencimento_boleto) {
+            setSaveError('Para registrar uma venda como emitida, é necessário informar a data de vencimento do boleto. Esse campo é obrigatório para o envio automático dos lembretes de pagamento.');
+            setSaving(false);
+            document.getElementById('vencimento_boleto')?.focus();
+            return;
+        }
+
         // Sanitize: only send columns that exist in the Supabase table
         const payload = {
             data: formData.data || null,
@@ -998,6 +1006,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             valorContrato: formData.valorContrato || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
             parceiro: (formData as any).parceiro || null,
+            numero_boleto: (formData as any).numero_boleto || null,
+            vencimento_boleto: (formData as any).vencimento_boleto || null,
+            pagamento_status: (formData as any).pagamento_status || 'Em dia',
         };
 
         try {
@@ -2200,6 +2211,49 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Valor do Contrato</label>
                                         <input type="text" id="valorContrato" value={formData.valorContrato || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
+                                </div>
+                            )}
+
+                            {formData.vendeu === 'Sim' && (
+                                <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-100 space-y-3">
+                                    <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">💰 Cobrança / Boleto</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nº do Boleto</label>
+                                            <input type="text" id="numero_boleto" value={(formData as any).numero_boleto || ''} onChange={handleInputChange}
+                                                placeholder="Ex: 9655696"
+                                                className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>Vencimento do Boleto</span>
+                                                <span className="text-red-500">*</span>
+                                            </label>
+                                            <input type="date" id="vencimento_boleto" value={(formData as any).vencimento_boleto || ''} onChange={handleInputChange}
+                                                className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${!(formData as any).vencimento_boleto ? 'border-2 border-red-400 focus:ring-red-400/20 bg-red-50/30' : 'border border-amber-200 focus:ring-amber-400/20'}`} />
+                                            {!(formData as any).vencimento_boleto && (
+                                                <p className="text-[10px] text-red-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Status Pagamento</label>
+                                            <select id="pagamento_status" value={(formData as any).pagamento_status || 'Em dia'} onChange={async (e) => {
+                                                const val = e.target.value;
+                                                handleInputChange(e as any);
+                                                // Save imediato quando marcado como 'Pago' para bloquear cobranças
+                                                if (val === 'Pago' && editingId) {
+                                                    await supabase.from('sales').update({ pagamento_status: 'Pago' }).eq('id', editingId);
+                                                }
+                                            }}
+                                                className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20">
+                                                <option value="Em dia">✅ Em dia</option>
+                                                <option value="A vencer">⚠️ A vencer</option>
+                                                <option value="Vencido">🔴 Vencido</option>
+                                                <option value="Pago">💚 Pago</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-amber-600/70 font-medium italic">Ao marcar como "Pago", as cobranças automáticas são bloqueadas imediatamente.</p>
                                 </div>
                             )}
 
