@@ -54,18 +54,27 @@ export default function ProspeccaoEmail() {
   const handleAdd = async () => {
     if (!form.nome_contato || !form.nome_empresa || !form.email) return;
     setSaving(true);
-    await supabase.from('email_cadencia').insert({
+    const { data: inserted } = await supabase.from('email_cadencia').insert({
       nome_contato: form.nome_contato.trim(),
       nome_empresa: form.nome_empresa.trim(),
       email: form.email.trim().toLowerCase(),
       origem: 'hub',
       data_inicio: new Date().toISOString().split('T')[0],
       ativo: true,
-    });
+    }).select('id').single();
+
+    // Dispara Email 1 imediatamente
+    if (inserted?.id) {
+      supabase.functions.invoke('prospecting-cadence', {
+        body: { contact_id: inserted.id },
+      }).catch(e => console.warn('[Email 1 imediato]', e));
+    }
+
     setForm(EMPTY_FORM);
     setShowModal(false);
     setSaving(false);
-    load();
+    // Aguarda 1s para o email_1_sent ser marcado antes de recarregar
+    setTimeout(() => load(), 1500);
   };
 
   const toggleAtivo = async (id: string, current: boolean) => {
