@@ -11,7 +11,7 @@ const MAX_HISTORY = 5;
 import { supabase } from '../lib/supabase';
 import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 import MinutaValidator from './MinutaValidator';
-import { type EditalData, type Alerta, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER } from '../lib/editalSchema.ts';
+import { type EditalData, type Alerta, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER, normalizeAlertas } from '../lib/editalSchema.ts';
 
 interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
 
@@ -501,12 +501,9 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {/* Alertas de sanidade — renderização por tipo estruturado */}
           {result.alertas && result.alertas.length > 0 && (() => {
-            // Aceita string[] (legado) e Alerta[] (v9+)
-            const alertas: Alerta[] = (result.alertas as unknown[]).map((a) =>
-              typeof a === 'string'
-                ? { tipo: 'outro' as const, severidade: 'atencao' as const, campo_afetado: null, texto: a }
-                : (a as Alerta)
-            ).sort((a, b) => (SEVERIDADE_ORDER[a.severidade] ?? 2) - (SEVERIDADE_ORDER[b.severidade] ?? 2));
+            // Normaliza string[] (legado) e Alerta[] (v9+), ordena por severidade
+            const alertas: Alerta[] = normalizeAlertas(result.alertas as Alerta[] | string[])
+              .sort((a, b) => (SEVERIDADE_ORDER[a.severidade] ?? 2) - (SEVERIDADE_ORDER[b.severidade] ?? 2));
 
             // Agrupa por tipo para cabeçalhos diferenciados
             const bloqueantes = alertas.filter(a => a.severidade === 'bloqueante');
