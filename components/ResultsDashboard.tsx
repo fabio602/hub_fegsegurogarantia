@@ -964,6 +964,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSaveError(null);
         setSaveSuccess(false);
 
+        // Validação: dataPregao obrigatório quando tipo = 'Licitante'
+        if (formData.tipo === 'Licitante' && !formData.dataPregao) {
+            setSaveError('Para vendas do tipo Licitante, é obrigatório informar a data do pregão. Esse campo é necessário para o envio automático dos lembretes ao cliente e ao vendedor.');
+            setSaving(false);
+            document.getElementById('dataPregao')?.focus();
+            return;
+        }
+
         // Validação: vencimento_boleto obrigatório quando vendeu = 'Sim'
         if (formData.vendeu === 'Sim' && !(formData as any).vencimento_boleto) {
             setSaveError('Para registrar uma venda como emitida, é necessário informar a data de vencimento do boleto. Esse campo é obrigatório para o envio automático dos lembretes de pagamento.');
@@ -2187,8 +2195,15 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <input type="text" id="valorLote" value={formData.valorLote || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">📅 Data do Pregão</label>
-                                        <input type="date" id="dataPregao" value={formData.dataPregao || ''} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
+                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <span className={formData.tipo === 'Licitante' && !formData.dataPregao ? 'text-red-500' : 'text-amber-600'}>📅 Data do Pregão</span>
+                                            {formData.tipo === 'Licitante' && <span className="text-red-500">*</span>}
+                                        </label>
+                                        <input type="date" id="dataPregao" value={formData.dataPregao || ''} onChange={handleInputChange}
+                                            className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${formData.tipo === 'Licitante' && !formData.dataPregao ? 'border-2 border-red-400 focus:ring-red-400/20 bg-red-50/30' : 'border border-amber-200 focus:ring-amber-500/20'}`} />
+                                        {formData.tipo === 'Licitante' && !formData.dataPregao && (
+                                            <p className="text-[10px] text-red-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
+                                        )}
                                     </div>
                                 </div>
                             )}
