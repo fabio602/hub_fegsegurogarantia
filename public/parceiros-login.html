@@ -74,20 +74,26 @@
       btn.disabled = true;
       btn.textContent = 'Verificando...';
 
-      const { data, error } = await client
-        .from('partners')
-        .select('id, name, username, commission_pct, partner_type, email, pix_key, banco_nome, conta_corrente, agencia')
-        .eq('username', usuario)
-        .eq('password', senha)
-        .single();
-
-      btn.disabled = false;
-      btn.textContent = 'Entrar';
-
-      if (error || !data) {
+      // Autenticação server-side via Edge Function — senha nunca comparada via anon key
+      let data = null;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/parceiro-auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+          body: JSON.stringify({ usuario, senha }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Credenciais inválidas');
+        data = json.partner;
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
         erro.style.display = 'block';
         return;
       }
+
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
 
       localStorage.setItem('parceiro_session', JSON.stringify(data));
       if (data.partner_type === 'imobiliaria') {

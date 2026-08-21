@@ -3,9 +3,7 @@ import { Upload, MessageCircle, CheckCircle2, Clock, AlertCircle, FileText, Load
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast.tsx';
 
-const ZAPI_INSTANCE_ID = '3F7C45AF93AD91301C9696FEEDA07377';
-const ZAPI_TOKEN = '8E9F5BD8488D8591141B0834';
-const ZAPI_CLIENT_TOKEN = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
+// Credenciais Z-API removidas do frontend — agora ficam na Edge Function zapi-send-message
 
 interface Inadimplente {
   id: number;
@@ -208,12 +206,10 @@ export default function InadimplentesResidencial() {
 
     setSendingId(item.id);
     try {
-      const res = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-        body: JSON.stringify({ phone, message }),
+      const { data: zapiData, error: zapiError } = await supabase.functions.invoke('zapi-send-message', {
+        body: { phone, message },
       });
-      if (!res.ok) throw new Error('Erro Z-API');
+      if (zapiError || !zapiData?.success) throw new Error(zapiError?.message || zapiData?.error || 'Erro Z-API');
       await supabase.from('inadimplentes_residencial')
         .update({ status: novoStatus, data_contato: new Date().toISOString() })
         .eq('id', item.id);
