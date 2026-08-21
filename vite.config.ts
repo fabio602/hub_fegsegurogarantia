@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        // Timestamp gravado em build time — visível no hub para confirmar versão deployada
+        __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
       },
       resolve: {
         alias: {

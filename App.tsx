@@ -548,7 +548,24 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="shrink-0 mt-auto p-6 bg-[#162033]">
+          <div className="shrink-0 mt-auto p-6 bg-[#162033] space-y-3">
+            {/* Indicador de versão do build — confirma qual deploy está rodando */}
+            {(() => {
+              const buildTime = (typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null) as string | null;
+              if (!buildTime) return null;
+              const d = new Date(buildTime);
+              const fmt = d.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit', month: '2-digit', year: '2-digit',
+                hour: '2-digit', minute: '2-digit',
+              });
+              return (
+                <div className="flex items-center gap-2 px-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-[10px] text-slate-500 font-mono">build {fmt}</span>
+                </div>
+              );
+            })()}
             <button
               onClick={handleLogout}
               className="group flex items-center gap-3 text-slate-300 hover:text-[#C69C6D] transition-all text-sm font-bold w-full px-5 py-3 rounded-2xl hover:bg-[#243347]"

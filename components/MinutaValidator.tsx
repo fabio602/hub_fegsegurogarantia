@@ -10,7 +10,7 @@ export interface ValidationItem {
   campo: string;
   esperado: string;
   encontrado: string;
-  status: 'ok' | 'divergencia' | 'nao_encontrado';
+  status: 'ok' | 'divergencia' | 'nao_encontrado' | 'atencao_favoravel' | 'nao_aplicavel';
   observacao?: string | null;
 }
 
@@ -26,8 +26,11 @@ interface MinutaDados {
 
 export interface ValidationResult {
   status_geral: 'aprovado' | 'divergencias' | 'verificar';
+  veredicto?: 'PODE EMITIR' | 'EMITIR COM RESSALVA' | 'NAO EMITIR';
+  veredicto_acao?: string | null;
   itens: ValidationItem[];
   resumo: string;
+  pendencias_bloqueantes?: string[];
   minuta_dados?: MinutaDados;
   raw?: string;
   parse_error?: boolean;
@@ -42,9 +45,20 @@ interface Props {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Campos meta que NÃO devem ir para o contexto do modelo (listas internas, dados de auditoria)
+const CONTEXTO_EXCLUDE = new Set([
+  'raw', 'parse_error', 'alertas', 'pendencias_bloqueantes',
+  'valor_global_edital_fonte', // incluído via valor_global_edital
+]);
+
 function buildContexto(dados: Record<string, unknown>, labels: Record<string, string>): string {
   return Object.entries(dados)
-    .filter(([k, v]) => !['raw', 'parse_error'].includes(k) && v != null && v !== '' && v !== false)
+    .filter(([k, v]) => {
+      if (CONTEXTO_EXCLUDE.has(k)) return false;
+      if (v == null || v === '' || v === false) return false;
+      if (Array.isArray(v)) return false; // arrays não são fatos do edital
+      return true;
+    })
     .map(([k, v]) => {
       const label = labels[k] || k;
       const val = typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v);
@@ -117,6 +131,19 @@ const STATUS_CONFIG = {
     row: 'bg-amber-50 border-amber-100',
     badge: 'bg-amber-100 text-amber-700',
     label: 'NÃO ENCONTRADO',
+  },
+  // Novos status do prompt v5
+  atencao_favoravel: {
+    icon: <CheckCircle2 size={16} className="text-blue-500 shrink-0 mt-0.5" />,
+    row: 'bg-blue-50 border-blue-100',
+    badge: 'bg-blue-100 text-blue-700',
+    label: 'FAVORÁVEL',
+  },
+  nao_aplicavel: {
+    icon: <CheckCircle2 size={16} className="text-slate-400 shrink-0 mt-0.5" />,
+    row: 'bg-slate-50 border-slate-100',
+    badge: 'bg-slate-100 text-slate-500',
+    label: 'N/A',
   },
 };
 
@@ -275,17 +302,21 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
   // ── Derivados ──────────────────────────────────────────────────────────────
 
-  const okCount = result?.itens?.filter(i => i.status === 'ok').length ?? 0;
-  const divCount = result?.itens?.filter(i => i.status === 'divergencia').length ?? 0;
-  const naCount = result?.itens?.filter(i => i.status === 'nao_encontrado').length ?? 0;
+  const okCount      = result?.itens?.filter(i => i.status === 'ok' || i.status === 'atencao_favoravel').length ?? 0;
+  const divCount     = result?.itens?.filter(i => i.status === 'divergencia').length ?? 0;
+  const naCount      = result?.itens?.filter(i => i.status === 'nao_encontrado').length ?? 0;
+  const favCount     = result?.itens?.filter(i => i.status === 'atencao_favoravel').length ?? 0;
+  const naAplCount   = result?.itens?.filter(i => i.status === 'nao_aplicavel').length ?? 0;
 
   const sortedItens = result?.itens
     ? [...result.itens].sort((a, b) => {
-        const order = { divergencia: 0, nao_encontrado: 1, ok: 2 };
-        return order[a.status] - order[b.status];
+        // Prioridade: divergencia (0) > nao_encontrado (1) > atencao_favoravel (2) > ok (3) > nao_aplicavel (4)
+        const order: Record<string, number> = { divergencia: 0, nao_encontrado: 1, atencao_favoravel: 2, ok: 3, nao_aplicavel: 4 };
+        return (order[a.status] ?? 3) - (order[b.status] ?? 3);
       })
     : [];
-  const visibleItens = showAll ? sortedItens : sortedItens.filter(i => i.status !== 'ok');
+  // Oculta ok e nao_aplicavel quando showAll=false
+  const visibleItens = showAll ? sortedItens : sortedItens.filter(i => i.status !== 'ok' && i.status !== 'nao_aplicavel');
 
   const mensagem = result?.minuta_dados
     ? tipo === 'licitante'
@@ -400,10 +431,21 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     <p className={`text-sm mt-2 leading-relaxed ${cfg.titleColor} opacity-70 border-t border-current/10 pt-2`}>{result.resumo}</p>
                   )}
                 </div>
-                <div className="shrink-0 flex gap-2 text-xs font-black">
-                  {okCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">{okCount} OK</span>}
-                  {divCount > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
-                  {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">{naCount} ⚠</span>}
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
+                  <div className="flex gap-1.5 text-xs font-black flex-wrap justify-end">
+                    {okCount - favCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">{okCount - favCount} OK</span>}
+                    {divCount > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
+                    {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">{naCount} ⚠</span>}
+                    {favCount > 0 && <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">{favCount} ↑</span>}
+                    {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg">{naAplCount} N/A</span>}
+                  </div>
+                  {result.veredicto && (
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${
+                      result.veredicto === 'PODE EMITIR' ? 'bg-emerald-700 text-white' :
+                      result.veredicto === 'EMITIR COM RESSALVA' ? 'bg-amber-600 text-white' :
+                      'bg-red-700 text-white'
+                    }`}>{result.veredicto}</span>
+                  )}
                 </div>
               </div>
             );

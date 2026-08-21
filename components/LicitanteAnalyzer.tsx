@@ -8,10 +8,12 @@ import {
 const LICITANTE_HISTORY_KEY = 'cotacao_history_licitante';
 const MAX_HISTORY = 5;
 
-interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
 import { supabase } from '../lib/supabase';
 import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 import MinutaValidator from './MinutaValidator';
+import { type EditalData, describeTriState } from '../lib/editalSchema.ts';
+
+interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
 
 const LICITANTE_LABELS: Record<string, string> = {
   orgao_nome: 'Órgão Licitante',
@@ -28,23 +30,7 @@ const LICITANTE_LABELS: Record<string, string> = {
   data_sessao_publica: 'Data da Sessão Pública / Pregão',
 };
 
-interface EditalData {
-  orgao_nome?: string | null;
-  orgao_cnpj?: string | null;
-  numero_edital?: string | null;
-  modalidade?: string | null;
-  objeto?: string | null;
-  valor_global_edital?: number | null;
-  exige_seguro_garantia_proposta?: boolean;
-  percentual_garantia_proposta?: number | null;
-  valor_garantia_proposta_calculado?: number | null;
-  validade_proposta_dias?: number | null;
-  vigencia_garantia_proposta?: string | null;
-  data_sessao_publica?: string | null;
-  observacoes_relevantes?: string | null;
-  raw?: string;
-  parse_error?: boolean;
-}
+// EditalData importado de lib/editalSchema.ts — fonte única de verdade
 
 const fmtBRL = (val?: number | null) =>
   val != null
@@ -341,7 +327,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <Card
               icon={<DollarSign size={15} />}
               label="Valor Global do Edital"
-              value={fmtBRL(result.valor_global_edital) ?? '—'}
+              value={result.valor_global_edital != null ? (fmtBRL(result.valor_global_edital) ?? '—') : 'Não informado no edital'}
               copyValue={fmtBRL(result.valor_global_edital) ?? undefined}
             />
             <Card
@@ -353,11 +339,29 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <Card
               icon={<DollarSign size={15} />}
               label="Valor da Garantia"
-              value={fmtBRL(result.valor_garantia_proposta_calculado) ?? '—'}
+              value={result.valor_garantia_proposta_calculado != null
+                ? (fmtBRL(result.valor_garantia_proposta_calculado) ?? '—')
+                : result.formula_calculo
+                  ? `A confirmar: ${result.formula_calculo}`
+                  : 'A confirmar (valor estimado ausente no edital)'}
               highlight={!!result.valor_garantia_proposta_calculado}
               copyValue={fmtBRL(result.valor_garantia_proposta_calculado) ?? undefined}
             />
           </div>
+
+          {/* Fórmula em aberto + divergência de validade */}
+          {(result.formula_calculo || result.divergencia_validade_proposta) && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 space-y-2">
+              {result.formula_calculo && (
+                <p className="text-sm text-slate-600"><span className="font-black text-slate-700">Fórmula:</span> {result.formula_calculo}</p>
+              )}
+              {result.divergencia_validade_proposta && (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <span className="font-black">Divergência de validade:</span> {result.divergencia_validade_proposta}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Datas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -370,40 +374,106 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-slate-400"><Calendar size={15} /></span>
-                <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência / Validade da Proposta</span>
+                <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência da Garantia de Proposta</span>
               </div>
-              {result.vigencia_garantia_proposta ? (
-                <div>
-                  <p className="text-xl font-black text-slate-800">{result.vigencia_garantia_proposta}</p>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[1px]">Vigência específica da garantia de proposta</p>
-                </div>
-              ) : result.validade_proposta_dias ? (
-                <div>
-                  <p className="text-xl font-black text-slate-800">{result.validade_proposta_dias} dias</p>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[1px]">Validade da proposta (vigência da garantia não especificada)</p>
-                </div>
-              ) : (
-                <p className="text-xl font-black text-slate-500">—</p>
-              )}
+              {(() => {
+                // Calcula data de término em UTC puro (evita desvio de timezone)
+                // Regra: art. 183 da Lei 14.133 — exclui o dia inicial, inclui o do vencimento
+                // Ou seja: fim = sessao + dias (não +1, não -1)
+                const BUFFER_DIAS = 30; // folga conservadora padrão
+                const dias = result.vigencia_garantia_proposta_dias;
+                const sessao = result.data_sessao_publica;
+                let dataFimMinimo: string | null = null;
+                let dataFimSugerido: string | null = null;
+                if (dias && sessao) {
+                  try {
+                    const partes = sessao.split(/[/\s]/); // "24/08/2026 08:00" -> ['24','08','2026',...]
+                    const d = parseInt(partes[0]), m = parseInt(partes[1]), y = parseInt(partes[2]);
+                    // UTC evita desvio de 1 dia por timezone
+                    const baseMs = Date.UTC(y, m - 1, d);
+                    const fimMinMs = baseMs + dias * 86400000;
+                    const fimSugMs = fimMinMs + BUFFER_DIAS * 86400000;
+                    const fmt = (ms: number) => new Date(ms).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    dataFimMinimo  = fmt(fimMinMs);
+                    dataFimSugerido = fmt(fimSugMs);
+                  } catch { /* mantém null */ }
+                }
+                const regraContagem = 'Contagem: exclui o dia da sessão, inclui o do vencimento. Art. 183, Lei 14.133/2021.';
+                if (result.vigencia_garantia_proposta) return (
+                  <div className="space-y-1">
+                    <p className="text-xl font-black text-slate-800">{result.vigencia_garantia_proposta}</p>
+                    {dataFimMinimo && <p className="text-xs text-slate-600">Mínimo legal: <strong>{dataFimMinimo}</strong></p>}
+                    {dataFimSugerido && <p className="text-xs text-emerald-700">Sugerido (+{BUFFER_DIAS} dias): <strong>{dataFimSugerido}</strong></p>}
+                    <p className="text-[10px] text-slate-400 mt-1">{regraContagem}</p>
+                  </div>
+                );
+                if (dias) return (
+                  <div className="space-y-1">
+                    <p className="text-xl font-black text-slate-800">{dias} dias</p>
+                    {dataFimMinimo && <p className="text-xs text-slate-600">Mínimo legal: <strong>{dataFimMinimo}</strong></p>}
+                    {dataFimSugerido && <p className="text-xs text-emerald-700">Sugerido (+{BUFFER_DIAS} dias): <strong>{dataFimSugerido}</strong></p>}
+                    <p className="text-[10px] text-slate-400 mt-1">{regraContagem}</p>
+                    {result.vigencia_garantia_termo_inicial && <p className="text-[10px] text-slate-400 uppercase tracking-[1px]">Termo inicial: {result.vigencia_garantia_termo_inicial}</p>}
+                  </div>
+                );
+                if (result.validade_proposta_dias) return (
+                  <div>
+                    <p className="text-xl font-black text-slate-800">{result.validade_proposta_dias} dias</p>
+                    <p className="text-[10px] text-amber-600 mt-1">Validade da proposta. Vigência da garantia não especificada no edital.</p>
+                  </div>
+                );
+                return <p className="text-xl font-black text-slate-500">Não informado</p>;
+              })()}
             </div>
           </div>
 
-          {/* Badge: exige seguro proposta */}
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border font-bold ${
-            result.exige_seguro_garantia_proposta
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-slate-50 border-slate-200 text-slate-600'
-          }`}>
-            {result.exige_seguro_garantia_proposta
-              ? <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
-              : <XCircle size={20} className="text-slate-400 shrink-0" />
-            }
-            <span>
-              {result.exige_seguro_garantia_proposta
-                ? 'Este edital EXIGE seguro-garantia de proposta como condição de participação.'
-                : 'Este edital NÃO exige (ou não menciona) seguro-garantia de proposta.'}
-            </span>
-          </div>
+          {/* Badge: exige garantia de proposta — três estados */}
+          {(() => {
+            const desc = describeTriState(result.exige_garantia_proposta, {
+              verdadeiro: 'Este edital EXIGE seguro-garantia de proposta como condição de participação.',
+              falso: 'Este edital NÃO exige seguro-garantia de proposta.',
+              indeterminado: 'Não foi possível determinar se o edital exige seguro-garantia de proposta. Verifique manualmente.',
+            });
+            const styles = {
+              true:          'bg-emerald-50 border-emerald-200 text-emerald-800',
+              false:         'bg-slate-50 border-slate-200 text-slate-600',
+              indeterminate: 'bg-amber-50 border-amber-200 text-amber-800',
+              conditional:   'bg-blue-50 border-blue-200 text-blue-800',
+            };
+            const icons = {
+              true:          <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />,
+              false:         <XCircle size={20} className="text-slate-400 shrink-0" />,
+              indeterminate: <AlertTriangle size={20} className="text-amber-500 shrink-0" />,
+              conditional:   <AlertTriangle size={20} className="text-blue-500 shrink-0" />,
+            };
+            return (
+              <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border font-bold ${styles[desc.kind]}`}>
+                {icons[desc.kind]}
+                <span>{desc.text}</span>
+              </div>
+            );
+          })()}
+
+          {/* Erros de schema ou parse — nunca silenciosos */}
+          {(result.schema_validation_error || result.parse_error) && (
+            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-red-600 shrink-0" />
+                <p className="font-black text-red-800 text-sm">
+                  {result.parse_error ? 'Erro de parsing: resposta do modelo não é JSON válido' : 'Erro de validação de schema'}
+                </p>
+              </div>
+              {result.schema_validation_error && (
+                <p className="text-red-700 text-xs font-mono bg-red-100 rounded-xl px-3 py-2">{String(result.schema_validation_error)}</p>
+              )}
+              {result.parse_error && result.raw && (
+                <details className="mt-2">
+                  <summary className="text-red-600 text-xs font-bold cursor-pointer">Ver resposta bruta</summary>
+                  <pre className="text-xs text-red-600 bg-red-100 rounded-xl px-3 py-2 mt-1 whitespace-pre-wrap overflow-auto max-h-48">{String(result.raw)}</pre>
+                </details>
+              )}
+            </div>
+          )}
 
           {/* Observações */}
           {result.observacoes_relevantes && (
@@ -429,14 +499,57 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             </div>
           )}
 
-          {/* Double Check da Minuta */}
+          {/* Alertas de sanidade */}
+          {result.alertas && result.alertas.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 bg-amber-100/60">
+                <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                <span className="font-black text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
+              </div>
+              <ul className="px-5 py-3 space-y-1.5">
+                {result.alertas.map((a, i) => (
+                  <li key={i} className="text-sm text-amber-800 flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5 shrink-0">•</span> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Pendências bloqueantes */}
+          {result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 && (
+            <div className="bg-red-50 border-2 border-red-300 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 bg-red-100 border-b border-red-200">
+                <AlertTriangle size={15} className="text-red-600 shrink-0" />
+                <span className="font-black text-red-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
+                <span className="ml-auto text-[10px] font-black text-red-600 bg-red-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
+              </div>
+              <ul className="px-5 py-3 space-y-1.5">
+                {result.pendencias_bloqueantes.map((p, i) => (
+                  <li key={i} className="text-sm text-red-800 flex items-start gap-2">
+                    <span className="text-red-500 mt-0.5 shrink-0">!</span> {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Double Check da Minuta — bloqueado quando há pendências */}
           {!result.parse_error && (
-            <MinutaValidator
-              dadosOriginais={result as unknown as Record<string, unknown>}
-              tipo="licitante"
-              campoLabels={LICITANTE_LABELS}
-              onVerVendas={onVerVendas}
-            />
+            result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 ? (
+              <div className="bg-slate-100 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
+                <AlertTriangle size={24} className="text-slate-400 mx-auto" />
+                <p className="font-black text-slate-600 text-sm">Double Check indisponível</p>
+                <p className="text-slate-400 text-xs">Resolva as pendências bloqueantes listadas acima antes de validar a minuta. Exemplo: confirme o valor estimado junto ao órgão licitante.</p>
+              </div>
+            ) : (
+              <MinutaValidator
+                dadosOriginais={result as unknown as Record<string, unknown>}
+                tipo="licitante"
+                campoLabels={LICITANTE_LABELS}
+                onVerVendas={onVerVendas}
+              />
+            )
           )}
         </div>
       )}
