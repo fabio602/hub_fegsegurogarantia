@@ -28,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
   'novo': 'bg-emerald-500',
   'em atendimento': 'bg-blue-500',
   'cotação enviada': 'bg-amber-500',
+  'seguro de proposta': 'bg-[#C69C6D]',
   'fechado': 'bg-slate-400',
 };
 
@@ -35,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
   'novo': 'Novo',
   'em atendimento': 'Em atendimento',
   'cotação enviada': 'Cotação enviada',
+  'seguro de proposta': 'Seguro de Proposta',
   'fechado': 'Fechado',
 };
 
@@ -493,6 +495,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                           lead.status === 'novo' ? 'bg-emerald-500/20 text-emerald-400' :
                           lead.status === 'em atendimento' ? 'bg-blue-500/20 text-blue-400' :
                           lead.status === 'cotação enviada' ? 'bg-amber-500/20 text-amber-400' :
+                          lead.status === 'seguro de proposta' ? 'bg-[#C69C6D]/20 text-[#b8895a]' :
                           'bg-slate-500/20 text-slate-400'
                         }`}>{STATUS_LABELS[lead.status] ?? lead.status}</span>
                       </div>
