@@ -164,24 +164,25 @@ export default function InadimplentesResidencial() {
     if (!preview?.length) return;
     setSaving(true);
     try {
-      // Upsert: reimportação atualiza dados sem duplicar (chave: apolice + parcela)
-      // Preserva status já atualizado (contatado, pago etc.) — só sobrescreve se ainda inadimplente
-      const rows = preview.map(p => ({
+      // Deduplica o lote: garante no máximo 1 registro por apolice+parcela no próprio array
+      const seen = new Map<string, typeof preview[0]>();
+      for (const p of preview) {
+        const key = `${p.apolice}|${p.parcela}`;
+        seen.set(key, p); // última ocorrência prevalece
+      }
+      const rows = Array.from(seen.values()).map(p => ({
         cpf: p.cpf, nome: p.nome, apolice: p.apolice,
         parcela: p.parcela, vencimento: p.vencimento, valor: p.valor,
         telefone_pdf: p.telefone_pdf, telefone_base: p.telefone_base,
         relatorio_data: p.relatorio_data, status: 'inadimplente',
       }));
+      // Upsert: reimportação atualiza sem duplicar
       const { error } = await supabase.from('inadimplentes_residencial').upsert(
-        rows,
-        {
-          onConflict: 'apolice,parcela',
-          // Não sobrescreve status se já foi atualizado (só atualiza dados do boleto)
-          ignoreDuplicates: false,
-        }
+        rows, { onConflict: 'apolice,parcela' }
       );
       if (error) throw error;
-      toast(`${preview.length} inadimplente(s) importado(s) (duplicatas atualizadas)!`, 'success');
+      const duplicatas = preview.length - rows.length;
+      toast(`${rows.length} inadimplente(s) importado(s)${duplicatas > 0 ? ` (${duplicatas} duplicata(s) ignorada(s))` : ''}.`, 'success');
       setPreview(null);
       fetchItems();
     } catch (err: any) {
