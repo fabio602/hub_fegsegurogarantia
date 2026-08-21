@@ -155,8 +155,28 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
   const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '' });
 
-  const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Recusado' };
-  const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-red-50 text-red-700' };
+  const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
+  const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-slate-50 text-slate-600' };
+
+  // Detalhamento do status quando encerrado — usa status_apolice para mostrar o motivo real
+  const STATUS_APOLICE_LABELS: Record<string, string> = {
+    ativo:          'Ativo',
+    cancelado:      'Cancelado',
+    desistiu:       'Optou Não Contratar',
+    reprovado:      'Reprovado',
+    vencido:        'Vencido',
+    saiu_imovel:    'Saiu do Imóvel',
+    pagamento_atrasado: 'Pgto. Atrasado',
+    em_renovacao:   'Em Renovação',
+  };
+
+  /** Retorna o label de exibição correto, usando status_apolice quando encerrado */
+  const getStatusLabel = (statusResidencial: string, statusApolice?: string): string => {
+    if (statusResidencial === 'recusado' && statusApolice && STATUS_APOLICE_LABELS[statusApolice]) {
+      return STATUS_APOLICE_LABELS[statusApolice];
+    }
+    return STATUS_LABELS[statusResidencial] ?? statusResidencial;
+  };
 
   const openEditStatus = (c: Cliente) => {
     setEditingStatus(c);
@@ -282,7 +302,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   useEffect(() => { load(); }, [load]);
 
   // Pendentes = solicitações da imobiliária sem apólice ainda emitida
-  const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
+  const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
   const ativos = clientes.filter(c => c.status === 'ativo' && (c as any).is_repasse === true);
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
@@ -521,6 +541,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           { key: 'solicitado',           label: 'Solicitado',           accent: '#94a3b8', labelColor: '#64748b' },
           { key: 'atendimento_iniciado', label: 'F&G em Atendimento',   accent: '#C69C6D', labelColor: '#b8895a' },
           { key: 'aguardando_seguradora',label: 'Aguardando Seguradora',accent: '#1B263B', labelColor: '#1B263B' },
+          { key: 'aguardando_cliente',   label: 'Aguardando o Cliente', accent: '#7c3aed', labelColor: '#7c3aed' },
           { key: 'aprovado',             label: 'Aprovado',             accent: '#2d6a4f', labelColor: '#2d6a4f' },
           { key: 'recusado',             label: 'Recusado',             accent: '#9b1c1c', labelColor: '#9b1c1c' },
         ];
@@ -538,7 +559,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 const colCards = clientes.filter(c => {
                   const status = (c as any).kanban_status || 'solicitado';
                   if (status !== col.key) return false;
-                  if (['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(status)) return true;
+                  if (['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(status)) return true;
                   return new Date(c.created_at) >= tresDiasAtras;
                 });
                 const isOver = dragOver === col.key;
@@ -722,7 +743,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4">
                       <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
-                        {STATUS_LABELS[c.status_residencial || 'aguardando_cotacao']}
+                        {getStatusLabel(c.status_residencial || 'aguardando_cotacao', (c as any).status_apolice)}
                       </span>
                       {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
                     </td>
@@ -965,6 +986,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   <option value="solicitado">📬 Solicitado</option>
                   <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
                   <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
+                  <option value="aguardando_cliente">👤 Aguardando o Cliente</option>
                   <option value="aprovado">✅ Aprovado</option>
                   <option value="recusado">❌ Recusado</option>
                 </select>

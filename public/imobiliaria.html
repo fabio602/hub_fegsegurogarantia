@@ -1395,7 +1395,7 @@
       c.status_apolice === 'cancelado' &&
       !_nomesAtivos.has((c.inquilino_nome||'').toUpperCase().trim())
     ).length;
-    const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
+    const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(c.kanban_status)).length;
     const kpiTotal = cs.length;
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kpi-ativos', kpiAtivos);
@@ -1417,6 +1417,7 @@
     { key: 'solicitado',          id: 'solicitado',   label: '📬 Solicitado' },
     { key: 'atendimento_iniciado',id: 'atendimento',  label: '🔄 F&G em atendimento' },
     { key: 'aguardando_seguradora',id:'seguradora',   label: '⏳ Aguardando Seguradora' },
+    { key: 'aguardando_cliente',  id: 'cliente',      label: '👤 Aguardando o Cliente' },
     { key: 'aprovado',            id: 'aprovado',     label: '✅ Aprovado' },
     { key: 'recusado',            id: 'recusado',     label: '❌ Recusado' },
   ];
@@ -1426,7 +1427,7 @@
     // Kanban: pending always | approved/rejected only if < 3 days old
     const kanbanCs = cs.filter(c => {
       const status = c.kanban_status || 'solicitado';
-      if (['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(status)) return true;
+      if (['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(status)) return true;
       return new Date(c.created_at) >= tresDiasAtras;
     });
     KANBAN_COLS.forEach(col => {
