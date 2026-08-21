@@ -5,7 +5,15 @@
 
 // ── Alerta estruturado ────────────────────────────────────────────────────────
 export interface Alerta {
-  tipo: 'escala' | 'plausibilidade' | 'prazo' | 'juridico' | 'outro';
+  /**
+   * dado_ausente: campo esperado não encontrado no documento
+   * escala: valor existe mas escala suspeita (fator 10/100/1000)
+   * plausibilidade: valor existe mas implausível para o contexto
+   * juridico: ponto de atenção legal (não é prazo nem escala)
+   * outro: alertas gerais
+   * prazo: RESERVADO para uso interno do TypeScript — modelo não deve emitir
+   */
+  tipo: 'dado_ausente' | 'escala' | 'plausibilidade' | 'prazo' | 'juridico' | 'outro';
   severidade: 'info' | 'atencao' | 'bloqueante';
   /** Campo do JSON afetado, ou null se for alerta geral */
   campo_afetado: string | null;
@@ -76,6 +84,12 @@ export interface EditalData {
   pendencias_bloqueantes?:         string[];
   observacoes_relevantes?:         string | null;
 
+  // Pendências e recomendações — dois níveis distintos
+  /** Bloqueia o Double Check. Apenas itens que impedem a emissão. */
+  pendencias_bloqueantes?:         string[];
+  /** Exibe mas NÃO bloqueia. Itens de atenção operacional. */
+  recomendacoes?:                  string[];
+
   // Campos internos
   raw?:                            string;
   raw_tail?:                       string;
@@ -97,6 +111,7 @@ export function describeTriState(
 
 /** Cor e label por tipo de alerta */
 export const ALERTA_CONFIG: Record<Alerta['tipo'], { color: string; bg: string; label: string }> = {
+  dado_ausente:   { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Ausente' },
   escala:         { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Escala' },
   plausibilidade: { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Plausibilidade' },
   prazo:          { color: 'text-orange-700',  bg: 'bg-orange-50 border-orange-200', label: 'Prazo' },

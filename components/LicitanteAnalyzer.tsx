@@ -377,28 +377,37 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência da Garantia de Proposta</span>
               </div>
               {(() => {
-                // Calcula data de término em UTC puro (evita desvio de timezone)
-                // Regra: art. 183 da Lei 14.133 — exclui o dia inicial, inclui o do vencimento
-                // Ou seja: fim = sessao + dias (não +1, não -1)
-                const BUFFER_DIAS = 30; // folga conservadora padrão
+                const BUFFER_DIAS = 30;
                 const dias = result.vigencia_garantia_proposta_dias;
-                const sessao = result.data_sessao_publica;
+                const termo = result.vigencia_garantia_termo_inicial;
+
+                // Fix 2: data_base selecionada pelo termo inicial, não sempre a sessão
+                type DataBase = { dateStr: string | null; label: string };
+                const dataBase: DataBase = (() => {
+                  if (termo === 'entrega_proposta' && result.data_limite_propostas)
+                    return { dateStr: result.data_limite_propostas, label: 'entrega da proposta' };
+                  if (termo === 'emissao')
+                    return { dateStr: null, label: 'emissão da apólice (data não calculável antecipadamente)' };
+                  // Padrão conservador: sessão pública
+                  return { dateStr: result.data_sessao_publica ?? null, label: 'sessão pública' };
+                })();
+
                 let dataFimMinimo: string | null = null;
                 let dataFimSugerido: string | null = null;
-                if (dias && sessao) {
+                if (dias && dataBase.dateStr) {
                   try {
-                    const partes = sessao.split(/[/\s]/); // "24/08/2026 08:00" -> ['24','08','2026',...]
+                    const partes = dataBase.dateStr.split(/[/\s]/);
                     const d = parseInt(partes[0]), m = parseInt(partes[1]), y = parseInt(partes[2]);
-                    // UTC evita desvio de 1 dia por timezone
                     const baseMs = Date.UTC(y, m - 1, d);
-                    const fimMinMs = baseMs + dias * 86400000;
-                    const fimSugMs = fimMinMs + BUFFER_DIAS * 86400000;
                     const fmt = (ms: number) => new Date(ms).toLocaleDateString('pt-BR', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
-                    dataFimMinimo  = fmt(fimMinMs);
-                    dataFimSugerido = fmt(fimSugMs);
+                    dataFimMinimo  = fmt(baseMs + dias * 86400000);
+                    dataFimSugerido = fmt(baseMs + (dias + BUFFER_DIAS) * 86400000);
                   } catch { /* mantém null */ }
                 }
-                const regraContagem = 'Contagem: exclui o dia da sessão, inclui o do vencimento. Art. 183, Lei 14.133/2021.';
+
+                // Linha de auditoria declara qual data foi usada
+                const regraContagem = `Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'} (${dataBase.label}). Exclui o dia do início, inclui o do vencimento. Art. 183, Lei 14.133/2021.`;
+
                 if (result.vigencia_garantia_proposta) return (
                   <div className="space-y-1">
                     <p className="text-xl font-black text-slate-800">{result.vigencia_garantia_proposta}</p>
@@ -412,8 +421,8 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                     <p className="text-xl font-black text-slate-800">{dias} dias</p>
                     {dataFimMinimo && <p className="text-xs text-slate-600">Mínimo legal: <strong>{dataFimMinimo}</strong></p>}
                     {dataFimSugerido && <p className="text-xs text-emerald-700">Sugerido (+{BUFFER_DIAS} dias): <strong>{dataFimSugerido}</strong></p>}
+                    {termo === 'emissao' && <p className="text-[10px] text-amber-600 mt-1">Termo inicial: emissão da apólice. Data de término não calculável antecipadamente.</p>}
                     <p className="text-[10px] text-slate-400 mt-1">{regraContagem}</p>
-                    {result.vigencia_garantia_termo_inicial && <p className="text-[10px] text-slate-400 uppercase tracking-[1px]">Termo inicial: {result.vigencia_garantia_termo_inicial}</p>}
                   </div>
                 );
                 if (result.validade_proposta_dias) return (
@@ -553,7 +562,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             );
           })()}
 
-          {/* Pendências bloqueantes */}
+          {/* Pendências bloqueantes — impedem emissão e bloqueiam Double Check */}
           {result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 && (
             <div className="bg-red-50 border-2 border-red-300 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 bg-red-100 border-b border-red-200">
@@ -565,6 +574,23 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 {result.pendencias_bloqueantes.map((p, i) => (
                   <li key={i} className="text-sm text-red-800 flex items-start gap-2">
                     <span className="text-red-500 mt-0.5 shrink-0">!</span> {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recomendações — atenção operacional, NÃO bloqueia Double Check */}
+          {result.recomendacoes && result.recomendacoes.length > 0 && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-200">
+                <Info size={14} className="text-slate-500 shrink-0" />
+                <span className="font-black text-slate-600 text-xs uppercase tracking-widest">Recomendações Operacionais</span>
+              </div>
+              <ul className="px-5 py-3 space-y-1.5">
+                {result.recomendacoes.map((r, i) => (
+                  <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                    <span className="text-slate-400 mt-0.5 shrink-0">→</span> {r}
                   </li>
                 ))}
               </ul>
