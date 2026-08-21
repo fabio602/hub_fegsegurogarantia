@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { WhatsAppClientCard } from './WhatsAppClientCard.tsx';
 
@@ -425,8 +425,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       className="flex rounded-[2rem] overflow-hidden shadow-lg border border-slate-200 bg-white"
       style={{ height: 'calc(100vh - 160px)', minHeight: '500px' }}
     >
-      {/* ── Left panel: contacts ──────────────────────────────── */}
-      <div className="w-80 flex-shrink-0 border-r border-white/10 flex flex-col bg-[#1B263B]">
+      {/* ── Left panel: contacts — oculto no mobile quando chat está aberto ── */}
+      <div className={`w-80 flex-shrink-0 border-r border-white/10 flex flex-col bg-[#1B263B] ${selectedPhone ? 'hidden lg:flex' : 'flex w-full lg:w-80'}`}>
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <MessageSquare size={15} className="text-[#C69C6D]" />
@@ -525,7 +525,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       </div>
 
       {/* ── Right panel: conversation ─────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#F8F4ED]">
+      {/* Painel direito — full width no mobile quando chat aberto */}
+      <div className={`flex-1 flex flex-col min-w-0 bg-[#F8F4ED] ${selectedPhone ? 'flex' : 'hidden lg:flex'}`}>
         {!selectedPhone ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
@@ -536,11 +537,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           </div>
         ) : (
           <>
-            {/* Contact header */}
-            <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
+            {/* Contact header — botão ← voltar só no mobile */}
+            <div className="px-4 lg:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1B263B] flex items-center justify-center">
-                  <User size={15} className="text-[#C69C6D]" />
+                {/* Botão voltar — só aparece em telas pequenas */}
+                <button
+                  onClick={() => setSelectedPhone(null)}
+                  className="lg:hidden p-2 -ml-1 text-slate-500 hover:text-[#1B263B] hover:bg-slate-100 rounded-xl transition-all"
+                  title="Voltar à lista"
+                >
+                  <ChevronRight size={18} className="rotate-180" />
+                </button>
+                <div className="w-9 h-9 rounded-full bg-[#1B263B] flex items-center justify-center shrink-0">
+                  <User size={14} className="text-[#C69C6D]" />
                 </div>
                 <div>
                   <p className="font-black text-slate-800 text-sm leading-none">{selectedLead?.name}</p>
