@@ -336,7 +336,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+          <h2 className="text-xl lg:text-3xl font-black text-slate-800 tracking-tight">
             Repasse Imobiliárias
             {filterParceiro && parceiros.find(p => p.id === filterParceiro) && (
               <span className="text-lg text-[#C69C6D] ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
@@ -421,7 +421,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#1B263B] rounded-2xl p-5 text-white">
           <p className="text-white/50 text-xs font-black uppercase tracking-widest mb-1">Total Mensal</p>
           <p className="text-2xl font-black text-[#C69C6D]">{fmtBRL(totalMensal)}</p>
@@ -438,13 +438,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-7">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 lg:p-7">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-black text-slate-800">Novo Cliente</h3>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
               <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Ex: Maria da Silva" />
@@ -511,7 +511,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <h3 className="font-black text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
-            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+            <div className="overflow-x-auto pb-1">
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(180px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
                 // Pending always show; approved/rejected only last 3 days
                 const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
@@ -643,6 +644,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         );

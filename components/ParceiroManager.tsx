@@ -279,9 +279,9 @@ const ParceiroManager: React.FC = () => {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-800">Parceiros</h2>
+                    <h2 className="text-xl lg:text-3xl font-black text-slate-800">Parceiros</h2>
                     <p className="text-slate-500 font-medium mt-1">Gerencie os acessos e comissões dos parceiros comerciais.</p>
                 </div>
                 <button
@@ -428,6 +428,7 @@ const ParceiroManager: React.FC = () => {
                 ) : parceiros.length === 0 ? (
                     <div className="py-16 text-center text-slate-400 font-semibold">Nenhum parceiro cadastrado.</div>
                 ) : (
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-100">
@@ -496,6 +497,7 @@ const ParceiroManager: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </div>
 

@@ -130,7 +130,7 @@ const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
   const [badges, setBadges] = useState<{
     whatsapp: number;
@@ -403,6 +403,13 @@ const App: React.FC = () => {
     <ToastProvider>
     <GlobalSearch onNavigate={(view) => setActiveView(view as View)} />
     <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
+      {/* Overlay mobile — fecha sidebar ao clicar fora */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${
@@ -552,43 +559,44 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="h-16 bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-6 lg:px-8 no-print shrink-0 z-30">
-          <div className="flex items-center gap-4">
+        <header className="h-14 lg:h-16 bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30">
+          <div className="flex items-center gap-2 lg:gap-4 min-w-0">
             <button
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-all shrink-0"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             >
-              {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
+              {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <div>
-              <h2 className="text-[#1B263B] font-black text-xl tracking-tight">
+            <div className="min-w-0">
+              <h2 className="text-[#1B263B] font-black text-base lg:text-xl tracking-tight truncate">
                 {VIEW_TITLES[activeView]}
               </h2>
-              <p className="text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5">
+              <p className="hidden sm:block text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5 truncate">
                 Sessão Ativa: {session?.user?.email?.split('@')[0]}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <div className="hidden md:flex items-center gap-2 bg-[#EFE7DB] px-3 py-1.5 rounded-xl border border-[#C69C6D]/25">
               <div className="w-1.5 h-1.5 rounded-full bg-[#C69C6D] animate-pulse"></div>
-              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Servidor Online</span>
+              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Online</span>
             </div>
+            {/* Busca: ícone no mobile, botão completo no desktop */}
             <button
               onMouseDown={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: '#f4f1ec', border: '1.5px solid #e8e4dc', borderRadius: '12px', cursor: 'pointer', fontSize: '13px', color: '#78716c', fontWeight: 600 }}
+              className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-[#f4f1ec] border border-[#e8e4dc] rounded-xl cursor-pointer text-[#78716c] hover:bg-[#ede9e1] transition-all"
             >
-              <Search size={14} />
-              Buscar
-              <kbd style={{ fontSize: '10px', background: '#e8e4dc', borderRadius: '4px', padding: '1px 5px', color: '#94a3b8', marginLeft: '4px' }}>⌘K</kbd>
+              <Search size={15} />
+              <span className="hidden sm:inline text-sm font-semibold">Buscar</span>
+              <kbd className="hidden sm:inline text-[10px] bg-[#e8e4dc] rounded px-1 text-[#94a3b8]">⌘K</kbd>
             </button>
             <button className="p-2 text-slate-400 hover:text-[#C69C6D] transition-all relative">
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
             </button>
-            <div className="h-8 w-[1px] bg-[#C69C6D]/30"></div>
-            <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="hidden sm:block h-8 w-[1px] bg-[#C69C6D]/30"></div>
+            <div className="hidden sm:flex items-center gap-3 group cursor-pointer">
               <div className="w-9 h-9 rounded-xl bg-[#1B263B] flex items-center justify-center text-[#C69C6D] shadow-md group-hover:scale-105 transition-transform">
                 <User size={18} />
               </div>
@@ -596,30 +604,30 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
-          <div className="max-w-[1400px] mx-auto pb-16">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
+          <div className="max-w-[1400px] mx-auto pb-20 lg:pb-16">
 
             {/* ── Visão Geral ──────────────────────────────────── */}
             {activeView === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
-                <div className="bg-[#1B263B] rounded-[2.5rem] p-8 lg:p-14 text-white relative overflow-hidden shadow-3xl">
-                  <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+                <div className="bg-[#1B263B] rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
+                  <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
                     <div>
-                      <div className="inline-flex items-center gap-2 bg-[#C69C6D]/20 text-[#C69C6D] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-[#C69C6D]/20">
+                      <div className="inline-flex items-center gap-2 bg-[#C69C6D]/20 text-[#C69C6D] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 lg:mb-6 border border-[#C69C6D]/20">
                         <Zap size={11} fill="currentColor" />
-                        Acesso Master v2.7
+                        Hub F&G v2.7
                       </div>
-                      <h1 className="text-4xl lg:text-5xl font-black mb-6 tracking-tighter leading-[0.9]">
+                      <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black mb-3 lg:mb-6 tracking-tighter leading-tight">
                         Eficiência em <br /><span className="text-[#C69C6D]">Seguros Corporativos.</span>
                       </h1>
-                      <p className="text-slate-400 max-w-lg text-base leading-relaxed font-medium">
+                      <p className="text-slate-400 max-w-lg text-sm lg:text-base leading-relaxed font-medium hidden sm:block">
                         O Hub centralizado da F&G Corretora permite que você gerencie cálculos, documentos e metas com precisão absoluta.
                       </p>
-                      <div className="mt-8 flex flex-wrap gap-4">
-                        <button onClick={() => navigate('goals')} className="bg-[#C69C6D] text-white px-8 py-4 rounded-2xl font-black hover:bg-[#b58a5b] transition-all shadow-xl shadow-[#C69C6D]/20 active:scale-95 flex items-center gap-2">
+                      <div className="mt-5 lg:mt-8 flex flex-wrap gap-3">
+                        <button onClick={() => navigate('goals')} className="bg-[#C69C6D] text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-[#b58a5b] transition-all shadow-xl shadow-[#C69C6D]/20 active:scale-95 flex items-center gap-2 text-sm">
                           Registro de Vendas <ChevronRight size={14} />
                         </button>
-                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-8 py-4 rounded-2xl font-black hover:bg-white/10 transition-all">Analisar Performance</button>
+                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-white/10 transition-all text-sm">Performance</button>
                       </div>
                     </div>
                     <div className="hidden lg:flex justify-end">
@@ -677,18 +685,18 @@ const App: React.FC = () => {
                       { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: '🤝' },
                       { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: '🏠' },
                     ].map((portal, idx) => (
-                      <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="text-2xl">{portal.icon}</div>
-                          <div>
+                      <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-4 lg:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="text-xl shrink-0">{portal.icon}</div>
+                          <div className="min-w-0">
                             <p className="font-black text-slate-800 text-sm">{portal.label}</p>
-                            <p className="text-xs text-slate-400 font-medium mt-0.5">{portal.desc}</p>
-                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#C69C6D] font-bold hover:underline mt-1 block truncate max-w-[260px]">
+                            <p className="text-xs text-slate-400 font-medium mt-0.5 hidden sm:block">{portal.desc}</p>
+                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#C69C6D] font-bold hover:underline mt-0.5 block truncate max-w-[220px]">
                               {portal.url.replace('https://', '')}
                             </a>
                           </div>
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-black px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl transition-all">
+                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-black px-4 py-2.5 min-h-[40px] bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl transition-all">
                           Copiar
                         </button>
                       </div>

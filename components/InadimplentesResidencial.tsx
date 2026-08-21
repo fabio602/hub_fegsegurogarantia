@@ -241,10 +241,10 @@ export default function InadimplentesResidencial() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">Inadimplentes</h2>
+          <h2 className="text-xl lg:text-3xl font-black text-slate-800">Inadimplentes</h2>
           <p className="text-slate-500 font-medium mt-1">Relatório Tokio Marine — cobrança via WhatsApp</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button onClick={fetchItems} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:border-[#C69C6D] transition-all">
             <RefreshCw size={16} />
           </button>
