@@ -11,7 +11,7 @@ const MAX_HISTORY = 5;
 import { supabase } from '../lib/supabase';
 import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 import MinutaValidator from './MinutaValidator';
-import { type EditalData, describeTriState } from '../lib/editalSchema.ts';
+import { type EditalData, type Alerta, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER } from '../lib/editalSchema.ts';
 
 interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
 
@@ -499,22 +499,62 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             </div>
           )}
 
-          {/* Alertas de sanidade */}
-          {result.alertas && result.alertas.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 bg-amber-100/60">
-                <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-                <span className="font-black text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
+          {/* Alertas de sanidade — renderização por tipo estruturado */}
+          {result.alertas && result.alertas.length > 0 && (() => {
+            // Aceita string[] (legado) e Alerta[] (v9+)
+            const alertas: Alerta[] = (result.alertas as unknown[]).map((a) =>
+              typeof a === 'string'
+                ? { tipo: 'outro' as const, severidade: 'atencao' as const, campo_afetado: null, texto: a }
+                : (a as Alerta)
+            ).sort((a, b) => (SEVERIDADE_ORDER[a.severidade] ?? 2) - (SEVERIDADE_ORDER[b.severidade] ?? 2));
+
+            // Agrupa por tipo para cabeçalhos diferenciados
+            const bloqueantes = alertas.filter(a => a.severidade === 'bloqueante');
+            const outros = alertas.filter(a => a.severidade !== 'bloqueante');
+
+            return (
+              <div className="space-y-2">
+                {bloqueantes.length > 0 && (
+                  <div className="border border-red-200 rounded-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-5 py-3 bg-red-50 border-b border-red-200">
+                      <AlertTriangle size={14} className="text-red-600 shrink-0" />
+                      <span className="font-black text-red-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
+                    </div>
+                    <ul className="px-5 py-3 space-y-2">
+                      {bloqueantes.map((a, i) => {
+                        const cfg = ALERTA_CONFIG[a.tipo];
+                        return (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className="text-sm text-red-800">{a.texto}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {outros.length > 0 && (
+                  <div className="border border-amber-200 rounded-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
+                      <AlertTriangle size={14} className="text-amber-600 shrink-0" />
+                      <span className="font-black text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
+                    </div>
+                    <ul className="px-5 py-3 space-y-2">
+                      {outros.map((a, i) => {
+                        const cfg = ALERTA_CONFIG[a.tipo];
+                        return (
+                          <li key={i} className="flex items-start gap-2.5">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className="text-sm text-amber-800">{a.texto}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
-              <ul className="px-5 py-3 space-y-1.5">
-                {result.alertas.map((a, i) => (
-                  <li key={i} className="text-sm text-amber-800 flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5 shrink-0">•</span> {a}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Pendências bloqueantes */}
           {result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 && (
