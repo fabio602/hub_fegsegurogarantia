@@ -195,7 +195,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     // Sincroniza imediatamente ao abrir e depois a cada 10s
     const doSync = () => syncFromZAPI(selectedPhone);
     doSync();
-    const syncInterval = setInterval(doSync, 10000);
+    const syncInterval = setInterval(doSync, 5000);
 
     return () => {
       supabase.removeChannel(channel);
