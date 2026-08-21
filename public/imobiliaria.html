@@ -234,12 +234,14 @@
     .btn-doc:hover { background: #e8f5ef; }
 
     /* ── KANBAN ── */
-    .kanban-wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding-bottom: 8px; align-items: flex-start; }
+    /* Kanban — scroll horizontal para caber todas as colunas em qualquer tela */
+    .kanban-scroll { overflow-x: auto; padding-bottom: 12px; margin: 0 -4px; }
+    .kanban-wrap { display: grid; grid-template-columns: repeat(6, minmax(160px, 1fr)); gap: 10px; padding: 0 4px; align-items: flex-start; min-width: 960px; }
     .kanban-col { background: #fff; border-radius: 16px; padding: 14px; border: 1px solid #e8e4dc; border-top: 3px solid #e8e4dc; }
     .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .kanban-col-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; }
+    .kanban-col-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; }
     .kanban-count { background: #f1f0ec; color: #64748b; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 20px; min-width: 24px; text-align: center; }
-    .kanban-card { background: #fafaf8; border-radius: 12px; padding: 13px; margin-bottom: 8px; border: 1px solid #ede9e1; cursor: grab; transition: all .15s; }
+    .kanban-card { background: #fafaf8; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #ede9e1; cursor: grab; transition: all .15s; }
     .kanban-card:hover { background: #fff; box-shadow: 0 4px 16px rgba(27,38,59,.08); border-color: #C69C6D40; transform: translateY(-1px); }
     .kanban-card .kc-nome { font-weight: 900; font-size: 12px; color: #1B263B; margin-bottom: 5px; line-height: 1.3; }
     .kanban-card .kc-tipo { font-size: 10px; color: #94a3b8; font-weight: 700; }
@@ -248,11 +250,14 @@
     .col-solicitado { border-top-color: #94a3b8; }
     .col-solicitado .kanban-col-title { color: #64748b; }
     .col-atendimento { border-top-color: #C69C6D; }
-    .col-atendimento .kanban-col-title { color: #C69C6D; }
+    .col-atendimento .kanban-col-title { color: #b8895a; }
     .col-atendimento .kanban-count { background: #fdf6ee; color: #b8895a; }
     .col-seguradora { border-top-color: #1B263B; }
     .col-seguradora .kanban-col-title { color: #1B263B; }
     .col-seguradora .kanban-count { background: #f0f2f5; color: #1B263B; }
+    .col-cliente { border-top-color: #7c3aed; }
+    .col-cliente .kanban-col-title { color: #7c3aed; }
+    .col-cliente .kanban-count { background: #f5f3ff; color: #7c3aed; }
     .col-aprovado { border-top-color: #2d6a4f; }
     .col-aprovado .kanban-col-title { color: #2d6a4f; }
     .col-aprovado .kanban-count { background: #f0f7f4; color: #2d6a4f; }
@@ -501,6 +506,7 @@
     <h2>📊 Minhas Solicitações</h2>
     <p>Acompanhe o andamento das cotações. Após 3 dias de aprovadas ou recusadas, vão para a Carteira de Clientes.</p>
   </div>
+  <div class="kanban-scroll">
   <div class="kanban-wrap">
     <div class="kanban-col col-solicitado">
       <div class="kanban-col-header">
@@ -523,7 +529,7 @@
       </div>
       <div id="k-col-seguradora"><div class="kanban-empty">Nenhum</div></div>
     </div>
-    <div class="kanban-col" style="border-top:3px solid #7c3aed;">
+    <div class="kanban-col col-cliente">
       <div class="kanban-col-header">
         <span class="kanban-col-title">👤 Aguardando o Cliente</span>
         <span class="kanban-count" id="k-count-cliente">0</span>
@@ -544,6 +550,7 @@
       </div>
       <div id="k-col-recusado"><div class="kanban-empty">Nenhum</div></div>
     </div>
+  </div>
   </div>
 </div>
 
