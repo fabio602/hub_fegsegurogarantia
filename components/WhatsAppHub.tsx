@@ -191,15 +191,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       })
       .subscribe();
 
-    // Auto-sync mensagens enviadas pelo celular (Z-API não dispara webhook para fromMe)
-    // Sincroniza imediatamente ao abrir e depois a cada 10s
-    const doSync = () => syncFromZAPI(selectedPhone);
-    doSync();
-    const syncInterval = setInterval(doSync, 5000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(syncInterval);
     };
   }, [selectedPhone]); // eslint-disable-line react-hooks/exhaustive-deps
 

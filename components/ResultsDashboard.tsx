@@ -2402,7 +2402,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 </td>
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
                                                 <td className="px-6 py-5">
-                                                    <div className="font-black text-slate-800 tracking-tight">{sale.nome}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-black text-slate-800 tracking-tight">{sale.nome}</div>
+                                                        {(sale as any).survey_score && (
+                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
+                                                                ⭐ {(sale as any).survey_score}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-[10px] text-slate-400 font-bold uppercase">{sale.seguradora || 'S/ Seguradora'}</div>
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
