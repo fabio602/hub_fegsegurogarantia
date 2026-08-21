@@ -551,7 +551,7 @@ const App: React.FC = () => {
           <div className="shrink-0 mt-auto p-6 bg-[#162033] space-y-3">
             {/* Indicador de versão do build — confirma qual deploy está rodando */}
             {(() => {
-              const buildTime = (typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null) as string | null;
+              const buildTime: string | null = typeof __BUILD_TIME__ === 'string' ? __BUILD_TIME__ : null;
               if (!buildTime) return null;
               const d = new Date(buildTime);
               const fmt = d.toLocaleString('pt-BR', {
