@@ -173,8 +173,10 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     if (editStatusForm.status_residencial === 'recusado') kanban = 'recusado';
 
     const diaVencEdit = parseInt(editStatusForm.dia_vencimento_aluguel) || null;
-    const valorSegEdit = parseFloat(editStatusForm.valor_seguro.replace(',', '.')) || undefined;
-    await supabase.from('imobiliaria_clientes').update({
+    const valorSegRaw = parseFloat((editStatusForm.valor_seguro || '').replace(',', '.'));
+    const valorSegEdit = isNaN(valorSegRaw) || valorSegRaw === 0 ? undefined : valorSegRaw;
+
+    const updatePayload: Record<string, unknown> = {
       status_residencial: editStatusForm.status_residencial,
       status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
       apolice_residencial_url: editStatusForm.apolice_residencial_url || null,
@@ -185,9 +187,26 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       seguradora: editStatusForm.seguradora || null,
       numero_apolice: editStatusForm.numero_apolice || null,
       dia_vencimento_aluguel: diaVencEdit,
-      ...(valorSegEdit !== undefined ? { valor_seguro: valorSegEdit } : {}),
       updated_at: new Date().toISOString(),
-    }).eq('id', editingStatus.id);
+    };
+    if (valorSegEdit !== undefined) updatePayload.valor_seguro = valorSegEdit;
+
+    const { error: updateError } = await supabase
+      .from('imobiliaria_clientes')
+      .update(updatePayload)
+      .eq('id', editingStatus.id);
+
+    if (updateError) {
+      console.error('[saveStatus] Erro ao salvar:', updateError);
+      alert(`Erro ao salvar: ${updateError.message}`);
+      return;
+    }
+
+    // Atualiza estado local imediatamente (otimista) para evitar flash do valor antigo
+    setClientes(prev => prev.map(c => c.id === editingStatus.id
+      ? { ...c, ...updatePayload, kanban_status: kanban } as any
+      : c
+    ));
     setEditingStatus(null);
 
     // ── Sync para residential_clients quando emitido ──────────────
