@@ -47,12 +47,14 @@ const NominationLetter: React.FC = () => {
       const telefone = json.ddd_telefone_1
         ? json.ddd_telefone_1.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
         : '';
+      const socio = json.qsa?.[0]?.nome_socio || json.qsa?.[0]?.nome || '';
       setData(prev => ({
         ...prev,
         razaoSocial: json.razao_social || prev.razaoSocial,
         cidade: cidade || prev.cidade,
         telefone: telefone || prev.telefone,
         email: json.email || prev.email,
+        nomeAssinatura: socio || prev.nomeAssinatura,
       }));
       setCnpjStatus('found');
     } catch {
@@ -246,7 +248,10 @@ const NominationLetter: React.FC = () => {
                  <UserCheck size={24} />
               </div>
               <div className="flex-1 w-full space-y-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[2px]">Nome do Assinante Responsável</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[2px] flex items-center gap-1.5">
+                  Nome do Assinante Responsável
+                  {cnpjStatus === 'found' && data.nomeAssinatura && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ sócio da empresa</span>}
+                </label>
                 <input 
                   type="text" 
                   value={data.nomeAssinatura}
