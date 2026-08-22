@@ -265,10 +265,16 @@ const NominationLetter: React.FC = () => {
 
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 h-full">
-               <h3 className="font-black text-[#1B263B] text-xs uppercase tracking-[3px] mb-4 flex items-center gap-2">
+               <h3 className="font-black text-[#1B263B] text-xs uppercase tracking-[3px] flex items-center gap-2">
                   <ShieldCheck size={16} className="text-[#C69C6D]" />
                   Seleção Cias
                </h3>
+               <p className="text-[11px] text-slate-400 font-medium mt-1 mb-4">
+                 Escolha as seguradoras para as quais você precisa da nomeação.
+                 {data.seguradoras.length > 0 && (
+                   <span className="ml-1 font-black text-[#C69C6D]">{data.seguradoras.length} selecionada{data.seguradoras.length > 1 ? 's' : ''}.</span>
+                 )}
+               </p>
                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scroll">
                  {loadingInsurers ? (
                    <div className="flex items-center justify-center py-8 text-slate-400">
