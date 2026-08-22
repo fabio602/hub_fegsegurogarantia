@@ -425,6 +425,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
     const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
     const [boletoModalNome, setBoletoModalNome] = useState('');
+    const [boletoModalEmail, setBoletoModalEmail] = useState('');
+    const [sendingBoletoEmail, setSendingBoletoEmail] = useState<number | null>(null);
+    const [boletoEmailSent, setBoletoEmailSent] = useState<Set<number>>(new Set());
     const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean }[]>([]);
     const [boletosSummary, setBoletosSummary] = useState<Record<number, { total: number; emAberto: number }>>({});
     const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; file: File | null }>({ parcela: '', vencimento: '', file: null });
@@ -1277,9 +1280,35 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
     };
 
-    const openBoletoModal = async (saleId: number, nome: string) => {
+    const handleSendBoletoEmail = async (b: { id: number; parcela: number; vencimento: string | null; url: string }) => {
+        if (!boletoModalEmail) {
+            alert('Este cliente não tem e-mail cadastrado. Adicione o e-mail no registro de venda.');
+            return;
+        }
+        setSendingBoletoEmail(b.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const supabaseUrl = (supabase as any).supabaseUrl as string;
+            const supabaseKey = (supabase as any).supabaseKey as string;
+            const res = await fetch(`${supabaseUrl}/functions/v1/send-boleto-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                body: JSON.stringify({ toEmail: boletoModalEmail, toName: boletoModalNome, parcela: b.parcela, vencimento: b.vencimento, boletoUrl: b.url }),
+            });
+            if (!res.ok) throw new Error();
+            setBoletoEmailSent(prev => new Set([...prev, b.id]));
+        } catch {
+            alert('Erro ao enviar e-mail. Verifique a conexão e tente novamente.');
+        } finally {
+            setSendingBoletoEmail(null);
+        }
+    };
+
+    const openBoletoModal = async (saleId: number, nome: string, email = '') => {
         setBoletoModalSaleId(saleId);
         setBoletoModalNome(nome);
+        setBoletoModalEmail(email);
+        setBoletoEmailSent(new Set());
         setBoletoForm({ parcela: '', vencimento: '', file: null });
         const { data } = await supabase
             .from('boletos')
@@ -2591,7 +2620,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         const s = boletosSummary[sale.id];
                                                         return (
                                                             <button
-                                                                onClick={() => openBoletoModal(sale.id, sale.nome || '')}
+                                                                onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '')}
                                                                 className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
                                                                 <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
@@ -2673,7 +2702,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
-                                <p className="text-xs text-slate-400 mt-0.5">Gerencie as parcelas do boleto</p>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    {boletoModalEmail
+                                        ? <>📧 E-mails serão enviados para <span className="font-bold text-[#C69C6D]">{boletoModalEmail}</span></>
+                                        : <span className="text-amber-500">⚠ Sem e-mail cadastrado neste registro</span>
+                                    }
+                                </p>
                             </div>
                             <button onClick={() => setBoletoModalSaleId(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all"><X size={18} /></button>
                         </div>
@@ -2701,6 +2735,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800 transition-all">
                                                 <Download size={13} /> PDF
                                             </a>
+                                            {!b.pago && (
+                                                <button
+                                                    onClick={() => handleSendBoletoEmail(b)}
+                                                    disabled={sendingBoletoEmail === b.id}
+                                                    className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}
+                                                    title={boletoModalEmail ? `Enviar para ${boletoModalEmail}` : 'Sem e-mail cadastrado'}
+                                                >
+                                                    {sendingBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
+                                                    {boletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
+                                                </button>
+                                            )}
                                             <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13} /></button>
                                         </div>
                                     </div>
