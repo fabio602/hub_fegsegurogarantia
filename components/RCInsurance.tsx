@@ -87,6 +87,10 @@ const RCInsurance: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  // Importar Apólice RC com IA
+  const [rcExtracting, setRcExtracting] = useState(false);
+  const [rcExtractMsg, setRcExtractMsg] = useState('');
+  const rcFileRef = useRef<HTMLInputElement>(null);
 
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -126,6 +130,26 @@ const RCInsurance: React.FC = () => {
     if (id === 'telefone' || id === 'telefone_2') value = formatPhone(value);
     if (id === 'premio_total' || id === 'comissao' || id === 'limite_garantia') value = formatCurrency(value);
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleRCExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    setRcExtracting(true); setRcExtractMsg('');
+    try {
+      const reader = new FileReader();
+      const b64 = await new Promise<string>((res, rej) => { reader.onload = () => res((reader.result as string).split(',')[1]); reader.onerror = rej; reader.readAsDataURL(file); });
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = (supabase as any).supabaseUrl as string;
+      const supabaseKey = (supabase as any).supabaseKey as string;
+      const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey }, body: JSON.stringify({ pdfBase64: b64 }) });
+      const json = await res.json();
+      if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
+      const d = json.data;
+      setFormData(prev => ({ ...prev, ...(d.nome_segurado?{nome:d.nome_segurado}:{}), ...(d.tomador_razao_social?{nome:d.tomador_razao_social}:{}), ...(d.cpf_cnpj?{cpf_cnpj:d.cpf_cnpj}:{}), ...(d.tomador_cpf_cnpj?{cpf_cnpj:d.tomador_cpf_cnpj}:{}), ...(d.numero_apolice?{apolice:d.numero_apolice}:{}), ...(d.seguradora?{seguradora:d.seguradora}:{}), ...(d.premio_total?{premio_total:d.premio_total}:{}), ...(d.vigencia_inicio?{data_emissao:d.vigencia_inicio}:{}), ...(d.vigencia_fim?{fim_vigencia:d.vigencia_fim}:{}), ...(d.limite_indenizacao?{limite_garantia:d.limite_indenizacao}:{}), ...(d.modalidade_rc?{produto:d.modalidade_rc}:{}) }));
+      setRcExtractMsg('✅ Dados extraídos! Confira os campos.');
+      setEditingId(null); setShowForm(true);
+    } catch (err: any) { setRcExtractMsg('❌ ' + (err.message || 'Erro.')); }
+    finally { setRcExtracting(false); if (rcFileRef.current) rcFileRef.current.value = ''; }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,34 +278,11 @@ const RCInsurance: React.FC = () => {
           <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gestão de apólices e clientes RC</p>
         </div>
         <div className="flex items-center gap-2">
-          {(() => {
-            const [extracting, setExtracting] = React.useState(false);
-            const fileRef = React.useRef<HTMLInputElement>(null);
-            const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
-              const file = e.target.files?.[0]; if (!file) return;
-              setExtracting(true);
-              try {
-                const reader = new FileReader();
-                const b64 = await new Promise<string>((res, rej) => { reader.onload = () => res((reader.result as string).split(',')[1]); reader.onerror = rej; reader.readAsDataURL(file); });
-                const { data: { session } } = await supabase.auth.getSession();
-                const supabaseUrl = (supabase as any).supabaseUrl as string;
-                const supabaseKey = (supabase as any).supabaseKey as string;
-                const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey }, body: JSON.stringify({ pdfBase64: b64 }) });
-                const json = await res.json();
-                if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair.');
-                const d = json.data;
-                setFormData({ ...EMPTY_FORM, ...(d.nome_segurado?{nome:d.nome_segurado}:{}), ...(d.cpf_cnpj?{cpf_cnpj:d.cpf_cnpj}:{}), ...(d.numero_apolice?{apolice:d.numero_apolice}:{}), ...(d.seguradora?{seguradora:d.seguradora}:{}), ...(d.premio_total?{premio_total:d.premio_total}:{}), ...(d.vigencia_inicio?{data_emissao:d.vigencia_inicio}:{}), ...(d.vigencia_fim?{fim_vigencia:d.vigencia_fim}:{}), ...(d.limite_indenizacao?{limite_garantia:d.limite_indenizacao}:{}), ...(d.modalidade_rc?{produto:d.modalidade_rc}:{}) });
-                setEditingId(null); setShowForm(true);
-              } catch (err: any) { alert('Erro: ' + (err.message || 'Tente novamente.')); }
-              finally { setExtracting(false); if (fileRef.current) fileRef.current.value = ''; }
-            };
-            return (
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`}>
-                <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
-                <FileText size={15} />{extracting ? 'Lendo...' : 'Importar Apólice'}
-              </label>
-            );
-          })()}
+          {rcExtractMsg && <p className="text-xs font-bold mr-2" style={{ color: rcExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{rcExtractMsg}</p>}
+          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${rcExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`}>
+            <input ref={rcFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleRCExtract} disabled={rcExtracting} />
+            <FileText size={15} />{rcExtracting ? 'Lendo...' : 'Importar Apólice'}
+          </label>
           <button onClick={() => { setShowForm(true); setEditingId(null); setFormData(EMPTY_FORM); }} className="flex items-center gap-2 bg-[#1B263B] text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] transition-all shadow-lg">
             <Plus size={15} /> Novo Cliente
           </button>
@@ -327,69 +328,18 @@ const RCInsurance: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-            {/* Importar Apólice com IA */}
-            {(() => {
-              const [extracting, setExtracting] = React.useState(false);
-              const [extractMsg, setExtractMsg] = React.useState('');
-              const fileRef = React.useRef<HTMLInputElement>(null);
-
-              const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setExtracting(true); setExtractMsg('');
-                try {
-                  const reader = new FileReader();
-                  const b64 = await new Promise<string>((res, rej) => {
-                    reader.onload = () => res((reader.result as string).split(',')[1]);
-                    reader.onerror = rej;
-                    reader.readAsDataURL(file);
-                  });
-                  const { data: { session } } = await supabase.auth.getSession();
-                  const supabaseUrl = (supabase as any).supabaseUrl as string;
-                  const supabaseKey = (supabase as any).supabaseKey as string;
-                  const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
-                    body: JSON.stringify({ pdfBase64: b64 }),
-                  });
-                  const json = await res.json();
-                  if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
-                  const d = json.data;
-                  setFormData(prev => ({
-                    ...prev,
-                    ...(d.nome_segurado ? { nome: d.nome_segurado } : {}),
-                    ...(d.cpf_cnpj ? { cpf_cnpj: d.cpf_cnpj } : {}),
-                    ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
-                    ...(d.seguradora ? { seguradora: d.seguradora } : {}),
-                    ...(d.premio_total ? { premio_total: d.premio_total } : {}),
-                    ...(d.vigencia_inicio ? { data_emissao: d.vigencia_inicio } : {}),
-                    ...(d.vigencia_fim ? { fim_vigencia: d.vigencia_fim } : {}),
-                    ...(d.limite_indenizacao ? { limite_garantia: d.limite_indenizacao } : {}),
-                    ...(d.modalidade_rc ? { produto: d.modalidade_rc } : {}),
-                  }));
-                  setExtractMsg('✅ Dados extraídos! Confira os campos.');
-                } catch (err: any) {
-                  setExtractMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
-                } finally {
-                  setExtracting(false);
-                  if (fileRef.current) fileRef.current.value = '';
-                }
-              };
-
-              return (
-                <div className="bg-amber-50 border border-[#C69C6D]/30 rounded-2xl p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-black text-slate-700">📄 Importar Apólice RC com IA</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
-                    {extractMsg && <p className="text-xs font-bold mt-1" style={{ color: extractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{extractMsg}</p>}
-                  </div>
-                  <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${extracting ? 'bg-slate-100 text-slate-400' : 'bg-[#1B263B] text-[#C69C6D] hover:bg-[#243447]'}`}>
-                    <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
-                    {extracting ? '⏳ Processando...' : '📤 Anexar PDF'}
-                  </label>
-                </div>
-              );
-            })()}
+            {/* Importar Apólice com IA — estado gerenciado no nível do componente */}
+            <div className="bg-amber-50 border border-[#C69C6D]/30 rounded-2xl p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-slate-700">📄 Importar Apólice RC com IA</p>
+                <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
+                {rcExtractMsg && <p className="text-xs font-bold mt-1" style={{ color: rcExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{rcExtractMsg}</p>}
+              </div>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${rcExtracting ? 'bg-slate-100 text-slate-400' : 'bg-[#1B263B] text-[#C69C6D] hover:bg-[#243447]'}`}>
+                <input ref={rcFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleRCExtract} disabled={rcExtracting} />
+                {rcExtracting ? '⏳ Processando...' : '📤 Anexar PDF'}
+              </label>
+            </div>
 
             {/* Dados do Cliente */}
             <div>

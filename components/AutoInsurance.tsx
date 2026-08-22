@@ -98,6 +98,9 @@ const AutoInsurance: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [autoExtracting, setAutoExtracting] = useState(false);
+  const [autoExtractMsg, setAutoExtractMsg] = useState('');
+  const autoFileRef = useRef<HTMLInputElement>(null);
 
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -139,6 +142,54 @@ const AutoInsurance: React.FC = () => {
     if (id === 'placa') value = formatPlate(value);
     if (id === 'premio_total' || id === 'comissao') value = formatCurrency(value);
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleAutoExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAutoExtracting(true);
+    setAutoExtractMsg('');
+    try {
+      const reader = new FileReader();
+      const b64 = await new Promise<string>((res, rej) => {
+        reader.onload = () => res((reader.result as string).split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = (supabase as any).supabaseUrl as string;
+      const supabaseKey = (supabase as any).supabaseKey as string;
+      const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+        body: JSON.stringify({ pdfBase64: b64 }),
+      });
+      const json = await res.json();
+      if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados. Verifique se é uma apólice Auto.');
+      const d = json.data;
+      setFormData(prev => ({
+        ...prev,
+        ...(d.nome_segurado ? { nome: d.nome_segurado } : {}),
+        ...(d.cpf_cnpj ? { cpf: d.cpf_cnpj } : {}),
+        ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
+        ...(d.seguradora ? { seguradora: d.seguradora } : {}),
+        ...(d.premio_total ? { premio_total: d.premio_total } : {}),
+        ...(d.vigencia_inicio ? { data_emissao: d.vigencia_inicio } : {}),
+        ...(d.vigencia_fim ? { fim_vigencia: d.vigencia_fim } : {}),
+        ...(d.placa ? { placa: d.placa } : {}),
+        ...(d.modelo ? { marca_modelo: d.modelo } : {}),
+        ...(d.ano ? { ano_fabricacao: d.ano, ano_modelo: d.ano } : {}),
+      }));
+      setEditingId(null);
+      setShowForm(true);
+      setAutoExtractMsg('✅ Dados extraídos com sucesso! Confira os campos destacados.');
+    } catch (err: any) {
+      setAutoExtractMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
+      alert('Erro ao extrair apólice: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setAutoExtracting(false);
+      if (autoFileRef.current) autoFileRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -270,55 +321,11 @@ const AutoInsurance: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {/* Importar Apólice com IA — no cabeçalho */}
-          {(() => {
-            const [extracting, setExtracting] = React.useState(false);
-            const fileRef = React.useRef<HTMLInputElement>(null);
-            const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
-              const file = e.target.files?.[0]; if (!file) return;
-              setExtracting(true);
-              try {
-                const reader = new FileReader();
-                const b64 = await new Promise<string>((res, rej) => { reader.onload = () => res((reader.result as string).split(',')[1]); reader.onerror = rej; reader.readAsDataURL(file); });
-                const { data: { session } } = await supabase.auth.getSession();
-                const supabaseUrl = (supabase as any).supabaseUrl as string;
-                const supabaseKey = (supabase as any).supabaseKey as string;
-                const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
-                  body: JSON.stringify({ pdfBase64: b64 }),
-                });
-                const json = await res.json();
-                if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
-                const d = json.data;
-                setFormData({
-                  ...EMPTY_FORM,
-                  ...(d.nome_segurado ? { nome: d.nome_segurado } : {}),
-                  ...(d.cpf_cnpj ? { cpf: d.cpf_cnpj } : {}),
-                  ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
-                  ...(d.seguradora ? { seguradora: d.seguradora } : {}),
-                  ...(d.premio_total ? { premio_total: d.premio_total } : {}),
-                  ...(d.vigencia_inicio ? { data_emissao: d.vigencia_inicio } : {}),
-                  ...(d.vigencia_fim ? { fim_vigencia: d.vigencia_fim } : {}),
-                  ...(d.placa ? { placa: d.placa } : {}),
-                  ...(d.modelo ? { marca_modelo: d.modelo } : {}),
-                  ...(d.ano ? { ano_fabricacao: d.ano, ano_modelo: d.ano } : {}),
-                });
-                setEditingId(null);
-                setShowForm(true);
-              } catch (err: any) {
-                alert('Erro ao extrair apólice: ' + (err.message || 'Tente novamente.'));
-              } finally {
-                setExtracting(false);
-                if (fileRef.current) fileRef.current.value = '';
-              }
-            };
-            return (
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`} title="Importar apólice com IA">
-                <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
-                <FileText size={15} />
-                {extracting ? 'Lendo...' : 'Importar Apólice'}
-              </label>
-            );
-          })()}
+          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${autoExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`} title="Importar apólice com IA">
+            <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
+            <FileText size={15} />
+            {autoExtracting ? 'Lendo...' : 'Importar Apólice'}
+          </label>
           <button
             onClick={() => { setShowForm(true); setEditingId(null); setFormData(EMPTY_FORM); }}
             className="flex items-center gap-2 bg-[#1B263B] text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] transition-all shadow-lg"
@@ -368,70 +375,17 @@ const AutoInsurance: React.FC = () => {
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
             {/* Importar Apólice com IA */}
-            {(() => {
-              const [extracting, setExtracting] = React.useState(false);
-              const [extractMsg, setExtractMsg] = React.useState('');
-              const fileRef = React.useRef<HTMLInputElement>(null);
-
-              const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setExtracting(true);
-                setExtractMsg('');
-                try {
-                  const reader = new FileReader();
-                  const b64 = await new Promise<string>((res, rej) => {
-                    reader.onload = () => res((reader.result as string).split(',')[1]);
-                    reader.onerror = rej;
-                    reader.readAsDataURL(file);
-                  });
-                  const { data: { session } } = await supabase.auth.getSession();
-                  const supabaseUrl = (supabase as any).supabaseUrl as string;
-                  const supabaseKey = (supabase as any).supabaseKey as string;
-                  const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
-                    body: JSON.stringify({ pdfBase64: b64 }),
-                  });
-                  const json = await res.json();
-                  if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados. Verifique se é uma apólice Auto.');
-                  const d = json.data;
-                  setFormData(prev => ({
-                    ...prev,
-                    ...(d.nome_segurado ? { nome: d.nome_segurado } : {}),
-                    ...(d.cpf_cnpj ? { cpf: d.cpf_cnpj } : {}),
-                    ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
-                    ...(d.seguradora ? { seguradora: d.seguradora } : {}),
-                    ...(d.premio_total ? { premio_total: d.premio_total } : {}),
-                    ...(d.vigencia_inicio ? { data_emissao: d.vigencia_inicio } : {}),
-                    ...(d.vigencia_fim ? { fim_vigencia: d.vigencia_fim } : {}),
-                    ...(d.placa ? { placa: d.placa } : {}),
-                    ...(d.modelo ? { marca_modelo: d.modelo } : {}),
-                    ...(d.ano ? { ano_fabricacao: d.ano, ano_modelo: d.ano } : {}),
-                  }));
-                  setExtractMsg('✅ Dados extraídos com sucesso! Confira os campos destacados.');
-                } catch (err: any) {
-                  setExtractMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
-                } finally {
-                  setExtracting(false);
-                  if (fileRef.current) fileRef.current.value = '';
-                }
-              };
-
-              return (
-                <div className="bg-amber-50 border border-[#C69C6D]/30 rounded-2xl p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-black text-slate-700">📄 Importar Apólice com IA</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
-                    {extractMsg && <p className="text-xs font-bold mt-1" style={{ color: extractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{extractMsg}</p>}
-                  </div>
-                  <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${extracting ? 'bg-slate-100 text-slate-400' : 'bg-[#1B263B] text-[#C69C6D] hover:bg-[#243447]'}`}>
-                    <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
-                    {extracting ? '⏳ Processando...' : '📤 Anexar PDF'}
-                  </label>
-                </div>
-              );
-            })()}
+            <div className="bg-amber-50 border border-[#C69C6D]/30 rounded-2xl p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-slate-700">📄 Importar Apólice com IA</p>
+                <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
+                {autoExtractMsg && <p className="text-xs font-bold mt-1" style={{ color: autoExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{autoExtractMsg}</p>}
+              </div>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${autoExtracting ? 'bg-slate-100 text-slate-400' : 'bg-[#1B263B] text-[#C69C6D] hover:bg-[#243447]'}`}>
+                <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
+                {autoExtracting ? '⏳ Processando...' : '📤 Anexar PDF'}
+              </label>
+            </div>
 
             {/* Dados do Cliente */}
             <div>
