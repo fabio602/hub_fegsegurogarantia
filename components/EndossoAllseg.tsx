@@ -215,15 +215,19 @@ const EndossoAllseg: React.FC = () => {
               const json = await res.json();
               if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
               const d = json.data;
-              // Preenche Tomador e Segurado com os dados extraídos
+              // Mapeamento correto:
+              // tom_ = TOMADOR (empresa que comprou o seguro / licitante)
+              // seg_ = SEGURADO (órgão público / beneficiário)
               setForm(prev => ({
                 ...prev,
-                ...(d.nome_segurado ? { tom_razao: d.nome_segurado } : {}),
-                ...(d.cpf_cnpj ? { tom_cnpj: d.cpf_cnpj } : {}),
+                ...(d.tomador_razao_social ? { tom_razao: d.tomador_razao_social } : {}),
+                ...(d.tomador_cpf_cnpj ? { tom_cnpj: d.tomador_cpf_cnpj } : {}),
+                ...(d.segurado_razao_social ? { seg_razao: d.segurado_razao_social } : {}),
+                ...(d.segurado_cpf_cnpj ? { seg_cnpj: d.segurado_cpf_cnpj } : {}),
                 ...(d.numero_apolice ? { risco_num_apolice: d.numero_apolice } : {}),
-                ...(d.seguradora ? { seg_razao: d.seguradora } : {}),
               }));
-              setMsg('✅ Dados do Tomador preenchidos!');
+              setMsg(`✅ Tomador: ${d.tomador_razao_social || '—'} | Segurado: ${d.segurado_razao_social || '—'}`);
+              // msg já setado acima
             } catch (err: any) {
               setMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
             } finally {
