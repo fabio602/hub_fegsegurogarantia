@@ -2299,7 +2299,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 </div>
                             )}
 
-                            <div className="flex justify-end items-center gap-3">
+                            <div className="flex justify-between items-center gap-3">
+                                {editingId ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(editingId)}
+                                        className="px-5 py-3.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all flex items-center gap-2"
+                                    >
+                                        <Trash2 size={16} /> Excluir
+                                    </button>
+                                ) : <div />}
+                                <div className="flex items-center gap-3">
                                 {editingId && (
                                     <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
                                         <X size={18} /> Cancelar
@@ -2354,6 +2364,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
                                     {editingId ? 'Salvar Alterações' : 'Adicionar Venda'}
                                 </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -2364,7 +2375,6 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
                                     <tr>
-                                        <th className="px-6 py-5 text-center align-top">Ações</th>
                                         <th className="px-6 py-5 align-top">Data</th>
                                         <th className="px-6 py-5 align-top">
                                             <span className="block">Lead</span>
@@ -2462,13 +2472,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             salesLeadNomeFilter ? (s.nome ?? '').trim() === salesLeadNomeFilter : true
                                         )
                                         .map((sale) => (
-                                            <tr key={sale.id} className="group hover:bg-slate-50/80 transition-all">
-                                                <td className="px-6 py-5">
-                                                    <div className="flex justify-center gap-2">
-                                                        <button onClick={() => handleEdit(sale)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
-                                                        <button onClick={() => handleDelete(sale.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                                                    </div>
-                                                </td>
+                                            <tr key={sale.id} onClick={() => handleEdit(sale)} className={`group transition-all cursor-pointer ${editingId === sale.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : 'hover:bg-[#C69C6D]/5'}`}>
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center gap-2">

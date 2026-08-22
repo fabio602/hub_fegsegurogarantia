@@ -398,18 +398,26 @@ const RCInsurance: React.FC = () => {
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex items-center gap-2 bg-[#C69C6D] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] disabled:opacity-50 transition-all shadow-lg"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button type="button" onClick={handleCancel} className="px-6 py-2.5 rounded-xl font-black text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
-                Cancelar
-              </button>
+            <div className="flex items-center justify-between pt-2">
+              {editingId ? (
+                <button type="button" onClick={() => handleDelete(editingId)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all">
+                  <Trash2 size={14} /> Excluir
+                </button>
+              ) : <div />}
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-[#C69C6D] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] disabled:opacity-50 transition-all shadow-lg"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button type="button" onClick={handleCancel} className="px-6 py-2.5 rounded-xl font-black text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
+                  Cancelar
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -479,7 +487,7 @@ const RCInsurance: React.FC = () => {
                     <tr
                       key={c.id}
                       onClick={() => handleEdit(c)}
-                      className={`border-b border-slate-50 transition-colors cursor-pointer ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-[#C69C6D]/5`}
+                      className={`border-b border-slate-50 transition-all cursor-pointer ${editingId === c.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : i % 2 === 0 ? 'bg-white hover:bg-[#C69C6D]/5' : 'bg-slate-50/30 hover:bg-[#C69C6D]/5'}`}
                     >
                       <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap hover:text-[#C69C6D] transition-colors">{c.nome || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{c.cpf_cnpj || '—'}</td>

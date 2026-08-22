@@ -1003,16 +1003,24 @@ const ResidentialInsurance: React.FC = () => {
                         <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Anotações internas opcionais — dados do site ficam nos campos acima." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
                     </div>
 
-                    <div className="flex justify-end gap-3">
-                        {editingId && (
-                            <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
-                                <X size={18} /> Cancelar
+                    <div className="flex justify-between items-center gap-3">
+                        {editingId ? (
+                            <button type="button" onClick={() => handleDelete(editingId)}
+                                className="px-5 py-3.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all flex items-center gap-2">
+                                <Trash2 size={16} /> Excluir
                             </button>
-                        )}
-                        <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
-                            {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
-                            {editingId ? 'Salvar Alterações' : 'Adicionar Cliente'}
-                        </button>
+                        ) : <div />}
+                        <div className="flex gap-3">
+                            {editingId && (
+                                <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
+                                    <X size={18} /> Cancelar
+                                </button>
+                            )}
+                            <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
+                                {editingId ? 'Salvar Alterações' : 'Adicionar Cliente'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1150,7 +1158,7 @@ const ResidentialInsurance: React.FC = () => {
                                         />
                                     </th>
                                 )}
-                                <th className="px-4 py-5 text-center align-top">Ações</th>
+                                <th className="px-4 py-5 align-top"></th>
                                 <th className="px-6 py-5 align-top">
                                     <span className="block">Cliente</span>
                                     <select
@@ -1242,9 +1250,9 @@ const ResidentialInsurance: React.FC = () => {
                                 const dias = fim ? Math.ceil((fim.getTime() - hoje.getTime()) / 86400000) : null;
                                 const nearExpiry = dias !== null && dias <= 30 && dias >= 0 && c.situacao === 'Ativo';
                                 return (
-                                    <tr key={c.id} className={`group hover:bg-slate-50/80 transition-all ${nearExpiry ? 'bg-amber-50/40' : ''}`}>
+                                    <tr key={c.id} onClick={() => !batchMode && handleEdit(c)} className={`group transition-all ${editingId === c.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : nearExpiry ? 'bg-amber-50/40 hover:bg-amber-50' : ''} ${batchMode ? '' : 'cursor-pointer hover:bg-[#C69C6D]/5'}`}>
                                         {batchMode && (
-                                            <td className="px-4 py-3 w-10">
+                                            <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIds.has(c.id)}
@@ -1252,12 +1260,7 @@ const ResidentialInsurance: React.FC = () => {
                                                 />
                                             </td>
                                         )}
-                                        <td className="px-4 py-5">
-                                            <div className="flex justify-center gap-2">
-                                                <button onClick={() => handleEdit(c)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(c.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                                            </div>
-                                        </td>
+                                        <td className="px-4 py-5 w-0"></td>
                                         <td className="px-6 py-5 min-w-[200px] max-w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-black text-slate-800 text-sm truncate">{c.nome}</span>
