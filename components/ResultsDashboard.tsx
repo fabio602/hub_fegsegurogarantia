@@ -338,6 +338,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+    const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+    const isDirtyRef = React.useRef(false);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
 
     // Pre-fill form when arriving from WhatsApp
@@ -743,6 +746,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        isDirtyRef.current = true;
         const { id, type } = e.target as HTMLInputElement;
         let value = e.target.value;
 
@@ -1157,6 +1161,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const resetForm = () => {
+        clearTimeout(autoSaveTimerRef.current);
+        isDirtyRef.current = false;
+        setAutoSaveState('idle');
         setEditingId(null);
         setLimitesArray([]);
         setCurrentLimit({ seguradora: '', valor: '' });
@@ -1201,7 +1208,51 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSelectedBoleto(null);
     };
 
+    const performAutoSave = React.useCallback(async () => {
+        if (!isDirtyRef.current || !editingId) return;
+        setAutoSaveState('saving');
+        const payload = {
+            data: formData.data || null, nome: formData.nome || null, origem: formData.origem || null,
+            tipo: formData.tipo || null, is: formData.is || null, seguradora: formData.seguradora || null,
+            premio: formData.premio || null, vendeu: formData.vendeu || null, comissao: formData.comissao || null,
+            vendedor: formData.vendedor || null, indicacao: formData.indicacao || null, limites: formData.limites || null,
+            catalogo: formData.catalogo || null, vigencia_inicio: formData.vigencia_inicio || null,
+            vigencia_fim: formData.vigencia_fim || null, telefone: formData.telefone || null,
+            email: formData.email || null, cnpj: formData.cnpj || null, decisor: formData.decisor || null,
+            product_type: formData.product_type || 'Seguro Garantia', process_number: formData.process_number || null,
+            court: formData.court || null, valorLote: formData.valorLote || null, orgaoLicitante: formData.orgaoLicitante || null,
+            dataPregao: formData.dataPregao || null, numeroContrato: formData.numeroContrato || null,
+            objetoContrato: formData.objetoContrato || null, segurado: formData.segurado || null,
+            valorContrato: formData.valorContrato || null,
+            limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
+            parceiro: (formData as any).parceiro || null, numero_boleto: (formData as any).numero_boleto || null,
+            vencimento_boleto: (formData as any).vencimento_boleto || null,
+            pagamento_status: (formData as any).pagamento_status || 'Em dia',
+        };
+        const { error } = await supabase.from('sales').update(payload).eq('id', editingId);
+        if (error) {
+            setAutoSaveState('error');
+        } else {
+            isDirtyRef.current = false;
+            setAutoSaveState('saved');
+            setTimeout(() => setAutoSaveState('idle'), 2500);
+        }
+    }, [editingId, formData, limitesArray]);
+
+    useEffect(() => {
+        if (!editingId || !isDirtyRef.current) return;
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
+        return () => clearTimeout(autoSaveTimerRef.current);
+    }, [formData, editingId, performAutoSave]);
+
     const handleEdit = (sale: Sale) => {
+        if (editingId && isDirtyRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            performAutoSave();
+        }
+        isDirtyRef.current = false;
+        setAutoSaveState('idle');
         setEditingId(sale.id);
         setFormData(sale);
         if (sale.limites_seguradoras) {
@@ -1840,6 +1891,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
                             {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}
+                            {editingId && autoSaveState !== 'idle' && (
+                                <span className={`text-xs font-bold flex items-center gap-1.5 ml-2 ${autoSaveState === 'saved' ? 'text-emerald-500' : autoSaveState === 'error' ? 'text-red-500' : 'text-slate-400'}`}>
+                                    {autoSaveState === 'saving' && <><Loader2 size={12} className="animate-spin" /> Salvando...</>}
+                                    {autoSaveState === 'saved' && <><CheckCircle2 size={12} /> Salvo</>}
+                                    {autoSaveState === 'error' && <>⚠ Erro</>}
+                                </span>
+                            )}
                         </h3>
 
                         {saveError && (
@@ -2312,7 +2370,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <div className="flex items-center gap-3">
                                 {editingId && (
                                     <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
-                                        <X size={18} /> Cancelar
+                                        <X size={18} /> Fechar
                                     </button>
                                 )}
                                 
@@ -2360,10 +2418,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </button>
                                 )}
 
-                                <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
-                                    {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
-                                    {editingId ? 'Salvar Alterações' : 'Adicionar Venda'}
-                                </button>
+                                {!editingId && (
+                                    <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                        {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
+                                        Adicionar Venda
+                                    </button>
+                                )}
                                 </div>
                             </div>
                         </form>
