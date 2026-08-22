@@ -1706,7 +1706,7 @@
     }
     // Fix: excluir clientes sem valor definido (1ª parcela paga pelo cliente)
     // e mostrar a partir da 2ª parcela (que entra no repasse)
-    const ativos = cs.filter(c => c.status === 'ativo' && c.is_repasse === true && Number(c.valor_seguro) > 0 && c.parcela_atual >= 2);
+    const ativos = cs.filter(c => (c.status_apolice === 'ativo' || c.status === 'ativo') && c.is_repasse === true && Number(c.valor_seguro) > 0 && c.parcela_atual >= 2);
     const total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('r-total').textContent = total > 0 ? fmtBRL(total) : '—';
     document.getElementById('r-mes').textContent = `Clientes com parcela em aberto — ${mesNome}`;

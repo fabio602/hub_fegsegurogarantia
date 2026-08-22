@@ -205,6 +205,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       apolice_garantia_url: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.apolice_garantia_url || null : null,
       vigencia_fim: editStatusForm.vigencia_fim || null,
       status_apolice: editStatusForm.status_apolice || 'ativo',
+      status: editStatusForm.status_apolice || 'ativo',
       kanban_status: kanban,
       seguradora: editStatusForm.seguradora || null,
       numero_apolice: editStatusForm.numero_apolice || null,
@@ -305,7 +306,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   // Pendentes = solicitações da imobiliária sem apólice ainda emitida
   const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
-  const ativos = clientes.filter(c => c.status === 'ativo' && (c as any).is_repasse === true);
+  const ativos = clientes.filter(c => ((c as any).status_apolice === 'ativo' || c.status === 'ativo') && (c as any).is_repasse === true);
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
