@@ -478,9 +478,10 @@ const RCInsurance: React.FC = () => {
                   return (
                     <tr
                       key={c.id}
-                      className={`border-b border-slate-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-[#C69C6D]/5`}
+                      onClick={() => handleEdit(c)}
+                      className={`border-b border-slate-50 transition-colors cursor-pointer ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-[#C69C6D]/5`}
                     >
-                      <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{c.nome || '—'}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap hover:text-[#C69C6D] transition-colors">{c.nome || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{c.cpf_cnpj || '—'}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {c.telefone ? <WhatsAppPhoneLink phone={c.telefone} name={c.nome} /> : '—'}
@@ -505,7 +506,7 @@ const RCInsurance: React.FC = () => {
                           {c.situacao}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEdit(c)}
