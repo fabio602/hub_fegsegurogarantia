@@ -579,7 +579,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="h-14 lg:h-16 bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30">
+        <header className="bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}>
           <div className="flex items-center gap-2 lg:gap-4 min-w-0">
             <button
               className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-all shrink-0"
