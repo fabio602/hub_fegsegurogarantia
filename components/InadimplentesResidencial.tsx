@@ -56,6 +56,7 @@ export default function InadimplentesResidencial() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<any[] | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
   const [sendingId, setSendingId] = useState<number | null>(null);
@@ -150,6 +151,7 @@ export default function InadimplentesResidencial() {
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Erro ao processar PDF');
         setPreview(json.dados);
+        setSelectedPreview(new Set(json.dados.map((_: any, i: number) => i)));
         toast(`${json.total} inadimplente(s) extraído(s) do PDF`, 'success');
       }
     } catch (err: any) {
@@ -162,11 +164,13 @@ export default function InadimplentesResidencial() {
 
   const handleImport = async () => {
     if (!preview?.length) return;
+    const toImport = preview.filter((_, i) => selectedPreview.has(i));
+    if (!toImport.length) { toast('Selecione ao menos um registro.', 'error'); return; }
     setSaving(true);
     try {
       // Deduplica o lote: garante no máximo 1 registro por apolice+parcela no próprio array
       const seen = new Map<string, typeof preview[0]>();
-      for (const p of preview) {
+      for (const p of toImport) {
         const key = `${p.apolice}|${p.parcela}`;
         seen.set(key, p); // última ocorrência prevalece
       }
@@ -296,13 +300,27 @@ export default function InadimplentesResidencial() {
           <div className="overflow-x-auto mb-4">
             <table className="w-full text-sm">
               <thead><tr className="bg-amber-100">
+                <th className="px-3 py-2">
+                  <input type="checkbox"
+                    checked={selectedPreview.size === preview.length}
+                    onChange={e => setSelectedPreview(e.target.checked ? new Set(preview.map((_, i) => i)) : new Set())}
+                    className="w-4 h-4 accent-[#1B263B] cursor-pointer"
+                  />
+                </th>
                 {['CPF','Nome','Apólice','Parcela','Vencimento','Valor','Tel. PDF','Tel. Base'].map(h => (
                   <th key={h} className="px-3 py-2 text-left text-[10px] font-black uppercase tracking-widest text-amber-800">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {preview.map((p, i) => (
-                  <tr key={i} className="border-t border-amber-100">
+                  <tr key={i} onClick={() => setSelectedPreview(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
+                    className={`border-t border-amber-100 cursor-pointer transition-colors ${selectedPreview.has(i) ? 'bg-white' : 'bg-amber-50/60 opacity-50'}`}>
+                    <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedPreview.has(i)}
+                        onChange={() => setSelectedPreview(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
+                        className="w-4 h-4 accent-[#1B263B] cursor-pointer"
+                      />
+                    </td>
                     <td className="px-3 py-2 font-mono text-xs text-slate-500">{p.cpf}</td>
                     <td className="px-3 py-2 font-bold text-slate-800">{p.nome}</td>
                     <td className="px-3 py-2 font-mono text-xs">{p.apolice || '—'}</td>
@@ -328,7 +346,7 @@ export default function InadimplentesResidencial() {
             <button onClick={handleImport} disabled={saving}
               className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] text-white font-black text-sm rounded-xl disabled:opacity-50">
               {saving ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
-              {saving ? 'Importando...' : `Confirmar e importar ${preview.length} registros`}
+              {saving ? 'Importando...' : `Confirmar e importar ${selectedPreview.size} de ${preview.length} registros`}
             </button>
             <button onClick={() => setPreview(null)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black text-sm rounded-xl">
               Cancelar
