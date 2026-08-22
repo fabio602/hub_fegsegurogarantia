@@ -9,7 +9,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { toEmail, toName, toContato, parcela, vencimento, boletoUrl, apolice, produto, seguradora } = await req.json();
+    const { toEmail, toName, toContato, parcela, vencimento, boletoUrl, apolice, produto, seguradora, tipoProduto } = await req.json();
+    // tipoProduto: nome amigável do produto para o email (ex: "Seguro Garantia", "Seguro Residencial", "Seguro AUTO", "Seguro de Responsabilidade Civil")
+    const nomeProduto = tipoProduto || produto || 'Seguro de Responsabilidade Civil';
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY não configurado');
@@ -71,7 +73,7 @@ serve(async (req) => {
             <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.75;">
               Espero que esteja tudo bem por aí! Passando rapidinho para te lembrar que a
               <strong style="color:#1B263B;">${parcela}ª parcela</strong> do seu
-              <strong style="color:#1B263B;">Seguro de Responsabilidade Civil</strong> vence em
+              <strong style="color:#1B263B;">${nomeProduto}</strong> vence em
               <strong style="color:#C69C6D;">${vencFormatado}</strong> — e já deixei o boleto
               em anexo para facilitar a sua vida. 📎
             </p>
@@ -161,7 +163,7 @@ serve(async (req) => {
       from: 'F&G Seguro Garantia <fabio@fegsegurogarantia.com.br>',
       to: [toEmail],
       bcc: ['fabio@fegsegurogarantia.com.br'],
-      subject: `📄 Seu boleto chegou — ${parcela}ª parcela do Seguro RC | F&G`,
+      subject: `📄 Seu boleto chegou — ${parcela}ª parcela · ${nomeProduto} | F&G`,
       html,
     };
 

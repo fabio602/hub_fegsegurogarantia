@@ -3,7 +3,7 @@ import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
-    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText
+    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
@@ -167,6 +167,12 @@ const ResidentialInsurance: React.FC = () => {
     const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const isDirtyRef = useRef(false);
 
+    const [resBoletos, setResBoletos] = useState<{id: number; parcela: number; vencimento: string|null; valor: number|null; url: string; pago: boolean}[]>([]);
+    const [resBoletoForm, setResBoletoForm] = useState<{parcela: string; vencimento: string; valor: string; file: File|null}>({parcela: '', vencimento: '', valor: '', file: null});
+    const [resBoletoAdding, setResBoletoAdding] = useState(false);
+    const [sendingResBoletoEmail, setSendingResBoletoEmail] = useState<number|null>(null);
+    const [resBoletoEmailSent, setResBoletoEmailSent] = useState<Set<number>>(new Set());
+
     const handleGarantiaDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'apolice_garantia_url' | 'contrato_locacao_url') => {
         const file = e.target.files?.[0];
         if (!file || !editingId) return;
@@ -309,6 +315,13 @@ const ResidentialInsurance: React.FC = () => {
 
     useEffect(() => { fetchClients(); }, [fetchClients]);
 
+    const fetchResBoletos = useCallback(async (clientId: number) => {
+        const { data } = await supabase.from('residential_boletos').select('*').eq('residential_client_id', clientId).order('parcela');
+        setResBoletos(data || []);
+    }, []);
+
+    useEffect(() => { if (editingId) fetchResBoletos(editingId); else setResBoletos([]); }, [editingId, fetchResBoletos]);
+
     useEffect(() => {
         if (!editingId || !isDirtyRef.current) return;
         clearTimeout(autoSaveTimerRef.current);
@@ -400,6 +413,65 @@ const ResidentialInsurance: React.FC = () => {
         }
 
         setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleAddResBoleto = async () => {
+        if (!editingId || !resBoletoForm.parcela || !resBoletoForm.file) return;
+        setResBoletoAdding(true);
+        try {
+            const file = resBoletoForm.file;
+            const ext = file.name.split('.').pop() || 'pdf';
+            const path = `residential-clients/${editingId}/boletos/parcela-${resBoletoForm.parcela}.${ext}`;
+            await supabase.storage.from('sales-documents').upload(path, file, { contentType: 'application/pdf', upsert: true });
+            const { data: { publicUrl } } = supabase.storage.from('sales-documents').getPublicUrl(path);
+
+            const existing = resBoletos.find(b => b.parcela === parseInt(resBoletoForm.parcela));
+            if (existing) {
+                await supabase.from('residential_boletos').update({ url: publicUrl, vencimento: resBoletoForm.vencimento || null, valor: resBoletoForm.valor ? parseFloat(resBoletoForm.valor.replace(/\D/g, '')) / 100 : null }).eq('id', existing.id);
+            } else {
+                await supabase.from('residential_boletos').insert({ residential_client_id: editingId, parcela: parseInt(resBoletoForm.parcela), vencimento: resBoletoForm.vencimento || null, valor: resBoletoForm.valor ? parseFloat(resBoletoForm.valor.replace(/\D/g, '')) / 100 : null, url: publicUrl });
+            }
+            await fetchResBoletos(editingId);
+            setResBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
+        } catch (err) {
+            alert('Erro ao adicionar boleto. Tente novamente.');
+        } finally {
+            setResBoletoAdding(false);
+        }
+    };
+
+    const handleToggleResPago = async (id: number, pago: boolean) => {
+        await supabase.from('residential_boletos').update({ pago: !pago }).eq('id', id);
+        if (editingId) fetchResBoletos(editingId);
+    };
+
+    const handleDeleteResBoleto = async (id: number) => {
+        if (!window.confirm('Excluir este boleto?')) return;
+        await supabase.from('residential_boletos').delete().eq('id', id);
+        if (editingId) fetchResBoletos(editingId);
+    };
+
+    const handleSendResBoletoEmail = async (b: {id: number; parcela: number; vencimento: string|null; url: string}) => {
+        if (!formData.email) {
+            alert('Este cliente não tem e-mail cadastrado.');
+            return;
+        }
+        setSendingResBoletoEmail(b.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const supabaseUrl = (supabase as any).supabaseUrl as string;
+            const supabaseKey = (supabase as any).supabaseKey as string;
+            await fetch(`${supabaseUrl}/functions/v1/send-boleto-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                body: JSON.stringify({ toEmail: formData.email, toName: formData.nome, toContato: (formData as any).decisor || undefined, parcela: b.parcela, vencimento: b.vencimento, boletoUrl: b.url, tipoProduto: 'Seguro Residencial' }),
+            });
+            setResBoletoEmailSent(prev => new Set([...prev, b.id]));
+        } catch {
+            alert('Erro ao enviar e-mail.');
+        } finally {
+            setSendingResBoletoEmail(null);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -534,6 +606,9 @@ const ResidentialInsurance: React.FC = () => {
         setEditingId(null);
         setFormData(EMPTY_FORM);
         setShowModal(false);
+        setResBoletos([]);
+        setResBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
+        setResBoletoEmailSent(new Set());
     };
 
     const handleEdit = (client: ResidentialClient) => {
@@ -1082,6 +1157,74 @@ const ResidentialInsurance: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Observações</label>
                         <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Anotações internas opcionais — dados do site ficam nos campos acima." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
                     </div>
+
+                    {/* Parcelas / Boletos */}
+                    {editingId && (
+                        <div className="border-t border-slate-100 pt-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-4 flex items-center gap-2">
+                                <FileText size={12} /> Parcelas / Boletos
+                                {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
+                            </p>
+
+                            {/* List of boletos */}
+                            {resBoletos.length > 0 && (
+                                <div className="space-y-2 mb-4">
+                                    {resBoletos.map(b => (
+                                        <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                                                {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
+                                                {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
+                                                <span className={`text-xs font-black ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <button onClick={() => handleToggleResPago(b.id, b.pago)} className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                                                    {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
+                                                </button>
+                                                <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800">
+                                                    <Download size={12} /> PDF
+                                                </a>
+                                                {!b.pago && (
+                                                    <button onClick={() => handleSendResBoletoEmail(b)} disabled={sendingResBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${resBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}>
+                                                        {sendingResBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
+                                                        {resBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-red-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Add boleto form */}
+                            <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
+                                        <input type="number" min="1" value={resBoletoForm.parcela} onChange={e => setResBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
+                                        <input type="date" value={resBoletoForm.vencimento} onChange={e => setResBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
+                                        <input type="text" value={resBoletoForm.valor} onChange={e => setResBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
+                                    <input type="file" accept="application/pdf" onChange={e => setResBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[#1B263B] file:text-[#C69C6D] hover:file:bg-[#243447] cursor-pointer" />
+                                </div>
+                                <button onClick={handleAddResBoleto} disabled={resBoletoAdding || !resBoletoForm.parcela || !resBoletoForm.file} className="flex items-center gap-2 bg-[#1B263B] text-[#C69C6D] px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] disabled:opacity-50 transition-all">
+                                    {resBoletoAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                    {resBoletoAdding ? 'Salvando...' : 'Adicionar Boleto'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex justify-between items-center gap-3">
                         {editingId ? (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus, Edit2, Trash2, Search, Loader2, Save, X,
-  AlertCircle, CheckCircle2, Car, ChevronDown, ChevronUp, FileText,
+  AlertCircle, CheckCircle2, Car, ChevronDown, ChevronUp, FileText, Download, Mail,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
@@ -135,6 +135,12 @@ const AutoInsurance: React.FC = () => {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isDirtyRef = useRef(false);
 
+  const [autoBoletos, setAutoBoletos] = useState<{id: number; parcela: number; vencimento: string|null; valor: number|null; url: string; pago: boolean}[]>([]);
+  const [autoBoletoForm, setAutoBoletoForm] = useState<{parcela: string; vencimento: string; valor: string; file: File|null}>({parcela: '', vencimento: '', valor: '', file: null});
+  const [autoBoletoAdding, setAutoBoletoAdding] = useState(false);
+  const [sendingAutoBoletoEmail, setSendingAutoBoletoEmail] = useState<number|null>(null);
+  const [autoBoletoEmailSent, setAutoBoletoEmailSent] = useState<Set<number>>(new Set());
+
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const topScrollInnerRef = useRef<HTMLDivElement>(null);
@@ -167,6 +173,13 @@ const AutoInsurance: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
+
+  const fetchAutoBoletos = useCallback(async (clientId: number) => {
+    const { data } = await supabase.from('auto_boletos').select('*').eq('auto_client_id', clientId).order('parcela');
+    setAutoBoletos(data || []);
+  }, []);
+
+  useEffect(() => { if (editingId) fetchAutoBoletos(editingId); else setAutoBoletos([]); }, [editingId, fetchAutoBoletos]);
 
   useEffect(() => {
     if (!editingId || !isDirtyRef.current) return;
@@ -278,6 +291,65 @@ const AutoInsurance: React.FC = () => {
     }
   };
 
+  const handleAddAutoBoleto = async () => {
+    if (!editingId || !autoBoletoForm.parcela || !autoBoletoForm.file) return;
+    setAutoBoletoAdding(true);
+    try {
+      const file = autoBoletoForm.file;
+      const ext = file.name.split('.').pop() || 'pdf';
+      const path = `auto-clients/${editingId}/boletos/parcela-${autoBoletoForm.parcela}.${ext}`;
+      await supabase.storage.from('sales-documents').upload(path, file, { contentType: 'application/pdf', upsert: true });
+      const { data: { publicUrl } } = supabase.storage.from('sales-documents').getPublicUrl(path);
+
+      const existing = autoBoletos.find(b => b.parcela === parseInt(autoBoletoForm.parcela));
+      if (existing) {
+        await supabase.from('auto_boletos').update({ url: publicUrl, vencimento: autoBoletoForm.vencimento || null, valor: autoBoletoForm.valor ? parseFloat(autoBoletoForm.valor.replace(/\D/g, '')) / 100 : null }).eq('id', existing.id);
+      } else {
+        await supabase.from('auto_boletos').insert({ auto_client_id: editingId, parcela: parseInt(autoBoletoForm.parcela), vencimento: autoBoletoForm.vencimento || null, valor: autoBoletoForm.valor ? parseFloat(autoBoletoForm.valor.replace(/\D/g, '')) / 100 : null, url: publicUrl });
+      }
+      await fetchAutoBoletos(editingId);
+      setAutoBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
+    } catch (err) {
+      alert('Erro ao adicionar boleto. Tente novamente.');
+    } finally {
+      setAutoBoletoAdding(false);
+    }
+  };
+
+  const handleToggleAutoPago = async (id: number, pago: boolean) => {
+    await supabase.from('auto_boletos').update({ pago: !pago }).eq('id', id);
+    if (editingId) fetchAutoBoletos(editingId);
+  };
+
+  const handleDeleteAutoBoleto = async (id: number) => {
+    if (!window.confirm('Excluir este boleto?')) return;
+    await supabase.from('auto_boletos').delete().eq('id', id);
+    if (editingId) fetchAutoBoletos(editingId);
+  };
+
+  const handleSendAutoBoletoEmail = async (b: {id: number; parcela: number; vencimento: string|null; url: string}) => {
+    if (!formData.email) {
+      alert('Este cliente não tem e-mail cadastrado.');
+      return;
+    }
+    setSendingAutoBoletoEmail(b.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = (supabase as any).supabaseUrl as string;
+      const supabaseKey = (supabase as any).supabaseKey as string;
+      await fetch(`${supabaseUrl}/functions/v1/send-boleto-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+        body: JSON.stringify({ toEmail: formData.email, toName: formData.nome, parcela: b.parcela, vencimento: b.vencimento, boletoUrl: b.url, tipoProduto: 'Seguro AUTO' }),
+      });
+      setAutoBoletoEmailSent(prev => new Set([...prev, b.id]));
+    } catch {
+      alert('Erro ao enviar e-mail.');
+    } finally {
+      setSendingAutoBoletoEmail(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -357,6 +429,9 @@ const AutoInsurance: React.FC = () => {
     setEditingId(null);
     setShowForm(false);
     setSaveError(null);
+    setAutoBoletos([]);
+    setAutoBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
+    setAutoBoletoEmailSent(new Set());
   };
 
   const filtered = clients.filter(c => {
@@ -523,6 +598,74 @@ const AutoInsurance: React.FC = () => {
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all resize-none"
               />
             </div>
+
+            {/* Parcelas / Boletos */}
+            {editingId && (
+              <div className="border-t border-slate-100 pt-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-4 flex items-center gap-2">
+                  <FileText size={12} /> Parcelas / Boletos
+                  {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
+                </p>
+
+                {/* List of boletos */}
+                {autoBoletos.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {autoBoletos.map(b => (
+                      <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                          {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
+                          {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
+                          <span className={`text-xs font-black ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button onClick={() => handleToggleAutoPago(b.id, b.pago)} className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                            {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
+                          </button>
+                          <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800">
+                            <Download size={12} /> PDF
+                          </a>
+                          {!b.pago && (
+                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}>
+                              {sendingAutoBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
+                              {autoBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
+                            </button>
+                          )}
+                          <button onClick={() => handleDeleteAutoBoleto(b.id)} className="p-1 text-slate-300 hover:text-red-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add boleto form */}
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
+                      <input type="number" min="1" value={autoBoletoForm.parcela} onChange={e => setAutoBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
+                      <input type="date" value={autoBoletoForm.vencimento} onChange={e => setAutoBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
+                      <input type="text" value={autoBoletoForm.valor} onChange={e => setAutoBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
+                    <input type="file" accept="application/pdf" onChange={e => setAutoBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[#1B263B] file:text-[#C69C6D] hover:file:bg-[#243447] cursor-pointer" />
+                  </div>
+                  <button onClick={handleAddAutoBoleto} disabled={autoBoletoAdding || !autoBoletoForm.parcela || !autoBoletoForm.file} className="flex items-center gap-2 bg-[#1B263B] text-[#C69C6D] px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] disabled:opacity-50 transition-all">
+                    {autoBoletoAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                    {autoBoletoAdding ? 'Salvando...' : 'Adicionar Boleto'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-2">
               {editingId ? (
