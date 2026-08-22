@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import JSZip from 'jszip';
 import { FileDown, Loader2, RefreshCw } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface EndossoForm {
   // Tomador
@@ -188,9 +189,58 @@ const EndossoAllseg: React.FC = () => {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso — Allseg</h2>
-        <p className="text-slate-500 font-medium mt-1">Preencha os campos e gere o documento Word no formato exato exigido pela Allseg.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso — Allseg</h2>
+          <p className="text-slate-500 font-medium mt-1">Preencha os campos e gere o documento Word no formato exato exigido pela Allseg.</p>
+        </div>
+        {/* Importar apólice para preencher Tomador/Segurado */}
+        {(() => {
+          const [extracting, setExtracting] = React.useState(false);
+          const [msg, setMsg] = React.useState('');
+          const fileRef = React.useRef<HTMLInputElement>(null);
+          const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0]; if (!file) return;
+            setExtracting(true); setMsg('');
+            try {
+              const reader = new FileReader();
+              const b64 = await new Promise<string>((res, rej) => { reader.onload = () => res((reader.result as string).split(',')[1]); reader.onerror = rej; reader.readAsDataURL(file); });
+              const { data: { session } } = await supabase.auth.getSession();
+              const supabaseUrl = (supabase as any).supabaseUrl as string;
+              const supabaseKey = (supabase as any).supabaseKey as string;
+              const res = await fetch(`${supabaseUrl}/functions/v1/extract-policy-data`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+                body: JSON.stringify({ pdfBase64: b64 }),
+              });
+              const json = await res.json();
+              if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
+              const d = json.data;
+              // Preenche Tomador e Segurado com os dados extraídos
+              setForm(prev => ({
+                ...prev,
+                ...(d.nome_segurado ? { tom_razao: d.nome_segurado } : {}),
+                ...(d.cpf_cnpj ? { tom_cnpj: d.cpf_cnpj } : {}),
+                ...(d.numero_apolice ? { risco_num_apolice: d.numero_apolice } : {}),
+                ...(d.seguradora ? { seg_razao: d.seguradora } : {}),
+              }));
+              setMsg('✅ Dados do Tomador preenchidos!');
+            } catch (err: any) {
+              setMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
+            } finally {
+              setExtracting(false);
+              if (fileRef.current) fileRef.current.value = '';
+            }
+          };
+          return (
+            <div className="flex flex-col items-end gap-1">
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`}>
+                <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
+                📄 {extracting ? 'Lendo apólice...' : 'Importar Apólice'}
+              </label>
+              {msg && <p className="text-xs font-bold" style={{ color: msg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{msg}</p>}
+            </div>
+          );
+        })()}
       </div>
 
       {/* TOMADOR */}
