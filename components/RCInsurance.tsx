@@ -154,6 +154,7 @@ const RCInsurance: React.FC = () => {
         ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
         ...(d.seguradora ? { seguradora: d.seguradora } : {}),
         ...(d.modalidade_rc ? { produto: d.modalidade_rc } : d.produto ? { produto: d.produto } : {}),
+        ...(d.tipo_rc ? { tipo_rc: d.tipo_rc } : {}),
         ...(d.limite_indenizacao ? { limite_garantia: d.limite_indenizacao } : {}),
         ...(d.premio_total ? { premio_total: d.premio_total } : {}),
         ...(d.comissao ? { comissao: d.comissao } : {}),
