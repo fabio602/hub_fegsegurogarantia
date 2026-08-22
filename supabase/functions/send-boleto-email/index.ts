@@ -160,6 +160,7 @@ serve(async (req) => {
     const emailPayload: Record<string, unknown> = {
       from: 'F&G Seguro Garantia <fabio@fegsegurogarantia.com.br>',
       to: [toEmail],
+      bcc: ['fabio@fegsegurogarantia.com.br'],
       subject: `📄 Seu boleto chegou — ${parcela}ª parcela do Seguro RC | F&G`,
       html,
     };
