@@ -58,7 +58,7 @@ export default function InadimplentesResidencial() {
   const [preview, setPreview] = useState<any[] | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ativos');
   const [sendingId, setSendingId] = useState<number | null>(null);
 
   const fetchItems = useCallback(async () => {
@@ -245,7 +245,11 @@ export default function InadimplentesResidencial() {
     fetchItems();
   };
 
-  const filtered = filterStatus ? items.filter(i => i.status === filterStatus) : items;
+  const filtered = filterStatus === 'ativos'
+    ? items.filter(i => !['pago', 'arquivado'].includes(i.status))
+    : filterStatus
+      ? items.filter(i => i.status === filterStatus)
+      : items;
   const totalPendente = items.filter(i => !['pago', 'arquivado'].includes(i.status)).reduce((s, i) => s + (i.valor || 0), 0);
   const counts = Object.fromEntries(Object.keys(STATUS_CONFIG).map(k => [k, items.filter(i => i.status === k).length]));
 
@@ -361,6 +365,7 @@ export default function InadimplentesResidencial() {
           <p className="font-black text-slate-800">{filtered.length} registro(s)</p>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-[#C69C6D]">
+            <option value="ativos">Ativos (sem pagos)</option>
             <option value="">Todos os status</option>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
