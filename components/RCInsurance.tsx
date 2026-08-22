@@ -120,6 +120,10 @@ const RCInsurance: React.FC = () => {
   const [rcExtractMsg, setRcExtractMsg] = useState('');
   const rcFileRef = useRef<HTMLInputElement>(null);
 
+  const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const isDirtyRef = useRef(false);
+
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const topScrollInnerRef = useRef<HTMLDivElement>(null);
@@ -153,7 +157,49 @@ const RCInsurance: React.FC = () => {
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
+  useEffect(() => {
+    if (!editingId || !isDirtyRef.current) return;
+    clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
+    return () => clearTimeout(autoSaveTimerRef.current);
+  }, [formData, editingId]);
+
+  const performAutoSave = async () => {
+    if (!isDirtyRef.current || !editingId) return;
+    setAutoSaveState('saving');
+    const payload = {
+      nome: formData.nome || null,
+      cpf_cnpj: formData.cpf_cnpj || null,
+      telefone: formData.telefone || null,
+      telefone_2: formData.telefone_2?.trim() || null,
+      email: formData.email || null,
+      atividade: formData.atividade || null,
+      tipo_rc: formData.tipo_rc || null,
+      seguradora: formData.seguradora || null,
+      apolice: formData.apolice || null,
+      produto: formData.produto || null,
+      limite_garantia: formData.limite_garantia || null,
+      premio_total: formData.premio_total || null,
+      comissao: formData.comissao || null,
+      data_emissao: formData.data_emissao || null,
+      fim_vigencia: formData.fim_vigencia || null,
+      forma_pagamento: formData.forma_pagamento || null,
+      situacao: formData.situacao || 'Ativo',
+      obs: formData.obs || null,
+    };
+    const { error } = await supabase.from('rc_clients').update(payload).eq('id', editingId);
+    if (error) {
+      setAutoSaveState('error');
+    } else {
+      isDirtyRef.current = false;
+      setAutoSaveState('saved');
+      fetchClients();
+      setTimeout(() => setAutoSaveState('idle'), 2500);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    isDirtyRef.current = true;
     let { id, value } = e.target;
     if (id === 'telefone' || id === 'telefone_2') value = formatPhone(value);
     if (id === 'premio_total' || id === 'comissao' || id === 'limite_garantia') value = formatCurrency(value);
@@ -244,6 +290,12 @@ const RCInsurance: React.FC = () => {
   };
 
   const handleEdit = (c: RCClient) => {
+    if (editingId && isDirtyRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      performAutoSave();
+    }
+    isDirtyRef.current = false;
+    setAutoSaveState('idle');
     setFormData({ ...c });
     setEditingId(c.id);
     setShowForm(true);
@@ -256,6 +308,9 @@ const RCInsurance: React.FC = () => {
   };
 
   const handleCancel = () => {
+    clearTimeout(autoSaveTimerRef.current);
+    isDirtyRef.current = false;
+    setAutoSaveState('idle');
     setFormData(EMPTY_FORM);
     setEditingId(null);
     setShowForm(false);
@@ -337,7 +392,19 @@ const RCInsurance: React.FC = () => {
             <h3 className="text-white font-black text-sm flex items-center gap-2">
               <ShieldAlert size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Responsabilidade Civil'}
             </h3>
-            <button onClick={handleCancel} className="text-slate-400 hover:text-white transition-colors"><X size={16} /></button>
+            <div className="flex items-center gap-3">
+              {editingId && autoSaveState !== 'idle' && (
+                <span className={`text-xs font-bold flex items-center gap-1.5 ${
+                  autoSaveState === 'saved' ? 'text-emerald-400' :
+                  autoSaveState === 'error' ? 'text-red-400' : 'text-slate-300'
+                }`}>
+                  {autoSaveState === 'saving' && <><Loader2 size={11} className="animate-spin" /> Salvando...</>}
+                  {autoSaveState === 'saved' && <><CheckCircle2 size={11} /> Salvo</>}
+                  {autoSaveState === 'error' && <>&#9888; Erro — clique em Salvar</>}
+                </span>
+              )}
+              <button onClick={handleCancel} className="text-slate-400 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -406,17 +473,21 @@ const RCInsurance: React.FC = () => {
                 </button>
               ) : <div />}
               <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-2 bg-[#C69C6D] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] disabled:opacity-50 transition-all shadow-lg"
-                >
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </button>
-                <button type="button" onClick={handleCancel} className="px-6 py-2.5 rounded-xl font-black text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
-                  Cancelar
-                </button>
+                {editingId ? (
+                  <button type="button" onClick={handleCancel}
+                    className="px-6 py-2.5 rounded-xl font-black text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
+                    Fechar
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-[#C69C6D] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] disabled:opacity-50 transition-all shadow-lg"
+                  >
+                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {saving ? 'Salvando...' : 'Salvar'}
+                  </button>
+                )}
               </div>
             </div>
           </form>

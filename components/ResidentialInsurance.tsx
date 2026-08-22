@@ -163,6 +163,10 @@ const ResidentialInsurance: React.FC = () => {
     const [uploadingApolice, setUploadingApolice] = useState(false);
     const [uploadingGarantiaDoc, setUploadingGarantiaDoc] = useState<string | null>(null);
 
+    const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const isDirtyRef = useRef(false);
+
     const handleGarantiaDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'apolice_garantia_url' | 'contrato_locacao_url') => {
         const file = e.target.files?.[0];
         if (!file || !editingId) return;
@@ -305,7 +309,62 @@ const ResidentialInsurance: React.FC = () => {
 
     useEffect(() => { fetchClients(); }, [fetchClients]);
 
+    useEffect(() => {
+        if (!editingId || !isDirtyRef.current) return;
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
+        return () => clearTimeout(autoSaveTimerRef.current);
+    }, [formData, editingId]);
+
+    const performAutoSave = async () => {
+        if (!isDirtyRef.current || !editingId) return;
+        setAutoSaveState('saving');
+        const payload = {
+            nome: formData.nome || null,
+            cpf: formData.cpf || null,
+            telefone: formData.telefone || null,
+            telefone_2: formData.telefone_2?.trim() || null,
+            email: formData.email || null,
+            produto: formData.produto || null,
+            apolice: formData.apolice || null,
+            premio_total: formData.premio_total || null,
+            comissao: formData.comissao || null,
+            data_emissao: formData.data_emissao || null,
+            fim_vigencia: formData.fim_vigencia || null,
+            forma_pagamento: formData.forma_pagamento || null,
+            situacao: formData.situacao || null,
+            obs: formData.obs || null,
+            estado_civil: formData.estado_civil?.trim() || null,
+            cep_imovel: formData.cep_imovel?.trim() || null,
+            numero_imovel: formData.numero_imovel?.trim() || null,
+            tipo_imovel: formData.tipo_imovel?.trim() || null,
+            valor_imovel: formData.valor_imovel?.trim() || null,
+            valor_aluguel: formData.valor_aluguel?.trim() || null,
+            data_primeiro_pag_aluguel: formData.data_primeiro_pag_aluguel?.trim() || null,
+            valor_iptu_condominio: formData.valor_iptu_condominio?.trim() || null,
+            tem_garantia: formData.tem_garantia || 'Não',
+            garantia_inicio: formData.tem_garantia === 'Sim' ? (formData.garantia_inicio || null) : null,
+            garantia_fim: formData.tem_garantia === 'Sim' ? (formData.garantia_fim || null) : null,
+            garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
+            apolice_garantia_url: (formData as any).apolice_garantia_url || null,
+            contrato_locacao_url: (formData as any).contrato_locacao_url || null,
+            origem_publica: !!formData.origem_publica,
+            parceiro_nome: formData.parceiro_nome?.trim() || null,
+            apolice_url: (formData as any).apolice_url || null,
+        };
+        const { error } = await supabase.from('residential_clients').update(payload).eq('id', editingId);
+        if (error) {
+            setAutoSaveState('error');
+        } else {
+            isDirtyRef.current = false;
+            setAutoSaveState('saved');
+            fetchClients();
+            setTimeout(() => setAutoSaveState('idle'), 2500);
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        isDirtyRef.current = true;
         let { id, value } = e.target;
 
         // Aplicar máscaras
@@ -469,12 +528,21 @@ const ResidentialInsurance: React.FC = () => {
     };
 
     const resetForm = () => {
+        clearTimeout(autoSaveTimerRef.current);
+        isDirtyRef.current = false;
+        setAutoSaveState('idle');
         setEditingId(null);
         setFormData(EMPTY_FORM);
         setShowModal(false);
     };
 
     const handleEdit = (client: ResidentialClient) => {
+        if (editingId && isDirtyRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            performAutoSave();
+        }
+        isDirtyRef.current = false;
+        setAutoSaveState('idle');
         setEditingId(client.id);
         const fromObs = parseStructuredObs(client.obs);
         setFormData({
@@ -722,10 +790,22 @@ const ResidentialInsurance: React.FC = () => {
 
             {/* Form */}
             <div ref={formRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
-                    {editingId ? 'Editar Cliente' : 'Novo Cliente'}
-                </h3>
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+                        {editingId ? 'Editar Cliente' : 'Novo Cliente'}
+                    </h3>
+                    {editingId && autoSaveState !== 'idle' && (
+                        <span className={`text-xs font-bold flex items-center gap-1.5 ${
+                            autoSaveState === 'saved' ? 'text-emerald-500' :
+                            autoSaveState === 'error' ? 'text-red-500' : 'text-slate-400'
+                        }`}>
+                            {autoSaveState === 'saving' && <><Loader2 size={12} className="animate-spin" /> Salvando...</>}
+                            {autoSaveState === 'saved' && <><CheckCircle2 size={12} /> Salvo</>}
+                            {autoSaveState === 'error' && <>&#9888; Erro — use Salvar Alterações</>}
+                        </span>
+                    )}
+                </div>
 
                 {editingId && (formData.created_at || formData.origem_publica) && (
                     <div className="mb-6 flex flex-wrap gap-3 items-center text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -931,7 +1011,7 @@ const ResidentialInsurance: React.FC = () => {
                                 {['Sim', 'Não'].map(v => (
                                     <button
                                         key={v} type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, tem_garantia: v }))}
+                                        onClick={() => { isDirtyRef.current = true; setFormData(prev => ({ ...prev, tem_garantia: v })); }}
                                         className={`px-5 py-2 rounded-xl font-black text-sm transition-all ${formData.tem_garantia === v ? 'bg-[#C69C6D] text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'}`}
                                     >{v}</button>
                                 ))}
@@ -1011,15 +1091,17 @@ const ResidentialInsurance: React.FC = () => {
                             </button>
                         ) : <div />}
                         <div className="flex gap-3">
-                            {editingId && (
-                                <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
-                                    <X size={18} /> Cancelar
+                            {editingId ? (
+                                <button type="button" onClick={resetForm}
+                                    className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
+                                    Fechar
+                                </button>
+                            ) : (
+                                <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
+                                    Adicionar Cliente
                                 </button>
                             )}
-                            <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
-                                {saving ? <Loader2 className="animate-spin" size={18} /> : (editingId ? <Save size={18} /> : <Plus size={18} />)}
-                                {editingId ? 'Salvar Alterações' : 'Adicionar Cliente'}
-                            </button>
                         </div>
                     </div>
                 </form>
