@@ -426,6 +426,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
     const [boletoModalNome, setBoletoModalNome] = useState('');
     const [boletoModalEmail, setBoletoModalEmail] = useState('');
+    const [boletoModalContato, setBoletoModalContato] = useState('');
     const [sendingBoletoEmail, setSendingBoletoEmail] = useState<number | null>(null);
     const [boletoEmailSent, setBoletoEmailSent] = useState<Set<number>>(new Set());
     const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean }[]>([]);
@@ -1293,7 +1294,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             const res = await fetch(`${supabaseUrl}/functions/v1/send-boleto-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
-                body: JSON.stringify({ toEmail: boletoModalEmail, toName: boletoModalNome, parcela: b.parcela, vencimento: b.vencimento, boletoUrl: b.url }),
+                body: JSON.stringify({ toEmail: boletoModalEmail, toName: boletoModalNome, toContato: boletoModalContato, parcela: b.parcela, vencimento: b.vencimento, boletoUrl: b.url }),
             });
             if (!res.ok) throw new Error();
             setBoletoEmailSent(prev => new Set([...prev, b.id]));
@@ -1304,10 +1305,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
     };
 
-    const openBoletoModal = async (saleId: number, nome: string, email = '') => {
+    const openBoletoModal = async (saleId: number, nome: string, email = '', contato = '') => {
         setBoletoModalSaleId(saleId);
         setBoletoModalNome(nome);
         setBoletoModalEmail(email);
+        setBoletoModalContato(contato);
         setBoletoEmailSent(new Set());
         setBoletoForm({ parcela: '', vencimento: '', file: null });
         const { data } = await supabase
@@ -2620,7 +2622,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         const s = boletosSummary[sale.id];
                                                         return (
                                                             <button
-                                                                onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '')}
+                                                                onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '', (sale as any).decisor || '')}
                                                                 className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
                                                                 <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
@@ -2704,7 +2706,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {boletoModalEmail
-                                        ? <>📧 E-mails serão enviados para <span className="font-bold text-[#C69C6D]">{boletoModalEmail}</span></>
+                                        ? <>📧 Para <span className="font-bold text-[#C69C6D]">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
                                         : <span className="text-amber-500">⚠ Sem e-mail cadastrado neste registro</span>
                                     }
                                 </p>

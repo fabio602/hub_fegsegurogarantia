@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { toEmail, toName, parcela, vencimento, boletoUrl, apolice, produto, seguradora } = await req.json();
+    const { toEmail, toName, toContato, parcela, vencimento, boletoUrl, apolice, produto, seguradora } = await req.json();
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY não configurado');
@@ -35,7 +35,12 @@ serve(async (req) => {
       } catch (_) { /* PDF indisponível, envia sem anexo */ }
     }
 
-    const nomeCliente = toName ? toName.split(' ')[0] : 'Cliente';
+    // Usa nome do contato/decisor se disponível, senão primeiro nome da empresa
+    const nomeCliente = toContato
+      ? toContato.split(' ')[0]
+      : toName
+        ? toName.split(' ')[0]
+        : 'Cliente';
     const whatsappMsg = encodeURIComponent(`Olá, Fábio! Sou ${toName} e tenho uma dúvida sobre o meu seguro.`);
 
     const html = `<!DOCTYPE html>
