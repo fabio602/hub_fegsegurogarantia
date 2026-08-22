@@ -676,7 +676,35 @@ const RCInsurance: React.FC = () => {
           <div ref={topScrollInnerRef} className="h-1" />
         </div>
 
-        <div ref={tableScrollRef} className="overflow-x-auto">
+        {/* Mobile cards */}
+        <div className="lg:hidden divide-y divide-slate-50">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 size={24} className="animate-spin mr-2" /> Carregando...</div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-sm">Nenhum cliente encontrado</div>
+          ) : filtered.map(c => {
+            const expiring = isExpiring(c.fim_vigencia);
+            const expired = isExpired(c.fim_vigencia);
+            return (
+              <div key={c.id} onClick={() => handleEdit(c)}
+                className={`p-4 cursor-pointer transition-colors active:bg-[#C69C6D]/10 ${editingId === c.id ? 'bg-[#C69C6D]/10 border-l-4 border-[#C69C6D]' : 'hover:bg-slate-50'}`}>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="font-black text-slate-800 text-sm">{c.nome}</p>
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>{c.situacao}</span>
+                </div>
+                <p className="text-xs text-slate-500 mb-1">{c.cpf_cnpj} {c.tipo_rc && <span className="ml-2 px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-[10px] font-bold">{c.tipo_rc}</span>}</p>
+                <div className="flex gap-3 text-xs text-slate-400 flex-wrap">
+                  {c.apolice && <span>Apólice {c.apolice}</span>}
+                  {c.fim_vigencia && <span className={expired ? 'text-red-500 font-bold' : expiring ? 'text-amber-500 font-bold' : ''}>{new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
+                  {c.premio_total && <span className="font-bold text-slate-600">{c.premio_total}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop table */}
+        <div ref={tableScrollRef} className="hidden lg:block overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-24 text-slate-400">
               <Loader2 size={28} className="animate-spin mr-3" /> Carregando...
@@ -691,7 +719,7 @@ const RCInsurance: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
-                  {['Cliente', 'CPF/CNPJ', 'Contato', 'Tipo RC', 'Atividade', 'Apólice', 'Limite', 'Prêmio', 'Comissão', 'Fim Vigência', 'Situação', 'Ações'].map(h => (
+                  {['Cliente', 'CPF/CNPJ', 'Contato', 'Tipo RC', 'Atividade', 'Apólice', 'Limite', 'Prêmio', 'Comissão', 'Fim Vigência', 'Situação', ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -732,30 +760,17 @@ const RCInsurance: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEdit(c)}
-                            className="p-1.5 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
-                            title="Editar"
-                          >
-                            <Edit2 size={13} />
+                        {deleteConfirm === c.id ? (
+                          <div className="flex items-center gap-1 bg-red-50 rounded-lg px-2 py-1">
+                            <span className="text-[10px] text-red-600 font-black">Excluir?</span>
+                            <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-800 text-[10px] font-black">Sim</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-[10px] font-black">Não</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-red-400 hover:bg-red-50 rounded-lg transition-all" title="Excluir">
+                            <Trash2 size={13} />
                           </button>
-                          {deleteConfirm === c.id ? (
-                            <div className="flex items-center gap-1 bg-red-50 rounded-lg px-2 py-1">
-                              <span className="text-[10px] text-red-600 font-black">Confirmar?</span>
-                              <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-800 text-[10px] font-black">Sim</button>
-                              <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 hover:text-slate-600 text-[10px] font-black">Não</button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeleteConfirm(c.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                              title="Excluir"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </td>
                     </tr>
                   );
