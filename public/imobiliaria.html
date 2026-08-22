@@ -461,10 +461,15 @@
       <div id="kpi-vencendo" style="font-size:28px;font-weight:900;color:#a16207;">—</div>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px;">renovações próximas</div>
     </div>
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="goTo('kanban')" title="Ver solicitações">
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="goTo('kanban')" title="Ver solicitações aguardando F&G">
       <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Aguardando F&amp;G</div>
       <div id="kpi-pendentes" style="font-size:28px;font-weight:900;color:#1d4ed8;">—</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">em atendimento</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">em análise / seguradora</div>
+    </div>
+    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #3b5278;cursor:pointer;" onclick="goTo('kanban')" title="Aguardando ação do cliente">
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#3b5278;margin-bottom:8px;">Aguardando o Cliente</div>
+      <div id="kpi-aguardando-cliente" style="font-size:28px;font-weight:900;color:#3b5278;">—</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">aguardando retorno</div>
     </div>
     <div style="background:#1B263B;border-radius:18px;padding:20px;border:1px solid #1B263B;">
       <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.45);margin-bottom:8px;">Total Carteira</div>
@@ -931,8 +936,8 @@
       </div>
     </div>
     <table class="rep-table">
-      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th></tr></thead>
-      <tbody id="repasse-body"><tr><td colspan="5" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
+      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th><th>Venc. Aluguel</th></tr></thead>
+      <tbody id="repasse-body"><tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
     </table>
   </div>
   <!-- Histórico -->
@@ -1409,7 +1414,10 @@
       c.status_apolice === 'cancelado' &&
       !_nomesAtivos.has((c.inquilino_nome||'').toUpperCase().trim())
     ).length;
-    const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(c.kanban_status)).length;
+    const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
+    const kpiAguardandoCliente = cs.filter(c => c.kanban_status === 'aguardando_cliente').length;
+    const elAC = document.getElementById('kpi-aguardando-cliente');
+    if (elAC) elAC.textContent = kpiAguardandoCliente;
     const kpiTotal = cs.length;
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kpi-ativos', kpiAtivos);
@@ -1445,9 +1453,12 @@
       return new Date(c.created_at) >= tresDiasAtras;
     });
     KANBAN_COLS.forEach(col => {
+      try {
       const cards = kanbanCs.filter(c => (c.kanban_status || 'solicitado') === col.key);
-      document.getElementById('k-count-' + col.id).textContent = cards.length;
+      const countEl = document.getElementById('k-count-' + col.id);
+      if (countEl) countEl.textContent = cards.length;
       const el = document.getElementById('k-col-' + col.id);
+      if (!el) return;
       if (!cards.length) { el.innerHTML = '<div class="kanban-empty">Nenhum</div>'; return; }
       el.innerHTML = cards.map(c => {
         const temG = c.tipo_seguro === 'residencial_garantia';
@@ -1521,6 +1532,7 @@
           ${jaDeclinada}
         </div>`;
       }).join('');
+      } catch(e) { console.error('[kanban]', col.id, e); }
     });
   }
 
@@ -1692,7 +1704,9 @@
       mesRef = parseInt(m); anoRef = parseInt(a);
       mesNome = new Date(anoRef, mesRef - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     }
-    const ativos = cs.filter(c => c.status === 'ativo' && c.is_repasse === true);
+    // Fix: excluir clientes sem valor definido (1ª parcela paga pelo cliente)
+    // e mostrar a partir da 2ª parcela (que entra no repasse)
+    const ativos = cs.filter(c => c.status === 'ativo' && c.is_repasse === true && Number(c.valor_seguro) > 0 && c.parcela_atual >= 2);
     const total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('r-total').textContent = total > 0 ? fmtBRL(total) : '—';
     document.getElementById('r-mes').textContent = `Clientes com parcela em aberto — ${mesNome}`;
@@ -1706,6 +1720,7 @@
       <td style="font-family:monospace;font-size:12px">${c.numero_apolice||'—'}</td>
       <td class="valor">${fmtBRL(c.valor_seguro)}</td>
       <td><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${c.parcela_atual}/${c.total_parcelas}</span></td>
+      <td style="font-size:11px;color:rgba(255,255,255,.6);">${c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—'}</td>
     </tr>`).join('');
   }
 

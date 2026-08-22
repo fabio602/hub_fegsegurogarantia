@@ -137,11 +137,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     if (!repasseSetupModal) return;
     const valor = parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const diaVenc = parseInt(repasseSetupForm.dia_vencimento_aluguel) || null;
+    // parcela_atual = 2: a 1ª sempre é paga pelo cliente diretamente
+    // o repasse começa a partir da 2ª parcela
     await supabase.from('imobiliaria_clientes').update({
       kanban_status: repasseSetupModal.newStatus,
       is_repasse: true,
       total_parcelas: repasseSetupForm.total_parcelas,
-      parcela_atual: 1,
+      parcela_atual: 2,
       valor_seguro: valor,
       dia_vencimento_aluguel: diaVenc,
       updated_at: new Date().toISOString(),
@@ -552,7 +554,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
-            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(180px, 1fr))', gap: '10px' }}>
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(160px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
                 // Pending always show; approved/rejected only last 3 days
                 const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
