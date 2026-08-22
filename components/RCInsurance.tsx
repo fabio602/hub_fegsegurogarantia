@@ -74,6 +74,34 @@ const isExpired = (date: string) => {
   return new Date(date).getTime() < Date.now();
 };
 
+const RC_INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all";
+const RC_LABEL_CLS = "block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5";
+type RCFieldOnChange = React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
+const RCInputField: React.FC<{
+  formData: Record<string, any>; onChange: RCFieldOnChange;
+  id: string; label: string; type?: string; value?: string;
+  required?: boolean; placeholder?: string; colSpan?: string;
+}> = ({ formData, onChange, id, label, type = 'text', value, required, placeholder, colSpan = '' }) => (
+  <div className={colSpan}>
+    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <input id={id} type={type} value={value ?? formData[id] ?? ''} onChange={onChange} placeholder={placeholder} className={RC_INPUT_CLS} />
+  </div>
+);
+
+const RCSelectField: React.FC<{
+  formData: Record<string, any>; onChange: RCFieldOnChange;
+  id: string; label: string; options: string[]; required?: boolean; colSpan?: string;
+}> = ({ formData, onChange, id, label, options, required, colSpan = '' }) => (
+  <div className={colSpan}>
+    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <select id={id} value={formData[id] ?? ''} onChange={onChange} className={RC_INPUT_CLS}>
+      <option value="">Selecionar...</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
 const RCInsurance: React.FC = () => {
   const [clients, setClients] = useState<RCClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,38 +278,8 @@ const RCInsurance: React.FC = () => {
     vencidos: clients.filter(c => c.situacao === 'Vencido' || isExpired(c.fim_vigencia)).length,
   };
 
-  const InputField: React.FC<{
-    id: string; label: string; type?: string; value?: string;
-    required?: boolean; placeholder?: string; colSpan?: string;
-  }> = ({ id, label, type = 'text', value, required, placeholder, colSpan = '' }) => (
-    <div className={colSpan}>
-      <label htmlFor={id} className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      <input
-        id={id} type={type} value={value ?? (formData as any)[id] ?? ''}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
-      />
-    </div>
-  );
-
-  const SelectField: React.FC<{ id: string; label: string; options: string[]; required?: boolean; colSpan?: string }> = ({ id, label, options, required, colSpan = '' }) => (
-    <div className={colSpan}>
-      <label htmlFor={id} className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      <select
-        id={id} value={(formData as any)[id] ?? ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
-      >
-        <option value="">Selecionar...</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  const rcFd = formData as Record<string, any>;
+  const rcOc = handleInputChange;
 
   return (
     <div className="space-y-6">
@@ -361,13 +359,13 @@ const RCInsurance: React.FC = () => {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados do Cliente / Segurado</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <InputField id="nome" label="Nome / Razão Social" required colSpan="sm:col-span-2 lg:col-span-2" />
-                <InputField id="cpf_cnpj" label="CPF / CNPJ" placeholder="000.000.000-00" />
-                <InputField id="telefone" label="Telefone" placeholder="(00) 00000-0000" />
-                <InputField id="telefone_2" label="Telefone 2" placeholder="(00) 00000-0000" />
-                <InputField id="email" label="E-mail" type="email" />
-                <InputField id="atividade" label="Atividade / Profissão" placeholder="Ex: Médico, Construtora, Advogado..." colSpan="lg:col-span-2" />
-                <SelectField id="tipo_rc" label="Tipo de RC" options={TIPOS_RC} required />
+                <RCInputField formData={rcFd} onChange={rcOc}id="nome" label="Nome / Razão Social" required colSpan="sm:col-span-2 lg:col-span-2" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="cpf_cnpj" label="CPF / CNPJ" placeholder="000.000.000-00" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="telefone" label="Telefone" placeholder="(00) 00000-0000" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="telefone_2" label="Telefone 2" placeholder="(00) 00000-0000" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="email" label="E-mail" type="email" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="atividade" label="Atividade / Profissão" placeholder="Ex: Médico, Construtora, Advogado..." colSpan="lg:col-span-2" />
+                <RCSelectField formData={rcFd} onChange={rcOc}id="tipo_rc" label="Tipo de RC" options={TIPOS_RC} required />
               </div>
             </div>
 
@@ -375,16 +373,16 @@ const RCInsurance: React.FC = () => {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados da Apólice</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <InputField id="seguradora" label="Seguradora" />
-                <InputField id="apolice" label="Nº Apólice" />
-                <InputField id="produto" label="Produto" />
-                <InputField id="limite_garantia" label="Limite de Garantia" placeholder="R$ 0,00" />
-                <InputField id="premio_total" label="Prêmio Total" placeholder="R$ 0,00" />
-                <InputField id="comissao" label="Comissão" placeholder="R$ 0,00" />
-                <InputField id="data_emissao" label="Data Emissão" type="date" />
-                <InputField id="fim_vigencia" label="Fim Vigência" type="date" />
-                <SelectField id="forma_pagamento" label="Forma de Pagamento" options={FORMAS_PAGAMENTO} />
-                <SelectField id="situacao" label="Situação" options={SITUACOES} required />
+                <RCInputField formData={rcFd} onChange={rcOc}id="seguradora" label="Seguradora" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="apolice" label="Nº Apólice" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="produto" label="Produto" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="limite_garantia" label="Limite de Garantia" placeholder="R$ 0,00" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="premio_total" label="Prêmio Total" placeholder="R$ 0,00" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="comissao" label="Comissão" placeholder="R$ 0,00" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="data_emissao" label="Data Emissão" type="date" />
+                <RCInputField formData={rcFd} onChange={rcOc}id="fim_vigencia" label="Fim Vigência" type="date" />
+                <RCSelectField formData={rcFd} onChange={rcOc}id="forma_pagamento" label="Forma de Pagamento" options={FORMAS_PAGAMENTO} />
+                <RCSelectField formData={rcFd} onChange={rcOc}id="situacao" label="Situação" options={SITUACOES} required />
               </div>
             </div>
 

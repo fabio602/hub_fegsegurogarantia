@@ -85,6 +85,35 @@ const isExpired = (date: string) => {
   return new Date(date).getTime() < Date.now();
 };
 
+const INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all";
+const LABEL_CLS = "block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5";
+
+type FieldonChange = React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
+
+const InputField: React.FC<{
+  formData: Record<string, any>; onChange: FieldonChange;
+  id: string; label: string; type?: string; value?: string;
+  required?: boolean; placeholder?: string; colSpan?: string;
+}> = ({ formData, onChange, id, label, type = 'text', value, required, placeholder, colSpan = '' }) => (
+  <div className={colSpan}>
+    <label htmlFor={id} className={LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <input id={id} type={type} value={value ?? formData[id] ?? ''} onChange={onChange} placeholder={placeholder} className={INPUT_CLS} />
+  </div>
+);
+
+const SelectField: React.FC<{
+  formData: Record<string, any>; onChange: FieldonChange;
+  id: string; label: string; options: string[]; required?: boolean; colSpan?: string;
+}> = ({ formData, onChange, id, label, options, required, colSpan = '' }) => (
+  <div className={colSpan}>
+    <label htmlFor={id} className={LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <select id={id} value={formData[id] ?? ''} onChange={onChange} className={INPUT_CLS}>
+      <option value="">Selecionar...</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
 const AutoInsurance: React.FC = () => {
   const [clients, setClients] = useState<AutoClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,34 +314,8 @@ const AutoInsurance: React.FC = () => {
     vencidos: clients.filter(c => c.situacao === 'Vencido' || isExpired(c.fim_vigencia)).length,
   };
 
-  const InputField: React.FC<{
-    id: string; label: string; type?: string; value?: string;
-    required?: boolean; placeholder?: string; colSpan?: string;
-  }> = ({ id, label, type = 'text', value, required, placeholder, colSpan = '' }) => (
-    <div className={colSpan}>
-      <label htmlFor={id} className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
-      <input
-        id={id} type={type} value={value ?? (formData as any)[id] ?? ''}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
-      />
-    </div>
-  );
-
-  const SelectField: React.FC<{ id: string; label: string; options: string[]; required?: boolean; colSpan?: string }> = ({ id, label, options, required, colSpan = '' }) => (
-    <div className={colSpan}>
-      <label htmlFor={id} className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
-      <select
-        id={id} value={(formData as any)[id] ?? ''}
-        onChange={handleInputChange}
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
-      >
-        <option value="">Selecionar...</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  const fd = formData as Record<string, any>;
+  const oc = handleInputChange;
 
   return (
     <div className="space-y-6">
@@ -396,11 +399,11 @@ const AutoInsurance: React.FC = () => {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados do Cliente</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <InputField id="nome" label="Nome Completo" required colSpan="sm:col-span-2 lg:col-span-2" />
-                <InputField id="cpf" label="CPF" placeholder="000.000.000-00" />
-                <InputField id="telefone" label="Telefone" placeholder="(00) 00000-0000" />
-                <InputField id="telefone_2" label="Telefone 2" placeholder="(00) 00000-0000" />
-                <InputField id="email" label="E-mail" type="email" />
+                <InputField formData={fd} onChange={oc}id="nome" label="Nome Completo" required colSpan="sm:col-span-2 lg:col-span-2" />
+                <InputField formData={fd} onChange={oc}id="cpf" label="CPF" placeholder="000.000.000-00" />
+                <InputField formData={fd} onChange={oc}id="telefone" label="Telefone" placeholder="(00) 00000-0000" />
+                <InputField formData={fd} onChange={oc}id="telefone_2" label="Telefone 2" placeholder="(00) 00000-0000" />
+                <InputField formData={fd} onChange={oc}id="email" label="E-mail" type="email" />
               </div>
             </div>
 
@@ -408,13 +411,13 @@ const AutoInsurance: React.FC = () => {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados do Veículo</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <InputField id="marca_modelo" label="Marca / Modelo" placeholder="Ex: Fiat Pulse" colSpan="lg:col-span-2" />
-                <InputField id="ano_fabricacao" label="Ano Fabricação" placeholder="2023" />
-                <InputField id="ano_modelo" label="Ano Modelo" placeholder="2024" />
-                <InputField id="placa" label="Placa" placeholder="ABC1234" />
-                <InputField id="chassis" label="Chassi" />
-                <InputField id="cor" label="Cor" />
-                <SelectField id="uso_veiculo" label="Uso do Veículo" options={USOS} />
+                <InputField formData={fd} onChange={oc}id="marca_modelo" label="Marca / Modelo" placeholder="Ex: Fiat Pulse" colSpan="lg:col-span-2" />
+                <InputField formData={fd} onChange={oc}id="ano_fabricacao" label="Ano Fabricação" placeholder="2023" />
+                <InputField formData={fd} onChange={oc}id="ano_modelo" label="Ano Modelo" placeholder="2024" />
+                <InputField formData={fd} onChange={oc}id="placa" label="Placa" placeholder="ABC1234" />
+                <InputField formData={fd} onChange={oc}id="chassis" label="Chassi" />
+                <InputField formData={fd} onChange={oc}id="cor" label="Cor" />
+                <SelectField formData={fd} onChange={oc}id="uso_veiculo" label="Uso do Veículo" options={USOS} />
               </div>
             </div>
 
@@ -422,17 +425,17 @@ const AutoInsurance: React.FC = () => {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados da Apólice</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <InputField id="seguradora" label="Seguradora" />
-                <InputField id="apolice" label="Nº Apólice" />
-                <InputField id="produto" label="Produto" />
-                <SelectField id="cobertura" label="Cobertura" options={COBERTURAS} />
-                <InputField id="franquia" label="Franquia" placeholder="Ex: Básica / R$ 2.500" />
-                <InputField id="premio_total" label="Prêmio Total" placeholder="R$ 0,00" />
-                <InputField id="comissao" label="Comissão" placeholder="R$ 0,00" />
-                <InputField id="data_emissao" label="Data Emissão" type="date" />
-                <InputField id="fim_vigencia" label="Fim Vigência" type="date" />
-                <SelectField id="forma_pagamento" label="Forma de Pagamento" options={FORMAS_PAGAMENTO} />
-                <SelectField id="situacao" label="Situação" options={SITUACOES} required />
+                <InputField formData={fd} onChange={oc}id="seguradora" label="Seguradora" />
+                <InputField formData={fd} onChange={oc}id="apolice" label="Nº Apólice" />
+                <InputField formData={fd} onChange={oc}id="produto" label="Produto" />
+                <SelectField formData={fd} onChange={oc}id="cobertura" label="Cobertura" options={COBERTURAS} />
+                <InputField formData={fd} onChange={oc}id="franquia" label="Franquia" placeholder="Ex: Básica / R$ 2.500" />
+                <InputField formData={fd} onChange={oc}id="premio_total" label="Prêmio Total" placeholder="R$ 0,00" />
+                <InputField formData={fd} onChange={oc}id="comissao" label="Comissão" placeholder="R$ 0,00" />
+                <InputField formData={fd} onChange={oc}id="data_emissao" label="Data Emissão" type="date" />
+                <InputField formData={fd} onChange={oc}id="fim_vigencia" label="Fim Vigência" type="date" />
+                <SelectField formData={fd} onChange={oc}id="forma_pagamento" label="Forma de Pagamento" options={FORMAS_PAGAMENTO} />
+                <SelectField formData={fd} onChange={oc}id="situacao" label="Situação" options={SITUACOES} required />
               </div>
             </div>
 
