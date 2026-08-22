@@ -36,6 +36,7 @@ serve(async (req) => {
     }
 
     const nomeCliente = toName ? toName.split(' ')[0] : 'Cliente';
+    const whatsappMsg = encodeURIComponent(`Olá, Fábio! Sou ${toName} e tenho uma dúvida sobre o meu seguro.`);
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -43,49 +44,49 @@ serve(async (req) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:40px 16px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-        <!-- Header F&G -->
+        <!-- Header -->
         <tr>
-          <td style="background:#1B263B;border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
-            <p style="margin:0;font-size:28px;font-weight:900;color:#C69C6D;letter-spacing:2px;">F&amp;G</p>
-            <p style="margin:4px 0 0;font-size:12px;color:#8fa3bf;letter-spacing:3px;text-transform:uppercase;">Seguro Garantia</p>
+          <td style="background:linear-gradient(135deg,#1B263B 0%,#243447 100%);border-radius:20px 20px 0 0;padding:36px 48px;text-align:center;">
+            <p style="margin:0 0 4px;font-size:32px;font-weight:900;color:#C69C6D;letter-spacing:3px;">F&amp;G</p>
+            <p style="margin:0;font-size:11px;color:#7a9bbf;letter-spacing:4px;text-transform:uppercase;font-weight:600;">Seguro Garantia</p>
           </td>
         </tr>
 
         <!-- Body -->
         <tr>
-          <td style="background:#ffffff;padding:40px;">
+          <td style="background:#ffffff;padding:44px 48px;">
 
-            <p style="margin:0 0 24px;font-size:18px;font-weight:700;color:#1B263B;">
-              Olá, ${nomeCliente}! 👋
+            <!-- Saudação calorosa -->
+            <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#1B263B;">Olá, ${nomeCliente}! 😊</p>
+            <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.75;">
+              Espero que esteja tudo bem por aí! Passando rapidinho para te lembrar que a
+              <strong style="color:#1B263B;">${parcela}ª parcela</strong> do seu
+              <strong style="color:#1B263B;">Seguro de Responsabilidade Civil</strong> vence em
+              <strong style="color:#C69C6D;">${vencFormatado}</strong> — e já deixei o boleto
+              em anexo para facilitar a sua vida. 📎
             </p>
 
-            <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.7;">
-              Tudo bem? Passando para deixar o boleto da sua apólice disponível —
-              ele está em anexo neste e-mail para facilitar o seu pagamento.
-            </p>
-
-            <!-- Destaque do boleto -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:24px;margin:0 0 24px;">
+            <!-- Card destaque -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafbff;border:2px solid #e8edf5;border-left:5px solid #C69C6D;border-radius:12px;margin:0 0 28px;">
               <tr>
                 <td style="padding:20px 24px;">
-                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;">Boleto de Seguro</p>
-                  ${apolice ? `<p style="margin:0 0 16px;font-size:13px;color:#64748b;">Apólice: <strong>${apolice}</strong>${produto ? ` — ${produto}` : ''}</p>` : ''}
+                  <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;">📄 Boleto em Anexo</p>
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;">
+                      <td style="padding:6px 0;border-bottom:1px dashed #e2e8f0;">
                         <span style="font-size:13px;color:#64748b;">Parcela</span>
-                        <span style="float:right;font-size:14px;font-weight:800;color:#1B263B;">${parcela}ª parcela</span>
+                        <span style="float:right;font-size:15px;font-weight:800;color:#1B263B;">${parcela}ª de 5</span>
                       </td>
                     </tr>
                     <tr>
-                      <td style="padding:8px 0;">
+                      <td style="padding:6px 0;">
                         <span style="font-size:13px;color:#64748b;">Vencimento</span>
-                        <span style="float:right;font-size:14px;font-weight:800;color:#dc2626;">${vencFormatado}</span>
+                        <span style="float:right;font-size:15px;font-weight:800;color:#dc2626;">${vencFormatado}</span>
                       </td>
                     </tr>
                   </table>
@@ -93,41 +94,52 @@ serve(async (req) => {
               </tr>
             </table>
 
-            <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.7;">
-              O pagamento pode ser feito em qualquer banco, lotérica, pelo aplicativo do seu banco
-              ou pelo <strong>Pix/código de barras</strong> que está no boleto em anexo. Simples assim! 😊
+            <p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.75;">
+              O pagamento é bem simples: pode usar o <strong>código de barras</strong>,
+              o <strong>Pix</strong> ou pagar em qualquer <strong>banco, lotérica ou app</strong>.
+              Tudo certinho no boleto em anexo. 👍
             </p>
 
-            <p style="margin:0 0 28px;font-size:15px;color:#475569;line-height:1.7;">
-              Qualquer dúvida — seja sobre o seguro, a apólice ou o pagamento — pode me chamar
-              diretamente. Estou sempre por aqui!
+            <p style="margin:0 0 32px;font-size:15px;color:#475569;line-height:1.75;">
+              Se já realizou o pagamento, pode desconsiderar esta mensagem.
+              Mas se surgir qualquer dúvida — sobre o boleto, a apólice ou qualquer outra coisa —
+              <strong>é só me chamar!</strong> Estou sempre aqui para ajudar. 🤝
             </p>
 
-            <!-- CTA WhatsApp -->
-            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+            <!-- Botão WhatsApp -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 36px;">
               <tr>
-                <td style="background:#25D366;border-radius:10px;padding:14px 28px;">
-                  <a href="https://wa.me/5519999999999?text=Olá+Fábio%2C+tenho+uma+dúvida+sobre+meu+seguro"
-                     style="color:#fff;font-weight:800;font-size:14px;text-decoration:none;">
-                    💬 Falar no WhatsApp
+                <td style="background:#25D366;border-radius:12px;padding:0;">
+                  <a href="https://wa.me/5515998618659?text=${whatsappMsg}"
+                     style="display:block;padding:16px 32px;color:#fff;font-weight:800;font-size:15px;text-decoration:none;letter-spacing:0.3px;">
+                    💬 Me chame no WhatsApp
                   </a>
                 </td>
               </tr>
             </table>
 
-            <p style="margin:0;font-size:14px;color:#475569;line-height:1.6;">
-              Obrigado pela confiança e pela parceria!<br/>
-              <strong style="color:#1B263B;">Fábio Lima</strong><br/>
-              <span style="color:#94a3b8;font-size:13px;">F&amp;G Seguro Garantia · SUSEP 242160653</span>
-            </p>
+            <!-- Assinatura -->
+            <table cellpadding="0" cellspacing="0" style="border-top:1px solid #f1f5f9;padding-top:24px;width:100%;">
+              <tr>
+                <td>
+                  <p style="margin:0 0 4px;font-size:15px;font-weight:800;color:#1B263B;">Fábio Lima</p>
+                  <p style="margin:0 0 12px;font-size:13px;color:#64748b;font-weight:600;">F&amp;G Seguro Garantia</p>
+                  <p style="margin:0;font-size:13px;color:#94a3b8;line-height:2;">
+                    📱 <a href="https://wa.me/5515998618659" style="color:#25D366;text-decoration:none;font-weight:600;">(15) 99861-8659</a><br/>
+                    🌐 <a href="https://fegsegurogarantia.com.br" style="color:#C69C6D;text-decoration:none;">fegsegurogarantia.com.br</a><br/>
+                    📷 <a href="https://instagram.com/fg_segurogarantia" style="color:#C69C6D;text-decoration:none;">@fg_segurogarantia</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
 
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="background:#f1f5f9;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
-            <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.7;">
+          <td style="background:#1B263B;border-radius:0 0 20px 20px;padding:20px 48px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#4a6080;line-height:1.8;">
               F&amp;G Corretora de Seguros · CNPJ 56.123.874/0001-90 · SUSEP 242160653<br/>
               <a href="mailto:fabio@fegsegurogarantia.com.br" style="color:#C69C6D;text-decoration:none;">fabio@fegsegurogarantia.com.br</a>
             </p>
@@ -143,7 +155,7 @@ serve(async (req) => {
     const emailPayload: Record<string, unknown> = {
       from: 'F&G Seguro Garantia <fabio@fegsegurogarantia.com.br>',
       to: [toEmail],
-      subject: `📄 Boleto disponível — ${parcela}ª Parcela${seguradora ? ` · ${seguradora}` : ''} | F&G Seguro Garantia`,
+      subject: `📄 Seu boleto chegou — ${parcela}ª parcela do Seguro RC | F&G`,
       html,
     };
 
