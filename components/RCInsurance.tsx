@@ -365,10 +365,7 @@ const RCInsurance: React.FC = () => {
   };
 
   const handleEdit = (c: RCClient) => {
-    if (editingId && isDirtyRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-      performAutoSave();
-    }
+    clearTimeout(autoSaveTimerRef.current);
     isDirtyRef.current = false;
     setAutoSaveState('idle');
     setFormData({ ...c });

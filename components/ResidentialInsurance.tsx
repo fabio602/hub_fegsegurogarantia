@@ -612,10 +612,7 @@ const ResidentialInsurance: React.FC = () => {
     };
 
     const handleEdit = (client: ResidentialClient) => {
-        if (editingId && isDirtyRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-            performAutoSave();
-        }
+        clearTimeout(autoSaveTimerRef.current);
         isDirtyRef.current = false;
         setAutoSaveState('idle');
         setEditingId(client.id);

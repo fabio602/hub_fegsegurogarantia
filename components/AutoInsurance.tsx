@@ -404,10 +404,7 @@ const AutoInsurance: React.FC = () => {
   };
 
   const handleEdit = (c: AutoClient) => {
-    if (editingId && isDirtyRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-      performAutoSave();
-    }
+    clearTimeout(autoSaveTimerRef.current);
     isDirtyRef.current = false;
     setAutoSaveState('idle');
     setFormData({ ...c });

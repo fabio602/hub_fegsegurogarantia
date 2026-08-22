@@ -1251,10 +1251,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     }, [formData, editingId, performAutoSave]);
 
     const handleEdit = (sale: Sale) => {
-        if (editingId && isDirtyRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-            performAutoSave();
-        }
+        clearTimeout(autoSaveTimerRef.current);
         isDirtyRef.current = false;
         setAutoSaveState('idle');
         setEditingId(sale.id);
