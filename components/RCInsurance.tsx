@@ -145,7 +145,22 @@ const RCInsurance: React.FC = () => {
       const json = await res.json();
       if (!json.success || json.data?.parse_error) throw new Error('Não foi possível extrair os dados.');
       const d = json.data;
-      setFormData(prev => ({ ...prev, ...(d.nome_segurado?{nome:d.nome_segurado}:{}), ...(d.tomador_razao_social?{nome:d.tomador_razao_social}:{}), ...(d.cpf_cnpj?{cpf_cnpj:d.cpf_cnpj}:{}), ...(d.tomador_cpf_cnpj?{cpf_cnpj:d.tomador_cpf_cnpj}:{}), ...(d.numero_apolice?{apolice:d.numero_apolice}:{}), ...(d.seguradora?{seguradora:d.seguradora}:{}), ...(d.premio_total?{premio_total:d.premio_total}:{}), ...(d.vigencia_inicio?{data_emissao:d.vigencia_inicio}:{}), ...(d.vigencia_fim?{fim_vigencia:d.vigencia_fim}:{}), ...(d.limite_indenizacao?{limite_garantia:d.limite_indenizacao}:{}), ...(d.modalidade_rc?{produto:d.modalidade_rc}:{}) }));
+      setFormData(prev => ({
+        ...prev,
+        ...(d.tomador_razao_social ? { nome: d.tomador_razao_social } : d.nome_segurado ? { nome: d.nome_segurado } : {}),
+        ...(d.tomador_cpf_cnpj ? { cpf_cnpj: d.tomador_cpf_cnpj } : d.cpf_cnpj ? { cpf_cnpj: d.cpf_cnpj } : {}),
+        ...(d.email ? { email: d.email } : {}),
+        ...(d.telefone ? { telefone: d.telefone } : {}),
+        ...(d.numero_apolice ? { apolice: d.numero_apolice } : {}),
+        ...(d.seguradora ? { seguradora: d.seguradora } : {}),
+        ...(d.modalidade_rc ? { produto: d.modalidade_rc } : d.produto ? { produto: d.produto } : {}),
+        ...(d.limite_indenizacao ? { limite_garantia: d.limite_indenizacao } : {}),
+        ...(d.premio_total ? { premio_total: d.premio_total } : {}),
+        ...(d.comissao ? { comissao: d.comissao } : {}),
+        ...(d.vigencia_inicio ? { data_emissao: d.vigencia_inicio } : {}),
+        ...(d.vigencia_fim ? { fim_vigencia: d.vigencia_fim } : {}),
+        ...(d.forma_pagamento ? { forma_pagamento: d.forma_pagamento } : {}),
+      }));
       setRcExtractMsg('✅ Dados extraídos! Confira os campos.');
       setEditingId(null); setShowForm(true);
     } catch (err: any) { setRcExtractMsg('❌ ' + (err.message || 'Erro.')); }
