@@ -7,10 +7,19 @@ import { supabase } from '../lib/supabase';
 
 declare var html2pdf: any;
 
+const formatCNPJ = (v: string) =>
+  v.replace(/\D/g, '')
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+    .slice(0, 18);
+
 const NominationLetter: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [loadingInsurers, setLoadingInsurers] = useState(true);
   const [seguradorasDisponiveis, setSeguradorasDisponiveis] = useState<string[]>([]);
+  const [cnpjStatus, setCnpjStatus] = useState<'idle'|'loading'|'found'|'error'>('idle');
   const pdfRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState({
     razaoSocial: '',
@@ -23,6 +32,33 @@ const NominationLetter: React.FC = () => {
     seguradoras: [] as string[],
     nomeAssinatura: ''
   });
+
+  const handleCnpjChange = async (raw: string) => {
+    const formatted = formatCNPJ(raw);
+    setData(prev => ({ ...prev, cnpj: formatted }));
+    const digits = formatted.replace(/\D/g, '');
+    if (digits.length !== 14) { setCnpjStatus('idle'); return; }
+    setCnpjStatus('loading');
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      const cidade = [json.municipio, json.uf].filter(Boolean).join(' - ');
+      const telefone = json.ddd_telefone_1
+        ? json.ddd_telefone_1.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
+        : '';
+      setData(prev => ({
+        ...prev,
+        razaoSocial: json.razao_social || prev.razaoSocial,
+        cidade: cidade || prev.cidade,
+        telefone: telefone || prev.telefone,
+        email: json.email || prev.email,
+      }));
+      setCnpjStatus('found');
+    } catch {
+      setCnpjStatus('error');
+    }
+  };
 
   useEffect(() => {
     const fetchInsurers = async () => {
@@ -112,59 +148,98 @@ const NominationLetter: React.FC = () => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="lg:col-span-8 space-y-6">
+
+            {/* Dica — CNPJ automático */}
+            <div className="flex items-start gap-3 bg-[#C69C6D]/8 border border-[#C69C6D]/25 rounded-2xl px-5 py-4">
+              <span className="text-xl mt-0.5">💡</span>
+              <div>
+                <p className="text-sm font-black text-slate-700">Preencha só o CNPJ</p>
+                <p className="text-xs text-slate-500 mt-0.5">Os demais dados (Razão Social, Cidade, Telefone e E-mail) são buscados automaticamente na Receita Federal.</p>
+              </div>
+            </div>
+
+            {/* CNPJ — campo principal em destaque */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-2">
+                CNPJ da empresa
+                {cnpjStatus === 'loading' && <span className="flex items-center gap-1 text-slate-400 font-semibold normal-case text-[10px]"><Loader2 size={10} className="animate-spin" /> Consultando Receita Federal...</span>}
+                {cnpjStatus === 'found' && <span className="flex items-center gap-1 text-emerald-500 font-bold normal-case text-[10px]"><CheckCircle2 size={10} /> Dados preenchidos automaticamente</span>}
+                {cnpjStatus === 'error' && <span className="text-red-400 font-bold normal-case text-[10px]">⚠ CNPJ não encontrado — preencha manualmente</span>}
+              </label>
+              <input
+                type="text"
+                value={data.cnpj}
+                onChange={e => handleCnpjChange(e.target.value)}
+                autoFocus
+                className={`w-full px-5 py-4 border-2 rounded-2xl outline-none transition-all font-black text-lg tracking-widest ${
+                  cnpjStatus === 'found' ? 'border-emerald-400 bg-emerald-50/40 text-emerald-800' :
+                  cnpjStatus === 'error' ? 'border-red-300 bg-red-50/30 text-slate-700' :
+                  cnpjStatus === 'loading' ? 'border-[#C69C6D] bg-amber-50/30 text-slate-700' :
+                  'border-[#C69C6D]/40 bg-slate-50 text-slate-700 focus:border-[#C69C6D] focus:ring-2 focus:ring-[#C69C6D]/20'
+                }`}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+              />
+            </div>
+
+            {/* Campos preenchidos automaticamente */}
+            <div className={`space-y-6 transition-opacity duration-300 ${cnpjStatus === 'idle' ? 'opacity-50' : 'opacity-100'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Razão Social do Tomador</label>
-                <input 
-                  type="text" 
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                  Razão Social do Tomador
+                  {cnpjStatus === 'found' && data.razaoSocial && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                </label>
+                <input
+                  type="text"
                   value={data.razaoSocial}
                   onChange={e => setData({...data, razaoSocial: e.target.value})}
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] outline-none transition-all font-semibold text-slate-700"
                   placeholder="Nome completo da empresa"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">CNPJ</label>
-                <input 
-                  type="text" 
-                  value={data.cnpj}
-                  onChange={e => setData({...data, cnpj: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] outline-none transition-all font-semibold text-slate-700"
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
-            </div>
+              </div>{/* fecha grid 2-col */}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Cidade</label>
-                <input 
-                  type="text" 
-                  value={data.cidade}
-                  onChange={e => setData({...data, cidade: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                    Cidade
+                    {cnpjStatus === 'found' && data.cidade && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={data.cidade}
+                    onChange={e => setData({...data, cidade: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                    Telefone
+                    {cnpjStatus === 'found' && data.telefone && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={data.telefone}
+                    onChange={e => setData({...data, telefone: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                    E-mail
+                    {cnpjStatus === 'found' && data.email && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                  </label>
+                  <input
+                    type="email"
+                    value={data.email}
+                    onChange={e => setData({...data, email: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Telefone</label>
-                <input 
-                  type="text" 
-                  value={data.telefone}
-                  onChange={e => setData({...data, telefone: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">E-mail</label>
-                <input 
-                  type="email" 
-                  value={data.email}
-                  onChange={e => setData({...data, email: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-semibold text-slate-700"
-                />
-              </div>
-            </div>
+            </div>{/* fecha opacity wrapper */}
 
             <div className="bg-[#1B263B]/5 p-6 rounded-[2rem] border border-[#1B263B]/10 flex flex-col md:flex-row items-center gap-6">
               <div className="w-12 h-12 bg-[#1B263B] rounded-2xl flex items-center justify-center text-[#C69C6D] shrink-0">
