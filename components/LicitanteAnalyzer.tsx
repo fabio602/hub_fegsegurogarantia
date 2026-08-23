@@ -382,15 +382,17 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 const dias = result.vigencia_garantia_proposta_dias;
                 const termo = result.vigencia_garantia_termo_inicial;
 
-                // Fix 2: data_base selecionada pelo termo inicial, não sempre a sessão
-                type DataBase = { dateStr: string | null; label: string };
+                // data_base selecionada pelo termo inicial declarado; null = fallback conservador
+                type DataBase = { dateStr: string | null; label: string; isFallback: boolean };
                 const dataBase: DataBase = (() => {
                   if (termo === 'entrega_proposta' && result.data_limite_propostas)
-                    return { dateStr: result.data_limite_propostas, label: 'entrega da proposta' };
+                    return { dateStr: result.data_limite_propostas, label: 'entrega da proposta', isFallback: false };
                   if (termo === 'emissao')
-                    return { dateStr: null, label: 'emissão da apólice (data não calculável antecipadamente)' };
-                  // Padrão conservador: sessão pública
-                  return { dateStr: result.data_sessao_publica ?? null, label: 'sessão pública' };
+                    return { dateStr: null, label: 'emissão da apólice (data não calculável antecipadamente)', isFallback: false };
+                  if (termo === 'sessao_publica')
+                    return { dateStr: result.data_sessao_publica ?? null, label: 'sessão pública', isFallback: false };
+                  // termo === null: padrão conservador (modelo não identificou o marco inicial)
+                  return { dateStr: result.data_sessao_publica ?? null, label: 'sessão pública', isFallback: true };
                 })();
 
                 let dataFimMinimo: string | null = null;
@@ -406,8 +408,10 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   } catch { /* mantém null */ }
                 }
 
-                // Linha de auditoria declara qual data foi usada
-                const regraContagem = `Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'} (${dataBase.label}). Exclui o dia do início, inclui o do vencimento. Art. 183, Lei 14.133/2021.`;
+                // Linha de auditoria: distingue dado extraído de padrão conservador aplicado
+                const regraContagem = dataBase.isFallback
+                  ? `Padrão conservador: termo inicial não declarado no edital — usando data da sessão pública. Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'}. Art. 183, Lei 14.133/2021.`
+                  : `Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'} (${dataBase.label}). Exclui o dia do início, inclui o do vencimento. Art. 183, Lei 14.133/2021.`;
 
                 if (result.vigencia_garantia_proposta) return (
                   <div className="space-y-1">
@@ -423,7 +427,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                     {dataFimMinimo && <p className="text-xs text-slate-600">Mínimo legal: <strong>{dataFimMinimo}</strong></p>}
                     {dataFimSugerido && <p className="text-xs text-emerald-700">Sugerido (+{BUFFER_DIAS} dias): <strong>{dataFimSugerido}</strong></p>}
                     {termo === 'emissao' && <p className="text-[10px] text-amber-600 mt-1">Termo inicial: emissão da apólice. Data de término não calculável antecipadamente.</p>}
-                    <p className="text-[10px] text-slate-400 mt-1">{regraContagem}</p>
+                    <p className={`text-[10px] mt-1 ${dataBase.isFallback ? 'text-amber-600' : 'text-slate-400'}`}>{regraContagem}</p>
                   </div>
                 );
                 if (result.validade_proposta_dias) return (

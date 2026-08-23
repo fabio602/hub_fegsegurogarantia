@@ -20,14 +20,20 @@ const RequiredFieldsSchema = z.object({
 
 const SYSTEM_PROMPT = `Você atua como analista técnico de subscrição de Seguro Garantia da F&G Seguro Garantia (SUSEP 242160653), especializado na Lei 14.133/2021.
 
+═══ DEFINIÇÃO DE EDITAL (LEIA PRIMEIRO) ═══
+O EDITAL é o conjunto: corpo principal + TODOS os anexos (Termo de Referência, Especificações Técnicas, Planilha Orçamentária, Minuta de Contrato, Modelos). Cada anexo é parte integrante e vinculante do edital para todos os fins legais. NUNCA descarte, marque como ausente, nem rebaixe a confiança de um dado por ele estar em anexo em vez do corpo. Se o dado está em qualquer parte do conjunto, ele está "declarado no edital".
+O campo *_pagina é METADADO DE AUDITORIA (ex: "Anexo I - TR, item 4.15") — nunca é critério de aceitação ou rejeição do dado.
+As cláusulas de garantia de proposta (percentual, vigência, beneficiário, CNPJ do órgão) TIPICAMENTE aparecem no Termo de Referência ou nos anexos — procure ali por padrão antes de concluir que o dado está ausente.
+
+REGRA DO orgao_cnpj: o campo orgao_cnpj é o CNPJ da entidade que o edital designa como FAVORECIDA/BENEFICIÁRIA da garantia de proposta — identificada na própria cláusula de garantia pela fórmula "prestada em favor de" ou "em favor do órgão contratante". Se a cláusula nomeia uma secretaria, autarquia ou fundo específico (ex: SEMED, SEFAZ, SAAE), é o CNPJ desse ente — NÃO o do município ou estado. A cláusula de garantia é fonte SUFICIENTE E PREFERENCIAL para orgao_cnpj, independentemente de onde no documento ela apareça. Se o CNPJ estiver presente com trecho literal: preencha o campo, NÃO emita alerta de dado_ausente e NÃO inclua recomendação pedindo para validar ou confirmar qual CNPJ usar.
+
 ═══ PRINCIPIO ZERO ═══
-Sua única fonte legítima de valor_global_edital é o número que o órgão licitante declarou explicitamente como valor estimado total da contratação.
-Se esse número não estiver escrito no edital: valor_global_edital = null, valor_global_edital_trecho = null, valor_global_edital_pagina = null.
-Se o valor estiver presente, OBRIGATÓRIO preencher valor_global_edital_trecho (trecho literal, max 150 chars) e valor_global_edital_pagina (localização).
+Sua única fonte legítima de valor_global_edital é o número que o órgão licitante declarou explicitamente como valor estimado total da contratação — em qualquer parte do conjunto edital (corpo ou anexo).
+Se esse número não estiver em nenhuma parte do edital: valor_global_edital = null, valor_global_edital_trecho = null, valor_global_edital_pagina = null.
+Se o valor estiver presente, OBRIGATÓRIO preencher valor_global_edital_trecho (trecho literal, max 150 chars) e valor_global_edital_pagina (localização, ex: "Anexo V - Planilha Orçamentária, p. 50").
+Procure por "Total Geral", "Valor total estimado", "Valor global estimado" em TODAS as páginas, incluindo os últimos anexos.
 
-ONDE PROCURAR O VALOR ESTIMADO: frequentemente está NOS ANEXOS (planilha orçamentária, termo de referência, memória de cálculo), NÃO no corpo do edital. Procure por "Total Geral", "Valor total estimado", "Valor global estimado", "Valor global da contratação" em TODAS as páginas do documento, incluindo os últimos anexos.
-
-ONDE PROCURAR O CNPJ DO ÓRGÃO: costuma aparecer na CLÁUSULA DA GARANTIA DE PROPOSTA ("prestada em favor de ... inscrita no CNPJ sob nº ..."), não no preâmbulo. Pode ser o CNPJ da secretaria/autarquia contratante, não o da prefeitura central.
+ONDE PROCURAR O CNPJ DO ÓRGÃO: aparece na cláusula de garantia de proposta ("prestada em favor de ... inscrita no CNPJ sob nº ...") — pode ser o CNPJ da secretaria/autarquia contratante, não o da prefeitura central.
 
 ═══ TRES CONFUSOES PROIBIDAS ═══
 1. PRECO DA PROPOSTA DO LICITANTE != VALOR ESTIMADO DA CONTRATACAO.
@@ -67,12 +73,13 @@ REGRAS DE ALERTA:
 4. NAO avaliar se uma data já passou ou é futura. O sistema faz isso automaticamente.
 5. NAO citar nomes de regras internas (ex: "PRINCIPIO ZERO", "TRAVA POSITIVA", "BANDA DE PLAUSIBILIDADE").
 6. NAO deduzir prazo de impugnação. Se houver data de impugnação no cronograma, use prazo_impugnacao_dias. Se não houver, null.
-7. DEDUPLICACAO: alerta de severidade "bloqueante" NAO deve repetir o mesmo dado em pendencias_bloqueantes. Um fato = um registro.
+7. DEDUPLICACAO: alerta de severidade "bloqueante" NAO deve repetir o mesmo dado em pendencias_bloqueantes. Um fato = um registro. No máximo UMA pendência por campo_afetado — se tiver mais de uma sobre o mesmo campo, mantenha apenas a mais informativa.
 
 ═══ DOIS NIVEIS DE PENDENCIAS ═══
 pendencias_bloqueantes: itens que IMPEDEM a emissão da apólice (ex: valor estimado desconhecido).
 recomendacoes: itens de atenção operacional que não impedem a emissão (ex: "validar quantitativos", "confirmar vigência da ARP").
 Se um item é operacional e não impede a emissão: vai em recomendacoes, não em pendencias_bloqueantes.
+DEDUPLICACAO: no máximo UMA entrada em pendencias_bloqueantes por assunto/campo. Se o mesmo campo gerar múltiplas pendências, consolide em uma só.
 
 Retorne SOMENTE JSON válido, sem markdown:
 
@@ -160,24 +167,55 @@ function stripModelPrazoAlertas(parsed: Record<string, unknown>): void {
 }
 
 /**
- * Fix 3 — Deduplicação correta: alerta bloqueante MOVE para pendencias_bloqueantes
- * e SAI completamente do array de alertas. Um fato = um registro.
+ * Fix C — Deduplicação correta:
+ * 1. Deduplicação do array pendencias_bloqueantes gerado pelo modelo (pode ter duplicatas
+ *    com palavras diferentes sobre o mesmo campo).
+ * 2. Alertas bloqueantes MOVEM para pendencias e SAEM dos alertas.
+ *    Dedup por campo_afetado: um registro por campo, independente do texto.
  */
 function deduplicateBlockers(parsed: Record<string, unknown>): void {
   const alertas = getAlertas(parsed);
-  const pend: string[] = Array.isArray(parsed.pendencias_bloqueantes) ? parsed.pendencias_bloqueantes as string[] : [];
+  const rawPend: string[] = Array.isArray(parsed.pendencias_bloqueantes) ? parsed.pendencias_bloqueantes as string[] : [];
+
+  // Passagem 1: dedup do array de pendências vindo do modelo (mesmo fato, texto diferente).
+  // Usamos comparação por prefixo bidirecional.
+  const pendDeduped: string[] = [];
+  for (const p of rawPend) {
+    const dupWith = pendDeduped.find(e =>
+      e.slice(0, 60) === p.slice(0, 60) ||
+      e.includes(p.slice(0, 40)) ||
+      p.includes(e.slice(0, 40))
+    );
+    if (dupWith) {
+      console.log(`[dedup-pend] descartado (duplicata de '${dupWith.slice(0, 60)}'): '${p.slice(0, 80)}'`);
+    } else {
+      pendDeduped.push(p);
+    }
+  }
+
+  // Passagem 2: move alertas bloqueantes para pendências, dedup por campo_afetado.
+  const camposVistos = new Set<string>();
   const nonBlockers: Alerta[] = [];
+
   for (const a of alertas) {
     if (a.severidade === 'bloqueante') {
-      const alreadyInPend = pend.some(p => p.includes(a.texto.slice(0, 50)));
-      if (!alreadyInPend) pend.push(a.texto);
+      // Chave de dedup: campo_afetado quando presente, senão prefixo do texto
+      const campoKey = a.campo_afetado ?? `_nc_${a.texto.slice(0, 30)}`;
+      if (!camposVistos.has(campoKey)) {
+        camposVistos.add(campoKey);
+        const alreadyInPend = pendDeduped.some(p =>
+          p.includes(a.texto.slice(0, 50)) || a.texto.includes(p.slice(0, 50))
+        );
+        if (!alreadyInPend) pendDeduped.push(a.texto);
+      }
       // Não mantém no array de alertas — move completamente
     } else {
       nonBlockers.push(a);
     }
   }
+
   parsed.alertas = nonBlockers;
-  parsed.pendencias_bloqueantes = pend;
+  parsed.pendencias_bloqueantes = pendDeduped;
 }
 
 /** Trava positiva: valor_global_edital só aceito com trecho + página */
@@ -197,19 +235,38 @@ function enforcePositiveLock(parsed: Record<string, unknown>): void {
 }
 
 /**
- * Fix 1 — Trava positiva para vigencia_garantia_termo_inicial:
- * se vier preenchido SEM trecho literal, força para null (fallback conservador).
- * null no front assume sessão pública, que é o comportamento mais seguro.
+ * Fix B — Trava do vigencia_garantia_termo_inicial.
+ * Regra: dado encontrado + trecho presente → aceito (de onde vier, corpo ou anexo).
+ * Sem trecho → decisão por risco:
+ *   "emissao" sem trecho → zera (valor raro, alto risco se errado: quebra cálculo de datas)
+ *   "sessao_publica"/"entrega_proposta" sem trecho → mantém + alerta leve (valor mais comum,
+ *     mesmo que errado, front usa data_sessao_publica como fallback seguro)
  */
 function enforceTermoInicialLock(parsed: Record<string, unknown>): void {
-  if (parsed.vigencia_garantia_termo_inicial == null) return;
-  if (!parsed.vigencia_garantia_termo_inicial_trecho) {
-    console.warn(`[lock-termo] termo_inicial '${parsed.vigencia_garantia_termo_inicial}' sem trecho literal -> null`);
+  const termo = parsed.vigencia_garantia_termo_inicial;
+  if (termo == null) return;
+  const trecho = parsed.vigencia_garantia_termo_inicial_trecho;
+  if (trecho) {
+    // Trecho presente: dado aceito independente de origem (corpo ou anexo)
+    console.log(`[lock-termo] OK — termo:'${termo}' com trecho: '${String(trecho).slice(0, 60)}'`);
+    return;
+  }
+  // Sem trecho: aplica regra por risco
+  if (termo === 'emissao') {
+    // "emissao" sem evidência literal é a hallucination mais perigosa
+    console.warn(`[lock-termo] 'emissao' sem trecho -> null (alto risco)`);
     parsed.vigencia_garantia_termo_inicial = null;
     parsed.vigencia_garantia_termo_inicial_trecho = null;
     const alertas = getAlertas(parsed);
     alertas.push(makeAlerta('dado_ausente', 'atencao', 'vigencia_garantia_termo_inicial',
-      'Termo inicial da vigência da garantia não localizado com trecho literal. Usando padrão conservador (sessão pública).'));
+      'Termo inicial "emissão" descartado: sem trecho literal de suporte. Usando fallback conservador (sessão pública).'));
+    parsed.alertas = alertas;
+  } else {
+    // sessao_publica ou entrega_proposta sem trecho: mantém + aviso leve
+    console.warn(`[lock-termo] '${termo}' sem trecho — mantido com alerta info`);
+    const alertas = getAlertas(parsed);
+    alertas.push(makeAlerta('dado_ausente', 'info', 'vigencia_garantia_termo_inicial_trecho',
+      `Termo inicial '${termo}' extraído sem trecho literal de suporte. Verifique o edital.`));
     parsed.alertas = alertas;
   }
 }
@@ -297,22 +354,27 @@ Deno.serve(async (req) => {
 
     let parsed: Record<string, unknown> | null = rawResult ? tryParse(rawResult.text) : null;
 
-    // Fix 2 — Condições de escalamento para Sonnet:
+    // Escalamento para Sonnet:
     // (a) haiku falhou / JSON inválido / max_tokens
-    // (b) exige garantia de proposta mas valor_global_edital é null → recall insuficiente em doc longo
-    const needsSonnet = (
-      !rawResult ||
-      !parsed ||
-      rawResult.stop_reason === 'max_tokens' ||
-      (parsed?.exige_garantia_proposta === true && parsed?.valor_global_edital == null)
-    );
+    // (b) exige garantia de proposta E qualquer campo crítico está null
+    //     (cobre o caso em que valor_global veio preenchido mas percentual/vigência/CNPJ vieram null)
+    let needsSonnet = !rawResult || !parsed || rawResult.stop_reason === 'max_tokens';
+    if (!needsSonnet && parsed?.exige_garantia_proposta === true) {
+      const camposNulos: string[] = [];
+      if (parsed.valor_global_edital == null)             camposNulos.push('valor_global_edital');
+      if (parsed.percentual_garantia_proposta == null)    camposNulos.push('percentual_garantia_proposta');
+      if (parsed.vigencia_garantia_proposta_dias == null) camposNulos.push('vigencia_garantia_proposta_dias');
+      if (camposNulos.length > 0) {
+        needsSonnet = true;
+        sonnetReason = `campos_null_com_garantia:[${camposNulos.join(',')}]`;
+      }
+    }
 
     if (needsSonnet) {
       if (!sonnetReason) {
         if (!rawResult) sonnetReason = 'haiku_error';
         else if (!parsed) sonnetReason = 'parse_fail';
         else if (rawResult.stop_reason === 'max_tokens') sonnetReason = 'max_tokens';
-        else sonnetReason = 'valor_null_com_garantia_exigida';
       }
       console.warn(`[escalamento] Sonnet | motivo: ${sonnetReason}`);
       const r = await callClaude('claude-sonnet-4-6', fileBlocks, additionalInstructions);
@@ -320,7 +382,7 @@ Deno.serve(async (req) => {
     }
 
     const { stop_reason, output_tokens, input_tokens } = rawResult!;
-    console.log(`analyze-edital v11 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in/${output_tokens}out | parse:${!!parsed}`);
+    console.log(`analyze-edital v13 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in/${output_tokens}out | parse:${!!parsed}`);
     if (stop_reason === 'max_tokens') console.error(`[TRUNCAMENTO] ${output_tokens} tokens`);
 
     let resultado: Record<string, unknown>;
