@@ -24,7 +24,7 @@ export interface Alerta {
 // ── Quatro estados para garantia de execução ─────────────────────────────────
 export type GarantiaExecucaoState = boolean | 'condicionada' | null | undefined;
 
-// ── Tipo completo da resposta do analyze-edital v9 ────────────────────────────
+// ── Tipo completo da resposta do analyze-edital v11 ───────────────────────────
 export interface EditalData {
   // Identificação
   orgao_nome?:                     string | null;
@@ -51,7 +51,9 @@ export interface EditalData {
   base_calculo_garantia?:          'global' | 'por_item' | 'nao_especificado' | null;
   modalidades_aceitas_garantia?:   string[] | null;
   vigencia_garantia_proposta_dias?: number | null;
-  vigencia_garantia_termo_inicial?: string | null;
+  vigencia_garantia_termo_inicial?: 'sessao_publica' | 'entrega_proposta' | 'emissao' | null;
+  /** Fix 1: trecho literal que justifica o termo inicial (v11+) */
+  vigencia_garantia_termo_inicial_trecho?: string | null;
   consequencia_nao_apresentacao?:  string | null;
   hipoteses_execucao?:             string | null;
 

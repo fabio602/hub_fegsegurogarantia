@@ -355,7 +355,8 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               {result.formula_calculo && (
                 <p className="text-sm text-slate-600"><span className="font-black text-slate-700">Fórmula:</span> {result.formula_calculo}</p>
               )}
-              {result.divergencia_validade_proposta && (
+              {result.divergencia_validade_proposta &&
+               !/nenhuma diverg|sem diverg|não há diverg|nao ha diverg/i.test(result.divergencia_validade_proposta) && (
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                   <span className="font-black">Divergência de validade:</span> {result.divergencia_validade_proposta}
                 </p>
