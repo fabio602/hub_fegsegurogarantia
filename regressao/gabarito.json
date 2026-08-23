@@ -1,0 +1,100 @@
+{
+  "_descricao": "Gabarito de regressão do analyze-edital. Cada caso foi conferido manualmente contra o texto do PDF (pdftotext -layout). O campo _trecho traz a citação literal e o _linha o número da linha no texto extraído, para auditoria. Valor null significa 'o edital NÃO declara este dado' — null é a resposta correta, não uma falha.",
+  "_versao": 1,
+  "_data": "2026-08-23",
+  "casos": [
+    {
+      "id": "maraba-cp-148-2026",
+      "arquivo": "Edital - CP 148-06 - Esc Sol Poente - V Carrapato.pdf",
+      "orgao": "Prefeitura Municipal de Marabá / SEMED",
+      "modalidade": "Concorrência Eletrônica 148/2026",
+      "por_que_esta_na_bateria": "Caso base. Beneficiário é uma SECRETARIA (SEMED), não a prefeitura. Percentual no corpo (4.15), CNPJ do beneficiário sete itens abaixo (4.22), valor global só na planilha do Anexo V.",
+      "esperado": {
+        "valor_global_edital": 1393413.10,
+        "exige_garantia_proposta": true,
+        "percentual_garantia_proposta": 1,
+        "valor_garantia_proposta_calculado": 13934.13,
+        "vigencia_garantia_proposta_dias": 180,
+        "vigencia_garantia_termo_inicial": "sessao_publica",
+        "orgao_cnpj": "27.927.574/0001-66",
+        "data_sessao_publica": "2026-08-24T09:00"
+      },
+      "evidencias": {
+        "percentual": "item 4.15 — 'Será exigida a garantia da proposta de que trata o Art. 58, § 1º da Lei nº 14.133, de 2021, no percentual de 1% (um por cento) do valor total estimado da contratação'",
+        "orgao_cnpj": "item 4.22 (linha 948) — '...em favor do órgão contratante, no presente caso, a Secretaria Municipal de Educação - SEMED (...) inscrita no CNPJ sob N.º 27.927.574/0001-66'",
+        "vigencia": "item 4.23 — 'prazo de validade MÍNIMA de 180 (cento e oitenta) dias, contados a partir da data de abertura da proposta'",
+        "valor_global": "Anexo V - Planilha Orçamentária — 'Total Geral 1.393.413,10'"
+      }
+    },
+    {
+      "id": "araujos-conc-03-2026",
+      "arquivo": "EDITAL (4) (1).pdf",
+      "orgao": "Prefeitura Municipal de Araújos/MG",
+      "modalidade": "Concorrência Eletrônica 03/2026",
+      "por_que_esta_na_bateria": "Beneficiário é o MUNICÍPIO, não uma secretaria — caso oposto ao de Marabá. O CNPJ NÃO aparece na cláusula de garantia: só no cabeçalho/rodapé de todas as páginas. O edital NÃO declara vigência da garantia de proposta — a única validade de 60 dias é a da PROPOSTA (item 7.6), armadilha clássica de confusão.",
+      "esperado": {
+        "valor_global_edital": 468380.42,
+        "exige_garantia_proposta": true,
+        "percentual_garantia_proposta": 1,
+        "valor_garantia_proposta_calculado": 4683.80,
+        "vigencia_garantia_proposta_dias": null,
+        "vigencia_garantia_termo_inicial": null,
+        "orgao_cnpj": "18.300.996/0001-16",
+        "data_sessao_publica": "2026-08-19T09:00"
+      },
+      "evidencias": {
+        "percentual": "item 7.11.1 (linha 371) — 'os licitantes deverão juntar à Proposta, comprovantes da prestação de garantia de 1% (um por cento) sobre o valor de referência constante do Projeto Básico, Anexo I deste Edital, no seu título 6'; confirmado no Anexo I item 6.3",
+        "valor_global": "Anexo I - Projeto Básico, item 6.1 (linha 1227) — 'O valor total estimado para execução da obra será de R$ 468.380,42'",
+        "orgao_cnpj": "cabeçalho de todas as páginas — 'PREFEITURA MUNICIPAL DE ARAÚJOS / CNPJ 18.300.996/0001-16'",
+        "vigencia_ausente": "NÃO existe cláusula de vigência para a garantia de proposta. O item 7.6 (linha 341) trata da validade da PROPOSTA: 'O prazo de validade da proposta é fixado em 60 (sessenta) dias'. Preencher 60 aqui é ERRO."
+      }
+    },
+    {
+      "id": "paulista-pb-pe-00026-2026",
+      "arquivo": "EDITAL - PAULISTA-PB.pdf",
+      "orgao": "Prefeitura Municipal de Paulista/PB",
+      "modalidade": "Pregão Eletrônico 00026/2026 - Registro de Preços",
+      "por_que_esta_na_bateria": "Registro de preços por ITEM: o valor global não aparece no corpo, só no Termo de Referência (item 11.1) e como 'Total' de uma tabela de dois itens. Vigência da garantia declarada (60 dias) com termo inicial explícito. Beneficiário é o município, com CNPJ presente na própria seção da garantia (item 8.4.3, linha do Pix).",
+      "esperado": {
+        "valor_global_edital": 144977.78,
+        "exige_garantia_proposta": true,
+        "percentual_garantia_proposta": 1,
+        "valor_garantia_proposta_calculado": 1449.78,
+        "vigencia_garantia_proposta_dias": 60,
+        "vigencia_garantia_termo_inicial": "sessao_publica",
+        "orgao_cnpj": "08.945.727/0001-53",
+        "data_sessao_publica": "2026-08-12T10:00"
+      },
+      "evidencias": {
+        "percentual_e_vigencia": "item 8.4.1 (linha 263) — 'o valor da garantia da proposta deverá ser de 1% (um por cento) do valor estimado para a contratação, que deverá estar em nome do Município de Paulista/PB, com validade de no mínimo 60 (sessenta) dias a contar da data de abertura da licitação'",
+        "valor_global": "Termo de Referência, item 11.1 (linha 1822) — 'O custo estimado total da contratação é de R$ 144.977,78'; tabela de itens fecha em 'TOTAL 144.977,78'",
+        "orgao_cnpj": "item 8.4.3 (dados da conta para caução) — 'Pix: CNPJ: 08.945.727/0001-53 / MUNICÍPIO DE PAULISTA'; mesmo CNPJ no cabeçalho"
+      }
+    },
+    {
+      "id": "curvelo-pe-013-2026",
+      "pular": true,
+      "motivo_pulo": "396 páginas × ~3.000 tokens/pág ≈ 1,2M tokens, acima da janela de 200k do Haiku e do Sonnet. A API rejeitaria ou truncaria o documento. Incluir quando a função suportar documentos divididos.",
+      "arquivo": "EDITAL_PGE_13-2026_PARA_ASSINATURA_assinado.pdf",
+      "orgao": "Município de Curvelo/MG",
+      "modalidade": "Pregão Eletrônico 013/2026 - Registro de Preços",
+      "por_que_esta_na_bateria": "CASO NEGATIVO — este edital NÃO exige garantia de proposta. Nenhuma menção a art. 58 §1º, a seguro-garantia ou a garantia de participação em 396 páginas. Serve para detectar FALSO POSITIVO: o prompt e o deriveExigeGarantia empurram o modelo a procurar garantia agressivamente, e a validade de proposta de 60 dias pode ser confundida com vigência de garantia, o que dispararia exige_garantia_proposta = true indevidamente.",
+      "esperado": {
+        "valor_global_edital": 1348709.74,
+        "exige_garantia_proposta": false,
+        "percentual_garantia_proposta": null,
+        "valor_garantia_proposta_calculado": null,
+        "vigencia_garantia_proposta_dias": null,
+        "vigencia_garantia_termo_inicial": null,
+        "orgao_cnpj": null,
+        "data_sessao_publica": "2026-07-17T09:00"
+      },
+      "evidencias": {
+        "sem_garantia": "Busca por 'garantia de proposta', 'garantia da proposta', 'art. 58', 'seguro-garantia' e 'art. 96' em todo o texto: zero ocorrências. As únicas menções a 'garantia' são FGTS, garantia do fabricante e prazo de garantia do produto.",
+        "valor_global": "capa do edital (linha 29) — 'VALOR TOTAL DA CONTRATAÇÃO R$ 1.348.709,74'",
+        "orgao_cnpj_ausente": "o edital não imprime o CNPJ do município em nenhuma página — null é a resposta correta",
+        "armadilha": "item 5.11 (linha 353) — 'Prazo de validade da proposta e de preço de no mínimo 60 (sessenta) dias'. Isto NÃO é vigência de garantia."
+      }
+    }
+  ]
+}

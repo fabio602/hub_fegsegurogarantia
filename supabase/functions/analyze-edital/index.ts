@@ -281,7 +281,21 @@ function enforceTermoInicialLock(parsed: Record<string, unknown>): void {
       parsed.alertas = alertas;
       return;
     }
-    // Trecho presente e sobre garantia: aceito independente de origem
+    // O trecho precisa nomear o marco inicial que está justificando.
+    // Fragmento sem marco ("a contar de sua apresentação") não é evidência.
+    const ANCORA_TERMO = /abertura\s+d[ao]\s+(sess[ãa]o|licita[çc][ãa]o|proposta|certame)|entrega\s+d[ao]s?\s+propostas?|apresenta[çc][ãa]o\s+d[ao]s?\s+propostas?|emiss[ãa]o\s+d[ao]\s+(ap[óo]lice|garantia|seguro)|data\s+d[ao]\s+sess[ãa]o/i;
+    if (!ANCORA_TERMO.test(String(trecho))) {
+      console.warn(`[lock-termo] trecho não nomeia marco inicial -> null | trecho: '${String(trecho).slice(0, 80)}'`);
+      parsed.vigencia_garantia_termo_inicial = null;
+      parsed.vigencia_garantia_termo_inicial_trecho = null;
+      parsed.vigencia_garantia_proposta_dias = null;
+      const alertas = getAlertas(parsed);
+      alertas.unshift(makeAlerta('dado_ausente', 'atencao', 'vigencia_garantia_termo_inicial',
+        'Vigência da garantia descartada: o trecho citado não identifica a partir de qual evento o prazo é contado. Confirme a cláusula no edital antes de emitir.'));
+      parsed.alertas = alertas;
+      return;
+    }
+    // Trecho presente e nomeia marco inicial: aceito
     console.log(`[lock-termo] OK — termo:'${termo}' com trecho: '${String(trecho).slice(0, 60)}'`);
     return;
   }
