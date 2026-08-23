@@ -12,10 +12,9 @@ const corsHeaders = {
 
 const RequiredFieldsSchema = z.object({
   objeto: z.string(),
-  exige_garantia_proposta: z.boolean({
-    required_error: 'exige_garantia_proposta ausente',
-    invalid_type_error: 'exige_garantia_proposta deve ser boolean',
-  }),
+  // Aceita boolean ou null: null = "não determinado" é tratado pela UI como indeterminado.
+  // A coerção para false foi removida — "não sei" != "não exige".
+  exige_garantia_proposta: z.boolean().nullable().optional(),
 });
 
 const SYSTEM_PROMPT = `Você atua como analista técnico de subscrição de Seguro Garantia da F&G Seguro Garantia (SUSEP 242160653), especializado na Lei 14.133/2021.
@@ -25,15 +24,13 @@ O EDITAL é o conjunto: corpo principal + TODOS os anexos (Termo de Referência,
 O campo *_pagina é METADADO DE AUDITORIA (ex: "Anexo I - TR, item 4.15") — nunca é critério de aceitação ou rejeição do dado.
 As cláusulas de garantia de proposta (percentual, vigência, beneficiário, CNPJ do órgão) TIPICAMENTE aparecem no Termo de Referência ou nos anexos — procure ali por padrão antes de concluir que o dado está ausente.
 
-REGRA DO orgao_cnpj: o campo orgao_cnpj é o CNPJ da entidade que o edital designa como FAVORECIDA/BENEFICIÁRIA da garantia de proposta — identificada na própria cláusula de garantia pela fórmula "prestada em favor de" ou "em favor do órgão contratante". Se a cláusula nomeia uma secretaria, autarquia ou fundo específico (ex: SEMED, SEFAZ, SAAE), é o CNPJ desse ente — NÃO o do município ou estado. A cláusula de garantia é fonte SUFICIENTE E PREFERENCIAL para orgao_cnpj, independentemente de onde no documento ela apareça. Se o CNPJ estiver presente com trecho literal: preencha o campo, NÃO emita alerta de dado_ausente e NÃO inclua recomendação pedindo para validar ou confirmar qual CNPJ usar.
-
 ═══ PRINCIPIO ZERO ═══
 Sua única fonte legítima de valor_global_edital é o número que o órgão licitante declarou explicitamente como valor estimado total da contratação — em qualquer parte do conjunto edital (corpo ou anexo).
 Se esse número não estiver em nenhuma parte do edital: valor_global_edital = null, valor_global_edital_trecho = null, valor_global_edital_pagina = null.
 Se o valor estiver presente, OBRIGATÓRIO preencher valor_global_edital_trecho (trecho literal, max 150 chars) e valor_global_edital_pagina (localização, ex: "Anexo V - Planilha Orçamentária, p. 50").
 Procure por "Total Geral", "Valor total estimado", "Valor global estimado" em TODAS as páginas, incluindo os últimos anexos.
 
-ONDE PROCURAR O CNPJ DO ÓRGÃO: aparece na cláusula de garantia de proposta ("prestada em favor de ... inscrita no CNPJ sob nº ...") — pode ser o CNPJ da secretaria/autarquia contratante, não o da prefeitura central.
+orgao_cnpj: copie o CNPJ que aparecer na cláusula de garantia de proposta, junto do trecho literal. Esse CNPJ é o correto — não procure outro nem compare com o de outra entidade.
 
 ═══ TRES CONFUSOES PROIBIDAS ═══
 1. PRECO DA PROPOSTA DO LICITANTE != VALOR ESTIMADO DA CONTRATACAO.
@@ -156,6 +153,29 @@ function getAlertas(parsed: Record<string, unknown>): Alerta[] {
   );
 }
 
+/**
+ * Fix 2 — Derivação determinística de exige_garantia_proposta.
+ * Se o modelo preencheu qualquer campo de garantia de proposta (percentual, vigência,
+ * modalidades), a garantia é exigida — independente do que o modelo respondeu no campo.
+ * Corrige casos em que o modelo cita a cláusula mas não fecha o boolean.
+ */
+function deriveExigeGarantia(parsed: Record<string, unknown>): void {
+  const atual = parsed.exige_garantia_proposta;
+  const evidencias: string[] = [];
+  if (parsed.percentual_garantia_proposta != null)    evidencias.push('percentual_garantia_proposta');
+  if (parsed.vigencia_garantia_proposta_dias != null) evidencias.push('vigencia_garantia_proposta_dias');
+  if (Array.isArray(parsed.modalidades_aceitas_garantia) && parsed.modalidades_aceitas_garantia.length > 0)
+    evidencias.push('modalidades_aceitas_garantia');
+  if (parsed.vigencia_garantia_termo_inicial != null) evidencias.push('vigencia_garantia_termo_inicial');
+
+  if (evidencias.length > 0 && atual !== true) {
+    console.log(`[deriva-garantia] exige_garantia_proposta: ${JSON.stringify(atual)} -> true (evidências: ${evidencias.join(', ')})`);
+    parsed.exige_garantia_proposta = true;
+  }
+  // Sem coerção para false: "não determinado" fica null.
+  // A UI trata via describeTriState — o aviso "verifique manualmente" é o comportamento correto.
+}
+
 /** Remove alertas tipo "prazo" gerados pelo modelo (TypeScript os recalcula) */
 function stripModelPrazoAlertas(parsed: Record<string, unknown>): void {
   const alertas = getAlertas(parsed);
@@ -247,7 +267,21 @@ function enforceTermoInicialLock(parsed: Record<string, unknown>): void {
   if (termo == null) return;
   const trecho = parsed.vigencia_garantia_termo_inicial_trecho;
   if (trecho) {
-    // Trecho presente: dado aceito independente de origem (corpo ou anexo)
+    // Verifica se o trecho é sobre validade da PROPOSTA (art. 59) e não da GARANTIA de proposta
+    const MENCIONA_GARANTIA = /garantia|cau[çc][ãa]o|seguro[- ]garantia|fian[çc]a/i;
+    const VALIDADE_DA_PROPOSTA = /valid(ade|ade\s+m[ií]nima)\s+d[ao]s?\s+propostas?/i;
+    if (VALIDADE_DA_PROPOSTA.test(String(trecho)) && !MENCIONA_GARANTIA.test(String(trecho))) {
+      console.warn(`[lock-termo] trecho é validade da PROPOSTA, não da garantia -> null`);
+      parsed.vigencia_garantia_termo_inicial = null;
+      parsed.vigencia_garantia_termo_inicial_trecho = null;
+      parsed.vigencia_garantia_proposta_dias = null;
+      const alertas = getAlertas(parsed);
+      alertas.unshift(makeAlerta('dado_ausente', 'atencao', 'vigencia_garantia_proposta_dias',
+        'O edital não declara vigência para a garantia de proposta. O prazo encontrado refere-se à validade da PROPOSTA (art. 59 da Lei 14.133/2021), que é coisa distinta. Defina a vigência pela política de subscrição.'));
+      parsed.alertas = alertas;
+      return;
+    }
+    // Trecho presente e sobre garantia: aceito independente de origem
     console.log(`[lock-termo] OK — termo:'${termo}' com trecho: '${String(trecho).slice(0, 60)}'`);
     return;
   }
@@ -356,17 +390,23 @@ Deno.serve(async (req) => {
 
     // Escalamento para Sonnet:
     // (a) haiku falhou / JSON inválido / max_tokens
-    // (b) exige garantia de proposta E qualquer campo crítico está null
-    //     (cobre o caso em que valor_global veio preenchido mas percentual/vigência/CNPJ vieram null)
+    // (b) exige_garantia_proposta não é booleano estrito → parse degradado, sempre re-tenta
+    // (c) exige_garantia_proposta === true E qualquer campo crítico está null
     let needsSonnet = !rawResult || !parsed || rawResult.stop_reason === 'max_tokens';
-    if (!needsSonnet && parsed?.exige_garantia_proposta === true) {
-      const camposNulos: string[] = [];
-      if (parsed.valor_global_edital == null)             camposNulos.push('valor_global_edital');
-      if (parsed.percentual_garantia_proposta == null)    camposNulos.push('percentual_garantia_proposta');
-      if (parsed.vigencia_garantia_proposta_dias == null) camposNulos.push('vigencia_garantia_proposta_dias');
-      if (camposNulos.length > 0) {
+    if (!needsSonnet) {
+      if (typeof parsed!.exige_garantia_proposta !== 'boolean') {
         needsSonnet = true;
-        sonnetReason = `campos_null_com_garantia:[${camposNulos.join(',')}]`;
+        sonnetReason = 'exige_garantia_nao_booleano';
+      } else if (parsed!.exige_garantia_proposta === true) {
+        const camposNulos: string[] = [];
+        if (parsed!.valor_global_edital == null)             camposNulos.push('valor_global_edital');
+        if (parsed!.percentual_garantia_proposta == null)    camposNulos.push('percentual_garantia_proposta');
+        if (parsed!.vigencia_garantia_proposta_dias == null) camposNulos.push('vigencia_garantia_proposta_dias');
+        if (parsed!.orgao_cnpj == null)                      camposNulos.push('orgao_cnpj');
+        if (camposNulos.length > 0) {
+          needsSonnet = true;
+          sonnetReason = `campos_null_com_garantia:[${camposNulos.join(',')}]`;
+        }
       }
     }
 
@@ -377,12 +417,34 @@ Deno.serve(async (req) => {
         else if (rawResult.stop_reason === 'max_tokens') sonnetReason = 'max_tokens';
       }
       console.warn(`[escalamento] Sonnet | motivo: ${sonnetReason}`);
-      const r = await callClaude('claude-sonnet-4-6', fileBlocks, additionalInstructions);
-      usedModel = 'sonnet'; rawResult = r; parsed = tryParse(r.text);
+      try {
+        const r = await callClaude('claude-sonnet-4-6', fileBlocks, additionalInstructions);
+        usedModel = 'sonnet'; rawResult = r; parsed = tryParse(r.text);
+      } catch (sonnetErr) {
+        // Degradação graceful: mantém resultado do Haiku se disponível, nunca derruba
+        console.error(`[sonnet-falhou] ${String(sonnetErr)} — mantendo resultado do Haiku`);
+        if (parsed) {
+          const alertas = getAlertas(parsed);
+          alertas.unshift(makeAlerta('outro', 'atencao', null,
+            'Segunda análise (Sonnet) não pôde ser executada. Resultado baseado apenas na análise inicial — revisar campos críticos manualmente.'));
+          parsed.alertas = alertas;
+        }
+        // rawResult e parsed permanecem os do Haiku; usedModel fica 'haiku'
+      }
     }
 
-    const { stop_reason, output_tokens, input_tokens } = rawResult!;
-    console.log(`analyze-edital v13 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in/${output_tokens}out | parse:${!!parsed}`);
+    if (!rawResult) {
+      const msg = sonnetReason === 'haiku_error'
+        ? 'Não foi possível analisar o edital. Documentos muito extensos (acima de ~65 páginas) excedem o limite de processamento. Tente enviar apenas o corpo do edital e os anexos relevantes.'
+        : 'Não foi possível analisar o edital. Nenhum dos modelos retornou resultado.';
+      console.error(`[falha-total] motivo:${sonnetReason}`);
+      return new Response(JSON.stringify({ success: false, error: msg }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { stop_reason, output_tokens, input_tokens } = rawResult;
+    console.log(`analyze-edital v15 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in/${output_tokens}out | parse:${!!parsed}`);
     if (stop_reason === 'max_tokens') console.error(`[TRUNCAMENTO] ${output_tokens} tokens`);
 
     let resultado: Record<string, unknown>;
@@ -397,6 +459,8 @@ Deno.serve(async (req) => {
       };
     } else {
       // Pipeline de travas e normalizações (ordem importa):
+      // 0. Deriva exige_garantia_proposta deterministicamente (garante boolean estrito)
+      deriveExigeGarantia(parsed);
       // 1. Remove alertas tipo prazo do modelo
       stripModelPrazoAlertas(parsed);
       // 2. Trava positiva do valor_global_edital
@@ -428,6 +492,8 @@ Deno.serve(async (req) => {
       }
       resultado = parsed;
     }
+    // Metadado de observabilidade: modelo que produziu o resultado
+    resultado._modelo = usedModel;
     return new Response(JSON.stringify({ success: true, data: resultado }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
