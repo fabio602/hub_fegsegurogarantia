@@ -1,0 +1,222 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const ZAPI_INSTANCE_ID = '3F7C45AF93AD91301C9696FEEDA07377';
+const ZAPI_TOKEN = '8E9F5BD8488D8591141B0834';
+const ZAPI_CLIENT_TOKEN = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Statuses que o sistema pode avançar automaticamente.
+// Qualquer status fora desta lista foi definido manualmente e deve ser preservado.
+const AUTO_ADVANCE_STATUSES = new Set(['novo', 'em atendimento']);
+
+const WELCOME_MESSAGE = `Sou a assistente aqui da F&G Seguro Garantia!\n\nChamei o Fábio Lima, nosso especialista, e ele já vai te responder.\n\nSó um momento, por favor 😊\n\nAh, enquanto isso, se quiser já me conta o que precisa.`;
+
+function startOfDayBrasilia(): string {
+  const now = new Date();
+  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const midnight = new Date(Date.UTC(
+    brasilia.getUTCFullYear(), brasilia.getUTCMonth(), brasilia.getUTCDate(),
+    3, 0, 0, 0
+  ));
+  if (now.getUTCHours() < 3) midnight.setUTCDate(midnight.getUTCDate() - 1);
+  return midnight.toISOString();
+}
+
+async function sendWhatsApp(phone: string, message: string): Promise<string | null> {
+  const res = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
+    body: JSON.stringify({ phone, message }),
+  });
+  const data = await res.json();
+  return data?.zaapId ?? data?.messageId ?? null;
+}
+
+async function downloadToBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const uint8 = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+    return btoa(binary);
+  } catch { return null; }
+}
+
+function extractText(body: any): string {
+  const direct = [
+    body?.text?.message, body?.conversation, body?.body, body?.caption, body?.content,
+    body?.message?.body, body?.message?.text, body?.message?.conversation,
+    body?.image?.caption, body?.video?.caption, body?.document?.caption, body?.audio?.caption,
+    body?.listMessage?.description, body?.buttonMessage?.contentText,
+  ];
+  for (const v of direct) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  const targets = new Set(['text','message','body','conversation','caption','content']);
+  function search(obj: any, depth = 0): string {
+    if (!obj || typeof obj !== 'object' || depth > 4) return '';
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string' && v.trim() && targets.has(k.toLowerCase())) return v.trim();
+      if (typeof v === 'object') { const found = search(v, depth + 1); if (found) return found; }
+    }
+    return '';
+  }
+  return search(body);
+}
+
+async function trySaveSurveyScore(supabase: any, phone: string, messageText: string): Promise<void> {
+  const trimmed = messageText.trim();
+  const score = parseInt(trimmed);
+  if (isNaN(score) || score < 1 || score > 5 || trimmed.length > 1) return;
+  const digits = phone.replace(/\D/g, '');
+  const withDDI    = digits.startsWith('55') && digits.length >= 12 ? digits : `55${digits}`;
+  const withoutDDI = withDDI.slice(2);
+  const { data: sales } = await supabase.from('sales').select('id, nome, decisor, telefone')
+    .is('survey_score', null).not('telefone', 'is', null).order('created_at', { ascending: false }).limit(100);
+  if (!sales?.length) return;
+  const match = sales.find((s: any) => {
+    const sDigits = (s.telefone ?? '').replace(/\D/g, '');
+    if (!sDigits) return false;
+    return sDigits === withDDI || sDigits === withoutDDI || sDigits.endsWith(withoutDDI) || withDDI.endsWith(sDigits) || withoutDDI.endsWith(sDigits);
+  });
+  if (!match) return;
+  await supabase.from('sales').update({ survey_score: score, survey_sent: true }).eq('id', match.id);
+  const primeiroNome = (match.decisor || match.nome || 'cliente').trim().split(/[\s/,]+/)[0];
+  const agradecimento = `Obrigado, ${primeiroNome}! É com esse retorno que continuamos melhorando para te atender cada vez melhor.\n\nQualquer necessidade, estamos aqui! 😊\nF&G Seguro Garantia`;
+  await sendWhatsApp(phone, agradecimento);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  try {
+    const body = await req.json();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const isFromMe: boolean = body.fromMe === true || body.isMe === true ||
+      body.type === 'SentCallback' || body.type === 'SendMsgAction' || body.type === 'SendMsgCallback';
+
+    if (!isFromMe && body.participantPhone) {
+      return new Response(JSON.stringify({ ignored: true, reason: 'group_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const rawPhone: string = body.phone ?? body.chatId?.replace('@c.us', '') ?? '';
+    if (!rawPhone || rawPhone.includes('@') || rawPhone.includes('-')) {
+      return new Response(JSON.stringify({ ignored: true, reason: 'invalid_phone' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const phone = rawPhone;
+    const name: string = body.chatName ?? body.senderName ?? phone;
+    const zapiId: string | null = body.messageId ?? body.zaapId ?? null;
+
+    // ── MENSAGENS ENVIADAS ─────────────────────────────────────
+    if (isFromMe) {
+      const messageText = extractText(body);
+      if (!messageText) {
+        await supabase.from('whatsapp_messages').insert({
+          phone, name, message: '[DEBUG fromMe] payload: ' + JSON.stringify(body).slice(0, 500),
+          direction: 'outbound', status: 'debug',
+        });
+      }
+      let isBotMessage = false;
+      if (messageText) {
+        const since30 = new Date(Date.now() - 30000).toISOString();
+        const { data: botMsg } = await supabase.from('whatsapp_messages')
+          .select('id').eq('phone', phone).eq('message', messageText)
+          .eq('direction', 'outbound').gte('created_at', since30).limit(1);
+        isBotMessage = !!(botMsg && botMsg.length > 0);
+      }
+      if (!isBotMessage) {
+        const { data: existingLead } = await supabase
+          .from('whatsapp_leads').select('id, status').eq('phone', phone).maybeSingle();
+        if (existingLead) {
+          const updatePayload: Record<string, string> = { updated_at: new Date().toISOString() };
+          if (AUTO_ADVANCE_STATUSES.has(existingLead.status)) {
+            updatePayload.status = 'em atendimento';
+          }
+          await supabase.from('whatsapp_leads').update(updatePayload).eq('phone', phone);
+        } else {
+          await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString() });
+        }
+        if (messageText) {
+          await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId });
+        }
+        return new Response(JSON.stringify({ success: true, bot: false, reason: 'human_sent' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'bot_echo' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── MENSAGENS RECEBIDAS ──────────────────────────────────────
+    if (body.type !== 'ReceivedCallback') {
+      return new Response(JSON.stringify({ ignored: true, reason: 'unknown_type' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const audioObj = body.audio ?? body.audioMessage ?? null;
+    if (audioObj) {
+      const audioUrl: string = audioObj.audioUrl ?? audioObj.url ?? '';
+      await supabase.from('whatsapp_messages').insert({ phone, name, message: '[Áudio]', audio_url: audioUrl || null, direction: 'inbound', zapi_id: zapiId });
+      await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString() }, { onConflict: 'phone', ignoreDuplicates: false });
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'audio_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    let messageText: string = body.text?.message ?? body.image?.caption ?? body.document?.caption ?? '';
+    const docObj = body.documentMessage ?? body.document ?? null;
+    if (docObj) {
+      const docFilename: string = docObj.title ?? docObj.filename ?? docObj.fileName ?? 'arquivo.pdf';
+      let docBase64: string | undefined;
+      if (docObj.url) docBase64 = await downloadToBase64(docObj.url) ?? undefined;
+      if (!messageText) messageText = docBase64 ? `[PDF: ${docFilename}]` : `[PDF recebido: ${docFilename}]`;
+    }
+    if (!messageText) {
+      return new Response(JSON.stringify({ ignored: true, reason: 'empty_text' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'inbound', zapi_id: zapiId });
+    await trySaveSurveyScore(supabase, phone, messageText);
+
+    const { data: existingLead } = await supabase.from('whatsapp_leads').select('status').eq('phone', phone).maybeSingle();
+    if (existingLead) {
+      await supabase.from('whatsapp_leads').update({ name, updated_at: new Date().toISOString() }).eq('phone', phone);
+      if (existingLead.status !== 'novo') {
+        return new Response(JSON.stringify({ success: true, bot: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } else {
+      await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'novo', updated_at: new Date().toISOString() });
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const { data: newerMsgs } = await supabase.from('whatsapp_messages')
+      .select('id').eq('phone', phone).eq('direction', 'inbound')
+      .gt('created_at', new Date(Date.now() - 2500).toISOString()).limit(2);
+    if (newerMsgs && newerMsgs.length > 1) {
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'burst_debounce' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const todayStart = startOfDayBrasilia();
+    const { data: todayReply } = await supabase.from('whatsapp_messages')
+      .select('id').eq('phone', phone).eq('direction', 'outbound').gte('created_at', todayStart).limit(1);
+    if (todayReply && todayReply.length > 0) {
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'already_today' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const sentZapiId = await sendWhatsApp(phone, WELCOME_MESSAGE);
+    await supabase.from('whatsapp_messages').insert({ phone, name, message: WELCOME_MESSAGE, direction: 'outbound', status: 'sent', zapi_id: sentZapiId });
+    await supabase.from('whatsapp_leads').update({ status: 'em atendimento', updated_at: new Date().toISOString() }).eq('phone', phone).eq('status', 'novo');
+
+    return new Response(JSON.stringify({ success: true, bot: 'welcome' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[whatsapp-webhook]', msg);
+    return new Response(JSON.stringify({ success: false, error: msg }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+});
