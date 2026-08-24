@@ -1,7 +1,7 @@
 {
   "_descricao": "Gabarito de regressão do analyze-edital. Cada caso foi conferido manualmente contra o texto do PDF (pdftotext -layout). O campo _trecho traz a citação literal e o _linha o número da linha no texto extraído, para auditoria. Valor null significa 'o edital NÃO declara este dado' — null é a resposta correta, não uma falha.",
-  "_versao": 1,
-  "_data": "2026-08-23",
+  "_versao": 2,
+  "_data": "2026-08-24",
   "casos": [
     {
       "id": "maraba-cp-148-2026",
@@ -94,6 +94,38 @@
         "valor_global": "capa do edital (linha 29) — 'VALOR TOTAL DA CONTRATAÇÃO R$ 1.348.709,74'",
         "orgao_cnpj_ausente": "o edital não imprime o CNPJ do município em nenhuma página — null é a resposta correta",
         "armadilha": "item 5.11 (linha 353) — 'Prazo de validade da proposta e de preço de no mínimo 60 (sessenta) dias'. Isto NÃO é vigência de garantia."
+      }
+    },
+    {
+      "id": "mortugaba-ba-pe-012-2026",
+      "arquivo": "EDITAL - MORTUGABA-BA 012-2026.pdf",
+      "orgao": "Prefeitura Municipal de Mortugaba/BA",
+      "modalidade": "Pregão Eletrônico SRP 012/2026",
+      "por_que_esta_na_bateria": "CASO DE USO REAL — cotado em produção em 23/08/2026 com resultado aceito pelo corretor, ANTES dos locks de vigência entrarem no ar. Serve de detector de regressão: se os locks apertarem demais, é aqui que aparece. Traz também um modo de falha que nenhum outro caso cobre: a BASE DE CÁLCULO é POR LOTE, não sobre o valor global — 1% do(s) lote(s) em que o licitante participar. Duas armadilhas de vigência distintas das de Araújos: validade da proposta (60 dias, linha 328) e prazo de devolução da garantia (10 dias úteis, linha 159). A seção de garantia NÃO fixa prazo de validade.",
+      "esperado": {
+        "valor_global_edital": 483150.00,
+        "exige_garantia_proposta": true,
+        "percentual_garantia_proposta": 1,
+        "valor_garantia_proposta_calculado": 4831.50,
+        "vigencia_garantia_proposta_dias": null,
+        "vigencia_garantia_termo_inicial": null,
+        "orgao_cnpj": "13.677.687/0001-46",
+        "data_sessao_publica": "2026-08-28T11:30"
+      },
+      "esperado_nao_testado": {
+        "_nota": "Campos que o gabarito documenta mas que rodar.ts ainda NÃO compara. Incluir em CAMPOS_TESTADOS quando a função passar a tratá-los.",
+        "base_calculo_garantia": "lote"
+      },
+      "evidencias": {
+        "percentual_e_base_lote": "item 5 - DA GARANTIA DE PROPOSTA (linha 151) — 'Como requisito de pré-habilitação, será exigida garantia de proposta correspondente a 1% do valor estimado do(s) lote(s) em que o licitante participar. Para participação em mais de um lote, a garantia corresponderá à soma dos valores indicados para cada lote, admitidas as modalidades previstas no § 1º do art. 96 da Lei nº 14.133/2021.'",
+        "valor_global": "Termo de Referência — 'TOTAL GERAL R$ 483.150,00', soma conferida dos três subtotais: LOTE 1 R$ 379.550,00 + LOTE 2 R$ 63.500,00 + LOTE 3 R$ 40.100,00 = R$ 483.150,00",
+        "valor_calculado_ressalva": "4831,50 é 1% do TOTAL GERAL e representa o TETO — vale apenas se o licitante disputar os três lotes. Por lote isolado: L1 R$ 3.795,50 / L2 R$ 635,00 / L3 R$ 401,00. O edital não permite determinar o valor correto sem saber em quais lotes o cliente entra; o comportamento correto da função é devolver o teto E sinalizar base_calculo='lote'.",
+        "orgao_cnpj": "rodapé de todas as páginas (54 ocorrências, único CNPJ do documento) — 'PREFEITURA MUNICIPAL DE MORTUGABA / ESTADO DA BAHIA / CNPJ 13.677.687/0001-46'. A cláusula de garantia não nomeia beneficiário. Obs.: o órgão gerenciador do SRP é a Secretaria Municipal de Educação (item 2.2), mas ela não tem CNPJ próprio impresso no edital.",
+        "data_sessao": "capa (linhas 19-20) — 'Data da sessão: 28/08/2026' / 'Horário: 11:30'; plataforma https://bnc.org.br/",
+        "vigencia_ausente": "A seção 5 (linhas 150-163) não fixa prazo de validade para a garantia. Trata apenas do momento de constituição ('até o horário-limite de apresentação das propostas'), da vedação de constituição posterior e da devolução. null é a resposta correta para dias e para termo inicial.",
+        "armadilha_1": "item 7.18 (linha 328) — 'O prazo de validade da proposta não será inferior a 60 (sessenta) dias, a contar da data de...'. Validade da PROPOSTA (art. 59), não da garantia. Preencher 60 é ERRO.",
+        "armadilha_2": "seção 5 (linha 159) — 'A garantia será devolvida no prazo de 10 dias úteis, contado da assinatura do contrato'. Prazo de DEVOLUÇÃO, não vigência. Preencher 10 é ERRO.",
+        "armadilha_3_lock": "seção 5 (linha 155) — 'A garantia deverá estar constituída até o horário-limite de apresentação das propostas'. Se o modelo citar este trecho como justificativa de termo_inicial, o lock ANCORA_TERMO NÃO rejeita (o trecho casa com 'apresentação das propostas'). Falso-negativo conhecido da heurística — este caso existe para medi-lo."
       }
     }
   ]
