@@ -82,32 +82,69 @@ const RESET = "\x1b[0m";
 
 // ── Chamada à Edge Function ───────────────────────────────────────────────────
 
+const RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
+
 async function chamarEdgeFunction(b64: string, arquivo: string): Promise<{
   data: Record<string, unknown>;
   sucesso: boolean;
   erro?: string;
   elapsed_ms: number;
+  httpStatus: number;
+  retries: number;
 }> {
-  const inicio = Date.now();
-  try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/analyze-edital`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        apikey: SUPABASE_KEY,
-      },
-      body: JSON.stringify({
-        filesData: [{ data: b64, mediaType: "application/pdf", name: arquivo }],
-      }),
-      signal: AbortSignal.timeout(300_000), // 5 min
-    });
-    const elapsed_ms = Date.now() - inicio;
-    const json = await res.json();
-    if (!json.success) return { data: json.data ?? {}, sucesso: false, erro: json.error, elapsed_ms };
-    return { data: json.data ?? {}, sucesso: true, elapsed_ms };
-  } catch (e) {
-    return { data: {}, sucesso: false, erro: String(e), elapsed_ms: Date.now() - inicio };
+  let tentativa = 0;
+  let totalRetries = 0;
+
+  while (true) {
+    const inicio = Date.now();
+    let httpStatus = 0;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/analyze-edital`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          apikey: SUPABASE_KEY,
+        },
+        body: JSON.stringify({
+          filesData: [{ data: b64, mediaType: "application/pdf", name: arquivo }],
+        }),
+        signal: AbortSignal.timeout(300_000), // 5 min
+      });
+      httpStatus = res.status;
+      const elapsed_ms = Date.now() - inicio;
+      const json = await res.json();
+
+      // Retry decidido pelo corpo da resposta (retryable: true = 429 ou 5xx da API Anthropic).
+      // O HTTP da Edge Function é sempre 200; não usamos httpStatus para isso.
+      const retryable = json.retryable === true;
+      if (!json.success && retryable && tentativa < RETRY_DELAYS_MS.length) {
+        const delay = RETRY_DELAYS_MS[tentativa];
+        console.log(`    ↺ apiStatus:${json.apiStatus ?? "?"} retryable — retry ${tentativa + 1}/${RETRY_DELAYS_MS.length} em ${delay / 1000}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+        tentativa++;
+        totalRetries++;
+        continue;
+      }
+
+      // 400 (retryable: false) ou sucesso: não repete
+      if (!json.success) return { data: json.data ?? {}, sucesso: false, erro: json.error, elapsed_ms, httpStatus, retries: totalRetries };
+      return { data: json.data ?? {}, sucesso: true, elapsed_ms, httpStatus, retries: totalRetries };
+
+    } catch (e) {
+      // Timeout do AbortSignal não é recuperável — não repete (poderia travar 20 min).
+      const isTimeout = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+      if (!isTimeout && tentativa < RETRY_DELAYS_MS.length) {
+        const delay = RETRY_DELAYS_MS[tentativa];
+        console.log(`    ↺ Erro de rede — retry ${tentativa + 1}/${RETRY_DELAYS_MS.length} em ${delay / 1000}s... (${String(e).slice(0, 80)})`);
+        await new Promise((r) => setTimeout(r, delay));
+        tentativa++;
+        totalRetries++;
+        continue;
+      }
+      const label = isTimeout ? "timeout (não retryable)" : String(e).slice(0, 100);
+      return { data: {}, sucesso: false, erro: label, elapsed_ms: Date.now() - inicio, httpStatus, retries: totalRetries };
+    }
   }
 }
 
@@ -124,6 +161,7 @@ const casos = gabarito.casos as Array<{
 }>;
 
 await Deno.mkdir(RESULTADOS_DIR, { recursive: true });
+let totalRetriesGlobal = 0; // conta retries de infraestrutura (429/5xx/rede)
 
 // Estrutura: resultados[casoId][campo][repeticao] = { ok, retornado }
 type Resultado = { ok: boolean; retornado: unknown; modelo: string };
@@ -155,18 +193,21 @@ for (const caso of casos as Array<{
 
   for (let r = 0; r < N; r++) {
     console.log(`  Execução ${r + 1}/${N}...`);
-    const { data, sucesso, erro, elapsed_ms } = await chamarEdgeFunction(b64, caso.arquivo);
+    const { data, sucesso, erro, elapsed_ms, httpStatus, retries } = await chamarEdgeFunction(b64, caso.arquivo);
 
     const modelo = String(data._modelo ?? "desconhecido");
-    console.log(`    ${sucesso ? "✓" : "✗"} ${elapsed_ms}ms | modelo:${modelo}`);
+    const retriesSuffix = retries > 0 ? ` | retries:${retries}` : "";
+    console.log(`    ${sucesso ? "✓" : "✗"} ${elapsed_ms}ms | modelo:${modelo} | HTTP ${httpStatus}${retriesSuffix}`);
     if (!sucesso) console.error(`    Erro: ${erro}`);
 
     // Grava resultado bruto
     const ts = new Date().toISOString().replace(/[:T.]/g, "-").slice(0, 19);
     await Deno.writeTextFile(
       `${RESULTADOS_DIR}/${caso.id}-${ts}-r${r + 1}.json`,
-      JSON.stringify({ caso: caso.id, repeticao: r + 1, elapsed_ms, sucesso, erro, modelo, data }, null, 2)
+      JSON.stringify({ caso: caso.id, repeticao: r + 1, elapsed_ms, sucesso, erro, modelo, httpStatus, retries, data }, null, 2)
     );
+
+    totalRetriesGlobal += retries;
 
     // Compara campo a campo
     for (const campo of CAMPOS_TESTADOS) {
@@ -250,6 +291,7 @@ const nEstaveis = catList.filter((x) => x.cat !== "instavel").length;
 
 console.log(`\nPLACAR TOTAL : ${totalAcertos}/${totalTestes} acertos (${((totalAcertos / totalTestes) * 100).toFixed(1)}%)`);
 console.log(`ESTABILIDADE : ${nEstaveis}/${totalCampos} campos estáveis (${((nEstaveis / totalCampos) * 100).toFixed(1)}%)`);
+console.log(`RETRIES INFRA: ${totalRetriesGlobal} chamada(s) com retry por 429/5xx/rede${totalRetriesGlobal === 0 ? " — infraestrutura estável" : ""}`);
 console.log(`  ok               : ${nOk}  (estável + correto)`);
 console.log(`  erro_sistematico : ${nSist}  (estável + errado → problema de prompt)`);
 console.log(`  instavel         : ${nInst}  (valores variam entre execuções → problema de variância)`);

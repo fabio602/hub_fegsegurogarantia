@@ -125,19 +125,48 @@ Retorne SOMENTE JSON válido, sem markdown:
   "observacoes_relevantes": "string ou null"
 }`;
 
+interface ApiError extends Error { status: number; apiMsg: string; }
+
 async function callClaude(
   model: string, fileBlocks: unknown[], additionalInstructions?: string
-): Promise<{ text: string; model: string; stop_reason: string; input_tokens: number; output_tokens: number }> {
+): Promise<{
+  text: string; model: string; stop_reason: string;
+  input_tokens: number; output_tokens: number;
+  cache_creation_input_tokens: number; cache_read_input_tokens: number;
+}> {
   const extra = additionalInstructions ? `\n\nINSTRUCOES ADICIONAIS:\n${additionalInstructions}` : '';
   const textBlock = { type: 'text', text: `Extraia os dados conforme as instruções.${extra}\n\nRetorne SOMENTE o JSON.` };
+
+  // Aplica cache_control ao ÚLTIMO bloco de arquivo: o breakpoint cacheia tudo
+  // até ele inclusive (system prompt + documentos). O textBlock fica fora do cache
+  // porque varia com additionalInstructions e invalidaria o hit.
+  const cachedFileBlocks = fileBlocks.length > 0
+    ? [
+        ...fileBlocks.slice(0, -1),
+        { ...(fileBlocks[fileBlocks.length - 1] as object), cache_control: { type: 'ephemeral' } },
+      ]
+    : fileBlocks;
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31' },
-    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: [...fileBlocks, textBlock] }] }),
+    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: [...cachedFileBlocks, textBlock] }] }),
   });
-  if (!res.ok) throw new Error(`Anthropic ${model} error: ${res.status}`);
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    const msg = `Anthropic ${model} HTTP ${res.status}: ${bodyText.slice(0, 500)}`;
+    throw Object.assign(new Error(msg), { status: res.status, apiMsg: bodyText.slice(0, 500) }) as ApiError;
+  }
   const data = await res.json();
-  return { text: data.content?.[0]?.text ?? '', model, stop_reason: data.stop_reason ?? 'unknown', input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 };
+  return {
+    text: data.content?.[0]?.text ?? '',
+    model,
+    stop_reason: data.stop_reason ?? 'unknown',
+    input_tokens: data.usage?.input_tokens ?? 0,
+    output_tokens: data.usage?.output_tokens ?? 0,
+    cache_creation_input_tokens: data.usage?.cache_creation_input_tokens ?? 0,
+    cache_read_input_tokens: data.usage?.cache_read_input_tokens ?? 0,
+  };
 }
 
 interface Alerta { tipo: string; severidade: string; campo_afetado: string | null; texto: string; }
@@ -390,13 +419,17 @@ Deno.serve(async (req) => {
     let rawResult: Awaited<ReturnType<typeof callClaude>> | null = null;
     let usedModel = '';
     let sonnetReason = '';
+    let apiStatus = 0;   // HTTP status da última chamada que falhou
+    let apiMsg = '';     // corpo de erro da API (truncado)
 
     // Tentativa 1: Haiku (mais rápido e barato)
     try {
       rawResult = await callClaude('claude-haiku-4-5-20251001', fileBlocks, additionalInstructions);
       usedModel = 'haiku';
-    } catch (e) {
-      console.warn('Haiku falhou:', String(e));
+    } catch (e: unknown) {
+      apiStatus = (e as ApiError)?.status ?? 0;
+      apiMsg    = (e as ApiError)?.apiMsg  ?? String(e);
+      console.warn(`Haiku falhou: HTTP ${apiStatus} | ${apiMsg.slice(0, 200)}`);
       sonnetReason = 'haiku_error';
     }
 
@@ -434,9 +467,11 @@ Deno.serve(async (req) => {
       try {
         const r = await callClaude('claude-sonnet-4-6', fileBlocks, additionalInstructions);
         usedModel = 'sonnet'; rawResult = r; parsed = tryParse(r.text);
-      } catch (sonnetErr) {
+      } catch (sonnetErr: unknown) {
         // Degradação graceful: mantém resultado do Haiku se disponível, nunca derruba
-        console.error(`[sonnet-falhou] ${String(sonnetErr)} — mantendo resultado do Haiku`);
+        apiStatus = (sonnetErr as ApiError)?.status ?? apiStatus;
+        apiMsg    = (sonnetErr as ApiError)?.apiMsg  ?? String(sonnetErr);
+        console.error(`[sonnet-falhou] HTTP ${apiStatus} | ${apiMsg.slice(0, 200)} — mantendo resultado do Haiku`);
         if (parsed) {
           const alertas = getAlertas(parsed);
           alertas.unshift(makeAlerta('outro', 'atencao', null,
@@ -448,17 +483,28 @@ Deno.serve(async (req) => {
     }
 
     if (!rawResult) {
-      const msg = sonnetReason === 'haiku_error'
-        ? 'Não foi possível analisar o edital. Documentos muito extensos (acima de ~65 páginas) excedem o limite de processamento. Tente enviar apenas o corpo do edital e os anexos relevantes.'
-        : 'Não foi possível analisar o edital. Nenhum dos modelos retornou resultado.';
-      console.error(`[falha-total] motivo:${sonnetReason}`);
-      return new Response(JSON.stringify({ success: false, error: msg }), {
+      // Ramifica na causa real — nunca afirma o que não foi verificado
+      let userMsg: string;
+      if (apiStatus === 429) {
+        userMsg = 'Limite de requisições da API atingido. Aguarde alguns minutos e tente novamente.';
+      } else if (apiStatus === 400 && /too long|exceed/i.test(apiMsg)) {
+        userMsg = 'O documento excede o limite de tamanho do modelo. Envie apenas o corpo do edital e os anexos relevantes.';
+      } else if (apiStatus === 400) {
+        userMsg = `A API recusou a requisição (400). Detalhe: ${apiMsg.slice(0, 200)}`;
+      } else if (apiStatus >= 500 || apiStatus === 0) {
+        userMsg = 'Serviço de análise temporariamente indisponível. Tente novamente em instantes.';
+      } else {
+        userMsg = `Não foi possível analisar o edital. ${apiMsg || sonnetReason}`;
+      }
+      const retryable = apiStatus === 429 || apiStatus >= 500;
+      console.error(`[falha-total] motivo:${sonnetReason} | status:${apiStatus} | retryable:${retryable} | api:${apiMsg.slice(0, 200)}`);
+      return new Response(JSON.stringify({ success: false, error: userMsg, apiStatus, retryable }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { stop_reason, output_tokens, input_tokens } = rawResult;
-    console.log(`analyze-edital v15 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in/${output_tokens}out | parse:${!!parsed}`);
+    const { stop_reason, output_tokens, input_tokens, cache_creation_input_tokens: cw, cache_read_input_tokens: cr } = rawResult;
+    console.log(`analyze-edital v17 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in (cw:${cw} cr:${cr}) / ${output_tokens}out | parse:${!!parsed}`);
     if (stop_reason === 'max_tokens') console.error(`[TRUNCAMENTO] ${output_tokens} tokens`);
 
     let resultado: Record<string, unknown>;
