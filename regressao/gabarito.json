@@ -5,6 +5,8 @@
   "casos": [
     {
       "id": "maraba-cp-148-2026",
+      "prefiltro_criterio_paginas": [11, 16, 17, 18],
+      "prefiltro_evidencia": "p.11: menção 'garantia de proposta' em contexto de penalidades — score pelo termo. p.16: 'Garantia da Proposta / 4.15. Será exigida a garantia da proposta ... Art. 58, §1º ... 1% (um por cento)'. p.17: item 4.22 CNPJ da SEMED 27.927.574/0001-66 e item 4.23 prazo 180 dias a partir da data de abertura da proposta. p.18: continuação das condições de garantia (art. 4.24+). Confirmado por pdftotext.",
       "arquivo": "Edital - CP 148-06 - Esc Sol Poente - V Carrapato.pdf",
       "orgao": "Prefeitura Municipal de Marabá / SEMED",
       "modalidade": "Concorrência Eletrônica 148/2026",
@@ -28,6 +30,8 @@
     },
     {
       "id": "araujos-conc-03-2026",
+      "prefiltro_criterio_paginas": [8],
+      "prefiltro_evidencia": "p.8: seção '7.11 – Da Garantia da Proposta: os licitantes deverão juntar ... comprovantes da prestação de garantia de 1% (um por cento) sobre o valor de referência ... 7.11.2 – modalidades ...'. Confirmado por pdftotext.",
       "arquivo": "EDITAL (4) (1).pdf",
       "orgao": "Prefeitura Municipal de Araújos/MG",
       "modalidade": "Concorrência Eletrônica 03/2026",
@@ -51,6 +55,8 @@
     },
     {
       "id": "paulista-pb-pe-00026-2026",
+      "prefiltro_criterio_paginas": [5, 6],
+      "prefiltro_evidencia": "p.5: seção 8.4.1 'art. 58, §1º da Lei 14.133/2021, o valor da garantia da proposta deverá ser de 1% (um por cento) do valor estimado ... em nome do Município de Paulista/PB'. p.6: seções 8.4.4-8.4.6 continuação — devolução em 10 dias úteis, execução por recusa em assinar contrato. Confirmado por pdftotext.",
       "arquivo": "EDITAL - PAULISTA-PB.pdf",
       "orgao": "Prefeitura Municipal de Paulista/PB",
       "modalidade": "Pregão Eletrônico 00026/2026 - Registro de Preços",
@@ -98,6 +104,8 @@
     },
     {
       "id": "mortugaba-ba-pe-012-2026",
+      "prefiltro_criterio_paginas": [23, 24, 25, 26],
+      "prefiltro_evidencia": "p.23-26 = seção de preços por lote: p.24 Lote1 R$ 379.550,00 | p.25 Lote2 R$ 63.500,00 | p.26 Lote3 R$ 40.100,00 + TOTAL GERAL R$ 483.150,00. p.29 removida do critério: 'MODELO DE EXECUÇÃO DO OBJETO', único match foi 'lote 03' incidental (score=3).",
       "arquivo": "EDITAL - MORTUGABA-BA 012-2026.pdf",
       "orgao": "Prefeitura Municipal de Mortugaba/BA",
       "modalidade": "Pregão Eletrônico SRP 012/2026",

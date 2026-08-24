@@ -1,7 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { z } from "npm:zod@3";
+import { extractText } from "npm:unpdf";
+import { PDFDocument } from "npm:pdf-lib";
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+const PREFILTRO_PAGINAS = Deno.env.get('PREFILTRO_PAGINAS') === 'on';
 const MAX_TOKENS = 4000;
 const PLAUSIBILITY_MUNICIPAL_THRESHOLD = 100_000_000;
 
@@ -9,6 +12,130 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ── Pré-filtro de páginas ─────────────────────────────────────────────────────
+
+// Termos ponderados — frases específicas evitam falsos positivos de cabeçalho/rodapé
+const PREFILTRO_PESO10 = [
+  'garantia de proposta', 'seguro-garantia', 'seguro garantia',
+  'caucao', 'fianca bancaria', 'apolice', 'art. 58', 'artigo 58',
+];
+const PREFILTRO_PESO5 = [
+  'modalidade de garantia', 'garantia de participacao',
+  'percentual da garantia', '1% (um por cento)',
+  'valor estimado da contratacao', 'valor global',
+];
+const PREFILTRO_PESO3_TEXTO = ['lote']; // 'por lote'/'valor total do lote' eram substrings — contagem dupla/tripla
+const PREFILTRO_MOEDA = /r\$\s*[\d.]+,\d{2}/gi;
+const PREFILTRO_TOP_N = 12; // páginas de maior score que entram na seleção
+
+function normTermo(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+const P10N = PREFILTRO_PESO10.map(normTermo);
+const P5N  = PREFILTRO_PESO5.map(normTermo);
+const P3N  = PREFILTRO_PESO3_TEXTO.map(normTermo);
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+  }
+  return btoa(bin);
+}
+
+interface PrefiltroResult {
+  pdfBase64: string;
+  paginasOriginais?: number; // opcional: desconhecido quando erro antes da extração
+  paginasEnviadas: number;
+  motivo: 'desativado' | 'ok' | 'texto_vazio' | 'erro'; // 'reducao_insuficiente' removido: inalcançável
+  pagsSelecionadas?: number[]; // 1-indexed, para log
+}
+
+/** Seleciona páginas relevantes e monta PDF reduzido. Nunca lança excepção. */
+async function aplicarPrefiltro(pdfBase64: string): Promise<PrefiltroResult> {
+  if (!PREFILTRO_PAGINAS) {
+    return { pdfBase64, paginasEnviadas: 0, motivo: 'desativado' };
+  }
+  try {
+    const pdfBytes = b64ToBytes(pdfBase64);
+
+    // Extrai texto por página
+    let pageTexts: string[];
+    try {
+      const { text } = await extractText(pdfBytes, { mergePages: false }) as { text: string | string[] };
+      pageTexts = Array.isArray(text) ? text : [text as string];
+    } catch (e) {
+      console.error(`[prefiltro] erro no unpdf: ${String(e).slice(0, 100)}`);
+      return { pdfBase64, paginasEnviadas: 0, motivo: 'erro' }; // paginasOriginais desconhecido
+    }
+
+    const totalPags = pageTexts.length;
+
+    // Fallback: PDF escaneado / sem texto
+    const totalChars = pageTexts.reduce((s, t) => s + t.length, 0);
+    if (totalPags === 0 || totalChars / Math.max(totalPags, 1) < 50) {
+      console.log(`[prefiltro] fallback:texto_vazio | ${totalPags}p`);
+      return { pdfBase64, paginasOriginais: totalPags, paginasEnviadas: totalPags, motivo: 'texto_vazio' };
+    }
+
+    // Pontua cada página com pesos diferenciados
+    const scores = pageTexts.map(t => {
+      const n = normTermo(t);
+      let s = 0;
+      for (const x of P10N) if (n.includes(x)) s += 10;
+      for (const x of P5N)  if (n.includes(x)) s += 5;
+      for (const x of P3N)  s += 3 * (n.split(x).length - 1); // conta ocorrências
+      s += 3 * (n.match(PREFILTRO_MOEDA)?.length ?? 0);
+      return s;
+    });
+
+    // Top-N por score + vizinhas ±1 + 3 primeiras páginas
+    const ranked = scores
+      .map((s, i) => ({ i, s }))
+      .filter(x => x.s > 0)
+      .sort((a, b) => b.s - a.s);
+    const topIdx = new Set(ranked.slice(0, PREFILTRO_TOP_N).map(x => x.i));
+    const sel = new Set<number>();
+    for (let i = 0; i < Math.min(3, totalPags); i++) sel.add(i);
+    for (const i of topIdx) {
+      if (i > 0) sel.add(i - 1);
+      sel.add(i);
+      if (i < totalPags - 1) sel.add(i + 1);
+    }
+    // Fallback: menos de 5 páginas → pega as 15 primeiras (nunca o doc inteiro)
+    if (sel.size < 5) {
+      for (let i = 0; i < Math.min(15, totalPags); i++) sel.add(i);
+    }
+    const indices = [...sel].sort((a, b) => a - b);
+
+    const reducao = 1 - indices.length / totalPags;
+
+    // Monta PDF reduzido
+    const srcDoc = await PDFDocument.load(pdfBytes);
+    const dstDoc = await PDFDocument.create();
+    const pages = await dstDoc.copyPages(srcDoc, indices);
+    pages.forEach(p => dstDoc.addPage(p));
+    const reducidoBytes = await dstDoc.save();
+    const reducidoB64 = bytesToB64(reducidoBytes);
+
+    const pagsSel = indices.map(i => i + 1); // 1-indexed para log
+    console.log(`[prefiltro] origem:${totalPags}p -> enviado:${indices.length}p | reducao:${(reducao * 100).toFixed(0)}% | motivo:ok | pags:${pagsSel.join(',')}`);
+    return { pdfBase64: reducidoB64, paginasOriginais: totalPags, paginasEnviadas: indices.length, motivo: 'ok', pagsSelecionadas: pagsSel };
+
+  } catch (e) {
+    console.error(`[prefiltro] fallback:erro | ${String(e).slice(0, 100)}`);
+    return { pdfBase64, paginasEnviadas: 0, motivo: 'erro' }; // paginasOriginais desconhecido
+  }
+}
 
 const RequiredFieldsSchema = z.object({
   objeto: z.string(),
@@ -411,7 +538,17 @@ Deno.serve(async (req) => {
       files = pdfs.map((d: string, i: number) => ({ data: d, mediaType: 'application/pdf', name: fileName ?? `arquivo_${i + 1}.pdf` }));
     }
     if (files.length === 0) throw new Error('Nenhum arquivo enviado');
-    const fileBlocks = files.map((f) =>
+
+    // Pré-filtro de páginas: roda antes de qualquer decisão de provedor
+    // para que comparações futuras (Claude vs Gemini) usem exatamente o mesmo input.
+    const filesProcessados = await Promise.all(files.map(async (f) => {
+      if (f.mediaType !== 'application/pdf') return f;
+      const r = await aplicarPrefiltro(f.data);
+      if (r.motivo === 'desativado') return f; // sem log individual quando desativado
+      return { ...f, data: r.pdfBase64 };
+    }));
+
+    const fileBlocks = filesProcessados.map((f) =>
       f.mediaType.startsWith('image/') ? { type: 'image', source: { type: 'base64', media_type: f.mediaType, data: f.data } }
       : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.data } }
     );
