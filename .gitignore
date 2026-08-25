@@ -29,3 +29,4 @@ dist-ssr
 # PDFs da bateria de regressão (grandes, não versionar)
 regressao/pdfs/
 regressao/resultados/
+regressao/minutas/
