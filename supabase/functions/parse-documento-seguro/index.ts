@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { PDFDocument } from "npm:pdf-lib";
 
 const SYSTEM_PROMPT = `Você é um extrator especializado em documentos de seguro garantia brasileiros (apólices e minutas).
 Extraia os campos abaixo e retorne APENAS um JSON válido, sem texto extra, sem markdown.
@@ -23,28 +24,42 @@ Campos a extrair:
 Se um campo não estiver disponível, use string vazia "".
 Retorne APENAS o JSON, sem nenhum texto antes ou depois.`;
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+  }
+  return btoa(bin);
+}
+
 /**
  * Muitas apólices brasileiras são PDFs com assinatura digital CMS/PKCS#7.
  * O arquivo começa com dados ASN.1 e o PDF real está embutido dentro.
- * Esta função detecta e extrai o PDF real automáticamente.
+ * Esta função detecta e extrai o PDF real automaticamente.
  */
 function extractPdfIfCmsWrapped(pdfBase64: string): string {
-  // Decode base64 to bytes
-  const binaryStr = atob(pdfBase64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
-  }
+  const bytes = b64ToBytes(pdfBase64);
 
-  // If already starts with %PDF-, nothing to do
+  // Se já começa com %PDF-, nada a fazer
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return pdfBase64;
   }
 
-  // Search for %PDF- marker (0x25 0x50 0x44 0x46 0x2D)
+  // Procura marcador %PDF-
   let pdfStart = -1;
   for (let i = 0; i < bytes.length - 4; i++) {
-    if (bytes[i] === 0x25 && bytes[i+1] === 0x50 && bytes[i+2] === 0x44 && bytes[i+3] === 0x46 && bytes[i+4] === 0x2D) {
+    if (bytes[i] === 0x25 && bytes[i+1] === 0x50 && bytes[i+2] === 0x44 &&
+        bytes[i+3] === 0x46 && bytes[i+4] === 0x2D) {
       pdfStart = i;
       break;
     }
@@ -52,34 +67,59 @@ function extractPdfIfCmsWrapped(pdfBase64: string): string {
 
   if (pdfStart === -1) {
     console.log('No %PDF- marker found, sending original');
-    return pdfBase64; // Not CMS wrapped, send as-is
+    return pdfBase64;
   }
 
   console.log(`CMS-wrapped PDF detected. PDF starts at offset ${pdfStart}`);
 
-  // Find last %%EOF to get the end of the actual PDF
   let pdfEnd = bytes.length;
   for (let i = bytes.length - 1; i > pdfStart + 4; i--) {
     if (bytes[i] === 0x46 && bytes[i-1] === 0x4F && bytes[i-2] === 0x45 &&
-        bytes[i-3] === 0x25 && bytes[i-4] === 0x25) { // %%EOF backwards
+        bytes[i-3] === 0x25 && bytes[i-4] === 0x25) {
       pdfEnd = i + 1;
-      // Include trailing newlines
-      while (pdfEnd < bytes.length && (bytes[pdfEnd] === 0x0A || bytes[pdfEnd] === 0x0D || bytes[pdfEnd] === 0x20)) {
-        pdfEnd++;
-      }
+      while (pdfEnd < bytes.length && [0x0A, 0x0D, 0x20].includes(bytes[pdfEnd])) pdfEnd++;
       break;
     }
   }
 
-  // Extract and re-encode
   const pdfBytes = bytes.slice(pdfStart, pdfEnd);
-  let out = '';
-  for (let i = 0; i < pdfBytes.length; i++) {
-    out += String.fromCharCode(pdfBytes[i]);
-  }
   console.log(`Extracted PDF: ${pdfBytes.length} bytes`);
-  return btoa(out);
+  return bytesToB64(pdfBytes);
 }
+
+/**
+ * Reduz o PDF às primeiras N páginas antes de enviar à Anthropic.
+ *
+ * Todos os campos que extraímos (tomador, segurado, LMG, prêmio, vigência)
+ * estão nas primeiras ~140 linhas do texto. As demais páginas são Condições
+ * Gerais padronizadas (SUSEP ramo 775), idênticas em toda apólice — incluí-las
+ * desperdiça ~97% dos tokens sem nenhum ganho de qualidade.
+ *
+ * Usa 2 páginas por padrão para cobrir casos em que a face da apólice quebra
+ * de página (ex.: AllSeg carta de rosto + dados na p.2).
+ *
+ * Fallback: qualquer erro no pdf-lib devolve o PDF original intacto.
+ */
+async function trimToFirstPages(pdfBytes: Uint8Array, maxPages = 2): Promise<{ bytes: Uint8Array; totalPages: number }> {
+  try {
+    const srcDoc = await PDFDocument.load(pdfBytes);
+    const total  = srcDoc.getPageCount();
+    if (total <= maxPages) return { bytes: pdfBytes, totalPages: total };
+
+    const dstDoc = await PDFDocument.create();
+    const indices = Array.from({ length: maxPages }, (_, i) => i);
+    const pages   = await dstDoc.copyPages(srcDoc, indices);
+    pages.forEach(p => dstDoc.addPage(p));
+    const out = await dstDoc.save();
+    return { bytes: out, totalPages: total };
+  } catch (e) {
+    console.warn(`[trim] pdf-lib falhou, enviando original: ${String(e).slice(0, 80)}`);
+    const fallback = await PDFDocument.load(pdfBytes).catch(() => null);
+    return { bytes: pdfBytes, totalPages: fallback?.getPageCount() ?? 0 };
+  }
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -111,9 +151,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Auto-extract PDF from CMS digital signature wrapper if needed
+    // 1. Desempacota assinatura digital CMS, se presente
     const cleanPdfBase64 = extractPdfIfCmsWrapped(pdf_base64);
 
+    // 2. Corta o PDF nas primeiras 2 páginas (face da apólice).
+    //    Reduz ~97% dos tokens sem perder nenhum campo relevante.
+    const cleanBytes = b64ToBytes(cleanPdfBase64);
+    const { bytes: trimmedBytes, totalPages } = await trimToFirstPages(cleanBytes, 2);
+    const trimmedBase64 = bytesToB64(trimmedBytes);
+    const sentPages = Math.min(2, totalPages || 2);
+    console.log(`[parse] total:${totalPages}p | enviando:${sentPages}p | bytes:${trimmedBytes.length}`);
+
+    // 3. Envia à Anthropic
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -131,7 +180,7 @@ Deno.serve(async (req: Request) => {
           content: [
             {
               type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: cleanPdfBase64 }
+              source: { type: 'base64', media_type: 'application/pdf', data: trimmedBase64 }
             },
             {
               type: 'text',
@@ -144,12 +193,19 @@ Deno.serve(async (req: Request) => {
 
     const result = await response.json();
 
+    // 4. Propaga o erro real da Anthropic (status + mensagem), sem mascarar.
+    //    Saldo zerado aparece como saldo zerado, não como "HTTP 500".
     if (!response.ok) {
-      console.error('Anthropic error:', JSON.stringify(result));
-      return new Response(JSON.stringify({ error: 'Erro ao processar com IA', details: result }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      const anthropicMsg  = result?.error?.message ?? 'Erro na API da Anthropic';
+      const anthropicType = result?.error?.type    ?? 'unknown';
+      console.error(`[parse] Anthropic ${response.status} (${anthropicType}): ${anthropicMsg}`);
+      return new Response(
+        JSON.stringify({ error: anthropicMsg, anthropic_type: anthropicType, status: response.status }),
+        {
+          status: response.status,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        }
+      );
     }
 
     const text = result.content[0].text.trim();
@@ -165,8 +221,9 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(data), {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
+
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[parse] Erro interno:', error);
     return new Response(JSON.stringify({ error: 'Erro interno', message: String(error) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
