@@ -147,7 +147,14 @@ const formatCurrency = (value: string) => {
     return formatted;
 };
 
-const ResidentialInsurance: React.FC = () => {
+interface ResidentialInsuranceProps {
+    /** Cliente vindo do Repasse Imobiliárias pelo botão "→ Registro de Venda". */
+    prefill?: { nome: string; telefone: string } | null;
+    /** Avisa o App que o prefill já foi aplicado, para não reabrir o modal. */
+    onPrefillConsumed?: () => void;
+}
+
+const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, onPrefillConsumed }) => {
     const { toast, confirm: confirmDialog } = useToast();
     const [clients, setClients] = useState<ResidentialClient[]>([]);
     const [loading, setLoading] = useState(true);
@@ -633,6 +640,56 @@ const ResidentialInsurance: React.FC = () => {
         setShowModal(true);
         setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' }), 50);
     };
+
+    /**
+     * Abre o cadastro quando o usuário chega pelo botão "→ Registro de Venda"
+     * do Repasse Imobiliárias.
+     *
+     * Antes de abrir um cadastro novo, procura o cliente pelo nome usando a
+     * mesma busca do sync do Repasse (ilike). Sem isso, quem já foi
+     * sincronizado quando a apólice foi emitida ganharia um registro
+     * duplicado a cada clique no botão.
+     */
+    useEffect(() => {
+        if (!prefill?.nome) return;
+        let cancelado = false;
+
+        (async () => {
+            const { data, error } = await supabase
+                .from('residential_clients')
+                .select('*')
+                .ilike('nome', prefill.nome.trim())
+                .limit(1);
+
+            if (cancelado) return;
+
+            if (error) {
+                console.error('[prefill] falha ao procurar cliente existente:', error);
+            }
+
+            if (data && data.length > 0) {
+                handleEdit(data[0] as ResidentialClient);
+            } else {
+                clearTimeout(autoSaveTimerRef.current);
+                isDirtyRef.current = false;
+                setAutoSaveState('idle');
+                setEditingId(null);
+                setFormData({
+                    ...EMPTY_FORM,
+                    nome: prefill.nome,
+                    telefone: prefill.telefone || '',
+                    produto: 'Residencial',
+                });
+                setShowModal(true);
+                setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' }), 50);
+            }
+
+            onPrefillConsumed?.();
+        })();
+
+        return () => { cancelado = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [prefill?.nome, prefill?.telefone]);
 
     const handleDelete = async (id: number) => {
         if (!(await confirmDialog('Deseja excluir este cliente? Esta ação não pode ser desfeita.'))) return;

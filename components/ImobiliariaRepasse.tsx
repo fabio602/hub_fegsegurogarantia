@@ -645,7 +645,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 <span style={{ fontSize: '9px', fontWeight: 900, background: '#fdf6ee', color: '#b8895a', border: '1px solid #e8d5bc', padding: '2px 7px', borderRadius: '20px' }}>📄 Apólice</span>
                               )}
                             </div>
-                            {col.key === 'aprovado' && onGoToSale && (
+                            {/* Disponível em todas as etapas: o registro de venda pode ser aberto
+                                a qualquer momento, não só depois da aprovação. */}
+                            {onGoToSale && (
                               <button
                                 onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
                                 className="mt-2 w-full text-[10px] font-black bg-[#C69C6D] hover:bg-[#b8895a] text-white py-1.5 rounded-lg transition-colors"
@@ -1114,6 +1116,28 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               </div>
             )}
           </div>
+
+          {/* Atalho para o Registro de Venda, disponível em qualquer etapa.
+              Fica separado dos botões abaixo porque sai da tela: alterações
+              não salvas neste formulário são descartadas, igual ao Cancelar. */}
+          {onGoToSale && (
+            <div className="px-7 pt-2">
+              <button
+                onClick={() => {
+                  const nome = editingStatus.inquilino_nome;
+                  const telefone = (editingStatus as any).telefone || '';
+                  setEditingStatus(null);
+                  onGoToSale({ nome, telefone });
+                }}
+                className="w-full py-2.5 bg-[#C69C6D] hover:bg-[#b8895a] text-white rounded-xl font-bold text-sm transition-colors"
+              >
+                → Registro de Venda
+              </button>
+              <p className="text-[10px] text-slate-400 font-semibold text-center mt-1.5">
+                Sai desta tela sem salvar as alterações acima
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 px-7 pb-7 pt-2">
             <button onClick={() => setEditingStatus(null)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
