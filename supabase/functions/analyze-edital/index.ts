@@ -4,9 +4,42 @@ import { extractText } from "npm:unpdf";
 import { PDFDocument } from "npm:pdf-lib";
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const PREFILTRO_PAGINAS = Deno.env.get('PREFILTRO_PAGINAS') === 'on';
 const MAX_TOKENS = 4000;
 const PLAUSIBILITY_MUNICIPAL_THRESHOLD = 100_000_000;
+
+// ── Provedor de IA ────────────────────────────────────────────────────────────
+// Trocar de provedor é mudar UM secret. Todo o pipeline de travas
+// (deriveExigeGarantia, enforcePositiveLock, enforceScaleSanity, …) roda idêntico
+// nos dois casos, porque callGemini devolve exatamente a mesma estrutura de
+// callClaude. Nenhuma trava sabe qual provedor respondeu.
+type Provedor = 'claude' | 'gemini';
+const PROVEDOR_IA: Provedor =
+  (Deno.env.get('PROVEDOR_IA') ?? 'claude').trim().toLowerCase() === 'gemini' ? 'gemini' : 'claude';
+
+// Nomes de modelo são sobrescrevíveis por secret: quando o fornecedor renomear ou
+// aposentar um modelo, corrige-se sem novo deploy.
+const MODELOS: Record<Provedor, { rapido: string; forte: string }> = {
+  claude: {
+    rapido: Deno.env.get('CLAUDE_MODELO_RAPIDO') ?? 'claude-haiku-4-5-20251001',
+    forte:  Deno.env.get('CLAUDE_MODELO_FORTE')  ?? 'claude-sonnet-4-6',
+  },
+  gemini: {
+    // Conferidos em ai.google.dev/gemini-api/docs/models (doc de 14/08/2026): ambos estáveis.
+    // Não usamos gemini-3.1-pro-preview no nível forte: é preview, com rate limit mais
+    // restrito e descontinuação avisada com só 2 semanas — impróprio para produção.
+    rapido: Deno.env.get('GEMINI_MODELO_RAPIDO') ?? 'gemini-3.5-flash-lite',
+    forte:  Deno.env.get('GEMINI_MODELO_FORTE')  ?? 'gemini-3.7-flash',
+  },
+};
+
+// Modelos Gemini 3.x raciocinam antes de responder e os tokens de raciocínio contam
+// DENTRO de maxOutputTokens. Com o teto de 4000 usado no Claude, o raciocínio comeria
+// a cota e devolveria texto vazio com finishReason=MAX_TOKENS. Daí o teto maior e o
+// nível de raciocínio baixo: a tarefa aqui é extração, não dedução.
+const GEMINI_MAX_TOKENS = 16000;
+const GEMINI_THINKING_LEVEL = (Deno.env.get('GEMINI_THINKING_LEVEL') ?? 'low').trim().toLowerCase();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -254,15 +287,27 @@ Retorne SOMENTE JSON válido, sem markdown:
 
 interface ApiError extends Error { status: number; apiMsg: string; }
 
-async function callClaude(
-  model: string, fileBlocks: unknown[], additionalInstructions?: string
-): Promise<{
+/** Contrato único de resposta — o resto da função não sabe qual provedor respondeu. */
+interface IaResult {
   text: string; model: string; stop_reason: string;
   input_tokens: number; output_tokens: number;
   cache_creation_input_tokens: number; cache_read_input_tokens: number;
-}> {
+}
+
+/**
+ * Instrução do turno do usuário. Compartilhada pelos dois provedores de propósito:
+ * se cada adaptador montasse a sua, a comparação Claude x Gemini estaria medindo
+ * também a diferença entre dois prompts, e não só entre dois modelos.
+ */
+function montaInstrucao(additionalInstructions?: string): string {
   const extra = additionalInstructions ? `\n\nINSTRUCOES ADICIONAIS:\n${additionalInstructions}` : '';
-  const textBlock = { type: 'text', text: `Extraia os dados conforme as instruções.${extra}\n\nRetorne SOMENTE o JSON.` };
+  return `Extraia os dados conforme as instruções.${extra}\n\nRetorne SOMENTE o JSON.`;
+}
+
+async function callClaude(
+  model: string, fileBlocks: unknown[], additionalInstructions?: string
+): Promise<IaResult> {
+  const textBlock = { type: 'text', text: montaInstrucao(additionalInstructions) };
 
   // Aplica cache_control ao ÚLTIMO bloco de arquivo: o breakpoint cacheia tudo
   // até ele inclusive (system prompt + documentos). O textBlock fica fora do cache
@@ -294,6 +339,101 @@ async function callClaude(
     cache_creation_input_tokens: data.usage?.cache_creation_input_tokens ?? 0,
     cache_read_input_tokens: data.usage?.cache_read_input_tokens ?? 0,
   };
+}
+
+/**
+ * Adaptador Gemini. Mesma assinatura e mesmo retorno de callClaude — de propósito.
+ * Toda a diferença entre as duas APIs está contida aqui dentro, e só aqui:
+ *
+ *  - blocos Anthropic (document/image) -> parts com inlineData
+ *  - system prompt                     -> systemInstruction
+ *  - finishReason 'MAX_TOKENS'         -> stop_reason 'max_tokens'
+ *    (o escalamento em index.ts depende dessa string exata; se não normalizar,
+ *     um truncamento passa despercebido e a resposta cortada vira resultado)
+ *  - usageMetadata                     -> contadores no formato da Anthropic
+ *
+ * Cache: NÃO há paridade. A Anthropic usa cache_control explícito por breakpoint;
+ * o Gemini 3 faz cache implícito, sem controle nosso. cache_creation fica sempre 0
+ * e cache_read reflete cachedContentTokenCount quando o Google reporta. Isso
+ * importa na comparação de custo da ETAPA C: o Claude tem desconto de cache
+ * garantido, o Gemini só se o Google decidir que houve reuso.
+ */
+async function callGemini(
+  model: string, fileBlocks: unknown[], additionalInstructions?: string
+): Promise<IaResult> {
+  const parts: unknown[] = [];
+  for (const bloco of fileBlocks as Array<Record<string, unknown>>) {
+    const src = (bloco?.source ?? {}) as Record<string, string>;
+    if (src.type !== 'base64' || !src.data) continue;
+    parts.push({ inlineData: { mimeType: src.media_type ?? 'application/pdf', data: src.data } });
+  }
+  parts.push({ text: montaInstrucao(additionalInstructions) });
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY! },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          maxOutputTokens: GEMINI_MAX_TOKENS,
+          temperature: 0,
+          responseMimeType: 'application/json',
+          thinkingLevel: GEMINI_THINKING_LEVEL,
+        },
+      }),
+    },
+  );
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    const msg = `Gemini ${model} HTTP ${res.status}: ${bodyText.slice(0, 500)}`;
+    throw Object.assign(new Error(msg), { status: res.status, apiMsg: bodyText.slice(0, 500) }) as ApiError;
+  }
+  const data = await res.json();
+
+  const cand = data.candidates?.[0];
+  const finish = String(cand?.finishReason ?? 'unknown');
+  // Descarta parts de raciocínio (thought:true) — não são a resposta.
+  const texto = ((cand?.content?.parts ?? []) as Array<Record<string, unknown>>)
+    .filter((p) => typeof p?.text === 'string' && p?.thought !== true)
+    .map((p) => p.text as string)
+    .join('');
+
+  // Bloqueio de segurança devolve candidato sem texto. Tratamos como erro de API
+  // (e não como resposta vazia) para que o escalamento dispare em vez de seguir
+  // adiante com parse nulo.
+  if (!texto && finish !== 'MAX_TOKENS') {
+    const blockReason = data.promptFeedback?.blockReason ?? 'n/a';
+    throw Object.assign(
+      new Error(`Gemini ${model} não retornou texto (finishReason=${finish}, blockReason=${blockReason})`),
+      { status: 502, apiMsg: `finishReason=${finish} blockReason=${blockReason}` },
+    ) as ApiError;
+  }
+
+  const u = data.usageMetadata ?? {};
+  return {
+    text: texto,
+    model,
+    stop_reason: finish === 'MAX_TOKENS' ? 'max_tokens' : finish === 'STOP' ? 'end_turn' : finish.toLowerCase(),
+    input_tokens: u.promptTokenCount ?? 0,
+    // Soma os tokens de raciocínio: eles são cobrados como saída e sem eles o
+    // custo do Gemini apareceria artificialmente menor que o do Claude.
+    output_tokens: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: u.cachedContentTokenCount ?? 0,
+  };
+}
+
+/** Despacha para o provedor ativo. 'rapido' = 1ª tentativa, 'forte' = escalamento. */
+function callIA(
+  nivel: 'rapido' | 'forte', fileBlocks: unknown[], additionalInstructions?: string
+): Promise<IaResult> {
+  const model = MODELOS[PROVEDOR_IA][nivel];
+  return PROVEDOR_IA === 'gemini'
+    ? callGemini(model, fileBlocks, additionalInstructions)
+    : callClaude(model, fileBlocks, additionalInstructions);
 }
 
 interface Alerta { tipo: string; severidade: string; campo_afetado: string | null; texto: string; }
@@ -529,7 +669,8 @@ const tryParse = (text: string) => {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
-    if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
+    if (PROVEDOR_IA === 'claude' && !ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
+    if (PROVEDOR_IA === 'gemini' && !GEMINI_API_KEY)    throw new Error('GEMINI_API_KEY não configurada (PROVEDOR_IA=gemini)');
     const { filesData, pdfBase64Array, pdfBase64, fileName, additionalInstructions } = await req.json();
     let files: { data: string; mediaType: string; name: string }[] = [];
     if (filesData && filesData.length > 0) { files = filesData; }
@@ -553,21 +694,21 @@ Deno.serve(async (req) => {
       : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.data } }
     );
 
-    let rawResult: Awaited<ReturnType<typeof callClaude>> | null = null;
+    let rawResult: IaResult | null = null;
     let usedModel = '';
     let sonnetReason = '';
     let apiStatus = 0;   // HTTP status da última chamada que falhou
     let apiMsg = '';     // corpo de erro da API (truncado)
 
-    // Tentativa 1: Haiku (mais rápido e barato)
+    // Tentativa 1: modelo rápido (mais barato) do provedor ativo
     try {
-      rawResult = await callClaude('claude-haiku-4-5-20251001', fileBlocks, additionalInstructions);
-      usedModel = 'haiku';
+      rawResult = await callIA('rapido', fileBlocks, additionalInstructions);
+      usedModel = rawResult.model;
     } catch (e: unknown) {
       apiStatus = (e as ApiError)?.status ?? 0;
       apiMsg    = (e as ApiError)?.apiMsg  ?? String(e);
-      console.warn(`Haiku falhou: HTTP ${apiStatus} | ${apiMsg.slice(0, 200)}`);
-      sonnetReason = 'haiku_error';
+      console.warn(`[${PROVEDOR_IA}] modelo rápido falhou: HTTP ${apiStatus} | ${apiMsg.slice(0, 200)}`);
+      sonnetReason = 'rapido_error';
     }
 
     let parsed: Record<string, unknown> | null = rawResult ? tryParse(rawResult.text) : null;
@@ -596,26 +737,26 @@ Deno.serve(async (req) => {
 
     if (needsSonnet) {
       if (!sonnetReason) {
-        if (!rawResult) sonnetReason = 'haiku_error';
+        if (!rawResult) sonnetReason = 'rapido_error';
         else if (!parsed) sonnetReason = 'parse_fail';
         else if (rawResult.stop_reason === 'max_tokens') sonnetReason = 'max_tokens';
       }
-      console.warn(`[escalamento] Sonnet | motivo: ${sonnetReason}`);
+      console.warn(`[escalamento] ${MODELOS[PROVEDOR_IA].forte} | motivo: ${sonnetReason}`);
       try {
-        const r = await callClaude('claude-sonnet-4-6', fileBlocks, additionalInstructions);
-        usedModel = 'sonnet'; rawResult = r; parsed = tryParse(r.text);
+        const r = await callIA('forte', fileBlocks, additionalInstructions);
+        usedModel = r.model; rawResult = r; parsed = tryParse(r.text);
       } catch (sonnetErr: unknown) {
-        // Degradação graceful: mantém resultado do Haiku se disponível, nunca derruba
+        // Degradação graceful: mantém o resultado do modelo rápido se houver, nunca derruba
         apiStatus = (sonnetErr as ApiError)?.status ?? apiStatus;
         apiMsg    = (sonnetErr as ApiError)?.apiMsg  ?? String(sonnetErr);
-        console.error(`[sonnet-falhou] HTTP ${apiStatus} | ${apiMsg.slice(0, 200)} — mantendo resultado do Haiku`);
+        console.error(`[modelo-forte-falhou] HTTP ${apiStatus} | ${apiMsg.slice(0, 200)} — mantendo resultado do modelo rápido`);
         if (parsed) {
           const alertas = getAlertas(parsed);
           alertas.unshift(makeAlerta('outro', 'atencao', null,
-            'Segunda análise (Sonnet) não pôde ser executada. Resultado baseado apenas na análise inicial — revisar campos críticos manualmente.'));
+            'Segunda análise (modelo reforçado) não pôde ser executada. Resultado baseado apenas na análise inicial — revisar campos críticos manualmente.'));
           parsed.alertas = alertas;
         }
-        // rawResult e parsed permanecem os do Haiku; usedModel fica 'haiku'
+        // rawResult e parsed permanecem os do modelo rápido; usedModel também
       }
     }
 
@@ -641,7 +782,7 @@ Deno.serve(async (req) => {
     }
 
     const { stop_reason, output_tokens, input_tokens, cache_creation_input_tokens: cw, cache_read_input_tokens: cr } = rawResult;
-    console.log(`analyze-edital v17 | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in (cw:${cw} cr:${cr}) / ${output_tokens}out | parse:${!!parsed}`);
+    console.log(`analyze-edital v17 | provedor:${PROVEDOR_IA} | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in (cw:${cw} cr:${cr}) / ${output_tokens}out | parse:${!!parsed}`);
     if (stop_reason === 'max_tokens') console.error(`[TRUNCAMENTO] ${output_tokens} tokens`);
 
     let resultado: Record<string, unknown>;
@@ -689,8 +830,10 @@ Deno.serve(async (req) => {
       }
       resultado = parsed;
     }
-    // Metadado de observabilidade: modelo que produziu o resultado
+    // Metadados de observabilidade: quem produziu o resultado.
+    // O script de regressão usa os dois para rotular as rodadas na comparação.
     resultado._modelo = usedModel;
+    resultado._provedor = PROVEDOR_IA;
     return new Response(JSON.stringify({ success: true, data: resultado }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
