@@ -2207,6 +2207,22 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <option value="Não">Não</option>
                                         <option value="Em andamento">Em andamento</option>
                                     </select>
+                                    {/*
+                                      * O salvamento automático grava os campos, mas nunca envia e-mail.
+                                      * Quando a venda ACABA de virar "Sim", avisamos que ainda falta
+                                      * clicar em Salvar — senão a venda fica registrada e o e-mail de
+                                      * agradecimento nunca sai, sem ninguém perceber.
+                                      */}
+                                    {formData.vendeu === 'Sim' && vendeuOriginalRef.current !== 'Sim' && (
+                                        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-[11px] font-semibold text-amber-800 leading-relaxed">
+                                            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                            <span>
+                                                Falta clicar em <strong>Salvar</strong> aqui embaixo. O e-mail de
+                                                agradecimento e a apólice só saem quando você salva — o salvamento
+                                                automático guarda os dados, mas não envia nada.
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 {formData.vendeu === 'Não' && (
                                     <div className="space-y-2">
