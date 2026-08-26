@@ -9,6 +9,8 @@ import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
 import { FeatureTip } from './FeatureTip.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import SaveIndicator from './SaveIndicator.tsx';
 
 interface ResidentialClient {
     id: number;
@@ -170,9 +172,6 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     const [uploadingApolice, setUploadingApolice] = useState(false);
     const [uploadingGarantiaDoc, setUploadingGarantiaDoc] = useState<string | null>(null);
 
-    const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
-    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-    const isDirtyRef = useRef(false);
 
     const [resBoletos, setResBoletos] = useState<{id: number; parcela: number; vencimento: string|null; valor: number|null; url: string; pago: boolean}[]>([]);
     const [resBoletoForm, setResBoletoForm] = useState<{parcela: string; vencimento: string; valor: string; file: File|null}>({parcela: '', vencimento: '', valor: '', file: null});
@@ -329,16 +328,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
 
     useEffect(() => { if (editingId) fetchResBoletos(editingId); else setResBoletos([]); }, [editingId, fetchResBoletos]);
 
-    useEffect(() => {
-        if (!editingId || !isDirtyRef.current) return;
-        clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
-        return () => clearTimeout(autoSaveTimerRef.current);
-    }, [formData, editingId]);
-
-    const performAutoSave = async () => {
-        if (!isDirtyRef.current || !editingId) return;
-        setAutoSaveState('saving');
+    const gravarClienteEmEdicao = useCallback(async (dados: typeof formData) => {
+        if (!editingId) return;
+        const formData = dados;
         const payload = {
             nome: formData.nome || null,
             cpf: formData.cpf || null,
@@ -373,18 +365,22 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             apolice_url: (formData as any).apolice_url || null,
         };
         const { error } = await supabase.from('residential_clients').update(payload).eq('id', editingId);
-        if (error) {
-            setAutoSaveState('error');
-        } else {
-            isDirtyRef.current = false;
-            setAutoSaveState('saved');
-            fetchClients();
-            setTimeout(() => setAutoSaveState('idle'), 2500);
-        }
-    };
+        if (error) throw error;
+        fetchClients();
+    }, [editingId, fetchClients]);
+
+    const {
+        estado: autoSaveState,
+        salvarAgora: salvarClienteAgora,
+        descartarRascunho,
+    } = useAutoSave({
+        dados: formData,
+        ativo: !!editingId,
+        identidade: editingId,
+        salvar: gravarClienteEmEdicao,
+    });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        isDirtyRef.current = true;
         let { id, value } = e.target;
 
         // Aplicar máscaras
@@ -607,9 +603,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     };
 
     const resetForm = () => {
-        clearTimeout(autoSaveTimerRef.current);
-        isDirtyRef.current = false;
-        setAutoSaveState('idle');
+        descartarRascunho();
         setEditingId(null);
         setFormData(EMPTY_FORM);
         setShowModal(false);
@@ -619,9 +613,6 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     };
 
     const handleEdit = (client: ResidentialClient) => {
-        clearTimeout(autoSaveTimerRef.current);
-        isDirtyRef.current = false;
-        setAutoSaveState('idle');
         setEditingId(client.id);
         const fromObs = parseStructuredObs(client.obs);
         setFormData({
@@ -670,9 +661,6 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             if (data && data.length > 0) {
                 handleEdit(data[0] as ResidentialClient);
             } else {
-                clearTimeout(autoSaveTimerRef.current);
-                isDirtyRef.current = false;
-                setAutoSaveState('idle');
                 setEditingId(null);
                 setFormData({
                     ...EMPTY_FORM,
@@ -924,15 +912,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
                         {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                     </h3>
-                    {editingId && autoSaveState !== 'idle' && (
-                        <span className={`text-xs font-bold flex items-center gap-1.5 ${
-                            autoSaveState === 'saved' ? 'text-emerald-500' :
-                            autoSaveState === 'error' ? 'text-red-500' : 'text-slate-400'
-                        }`}>
-                            {autoSaveState === 'saving' && <><Loader2 size={12} className="animate-spin" /> Salvando...</>}
-                            {autoSaveState === 'saved' && <><CheckCircle2 size={12} /> Salvo</>}
-                            {autoSaveState === 'error' && <>&#9888; Erro — use Salvar Alterações</>}
-                        </span>
+                    {editingId && (
+                        <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarClienteAgora} />
                     )}
                 </div>
 
@@ -1140,7 +1121,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                 {['Sim', 'Não'].map(v => (
                                     <button
                                         key={v} type="button"
-                                        onClick={() => { isDirtyRef.current = true; setFormData(prev => ({ ...prev, tem_garantia: v })); }}
+                                        onClick={() => { setFormData(prev => ({ ...prev, tem_garantia: v })); }}
                                         className={`px-5 py-2 rounded-xl font-black text-sm transition-all ${formData.tem_garantia === v ? 'bg-[#C69C6D] text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'}`}
                                     >{v}</button>
                                 ))}

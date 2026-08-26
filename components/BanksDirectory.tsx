@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Info, Edit3, Save, X, Plus, ShieldPlus, Landmark, FileText, UserCircle, DollarSign, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import { SaveIndicator } from './SaveIndicator.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface BankData {
@@ -95,6 +97,47 @@ const BanksDirectory: React.FC = () => {
         setEditData(parseBankData(bank.obs));
     };
 
+    // Ids temporários (Date.now()) marcam bancos que ainda não existem no banco
+    // de dados. Nesses casos o autosave fica desligado, senão cada pausa na
+    // digitação criaria um registro novo.
+    const ehBancoNovo = editingId !== null && editingId > 1000000000000;
+
+    const dadosAutoSave = useMemo(
+        () => ({ nome: editNome, dados: editData }),
+        [editNome, editData],
+    );
+
+    const gravarBancoEmEdicao = useCallback(
+        async (dados: typeof dadosAutoSave) => {
+            if (editingId === null || ehBancoNovo) return;
+            if (!dados.nome.trim()) return; // nome é obrigatório
+            const { error } = await supabase
+                .from('banks')
+                .update({ nome: dados.nome, obs: JSON.stringify(dados.dados) })
+                .eq('id', editingId);
+            if (error) throw error;
+            setBanks(prev =>
+                prev.map(b =>
+                    b.id === editingId
+                        ? { ...b, nome: dados.nome, obs: JSON.stringify(dados.dados) }
+                        : b,
+                ),
+            );
+        },
+        [editingId, ehBancoNovo],
+    );
+
+    const {
+        estado: autoSaveState,
+        salvarAgora: salvarBancoAgora,
+        sincronizar: sincronizarAutoSave,
+    } = useAutoSave({
+        dados: dadosAutoSave,
+        ativo: editingId !== null && !ehBancoNovo,
+        identidade: editingId,
+        salvar: gravarBancoEmEdicao,
+    });
+
     const handleSave = async () => {
         if (!editNome) return alert('O nome é obrigatório');
 
@@ -112,6 +155,7 @@ const BanksDirectory: React.FC = () => {
             console.error('Erro ao salvar:', error);
             alert('Erro ao salvar dados.');
         } else {
+            sincronizarAutoSave();
             setEditingId(null);
             fetchBanks();
         }
@@ -207,9 +251,14 @@ const BanksDirectory: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                     {isEditing ? (
-                                        <div className="flex gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarBancoAgora} />
                                             <button onClick={handleSave} className="bg-emerald-500 text-white p-3 hover:bg-emerald-600 rounded-2xl transition-all shadow-lg active:scale-95"><Save size={20} /></button>
-                                            <button onClick={() => { setEditingId(null); fetchBanks(); }} className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"><X size={20} /></button>
+                                            <button
+                                                onClick={() => { setEditingId(null); fetchBanks(); }}
+                                                title={ehBancoNovo ? 'Descartar' : 'Fechar edição'}
+                                                className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"
+                                            ><X size={20} /></button>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

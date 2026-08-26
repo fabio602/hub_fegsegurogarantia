@@ -37,6 +37,8 @@ import TaskManager from './TaskManager';
 import LicitanteAnalyzer from './LicitanteAnalyzer';
 import ContratoAnalyzer from './ContratoAnalyzer';
 import { generateThankYouEmail } from '../utils/emailTemplates';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import SaveIndicator from './SaveIndicator.tsx';
 
 // --- Configuration ---
 interface InsurerLimit {
@@ -338,9 +340,6 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
-    const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
-    const isDirtyRef = React.useRef(false);
     /**
      * Valor de `vendeu` que o registro tinha no banco quando foi aberto para edição.
      * Serve para disparar os e-mails só na TRANSIÇÃO para "Sim" — sem isso, toda
@@ -758,7 +757,6 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        isDirtyRef.current = true;
         const { id, type } = e.target as HTMLInputElement;
         let value = e.target.value;
 
@@ -1179,9 +1177,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     const resetForm = () => {
-        clearTimeout(autoSaveTimerRef.current);
-        isDirtyRef.current = false;
-        setAutoSaveState('idle');
+        descartarRascunho();
         setEditingId(null);
         vendeuOriginalRef.current = null;
         setLimitesArray([]);
@@ -1227,48 +1223,72 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSelectedBoleto(null);
     };
 
-    const performAutoSave = React.useCallback(async () => {
-        if (!isDirtyRef.current || !editingId) return;
-        setAutoSaveState('saving');
+    /**
+     * Conteúdo vigiado pelo salvamento automático. Os limites por seguradora
+     * entram junto porque também fazem parte do que é gravado.
+     */
+    const dadosAutoSave = useMemo(
+        () => ({ ...formData, _limitesArray: limitesArray }),
+        [formData, limitesArray],
+    );
+
+    const gravarVendaEmEdicao = React.useCallback(async (dados: typeof dadosAutoSave) => {
+        if (!editingId) return;
+        const limites = dados._limitesArray || [];
         const payload = {
-            data: formData.data || null, nome: formData.nome || null, origem: formData.origem || null,
-            tipo: formData.tipo || null, is: formData.is || null, seguradora: formData.seguradora || null,
-            premio: formData.premio || null, vendeu: formData.vendeu || null, comissao: formData.comissao || null,
-            vendedor: formData.vendedor || null, indicacao: formData.indicacao || null, limites: formData.limites || null,
-            catalogo: formData.catalogo || null, vigencia_inicio: formData.vigencia_inicio || null,
-            vigencia_fim: formData.vigencia_fim || null, telefone: formData.telefone || null,
-            email: formData.email || null, cnpj: formData.cnpj || null, decisor: formData.decisor || null,
-            product_type: formData.product_type || 'Seguro Garantia', process_number: formData.process_number || null,
-            court: formData.court || null, valorLote: formData.valorLote || null, orgaoLicitante: formData.orgaoLicitante || null,
-            dataPregao: formData.dataPregao || null, numeroContrato: formData.numeroContrato || null,
-            objetoContrato: formData.objetoContrato || null, segurado: formData.segurado || null,
-            valorContrato: formData.valorContrato || null,
-            limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
-            parceiro: (formData as any).parceiro || null, numero_boleto: (formData as any).numero_boleto || null,
-            vencimento_boleto: (formData as any).vencimento_boleto || null,
-            pagamento_status: (formData as any).pagamento_status || 'Em dia',
+            data: dados.data || null, nome: dados.nome || null, origem: dados.origem || null,
+            tipo: dados.tipo || null, is: dados.is || null, seguradora: dados.seguradora || null,
+            premio: dados.premio || null, vendeu: dados.vendeu || null, comissao: dados.comissao || null,
+            vendedor: dados.vendedor || null, indicacao: dados.indicacao || null, limites: dados.limites || null,
+            catalogo: dados.catalogo || null, vigencia_inicio: dados.vigencia_inicio || null,
+            vigencia_fim: dados.vigencia_fim || null, telefone: dados.telefone || null,
+            email: dados.email || null, cnpj: dados.cnpj || null, decisor: dados.decisor || null,
+            product_type: dados.product_type || 'Seguro Garantia', process_number: dados.process_number || null,
+            court: dados.court || null, valorLote: dados.valorLote || null, orgaoLicitante: dados.orgaoLicitante || null,
+            dataPregao: dados.dataPregao || null, numeroContrato: dados.numeroContrato || null,
+            objetoContrato: dados.objetoContrato || null, segurado: dados.segurado || null,
+            valorContrato: dados.valorContrato || null,
+            limites_seguradoras: limites.length > 0 ? JSON.stringify(limites) : null,
+            parceiro: (dados as any).parceiro || null, numero_boleto: (dados as any).numero_boleto || null,
+            vencimento_boleto: (dados as any).vencimento_boleto || null,
+            pagamento_status: (dados as any).pagamento_status || 'Em dia',
         };
         const { error } = await supabase.from('sales').update(payload).eq('id', editingId);
-        if (error) {
-            setAutoSaveState('error');
-        } else {
-            isDirtyRef.current = false;
-            setAutoSaveState('saved');
-            setTimeout(() => setAutoSaveState('idle'), 2500);
-        }
-    }, [editingId, formData, limitesArray]);
+        if (error) throw error;
+    }, [editingId]);
 
+    const {
+        estado: autoSaveState,
+        salvarAgora: salvarVendaAgora,
+        sincronizar: sincronizarAutoSave,
+        rascunho: rascunhoVenda,
+        descartarRascunho,
+    } = useAutoSave({
+        dados: dadosAutoSave,
+        ativo: !!editingId,
+        identidade: editingId,
+        salvar: gravarVendaEmEdicao,
+        chaveRascunho: 'venda-garantia',
+        ignorar: ['id', 'created_at'],
+    });
+
+    // Recupera uma única vez o rascunho de cadastro novo deixado na sessão anterior.
+    const rascunhoRestauradoRef = React.useRef(false);
+    const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
     useEffect(() => {
-        if (!editingId || !isDirtyRef.current) return;
-        clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
-        return () => clearTimeout(autoSaveTimerRef.current);
-    }, [formData, editingId, performAutoSave]);
+        if (rascunhoRestauradoRef.current || editingId || !rascunhoVenda) return;
+        // Só repõe se o formulário ainda estiver em branco, para nunca sobrescrever
+        // algo que o usuário já começou a digitar agora.
+        if (formData.nome || formData.cnpj || formData.premio) return;
+        rascunhoRestauradoRef.current = true;
+        const { _limitesArray, ...campos } = rascunhoVenda as any;
+        setFormData(prev => ({ ...prev, ...campos }));
+        if (Array.isArray(_limitesArray)) setLimitesArray(_limitesArray);
+        setRascunhoRestaurado(true);
+    }, [rascunhoVenda, editingId, formData.nome, formData.cnpj, formData.premio]);
 
     const handleEdit = (sale: Sale) => {
-        clearTimeout(autoSaveTimerRef.current);
-        isDirtyRef.current = false;
-        setAutoSaveState('idle');
+        setRascunhoRestaurado(false);
         setEditingId(sale.id);
         // Guarda o `vendeu` que veio do banco, antes de qualquer alteração no formulário.
         vendeuOriginalRef.current = sale.vendeu ?? null;
@@ -1936,14 +1956,23 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
                             {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}
-                            {editingId && autoSaveState !== 'idle' && (
-                                <span className={`text-xs font-bold flex items-center gap-1.5 ml-2 ${autoSaveState === 'saved' ? 'text-emerald-500' : autoSaveState === 'error' ? 'text-red-500' : 'text-slate-400'}`}>
-                                    {autoSaveState === 'saving' && <><Loader2 size={12} className="animate-spin" /> Salvando...</>}
-                                    {autoSaveState === 'saved' && <><CheckCircle2 size={12} /> Salvo</>}
-                                    {autoSaveState === 'error' && <>⚠ Erro</>}
-                                </span>
+                            {editingId && (
+                                <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarVendaAgora} className="ml-2" />
                             )}
                         </h3>
+
+                        {rascunhoRestaurado && !editingId && (
+                            <div className="mb-6 flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl text-xs font-semibold">
+                                <span>Recuperamos o que você tinha começado a preencher aqui.</span>
+                                <button
+                                    type="button"
+                                    onClick={() => { resetForm(); setRascunhoRestaurado(false); }}
+                                    className="text-slate-400 hover:text-slate-600 underline underline-offset-2"
+                                >
+                                    limpar e começar do zero
+                                </button>
+                            </div>
+                        )}
 
                         {saveError && (
                             <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-xl text-sm font-bold">

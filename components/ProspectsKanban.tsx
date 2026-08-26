@@ -718,6 +718,34 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         }
     };
 
+    /**
+     * Fecha o modal de editar lead avisando se houver alteração não salva.
+     *
+     * Aqui não usamos salvamento automático de propósito: salvar carimba a
+     * observação com data/hora no histórico e reinicia o "tempo na coluna"
+     * quando a fase muda. Gravar sozinho a cada tecla encheria o histórico de
+     * entradas pela metade. Então protegemos o trabalho com um aviso na saída.
+     */
+    const fecharEdicaoLead = () => {
+        const alterouCampos =
+            !!editingLead &&
+            Object.entries(editLeadForm).some(([chave, valor]) => {
+                if (chave === 'tasks' || chave === 'created_at' || chave === 'description') return false;
+                const original = (editingLead as any)[chave];
+                return (valor ?? '') !== (original ?? '');
+            });
+        const temObservacaoPendente = editObservationText.trim().length > 0;
+        const temLimitePendente =
+            (editCurrentLimit.seguradora || '').trim().length > 0 ||
+            (editCurrentLimit.valor || '').trim().length > 0;
+
+        if (alterouCampos || temObservacaoPendente || temLimitePendente) {
+            if (!window.confirm('Você alterou este lead e ainda não salvou. Fechar mesmo assim?')) return;
+        }
+        setIsEditModalOpen(false);
+        setEditingLead(null);
+    };
+
     const handleSaveEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLead) return;
@@ -1577,7 +1605,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     </p>
                                 )}
                             </div>
-                            <button onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                            <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">

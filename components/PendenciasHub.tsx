@@ -2,6 +2,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Loader2, CheckCircle2, AlertCircle, Calendar, User, X, Trash2, Edit2, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import { SaveIndicator } from './SaveIndicator.tsx';
 import type { Pendencia } from '../types';
 
 const RESPONSAVEIS = ['Andréia', 'Grace', 'Geisa', 'Fábio'] as const;
@@ -96,6 +98,47 @@ const PendenciasHub: React.FC = () => {
         fetchLista();
     }, [fetchLista]);
 
+    // Guarda se o autosave gravou algo, para atualizar a lista ao fechar o modal
+    // sem precisar recarregá-la a cada tecla (o que faria a tela piscar).
+    const listaDesatualizadaRef = React.useRef(false);
+
+    const gravarPendenciaEmEdicao = useCallback(
+        async (dados: typeof emptyForm) => {
+            if (!editingId) return;
+            // Título é obrigatório: não gravamos uma pendência sem nome.
+            if (!dados.titulo.trim()) return;
+            const { error: upErr } = await supabase
+                .from('pendencias')
+                .update({
+                    titulo: dados.titulo.trim(),
+                    descricao: dados.descricao.trim() || null,
+                    responsavel: dados.responsavel.trim() || null,
+                    prazo: dados.prazo || null,
+                    prioridade: dados.prioridade,
+                })
+                .eq('id', editingId);
+            if (upErr) throw upErr;
+            listaDesatualizadaRef.current = true;
+        },
+        [editingId],
+    );
+
+    const {
+        estado: autoSaveState,
+        salvarAgora: salvarPendenciaAgora,
+        sincronizar: sincronizarAutoSave,
+        rascunho: rascunhoPendencia,
+        descartarRascunho,
+    } = useAutoSave({
+        dados: form,
+        ativo: modalOpen && !!editingId,
+        identidade: editingId,
+        salvar: gravarPendenciaEmEdicao,
+        chaveRascunho: modalOpen && !editingId ? 'pendencia' : undefined,
+    });
+
+    const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+
     const chipClass = (ativo: boolean) =>
         `px-4 py-2 rounded-xl font-bold text-xs transition-all border ${
             ativo
@@ -108,10 +151,24 @@ const PendenciasHub: React.FC = () => {
         setModalOpen(false);
         setEditingId(null);
         setForm(emptyForm);
+        setRascunhoRestaurado(false);
+        // Se o autosave gravou alguma coisa enquanto o modal estava aberto, a
+        // lista só é recarregada agora — assim ela não pisca durante a digitação.
+        if (listaDesatualizadaRef.current) {
+            listaDesatualizadaRef.current = false;
+            void fetchLista();
+        }
     };
 
     const abrirNova = () => {
-        setForm(emptyForm);
+        // Recupera o que ficou pela metade (aba fechada, navegador recarregado).
+        if (rascunhoPendencia && rascunhoPendencia.titulo?.trim()) {
+            setForm({ ...emptyForm, ...rascunhoPendencia });
+            setRascunhoRestaurado(true);
+        } else {
+            setForm(emptyForm);
+            setRascunhoRestaurado(false);
+        }
         setEditingId(null);
         setError(null);
         setModalOpen(true);
@@ -121,6 +178,7 @@ const PendenciasHub: React.FC = () => {
         setForm(pendenciaParaForm(p));
         setEditingId(p.id);
         setError(null);
+        setRascunhoRestaurado(false);
         setModalOpen(true);
     };
 
@@ -148,6 +206,9 @@ const PendenciasHub: React.FC = () => {
                     .insert({ ...row, concluida: false });
                 if (insErr) throw insErr;
             }
+            sincronizarAutoSave();
+            descartarRascunho();
+            listaDesatualizadaRef.current = false;
             fecharModal(true);
             await fetchLista();
         } catch (e: unknown) {
@@ -345,9 +406,15 @@ const PendenciasHub: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1B263B]/55 backdrop-blur-sm">
                     <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-[#C69C6D]/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
-                            <h4 className="text-xl font-black text-[#1B263B]">
-                                {editingId ? 'Editar pendência' : 'Nova pendência'}
-                            </h4>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h4 className="text-xl font-black text-[#1B263B]">
+                                    {editingId ? 'Editar pendência' : 'Nova pendência'}
+                                </h4>
+                                <SaveIndicator
+                                    estado={autoSaveState}
+                                    aoTentarNovamente={salvarPendenciaAgora}
+                                />
+                            </div>
                             <button
                                 type="button"
                                 onClick={fecharModal}
@@ -358,6 +425,22 @@ const PendenciasHub: React.FC = () => {
                             </button>
                         </div>
                         <div className="space-y-4">
+                            {rascunhoRestaurado && !editingId && (
+                                <div className="flex items-center justify-between gap-3 rounded-xl bg-white/70 border border-[#C69C6D]/30 px-4 py-2.5 text-xs text-slate-600">
+                                    <span>Recuperamos o que você tinha começado a preencher aqui.</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            descartarRascunho();
+                                            setForm(emptyForm);
+                                            setRascunhoRestaurado(false);
+                                        }}
+                                        className="font-bold text-[#C69C6D] underline underline-offset-2 whitespace-nowrap"
+                                    >
+                                        limpar
+                                    </button>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
                                     Título *

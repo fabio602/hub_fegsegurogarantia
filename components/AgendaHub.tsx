@@ -562,6 +562,41 @@ const AgendaHub: React.FC = () => {
     });
   };
 
+  /**
+   * Fecha o modal de editar cartão avisando se houver alteração não salva.
+   *
+   * Aqui não usamos salvamento automático de propósito: salvar recria a lista
+   * de itens do checklist do zero (delete + insert), o que apagaria os itens já
+   * marcados como feitos a cada tecla digitada. Então protegemos o trabalho com
+   * um aviso na saída, em vez de gravar sozinho.
+   */
+  const fecharEdicaoTarefa = () => {
+    if (editTaskModal.saving) return;
+    const task = editTaskModal.task;
+    if (task) {
+      const ymd = dayKeyForDueDate(task.due_date) || weekDaysYmd[0];
+      const { h, m } = brtHourMinuteFromIso(task.due_date);
+      const checklistOriginal = (itemsByTaskId[task.id] || []).map((it) => `- ${it.text}`).join('\n');
+      const mudou =
+        editTaskModal.title !== task.title ||
+        editTaskModal.dayYmd !== ymd ||
+        editTaskModal.timeStr !== `${pad2(h)}:${pad2(m)}` ||
+        editTaskModal.checklistRaw !== checklistOriginal;
+      if (mudou && !window.confirm('Você alterou este cartão e ainda não salvou. Fechar mesmo assim?')) {
+        return;
+      }
+    }
+    setEditTaskModal({
+      open: false,
+      task: null,
+      title: '',
+      dayYmd: '',
+      timeStr: '12:00',
+      checklistRaw: '',
+      saving: false,
+    });
+  };
+
   const saveEditTaskModal = async () => {
     const task = editTaskModal.task;
     if (!task) return;
@@ -1386,18 +1421,7 @@ const AgendaHub: React.FC = () => {
           <button
             type="button"
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={() =>
-              !editTaskModal.saving &&
-              setEditTaskModal({
-                open: false,
-                task: null,
-                title: '',
-                dayYmd: '',
-                timeStr: '12:00',
-                checklistRaw: '',
-                saving: false,
-              })
-            }
+            onClick={fecharEdicaoTarefa}
             aria-label="Fechar"
           />
           <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-[#C69C6D]/25">

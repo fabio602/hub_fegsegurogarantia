@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Info, Edit3, Save, X, Plus, ShieldPlus, Landmark, FileText, UserCircle, DollarSign, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import { SaveIndicator } from './SaveIndicator.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
 interface SuretyData {
@@ -89,6 +91,47 @@ const SuretiesDirectory: React.FC = () => {
         setEditData(parseSuretyData(surety.obs));
     };
 
+    // Ids temporários (Date.now()) são afiançadoras que ainda não existem no
+    // banco. Nelas o autosave fica desligado, senão cada pausa na digitação
+    // criaria um registro novo.
+    const ehAfiancadoraNova = editingId !== null && editingId > 1000000000000;
+
+    const dadosAutoSave = useMemo(
+        () => ({ nome: editNome, dados: editData }),
+        [editNome, editData],
+    );
+
+    const gravarAfiancadoraEmEdicao = useCallback(
+        async (dados: typeof dadosAutoSave) => {
+            if (editingId === null || ehAfiancadoraNova) return;
+            if (!dados.nome.trim()) return; // nome é obrigatório
+            const { error } = await supabase
+                .from('sureties')
+                .update({ nome: dados.nome, obs: JSON.stringify(dados.dados) })
+                .eq('id', editingId);
+            if (error) throw error;
+            setSureties(prev =>
+                prev.map(s =>
+                    s.id === editingId
+                        ? { ...s, nome: dados.nome, obs: JSON.stringify(dados.dados) }
+                        : s,
+                ),
+            );
+        },
+        [editingId, ehAfiancadoraNova],
+    );
+
+    const {
+        estado: autoSaveState,
+        salvarAgora: salvarAfiancadoraAgora,
+        sincronizar: sincronizarAutoSave,
+    } = useAutoSave({
+        dados: dadosAutoSave,
+        ativo: editingId !== null && !ehAfiancadoraNova,
+        identidade: editingId,
+        salvar: gravarAfiancadoraEmEdicao,
+    });
+
     const handleSave = async () => {
         if (!editNome) return alert('O nome é obrigatório');
 
@@ -106,6 +149,7 @@ const SuretiesDirectory: React.FC = () => {
             console.error('Erro ao salvar:', error);
             alert('Erro ao salvar dados.');
         } else {
+            sincronizarAutoSave();
             setEditingId(null);
             fetchSureties();
         }
@@ -195,9 +239,14 @@ const SuretiesDirectory: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                     {isEditing ? (
-                                        <div className="flex gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarAfiancadoraAgora} />
                                             <button onClick={handleSave} className="bg-emerald-500 text-white p-3 hover:bg-emerald-600 rounded-2xl transition-all shadow-lg active:scale-95"><Save size={20} /></button>
-                                            <button onClick={() => { setEditingId(null); fetchSureties(); }} className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"><X size={20} /></button>
+                                            <button
+                                                onClick={() => { setEditingId(null); fetchSureties(); }}
+                                                title={ehAfiancadoraNova ? 'Descartar' : 'Fechar edição'}
+                                                className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"
+                                            ><X size={20} /></button>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Star } from 'lucide-react';
 import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import { SaveIndicator } from './SaveIndicator.tsx';
 
 const PRESET_COLORS: { id: string; label: string; bg: string; text: string; badge: string; style: string }[] = [
   { id: 'navy',        label: 'Azul Marinho',   bg: 'from-[#1B3A5C] to-[#0F2440]',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#1B3A5C,#0F2440)' },
@@ -90,6 +92,45 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
 
   const handleEdit = (ins: Insurer) => { setEditingId(ins.id); setEditForm(ins); };
 
+  // Ids temporários (Date.now()) são registros que ainda não existem no banco.
+  // O autosave fica desligado neles, senão cada pausa criaria uma linha nova.
+  const ehRegistroNovo = editingId !== null && editingId > 1000000000000;
+
+  const gravarEmEdicao = useCallback(
+    async (dados: Partial<Insurer>) => {
+      if (editingId === null || ehRegistroNovo) return;
+      if (!dados.nome) return; // nome é obrigatório
+      const { error } = await supabase
+        .from(tableName)
+        .update({
+          nome: dados.nome,
+          premio_minimo: dados.premioMinimo || dados.premio_minimo,
+          portal: dados.portal,
+          login: dados.login,
+          senha: dados.senha,
+          obs: dados.obs,
+          ccg: dados.ccg,
+          ...(dados.rank_position != null && { rank_position: dados.rank_position }),
+          ...(dados.card_color != null && { card_color: dados.card_color }),
+        })
+        .eq('id', editingId);
+      if (error) throw error;
+      setInsurers(prev => prev.map(i => (i.id === editingId ? ({ ...i, ...dados } as Insurer) : i)));
+    },
+    [editingId, ehRegistroNovo, tableName],
+  );
+
+  const {
+    estado: autoSaveState,
+    salvarAgora: salvarAgoraDiretorio,
+    sincronizar: sincronizarAutoSave,
+  } = useAutoSave({
+    dados: editForm,
+    ativo: editingId !== null && !ehRegistroNovo,
+    identidade: editingId,
+    salvar: gravarEmEdicao,
+  });
+
   const handleSave = async () => {
     if (!editForm.nome) return alert('O nome é obrigatório');
     const payload: Record<string, unknown> = {
@@ -107,7 +148,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
     };
     const { error } = await supabase.from(tableName).upsert(payload);
     if (error) { console.error('Erro ao salvar:', error); alert('Erro ao salvar dados.'); }
-    else { setEditingId(null); fetchInsurers(); }
+    else { sincronizarAutoSave(); setEditingId(null); fetchInsurers(); }
   };
 
   const handleAdd = () => {
@@ -239,9 +280,14 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                 </div>
                 <div className="flex items-center gap-2 ml-4">
                   {isEditing ? (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarAgoraDiretorio} />
                       <button onClick={handleSave} className="bg-emerald-500 text-white p-3 hover:bg-emerald-600 rounded-2xl transition-all shadow-lg active:scale-95"><Save size={20} /></button>
-                      <button onClick={() => { setEditingId(null); fetchInsurers(); }} className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"><X size={20} /></button>
+                      <button
+                        onClick={() => { setEditingId(null); fetchInsurers(); }}
+                        title={ehRegistroNovo ? 'Descartar' : 'Fechar edição'}
+                        className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"
+                      ><X size={20} /></button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0">

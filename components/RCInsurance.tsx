@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import SaveIndicator from './SaveIndicator.tsx';
 
 interface RCClient {
   id: number;
@@ -121,9 +123,6 @@ const RCInsurance: React.FC = () => {
   const [rcExtractMsg, setRcExtractMsg] = useState('');
   const rcFileRef = useRef<HTMLInputElement>(null);
 
-  const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const isDirtyRef = useRef(false);
 
   const [rcBoletos, setRcBoletos] = useState<{id: number; parcela: number; vencimento: string|null; valor: number|null; url: string; pago: boolean}[]>([]);
   const [rcBoletoForm, setRcBoletoForm] = useState<{parcela: string; vencimento: string; valor: string; file: File|null}>({parcela: '', vencimento: '', valor: '', file: null});
@@ -171,16 +170,9 @@ const RCInsurance: React.FC = () => {
 
   useEffect(() => { if (editingId) fetchRCBoletos(editingId); else setRcBoletos([]); }, [editingId, fetchRCBoletos]);
 
-  useEffect(() => {
-    if (!editingId || !isDirtyRef.current) return;
-    clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => { performAutoSave(); }, 1500);
-    return () => clearTimeout(autoSaveTimerRef.current);
-  }, [formData, editingId]);
-
-  const performAutoSave = async () => {
-    if (!isDirtyRef.current || !editingId) return;
-    setAutoSaveState('saving');
+  const gravarClienteEmEdicao = useCallback(async (dados: typeof formData) => {
+    if (!editingId) return;
+    const formData = dados;
     const payload = {
       nome: formData.nome || null,
       cpf_cnpj: formData.cpf_cnpj || null,
@@ -203,18 +195,22 @@ const RCInsurance: React.FC = () => {
       obs: formData.obs || null,
     };
     const { error } = await supabase.from('rc_clients').update(payload).eq('id', editingId);
-    if (error) {
-      setAutoSaveState('error');
-    } else {
-      isDirtyRef.current = false;
-      setAutoSaveState('saved');
-      fetchClients();
-      setTimeout(() => setAutoSaveState('idle'), 2500);
-    }
-  };
+    if (error) throw error;
+    fetchClients();
+  }, [editingId, fetchClients]);
+
+  const {
+    estado: autoSaveState,
+    salvarAgora: salvarClienteAgora,
+    descartarRascunho,
+  } = useAutoSave({
+    dados: formData,
+    ativo: !!editingId,
+    identidade: editingId,
+    salvar: gravarClienteEmEdicao,
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    isDirtyRef.current = true;
     let { id, value } = e.target;
     if (id === 'telefone' || id === 'telefone_2') value = formatPhone(value);
     if (id === 'premio_total' || id === 'comissao' || id === 'limite_garantia') value = formatCurrency(value);
@@ -365,9 +361,6 @@ const RCInsurance: React.FC = () => {
   };
 
   const handleEdit = (c: RCClient) => {
-    clearTimeout(autoSaveTimerRef.current);
-    isDirtyRef.current = false;
-    setAutoSaveState('idle');
     setFormData({ ...c });
     setEditingId(c.id);
     setShowForm(true);
@@ -382,9 +375,7 @@ const RCInsurance: React.FC = () => {
   };
 
   const handleCancel = () => {
-    clearTimeout(autoSaveTimerRef.current);
-    isDirtyRef.current = false;
-    setAutoSaveState('idle');
+    descartarRascunho();
     setFormData(EMPTY_FORM);
     setEditingId(null);
     setShowForm(false);
@@ -467,15 +458,8 @@ const RCInsurance: React.FC = () => {
               <ShieldAlert size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Responsabilidade Civil'}
             </h3>
             <div className="flex items-center gap-3">
-              {editingId && autoSaveState !== 'idle' && (
-                <span className={`text-xs font-bold flex items-center gap-1.5 ${
-                  autoSaveState === 'saved' ? 'text-emerald-400' :
-                  autoSaveState === 'error' ? 'text-red-400' : 'text-slate-300'
-                }`}>
-                  {autoSaveState === 'saving' && <><Loader2 size={11} className="animate-spin" /> Salvando...</>}
-                  {autoSaveState === 'saved' && <><CheckCircle2 size={11} /> Salvo</>}
-                  {autoSaveState === 'error' && <>&#9888; Erro — clique em Salvar</>}
-                </span>
+              {editingId && (
+                <SaveIndicator estado={autoSaveState} tom="escuro" aoTentarNovamente={salvarClienteAgora} />
               )}
               <button onClick={handleCancel} className="text-slate-400 hover:text-white transition-colors"><X size={16} /></button>
             </div>
