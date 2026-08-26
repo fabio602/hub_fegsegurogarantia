@@ -60,7 +60,13 @@ const PREFILTRO_PESO5 = [
 ];
 const PREFILTRO_PESO3_TEXTO = ['lote']; // 'por lote'/'valor total do lote' eram substrings — contagem dupla/tripla
 const PREFILTRO_MOEDA = /r\$\s*[\d.]+,\d{2}/gi;
-const PREFILTRO_TOP_N = 12; // páginas de maior score que entram na seleção
+// Corte medido na bateria de regressão (26/08/2026), 2 repetições × 4 editais:
+//   topN 12 (antigo) → 64/64 acertos, 70.586 tokens de entrada em média
+//   topN  8 (atual)  → 64/64 acertos, 51.940 tokens — 26% mais barato, mesmo placar
+//   topN  6          → perdeu valor_global_edital em Marabá e ainda escalou para o
+//                      modelo forte, ficando mais caro E errado. É o piso.
+const PREFILTRO_TOP_N = 8; // páginas de maior score que entram na seleção
+const PREFILTRO_VIZINHAS = 1; // quantas páginas antes/depois de cada selecionada também entram
 
 function normTermo(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -93,8 +99,18 @@ interface PrefiltroResult {
   pagsSelecionadas?: number[]; // 1-indexed, para log
 }
 
-/** Seleciona páginas relevantes e monta PDF reduzido. Nunca lança excepção. */
-async function aplicarPrefiltro(pdfBase64: string): Promise<PrefiltroResult> {
+/**
+ * Seleciona páginas relevantes e monta PDF reduzido. Nunca lança excepção.
+ *
+ * `topN` e `vizinhas` só são passados pela bateria de regressão, que varre
+ * valores diferentes para achar o corte mais econômico que ainda acerta tudo.
+ * Sem eles, valem os padrões — ou seja, o hub continua exatamente como está.
+ */
+async function aplicarPrefiltro(
+  pdfBase64: string,
+  topN: number = PREFILTRO_TOP_N,
+  vizinhas: number = PREFILTRO_VIZINHAS,
+): Promise<PrefiltroResult> {
   if (!PREFILTRO_PAGINAS) {
     return { pdfBase64, paginasEnviadas: 0, motivo: 'desativado' };
   }
@@ -136,13 +152,14 @@ async function aplicarPrefiltro(pdfBase64: string): Promise<PrefiltroResult> {
       .map((s, i) => ({ i, s }))
       .filter(x => x.s > 0)
       .sort((a, b) => b.s - a.s);
-    const topIdx = new Set(ranked.slice(0, PREFILTRO_TOP_N).map(x => x.i));
+    const topIdx = new Set(ranked.slice(0, topN).map(x => x.i));
     const sel = new Set<number>();
     for (let i = 0; i < Math.min(3, totalPags); i++) sel.add(i);
     for (const i of topIdx) {
-      if (i > 0) sel.add(i - 1);
-      sel.add(i);
-      if (i < totalPags - 1) sel.add(i + 1);
+      for (let d = -vizinhas; d <= vizinhas; d++) {
+        const j = i + d;
+        if (j >= 0 && j < totalPags) sel.add(j);
+      }
     }
     // Fallback: menos de 5 páginas → pega as 15 primeiras (nunca o doc inteiro)
     if (sel.size < 5) {
@@ -161,7 +178,7 @@ async function aplicarPrefiltro(pdfBase64: string): Promise<PrefiltroResult> {
     const reducidoB64 = bytesToB64(reducidoBytes);
 
     const pagsSel = indices.map(i => i + 1); // 1-indexed para log
-    console.log(`[prefiltro] origem:${totalPags}p -> enviado:${indices.length}p | reducao:${(reducao * 100).toFixed(0)}% | motivo:ok | pags:${pagsSel.join(',')}`);
+    console.log(`[prefiltro] origem:${totalPags}p -> enviado:${indices.length}p | reducao:${(reducao * 100).toFixed(0)}% | topN:${topN} viz:${vizinhas} | motivo:ok | pags:${pagsSel.join(',')}`);
     return { pdfBase64: reducidoB64, paginasOriginais: totalPags, paginasEnviadas: indices.length, motivo: 'ok', pagsSelecionadas: pagsSel };
 
   } catch (e) {
@@ -309,20 +326,24 @@ async function callClaude(
 ): Promise<IaResult> {
   const textBlock = { type: 'text', text: montaInstrucao(additionalInstructions) };
 
-  // Aplica cache_control ao ÚLTIMO bloco de arquivo: o breakpoint cacheia tudo
-  // até ele inclusive (system prompt + documentos). O textBlock fica fora do cache
-  // porque varia com additionalInstructions e invalidaria o hit.
-  const cachedFileBlocks = fileBlocks.length > 0
-    ? [
-        ...fileBlocks.slice(0, -1),
-        { ...(fileBlocks[fileBlocks.length - 1] as object), cache_control: { type: 'ephemeral' } },
-      ]
-    : fileBlocks;
-
+  // NÃO cacheamos os blocos de documento — de propósito.
+  //
+  // O breakpoint ficava no último arquivo, então o cache gravado continha os PDFs
+  // do edital. Como cada análise é de um edital diferente, esse cache nunca podia
+  // ser reaproveitado: os logs mostravam cache_creation alto e cache_read SEMPRE 0.
+  // Resultado: pagávamos o prêmio de 25% da escrita e nunca recebíamos o desconto
+  // de 90% da leitura — cerca de 19% da conta jogada fora por edital.
+  //
+  // O escalamento para o Sonnet também não salvava: o cache é por modelo, o Sonnet
+  // não lê o que o Haiku gravou.
+  //
+  // O breakpoint do system prompt continua: ele é idêntico em toda chamada e é a
+  // única parte que tem chance real de hit (dois editais seguidos dentro do TTL
+  // de 5 min).
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'prompt-caching-2024-07-31' },
-    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: [...cachedFileBlocks, textBlock] }] }),
+    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }], messages: [{ role: 'user', content: [...fileBlocks, textBlock] }] }),
   });
   if (!res.ok) {
     const bodyText = await res.text().catch(() => '');
@@ -379,9 +400,14 @@ async function callGemini(
         contents: [{ role: 'user', parts }],
         generationConfig: {
           maxOutputTokens: GEMINI_MAX_TOKENS,
-          temperature: 0,
+          // O Google recomenda manter temperature=1.0 nos modelos Gemini 3: abaixar
+          // esse valor pode causar loop ou queda de qualidade. Não é como o Claude,
+          // onde temperature=0 deixa a extração mais determinística.
+          temperature: 1,
           responseMimeType: 'application/json',
-          thinkingLevel: GEMINI_THINKING_LEVEL,
+          // O nível de raciocínio fica DENTRO de thinkingConfig — solto em
+          // generationConfig a API devolve 400 ("Unknown name thinkingLevel").
+          thinkingConfig: { thinkingLevel: GEMINI_THINKING_LEVEL },
         },
       }),
     },
@@ -426,12 +452,20 @@ async function callGemini(
   };
 }
 
-/** Despacha para o provedor ativo. 'rapido' = 1ª tentativa, 'forte' = escalamento. */
+/**
+ * Despacha para o provedor. 'rapido' = 1ª tentativa, 'forte' = escalamento.
+ *
+ * `provedor` é passado por chamada (e não lido do ambiente aqui) para que a
+ * bateria de regressão consiga medir Gemini e Claude no mesmo dia sem trocar a
+ * variável PROVEDOR_IA — que é global e mudaria o comportamento em produção
+ * para todo mundo no meio do teste.
+ */
 function callIA(
-  nivel: 'rapido' | 'forte', fileBlocks: unknown[], additionalInstructions?: string
+  nivel: 'rapido' | 'forte', fileBlocks: unknown[], additionalInstructions: string | undefined,
+  provedor: Provedor,
 ): Promise<IaResult> {
-  const model = MODELOS[PROVEDOR_IA][nivel];
-  return PROVEDOR_IA === 'gemini'
+  const model = MODELOS[provedor][nivel];
+  return provedor === 'gemini'
     ? callGemini(model, fileBlocks, additionalInstructions)
     : callClaude(model, fileBlocks, additionalInstructions);
 }
@@ -669,9 +703,24 @@ const tryParse = (text: string) => {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
-    if (PROVEDOR_IA === 'claude' && !ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
-    if (PROVEDOR_IA === 'gemini' && !GEMINI_API_KEY)    throw new Error('GEMINI_API_KEY não configurada (PROVEDOR_IA=gemini)');
-    const { filesData, pdfBase64Array, pdfBase64, fileName, additionalInstructions } = await req.json();
+    const { filesData, pdfBase64Array, pdfBase64, fileName, additionalInstructions,
+            _provedor, _prefiltro_top_n, _prefiltro_vizinhas } = await req.json();
+
+    // Override por requisição, usado só pela bateria de regressão. Sem `_provedor`
+    // no corpo, vale o PROVEDOR_IA do ambiente — ou seja, o hub não muda em nada.
+    const provedor: Provedor = _provedor === 'gemini' ? 'gemini'
+      : _provedor === 'claude' ? 'claude'
+      : PROVEDOR_IA;
+
+    // Mesma ideia para o pré-filtro: a bateria varre valores de corte; o hub usa
+    // os padrões. Number.isInteger barra string, null, NaN e fração vindos do corpo.
+    const prefiltroTopN = Number.isInteger(_prefiltro_top_n) && _prefiltro_top_n > 0
+      ? _prefiltro_top_n : PREFILTRO_TOP_N;
+    const prefiltroVizinhas = Number.isInteger(_prefiltro_vizinhas) && _prefiltro_vizinhas >= 0
+      ? _prefiltro_vizinhas : PREFILTRO_VIZINHAS;
+
+    if (provedor === 'claude' && !ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não configurada');
+    if (provedor === 'gemini' && !GEMINI_API_KEY)    throw new Error('GEMINI_API_KEY não configurada (provedor=gemini)');
     let files: { data: string; mediaType: string; name: string }[] = [];
     if (filesData && filesData.length > 0) { files = filesData; }
     else {
@@ -682,9 +731,13 @@ Deno.serve(async (req) => {
 
     // Pré-filtro de páginas: roda antes de qualquer decisão de provedor
     // para que comparações futuras (Claude vs Gemini) usem exatamente o mesmo input.
+    let paginasOriginais = 0;
+    let paginasEnviadas = 0;
     const filesProcessados = await Promise.all(files.map(async (f) => {
       if (f.mediaType !== 'application/pdf') return f;
-      const r = await aplicarPrefiltro(f.data);
+      const r = await aplicarPrefiltro(f.data, prefiltroTopN, prefiltroVizinhas);
+      paginasOriginais += r.paginasOriginais ?? 0;
+      paginasEnviadas  += r.paginasEnviadas;
       if (r.motivo === 'desativado') return f; // sem log individual quando desativado
       return { ...f, data: r.pdfBase64 };
     }));
@@ -702,12 +755,12 @@ Deno.serve(async (req) => {
 
     // Tentativa 1: modelo rápido (mais barato) do provedor ativo
     try {
-      rawResult = await callIA('rapido', fileBlocks, additionalInstructions);
+      rawResult = await callIA('rapido', fileBlocks, additionalInstructions, provedor);
       usedModel = rawResult.model;
     } catch (e: unknown) {
       apiStatus = (e as ApiError)?.status ?? 0;
       apiMsg    = (e as ApiError)?.apiMsg  ?? String(e);
-      console.warn(`[${PROVEDOR_IA}] modelo rápido falhou: HTTP ${apiStatus} | ${apiMsg.slice(0, 200)}`);
+      console.warn(`[${provedor}] modelo rápido falhou: HTTP ${apiStatus} | ${apiMsg.slice(0, 200)}`);
       sonnetReason = 'rapido_error';
     }
 
@@ -741,9 +794,9 @@ Deno.serve(async (req) => {
         else if (!parsed) sonnetReason = 'parse_fail';
         else if (rawResult.stop_reason === 'max_tokens') sonnetReason = 'max_tokens';
       }
-      console.warn(`[escalamento] ${MODELOS[PROVEDOR_IA].forte} | motivo: ${sonnetReason}`);
+      console.warn(`[escalamento] ${MODELOS[provedor].forte} | motivo: ${sonnetReason}`);
       try {
-        const r = await callIA('forte', fileBlocks, additionalInstructions);
+        const r = await callIA('forte', fileBlocks, additionalInstructions, provedor);
         usedModel = r.model; rawResult = r; parsed = tryParse(r.text);
       } catch (sonnetErr: unknown) {
         // Degradação graceful: mantém o resultado do modelo rápido se houver, nunca derruba
@@ -782,7 +835,7 @@ Deno.serve(async (req) => {
     }
 
     const { stop_reason, output_tokens, input_tokens, cache_creation_input_tokens: cw, cache_read_input_tokens: cr } = rawResult;
-    console.log(`analyze-edital v17 | provedor:${PROVEDOR_IA} | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in (cw:${cw} cr:${cr}) / ${output_tokens}out | parse:${!!parsed}`);
+    console.log(`analyze-edital v21 | provedor:${provedor} | modelo:${usedModel} | stop:${stop_reason} | ${input_tokens}in (cw:${cw} cr:${cr}) / ${output_tokens}out | parse:${!!parsed}`);
     if (stop_reason === 'max_tokens') console.error(`[TRUNCAMENTO] ${output_tokens} tokens`);
 
     let resultado: Record<string, unknown>;
@@ -833,7 +886,14 @@ Deno.serve(async (req) => {
     // Metadados de observabilidade: quem produziu o resultado.
     // O script de regressão usa os dois para rotular as rodadas na comparação.
     resultado._modelo = usedModel;
-    resultado._provedor = PROVEDOR_IA;
+    resultado._provedor = provedor;
+    // Custo real da rodada: tokens de entrada é o que se paga, páginas é a alavanca
+    // que mexemos. A bateria cruza os dois para achar o corte mais barato que acerta.
+    resultado._paginas_originais = paginasOriginais;
+    resultado._paginas_enviadas = paginasEnviadas;
+    resultado._tokens_entrada = input_tokens;
+    resultado._prefiltro_top_n = prefiltroTopN;
+    resultado._prefiltro_vizinhas = prefiltroVizinhas;
     return new Response(JSON.stringify({ success: true, data: resultado }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
