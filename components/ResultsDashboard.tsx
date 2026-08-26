@@ -341,6 +341,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [autoSaveState, setAutoSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
     const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
     const isDirtyRef = React.useRef(false);
+    /**
+     * Valor de `vendeu` que o registro tinha no banco quando foi aberto para edição.
+     * Serve para disparar os e-mails só na TRANSIÇÃO para "Sim" — sem isso, toda
+     * vez que a venda fechada era editada (anexar boleto, corrigir um campo) o
+     * cliente e o parceiro recebiam o e-mail de novo.
+     * `null` = entrada nova, ainda não existe no banco.
+     */
+    const vendeuOriginalRef = React.useRef<string | null>(null);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
 
     // Pre-fill form when arriving from WhatsApp
@@ -1078,8 +1086,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             await fetchData();
             setSaveSuccess(true);
 
+            // Os e-mails saem só quando a venda ACABA de virar "Sim" — nunca em
+            // reedições de uma venda que já estava fechada (anexar boleto, corrigir
+            // um campo). Entrada nova tem `vendeuOriginalRef` = null, então conta
+            // como transição.
+            const virouVenda = payload.vendeu === 'Sim' && vendeuOriginalRef.current !== 'Sim';
+
             // Se venda fechada com parceiro → dispara email de agradecimento automaticamente
-            if (payload.vendeu === 'Sim' && payload.parceiro) {
+            if (virouVenda && payload.parceiro) {
                 const { data: pData } = await supabase
                     .from('partners')
                     .select('name, email')
@@ -1108,8 +1122,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 }
             }
 
-            // If the sale was won, trigger the thank you email manually with attachments
-            if (payload.vendeu === 'Sim' && payload.email) {
+            // E-mail de agradecimento ao cliente — só na transição para "Sim".
+            if (virouVenda && payload.email) {
                 setSendingEmail(true);
                 try {
                     console.log('[Manual Email] Starting attachment processing...', { selectedApolice: !!selectedApolice, selectedBoleto: !!selectedBoleto });
@@ -1169,6 +1183,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         isDirtyRef.current = false;
         setAutoSaveState('idle');
         setEditingId(null);
+        vendeuOriginalRef.current = null;
         setLimitesArray([]);
         setCurrentLimit({ seguradora: '', valor: '' });
         setCnpjLookupStatus('idle');
@@ -1255,6 +1270,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         isDirtyRef.current = false;
         setAutoSaveState('idle');
         setEditingId(sale.id);
+        // Guarda o `vendeu` que veio do banco, antes de qualquer alteração no formulário.
+        vendeuOriginalRef.current = sale.vendeu ?? null;
         setFormData(sale);
         if (sale.limites_seguradoras) {
             try {
