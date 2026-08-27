@@ -203,18 +203,19 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     const valorSegRaw = parseFloat((editStatusForm.valor_seguro || '').replace(',', '.'));
     const valorSegEdit = isNaN(valorSegRaw) || valorSegRaw === 0 ? undefined : valorSegRaw;
 
-    // Dia de vencimento sem valor mensal é o que gera o e-mail de "repasse de
-    // R$ 0,00" para a imobiliária: o robô procura por dia de vencimento, não
-    // pelo valor. Se o cliente é repasse e tem dia marcado, o valor é obrigatório.
+    // Repasse com dia de vencimento mas sem valor é o cadastro que gerava o
+    // e-mail de "R$ 0,00". Avisamos, mas não travamos o salvamento: muitas
+    // vezes o cliente ainda está em cotação e só se quer anotar um recado.
     const jaTemValor = Number((editingStatus as any).valor_seguro) > 0;
     const ehRepasse = Boolean((editingStatus as any).is_repasse);
     if (ehRepasse && diaVencEdit && valorSegEdit === undefined && !jaTemValor) {
-      alert(
-        'Preencha o "Valor Mensal (R$)" antes de salvar.\n\n' +
-        'Este cliente está marcado como repasse e com vencimento no dia ' + diaVencEdit + '. ' +
-        'Sem o valor, a imobiliária receberia um e-mail pedindo repasse de R$ 0,00.'
+      const seguir = confirm(
+        'Este cliente está como repasse, vencimento dia ' + diaVencEdit + ', mas sem "Valor Mensal (R$)".\n\n' +
+        'Pode salvar assim — ele fica de fora dos avisos de repasse até o valor ser preenchido, ' +
+        'então a imobiliária não recebe cobrança de R$ 0,00.\n\n' +
+        'OK para salvar assim. Cancelar para preencher o valor agora.'
       );
-      return;
+      if (!seguir) return;
     }
 
     const updatePayload: Record<string, unknown> = {
