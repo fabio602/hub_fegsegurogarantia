@@ -192,7 +192,7 @@ export default function EmailTrilhas() {
       dia: proximoDia,
       assunto: `E-mail ${proximaOrdem} — [NOME_EMPRESA]`,
       titulo: 'Título do e-mail',
-      corpo_html: '{{PF}}Olá [NOME_CONTATO], escreva aqui o texto do e-mail.</p>',
+      corpo_html: '<p style="{{P}}">Olá [NOME_CONTATO], escreva aqui o texto do e-mail.</p>\n<p style="{{PF}}">Último parágrafo, antes do botão.</p>',
       cta_texto: 'Falar com um especialista',
       cta_link: WHATSAPP_PADRAO,
       ativo: true,
@@ -440,7 +440,7 @@ export default function EmailTrilhas() {
 
                           <Campo
                             label="Corpo"
-                            dica='Escreva cada parágrafo assim: {{P}}texto do parágrafo</p> — e use {{PF}} no último, que tem espaço maior antes do botão.'
+                            dica='Escreva cada parágrafo assim: <p style="{{P}}">texto do parágrafo</p> — e troque {{P}} por {{PF}} no último, que tem espaço maior antes do botão.'
                           >
                             <textarea rows={10} className={`${inputCls} font-mono text-xs leading-relaxed`}
                               value={etapa.corpo_html ?? ''}
