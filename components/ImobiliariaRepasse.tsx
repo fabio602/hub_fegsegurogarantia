@@ -137,6 +137,11 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     if (!repasseSetupModal) return;
     const valor = parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const diaVenc = parseInt(repasseSetupForm.dia_vencimento_aluguel) || null;
+    // Marcar como repasse sem valor faz a imobiliária receber cobrança de R$ 0,00.
+    if (!(valor > 0)) {
+      alert('Informe o "Valor Mensal (R$)" do seguro.\n\nSem ele, a imobiliária receberia um e-mail pedindo repasse de R$ 0,00.');
+      return;
+    }
     // parcela_atual = 2: a 1ª sempre é paga pelo cliente diretamente
     // o repasse começa a partir da 2ª parcela
     await supabase.from('imobiliaria_clientes').update({
@@ -197,6 +202,20 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     const diaVencEdit = parseInt(editStatusForm.dia_vencimento_aluguel) || null;
     const valorSegRaw = parseFloat((editStatusForm.valor_seguro || '').replace(',', '.'));
     const valorSegEdit = isNaN(valorSegRaw) || valorSegRaw === 0 ? undefined : valorSegRaw;
+
+    // Dia de vencimento sem valor mensal é o que gera o e-mail de "repasse de
+    // R$ 0,00" para a imobiliária: o robô procura por dia de vencimento, não
+    // pelo valor. Se o cliente é repasse e tem dia marcado, o valor é obrigatório.
+    const jaTemValor = Number((editingStatus as any).valor_seguro) > 0;
+    const ehRepasse = Boolean((editingStatus as any).is_repasse);
+    if (ehRepasse && diaVencEdit && valorSegEdit === undefined && !jaTemValor) {
+      alert(
+        'Preencha o "Valor Mensal (R$)" antes de salvar.\n\n' +
+        'Este cliente está marcado como repasse e com vencimento no dia ' + diaVencEdit + '. ' +
+        'Sem o valor, a imobiliária receberia um e-mail pedindo repasse de R$ 0,00.'
+      );
+      return;
+    }
 
     const updatePayload: Record<string, unknown> = {
       status_residencial: editStatusForm.status_residencial,
@@ -904,7 +923,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={confirmarRepasseSetup}
-              disabled={!repasseSetupForm.valor_seguro}
+              disabled={!(parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) > 0)}
               className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
               ✅ Aprovar e configurar repasse
             </button>
