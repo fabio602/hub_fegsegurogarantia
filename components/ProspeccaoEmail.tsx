@@ -8,6 +8,7 @@ interface Contato {
   nome_empresa: string;
   email: string;
   origem: string;
+  trilha: string;
   data_inicio: string;
   ativo: boolean;
   email_1_sent: boolean;
@@ -26,39 +27,63 @@ interface Contato {
 const EMAIL_DAYS = [1, 3, 7, 14, 21];
 const EMAIL_LABELS = ['D+1', 'D+3', 'D+7', 'D+14', 'D+21'];
 
-const EMPTY_FORM = { nome_contato: '', nome_empresa: '', email: '' };
+/** Uma trilha = um conjunto de e-mails. O conteúdo mora no banco (email_trilhas / email_trilha_etapas). */
+interface Trilha {
+  slug: string;
+  nome: string;
+  descricao: string | null;
+}
+
+const EMPTY_FORM = { nome_contato: '', nome_empresa: '', email: '', trilha: '' };
 
 export default function ProspeccaoEmail() {
   const [contatos, setContatos] = useState<Contato[]>([]);
+  const [trilhas, setTrilhas] = useState<Trilha[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<typeof EMPTY_FORM[] | null>(null);
+  const [importPreview, setImportPreview] = useState<
+    { nome_contato: string; nome_empresa: string; email: string }[] | null
+  >(null);
+  const [importTrilha, setImportTrilha] = useState('');
   const [importSaving, setImportSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [filtroTrilha, setFiltroTrilha] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('email_cadencia')
-      .select('*')
-      .order('created_at', { ascending: false });
-    setContatos(data ?? []);
+    const [{ data: contatosData }, { data: trilhasData }] = await Promise.all([
+      supabase.from('email_cadencia').select('*').order('created_at', { ascending: false }),
+      supabase.from('email_trilhas').select('slug, nome, descricao').eq('ativo', true).order('ordem'),
+    ]);
+    setContatos(contatosData ?? []);
+    setTrilhas(trilhasData ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  // Assim que as trilhas chegam, deixa a primeira pré-selecionada nos dois fluxos.
+  useEffect(() => {
+    const primeira = trilhas[0]?.slug ?? '';
+    if (!primeira) return;
+    setForm(prev => (prev.trilha ? prev : { ...prev, trilha: primeira }));
+    setImportTrilha(prev => prev || primeira);
+  }, [trilhas]);
+
+  const nomeTrilha = (slug: string) => trilhas.find(t => t.slug === slug)?.nome ?? slug;
+
   const handleAdd = async () => {
-    if (!form.nome_contato || !form.nome_empresa || !form.email) return;
+    if (!form.nome_contato || !form.nome_empresa || !form.email || !form.trilha) return;
     setSaving(true);
     const { data: inserted } = await supabase.from('email_cadencia').insert({
       nome_contato: form.nome_contato.trim(),
       nome_empresa: form.nome_empresa.trim(),
       email: form.email.trim().toLowerCase(),
       origem: 'hub',
+      trilha: form.trilha,
       data_inicio: new Date().toISOString().split('T')[0],
       ativo: true,
     }).select('id').single();
@@ -70,7 +95,8 @@ export default function ProspeccaoEmail() {
       }).catch(e => console.warn('[Email 1 imediato]', e));
     }
 
-    setForm(EMPTY_FORM);
+    // Mantém a trilha escolhida — quem cadastra 10 contatos da mesma trilha não reescolhe 10 vezes.
+    setForm({ ...EMPTY_FORM, trilha: form.trilha });
     setShowModal(false);
     setSaving(false);
     // Aguarda 1s para o email_1_sent ser marcado antes de recarregar
@@ -121,12 +147,13 @@ export default function ProspeccaoEmail() {
   };
 
   const confirmImport = async () => {
-    if (!importPreview?.length) return;
+    if (!importPreview?.length || !importTrilha) return;
     setImportSaving(true);
     const today = new Date().toISOString().split('T')[0];
     const rows = importPreview.map(r => ({
       ...r,
       origem: 'csv',
+      trilha: importTrilha,
       data_inicio: today,
       ativo: true,
     }));
@@ -139,12 +166,14 @@ export default function ProspeccaoEmail() {
     load();
   };
 
-  const filtered = contatos.filter(c =>
-    !search ||
-    c.nome_contato.toLowerCase().includes(search.toLowerCase()) ||
-    c.nome_empresa.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = contatos.filter(c => {
+    if (filtroTrilha && c.trilha !== filtroTrilha) return false;
+    if (!search) return true;
+    const busca = search.toLowerCase();
+    return c.nome_contato.toLowerCase().includes(busca)
+      || c.nome_empresa.toLowerCase().includes(busca)
+      || c.email.toLowerCase().includes(busca);
+  });
 
   const EmailStatus = ({ sent, sentAt, day }: { sent: boolean; sentAt: string | null; day: string }) => (
     <div className="flex flex-col items-center gap-0.5">
@@ -168,7 +197,9 @@ export default function ProspeccaoEmail() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Prospecção Email</h2>
-          <p className="text-slate-500 font-semibold mt-1 text-sm">Cadência automática de 5 e-mails para empresas licitantes</p>
+          <p className="text-slate-500 font-semibold mt-1 text-sm">
+            Cadência automática de e-mails — cada contato segue a trilha do produto escolhido
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-all cursor-pointer">
@@ -200,14 +231,26 @@ export default function ProspeccaoEmail() {
         ))}
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        placeholder="Buscar por nome, empresa ou email..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-white"
-      />
+      {/* Busca + filtro por trilha */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          placeholder="Buscar por nome, empresa ou email..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-white"
+        />
+        <select
+          value={filtroTrilha}
+          onChange={e => setFiltroTrilha(e.target.value)}
+          className="sm:w-64 px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 focus:outline-none focus:border-[#C69C6D] bg-white"
+        >
+          <option value="">Todas as trilhas</option>
+          {trilhas.map(t => (
+            <option key={t.slug} value={t.slug}>{t.nome}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Preview CSV */}
       {importPreview && (
@@ -217,9 +260,21 @@ export default function ProspeccaoEmail() {
               <p className="font-black text-slate-800 text-sm">{importPreview.length} contato(s) encontrado(s) no CSV</p>
               <p className="text-xs text-slate-500 mt-0.5">Revise e confirme para importar. Cadência começa hoje.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Trilha do lote</label>
+                <select
+                  value={importTrilha}
+                  onChange={e => setImportTrilha(e.target.value)}
+                  className="px-3 py-2 border border-amber-200 rounded-xl text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D]"
+                >
+                  {trilhas.map(t => (
+                    <option key={t.slug} value={t.slug}>{t.nome}</option>
+                  ))}
+                </select>
+              </div>
               <button onClick={() => setImportPreview(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm">Cancelar</button>
-              <button onClick={confirmImport} disabled={importSaving}
+              <button onClick={confirmImport} disabled={importSaving || !importTrilha}
                 className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm disabled:opacity-50">
                 {importSaving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                 {importSaving ? 'Importando...' : 'Confirmar Importação'}
@@ -272,6 +327,7 @@ export default function ProspeccaoEmail() {
                 <tr className="border-b border-slate-100">
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Contato</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Empresa</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Trilha</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Email</th>
                   <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Início</th>
                   <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400" colSpan={5}>Status Emails</th>
@@ -290,6 +346,11 @@ export default function ProspeccaoEmail() {
                         {!c.ativo && !allDone && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pausado</span>}
                       </td>
                       <td className="px-5 py-4 text-sm font-medium text-slate-600">{c.nome_empresa}</td>
+                      <td className="px-5 py-4">
+                        <span className="inline-block text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          {nomeTrilha(c.trilha)}
+                        </span>
+                      </td>
                       <td className="px-5 py-4 text-xs font-mono text-slate-500">{c.email}</td>
                       <td className="px-5 py-4 text-xs font-bold text-slate-500">
                         {new Date(c.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -338,6 +399,23 @@ export default function ProspeccaoEmail() {
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
+                <select
+                  value={form.trilha}
+                  onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#C69C6D] bg-slate-50"
+                >
+                  {trilhas.map(t => (
+                    <option key={t.slug} value={t.slug}>{t.nome}</option>
+                  ))}
+                </select>
+                {trilhas.find(t => t.slug === form.trilha)?.descricao && (
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
+                    {trilhas.find(t => t.slug === form.trilha)?.descricao}
+                  </p>
+                )}
+              </div>
               {[
                 { label: 'Nome do Contato', key: 'nome_contato', placeholder: 'Ex: João Silva' },
                 { label: 'Nome da Empresa', key: 'nome_empresa', placeholder: 'Ex: Construtora ABC Ltda' },
@@ -356,7 +434,7 @@ export default function ProspeccaoEmail() {
               ))}
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email}
+              <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email || !form.trilha}
                 className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2">
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                 {saving ? 'Salvando...' : 'Adicionar à Cadência'}
