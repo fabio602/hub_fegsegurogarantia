@@ -48,6 +48,7 @@ import WhatsAppHub from './components/WhatsAppHub';
 import ImobiliariaRepasse from './components/ImobiliariaRepasse';
 import WhatsAppBlast from './components/WhatsAppBlast';
 import ProspeccaoEmail from './components/ProspeccaoEmail.tsx';
+import EmailTrilhas from './components/EmailTrilhas.tsx';
 import EmailFollowUp from './components/EmailFollowUp';
 import GarantiaLocaticia from './components/GarantiaLocaticia';
 import InadimplentesResidencial from './components/InadimplentesResidencial.tsx';
@@ -60,7 +61,7 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg'
-  | 'carteira' | 'prospeccao' | 'prospeccao-email' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
+  | 'carteira' | 'prospeccao' | 'prospeccao-email' | 'email-trilhas' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -72,7 +73,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'prospeccao-email', 'pnpc', 'seg-licitante', 'seg-contrato'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
@@ -89,6 +90,7 @@ const VIEW_TITLES: Record<View, string> = {
   carteira: 'Carteira de Clientes',
   prospeccao: 'Prospecção',
   'prospeccao-email': 'Prospecção Email',
+  'email-trilhas': 'Trilhas de E-mail',
   pnpc: 'PNPC',
   'seg-licitante': 'Seguro Licitante',
   'seg-contrato': 'Seguro de Contrato',
@@ -452,10 +454,11 @@ const App: React.FC = () => {
                 <NavSubGroup
                   groupKey="prospeccao"
                   label="Prospecção"
-                  isGroupActive={['prospeccao', 'prospeccao-email', 'pnpc'].includes(activeView)}
+                  isGroupActive={['prospeccao', 'prospeccao-email', 'email-trilhas', 'pnpc'].includes(activeView)}
                 >
                   <NavSubItem view="prospeccao" label="Prospecção Ativa" />
                   <NavSubItem view="prospeccao-email" label="Prospecção Email" />
+                  <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
                   <NavSubItem view="pnpc" label="PNPC" />
                 </NavSubGroup>
                 <NavSubItem view="directory" label="Seguradoras" />
@@ -738,6 +741,7 @@ const App: React.FC = () => {
               {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
               {activeView === 'prospeccao-email' && <ProspeccaoEmail />}
+              {activeView === 'email-trilhas' && <EmailTrilhas />}
               {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
               {activeView === 'seg-licitante' && <ResultsDashboard key="seg-licitante" initialSection="licitante" hideTabs onVerVendas={() => navigate('goals')} />}
               {activeView === 'seg-contrato' && <ResultsDashboard key="seg-contrato" initialSection="contrato" hideTabs onVerVendas={() => navigate('goals')} />}
