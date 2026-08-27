@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Star } from 'lucide-react';
+import { Search, ExternalLink, User, Key, Info, Edit3, Save, X, Plus, ShieldPlus, Copy, Check, Loader2, Star, UserRound, Phone, Mail } from 'lucide-react';
+import WhatsAppPhoneLink from './WhatsAppPhoneLink.tsx';
 import { Insurer } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAutoSave } from '../hooks/useAutoSave.ts';
@@ -108,6 +109,9 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           portal: dados.portal,
           login: dados.login,
           senha: dados.senha,
+          gerente: dados.gerente,
+          contato: dados.contato,
+          email: dados.email,
           obs: dados.obs,
           ccg: dados.ccg,
           ...(dados.rank_position != null && { rank_position: dados.rank_position }),
@@ -140,6 +144,9 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       portal: editForm.portal,
       login: editForm.login,
       senha: editForm.senha,
+      gerente: editForm.gerente,
+      contato: editForm.contato,
+      email: editForm.email,
       obs: editForm.obs,
       ccg: editForm.ccg,
       // rank_position e card_color só são enviados se tiverem valor (evita erro em tabelas sem essas colunas)
@@ -153,7 +160,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
 
   const handleAdd = () => {
     const tempId = Date.now();
-    const newIns: Partial<Insurer> = { id: tempId, nome: `Novo(a) ${itemName}`, login: '', senha: '', portal: '', obs: '', ccg: '' };
+    const newIns: Partial<Insurer> = { id: tempId, nome: `Novo(a) ${itemName}`, login: '', senha: '', portal: '', gerente: '', contato: '', email: '', obs: '', ccg: '' };
     setInsurers([newIns as Insurer, ...insurers]);
     setEditingId(tempId);
     setEditForm(newIns);
@@ -430,13 +437,65 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                   </div>
                 </div>
 
+                {/* Contato comercial — gerente, WhatsApp e e-mail */}
+                {(ins.gerente || ins.contato || ins.email || isEditing) && (
+                  <div className="space-y-4 pt-2 border-t border-slate-100">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                      <UserRound size={14} className="text-[#C69C6D]" /> Contato Comercial
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Gerente</p>
+                      {isEditing ? (
+                        <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.gerente || ''} onChange={e => setEditForm({ ...editForm, gerente: e.target.value })} placeholder="Nome do gerente comercial" />
+                      ) : (
+                        <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
+                          <p className="text-base font-black text-slate-800 truncate mr-2">{ins.gerente || '-'}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                        <Phone size={12} className="text-slate-400" /> WhatsApp
+                      </p>
+                      {isEditing ? (
+                        <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.contato || ''} onChange={e => setEditForm({ ...editForm, contato: e.target.value })} placeholder="(15) 99999-9999" />
+                      ) : (
+                        <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
+                          {ins.contato
+                            ? <WhatsAppPhoneLink phone={ins.contato} className="text-base font-black truncate mr-2" />
+                            : <p className="text-base font-black text-slate-800 mr-2">-</p>}
+                          {ins.contato && <CopyButton text={ins.contato} />}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                        <Mail size={12} className="text-slate-400" /> E-mail
+                      </p>
+                      {isEditing ? (
+                        <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="gerente@seguradora.com.br" />
+                      ) : (
+                        <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
+                          {ins.email
+                            ? <a href={`mailto:${ins.email}`} className="text-sm font-bold text-[#1B263B] hover:text-[#C69C6D] truncate mr-2 underline decoration-[#C69C6D]/40 underline-offset-2">{ins.email}</a>
+                            : <p className="text-base font-black text-slate-800 mr-2">-</p>}
+                          {ins.email && <CopyButton text={ins.email} />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {(ins.obs || isEditing) && (
                   <div className={`p-6 rounded-[2rem] flex items-start gap-4 ${isEditing ? 'bg-orange-50 border-2 border-orange-100' : 'bg-[#1B263B]/5 border border-[#1B263B]/5'}`}>
                     <Info size={20} className="text-[#C69C6D] mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-[11px] font-black text-slate-500 uppercase tracking-[2px] mb-2">Notas Técnicas</p>
                       {isEditing ? (
-                        <textarea className="w-full text-sm bg-transparent outline-none min-h-[100px] font-medium" placeholder="Regras de aceitação, ramos, contatos do gerente..." value={editForm.obs || ''} onChange={e => setEditForm({ ...editForm, obs: e.target.value })} />
+                        <textarea className="w-full text-sm bg-transparent outline-none min-h-[100px] font-medium" placeholder="Regras de aceitação, ramos, particularidades..." value={editForm.obs || ''} onChange={e => setEditForm({ ...editForm, obs: e.target.value })} />
                       ) : (
                         <p className="text-xs text-slate-600 leading-relaxed font-semibold italic">{ins.obs}</p>
                       )}
