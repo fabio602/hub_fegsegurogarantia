@@ -436,9 +436,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [boletoModalContato, setBoletoModalContato] = useState('');
     const [sendingBoletoEmail, setSendingBoletoEmail] = useState<number | null>(null);
     const [boletoEmailSent, setBoletoEmailSent] = useState<Set<number>>(new Set());
-    const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean }[]>([]);
+    const [boletos, setBoletos] = useState<{ id: number; parcela: number; vencimento: string | null; url: string; pago: boolean; valor: number | null }[]>([]);
     const [boletosSummary, setBoletosSummary] = useState<Record<number, { total: number; emAberto: number }>>({});
-    const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; file: File | null }>({ parcela: '', vencimento: '', file: null });
+    const [boletoForm, setBoletoForm] = useState<{ parcela: string; vencimento: string; valor: string; file: File | null }>({ parcela: '', vencimento: '', valor: '', file: null });
     const [uploadingBoleto, setUploadingBoleto] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -1345,13 +1345,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setBoletoModalEmail(email);
         setBoletoModalContato(contato);
         setBoletoEmailSent(new Set());
-        setBoletoForm({ parcela: '', vencimento: '', file: null });
+        setBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
         const { data } = await supabase
             .from('boletos')
-            .select('id, parcela, vencimento, url, pago')
+            .select('id, parcela, vencimento, url, pago, valor')
             .eq('sale_id', saleId)
             .order('parcela');
         setBoletos(data || []);
+    };
+
+    /** Aceita "2.083,53", "2083,53" ou "2083.53" e devolve o número, ou null se vier vazio. */
+    const parseValorParcela = (v: string): number | null => {
+        const limpo = v.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(limpo);
+        return Number.isFinite(n) && n > 0 ? n : null;
     };
 
     const handleAddBoleto = async () => {
@@ -1373,19 +1380,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 sale_id: boletoModalSaleId,
                 parcela: parseInt(boletoForm.parcela),
                 vencimento: boletoForm.vencimento || null,
+                valor: parseValorParcela(boletoForm.valor),
                 url: urlData.publicUrl,
             });
             if (insertError) throw new Error(`Insert: ${insertError.message}`);
 
             const { data, error: selectError } = await supabase
                 .from('boletos')
-                .select('id, parcela, vencimento, url, pago')
+                .select('id, parcela, vencimento, url, pago, valor')
                 .eq('sale_id', boletoModalSaleId)
                 .order('parcela');
             if (selectError) throw new Error(`Select: ${selectError.message}`);
 
             setBoletos(data || []);
-            setBoletoForm({ parcela: '', vencimento: '', file: null });
+            setBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
         } catch (err: any) {
             console.error('Erro ao enviar boleto:', err);
             toast(`Erro ao enviar boleto: ${err?.message || 'Tente novamente.'}`, 'error');
@@ -2781,6 +2789,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div className="flex items-center gap-3 flex-wrap">
                                             <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
+                                            {b.valor != null && <span className="text-xs font-black text-slate-700">{formatCurrency(Number(b.valor))}</span>}
                                             {b.pago
                                                 ? <span className="text-xs font-black text-emerald-600">✓ Pago</span>
                                                 : <span className="text-xs font-black text-red-600">⚠ Em Aberto</span>
@@ -2840,6 +2849,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
                                     />
                                 </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor da Parcela</label>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={boletoForm.valor}
+                                    onChange={e => setBoletoForm(f => ({ ...f, valor: e.target.value }))}
+                                    placeholder="2.083,53"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                    Opcional, mas é o que permite mostrar ao parceiro quanto ele recebe em cada parcela.
+                                </p>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Arquivo PDF</label>

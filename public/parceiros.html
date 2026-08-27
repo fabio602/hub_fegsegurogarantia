@@ -208,6 +208,9 @@
       <div class="stat-card gold">
         <div class="label">Sua comissão</div>
         <div class="value" id="card-parceiro">—</div>
+        <div id="card-parceiro-nota" style="display:none;font-size:10px;font-weight:700;color:#94a3b8;margin-top:4px;">
+          Valor total. Nas vendas parceladas você recebe conforme cada parcela é paga — veja o detalhe na tabela.
+        </div>
       </div>
     </div>
 
@@ -370,9 +373,13 @@
       if (!v || v === 0) return '—';
       return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
+    // Os valores vêm do banco como texto ("R$ 12.501,20"). O ponto é separador
+    // de milhar e precisa ser descartado antes da vírgula virar ponto decimal —
+    // sem isso "R$ 12.501,20" era lido como 12,50.
     function parseVal(v) {
       if (!v) return 0;
-      const n = parseFloat(String(v).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (typeof v === 'number') return v;
+      const n = parseFloat(String(v).replace(/[^\d,-]/g, '').replace(',', '.'));
       return isNaN(n) ? 0 : n;
     }
     function fmtData(d) {
@@ -381,6 +388,38 @@
       return `${day}/${m}/${y}`;
     }
     const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    /**
+     * Rateia a comissão do parceiro pelas parcelas do prêmio.
+     *
+     * A corretora só recebe a comissão à medida que o tomador paga cada parcela,
+     * então o parceiro recebe da mesma forma. O rateio é proporcional ao valor
+     * de cada parcela (elas não são sempre iguais — a primeira costuma ter os
+     * centavos da diferença).
+     *
+     * Devolve null quando a venda não tem parcelas com valor cadastrado; nesse
+     * caso o portal segue mostrando só o total, como sempre fez.
+     */
+    function comissaoPorParcela(venda, comissaoParceiro) {
+      const parcelas = (venda._boletos || []).filter(b => parseVal(b.valor) > 0);
+      if (parcelas.length < 2 || comissaoParceiro <= 0) return null;
+
+      const somaPremio = parcelas.reduce((s, b) => s + parseVal(b.valor), 0);
+      if (somaPremio <= 0) return null;
+
+      const itens = parcelas.map(b => ({
+        parcela: b.parcela,
+        vencimento: b.vencimento,
+        pago: !!b.pago,
+        valor: comissaoParceiro * (parseVal(b.valor) / somaPremio),
+      }));
+
+      return {
+        itens,
+        qtd: itens.length,
+        recebido: itens.filter(i => i.pago).reduce((s, i) => s + i.valor, 0),
+      };
+    }
 
     // ── ESTADO ───────────────────────────────────────────────
     let todasVendas = [];
@@ -478,6 +517,11 @@
       document.getElementById('card-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
       document.getElementById('card-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
       document.getElementById('card-parceiro').textContent = totalComissao > 0 ? fmt(totalComissao * PCT) : '—';
+
+      // Só explica o parcelamento quando existe alguma venda parcelada no período.
+      const temParcelada = emitidos.some(v => comissaoPorParcela(v, parseVal(v.comissao) * PCT));
+      document.getElementById('card-parceiro-nota').style.display = temParcelada ? 'block' : 'none';
+
       renderPipeline(todasVendas);
       renderZeroState();
     }
@@ -560,11 +604,25 @@
           ? `<a href="${v.apolice_url}" target="_blank" class="badge-apolice">⬇ Apólice</a>`
           : `<span class="vazio">—</span>`;
 
+        const rateio = comissaoPorParcela(v, parceiro);
+
+        // Quando o prêmio é parcelado, o número que importa para o parceiro é
+        // quanto ele recebe em cada parcela — o total vira referência.
+        const parceiroHtml = rateio
+          ? `<div style="font-size:14px;font-weight:900;color:#1B263B;white-space:nowrap;">${fmt(rateio.itens[0].valor)}</div>
+             <div style="font-size:10px;font-weight:700;color:#94a3b8;white-space:nowrap;margin-top:2px;">por parcela · ${rateio.qtd}x</div>
+             <div style="font-size:10px;color:#94a3b8;white-space:nowrap;">total ${fmt(parceiro)}</div>`
+          : (parceiro > 0 ? fmt(parceiro) : '—');
+
         let boletoHtml = `<span class="vazio">—</span>`;
         if (v._boletos && v._boletos.length > 0) {
-          boletoHtml = v._boletos.map(b =>
-            `<a href="${b.url}" target="_blank" class="badge-boleto">⬇ Parc. ${b.parcela}${b.vencimento ? `<span style="font-weight:500;font-size:10px;opacity:.7"> (${fmtData(b.vencimento)})</span>` : ''}</a>`
-          ).join('');
+          boletoHtml = v._boletos.map(b => {
+            const item = rateio ? rateio.itens.find(i => i.parcela === b.parcela) : null;
+            const suaParte = item
+              ? `<span style="display:block;font-weight:900;font-size:10px;color:#C69C6D;">você recebe ${fmt(item.valor)}</span>`
+              : '';
+            return `<a href="${b.url}" target="_blank" class="badge-boleto">⬇ Parc. ${b.parcela}${b.vencimento ? `<span style="font-weight:500;font-size:10px;opacity:.7"> (${fmtData(b.vencimento)})</span>` : ''}${suaParte}</a>`;
+          }).join('');
         }
 
         const seguradoOrgao = v.segurado || v.orgaoLicitante || '—';
@@ -581,7 +639,7 @@
           <td class="td-valor">${fmt(parseVal(v.premio))}</td>
           <td class="td-comissao">${fmt(comissao)}</td>
           <td style="font-size:12px;color:#94a3b8;">${pctStr}</td>
-          <td class="td-parceiro">${parceiro > 0 ? fmt(parceiro) : '—'}</td>
+          <td class="td-parceiro">${parceiroHtml}</td>
           <td>${statusComissao}</td>
           <td style="text-align:center">${btnApolice}</td>
           <td style="min-width:140px;text-align:center">${boletoHtml}</td>
@@ -599,6 +657,7 @@
       el.innerHTML = lista.map(v => {
         const comissao = parseVal(v.comissao);
         const parceiro = comissao * PCT;
+        const rateio = comissaoPorParcela(v, parceiro);
         return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
             <div>
@@ -613,10 +672,18 @@
               <div style="font-size:14px;font-weight:900;color:#1B263B;">${fmt(parseVal(v.premio))}</div>
             </div>
             <div style="background:#1B263B;border-radius:10px;padding:10px;">
-              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">Sua Comissão</div>
-              <div style="font-size:14px;font-weight:900;color:#C69C6D;">${parceiro > 0 ? fmt(parceiro) : '—'}</div>
+              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">${rateio ? 'Você recebe / parcela' : 'Sua Comissão'}</div>
+              <div style="font-size:14px;font-weight:900;color:#C69C6D;">${rateio ? fmt(rateio.itens[0].valor) : (parceiro > 0 ? fmt(parceiro) : '—')}</div>
+              ${rateio ? `<div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:2px;">${rateio.qtd}x · total ${fmt(parceiro)}</div>` : ''}
             </div>
           </div>
+          ${rateio ? `<div style="margin-top:10px;border-top:1px solid #f0ece4;padding-top:10px;">
+            <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:6px;">Suas parcelas</div>
+            ${rateio.itens.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
+              <span style="color:#78716c;">${i.parcela}ª${i.vencimento ? ' · ' + fmtData(i.vencimento) : ''}</span>
+              <span style="font-weight:900;color:${i.pago ? '#16a34a' : '#1B263B'};">${fmt(i.valor)}${i.pago ? ' ✓' : ''}</span>
+            </div>`).join('')}
+          </div>` : ''}
         </div>`;
       }).join('');
     }
@@ -715,7 +782,7 @@
       if (emitidos.length > 0) {
         const ids = emitidos.map(v => v.id);
         const { data: bData } = await client
-          .from('boletos').select('sale_id, parcela, vencimento, url')
+          .from('boletos').select('sale_id, parcela, vencimento, url, valor, pago')
           .in('sale_id', ids).order('parcela');
         const bMap = {};
         (bData || []).forEach(b => { if (!bMap[b.sale_id]) bMap[b.sale_id] = []; bMap[b.sale_id].push(b); });
