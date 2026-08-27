@@ -633,7 +633,8 @@ const App: React.FC = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
-          <div className="max-w-[1400px] mx-auto pb-20 lg:pb-16">
+          {/* Limite largo para aproveitar monitores grandes, sem esticar ao infinito em ultrawide */}
+          <div className="max-w-[1800px] mx-auto pb-20 lg:pb-16">
 
             {/* ── Visão Geral ──────────────────────────────────── */}
             {activeView === 'dashboard' && (

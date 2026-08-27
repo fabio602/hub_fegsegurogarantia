@@ -196,7 +196,7 @@ const BanksDirectory: React.FC = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
+        <div className="space-y-10 animate-in fade-in duration-500 pb-20">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h2 className="text-4xl font-black text-slate-800 tracking-tight">Bancos Garantidores</h2>

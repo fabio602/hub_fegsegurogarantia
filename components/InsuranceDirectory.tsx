@@ -184,7 +184,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-10 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-4xl font-black text-slate-800 tracking-tight">{title}</h2>
@@ -225,7 +225,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           </div>
 
           <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
               {rankedInsurers.map((ins, i) => {
                 const colorId = ins.card_color || DEFAULT_COLORS[i] || 'light-blue';
                 const m = PRESET_COLORS.find(c => c.id === colorId) ?? PRESET_COLORS[0];
@@ -262,7 +262,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       )}
 
       {/* ── Cards Grid ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-10">
         {filteredInsurers.map(ins => {
           const isEditing = editingId === ins.id;
           const premioMin = ins.premioMinimo || ins.premio_minimo;
@@ -390,7 +390,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
               </div>
 
               {/* Portal / Login / Senha */}
-              <div className="p-8 pt-6 space-y-8 flex-1">
+              <div className="p-5 sm:p-8 pt-6 space-y-8 flex-1">
                 <div className="space-y-6">
                   <div className="flex flex-col gap-2">
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
@@ -464,9 +464,9 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       ) : (
                         <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
                           {ins.contato
-                            ? <WhatsAppPhoneLink phone={ins.contato} className="text-base font-black truncate mr-2" />
+                            ? <WhatsAppPhoneLink phone={ins.contato} className="text-base font-black truncate min-w-0 mr-2" />
                             : <p className="text-base font-black text-slate-800 mr-2">-</p>}
-                          {ins.contato && <CopyButton text={ins.contato} />}
+                          {ins.contato && <div className="shrink-0"><CopyButton text={ins.contato} /></div>}
                         </div>
                       )}
                     </div>
@@ -480,9 +480,9 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       ) : (
                         <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
                           {ins.email
-                            ? <a href={`mailto:${ins.email}`} className="text-sm font-bold text-[#1B263B] hover:text-[#C69C6D] truncate mr-2 underline decoration-[#C69C6D]/40 underline-offset-2">{ins.email}</a>
+                            ? <a href={`mailto:${ins.email}`} className="text-sm font-bold text-[#1B263B] hover:text-[#C69C6D] truncate min-w-0 mr-2 underline decoration-[#C69C6D]/40 underline-offset-2">{ins.email}</a>
                             : <p className="text-base font-black text-slate-800 mr-2">-</p>}
-                          {ins.email && <CopyButton text={ins.email} />}
+                          {ins.email && <div className="shrink-0"><CopyButton text={ins.email} /></div>}
                         </div>
                       )}
                     </div>
