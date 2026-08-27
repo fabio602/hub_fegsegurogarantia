@@ -1028,6 +1028,24 @@
 
   function fmtBRL(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
   function fmtData(d) { if (!d) return '—'; const [y,m,dd] = d.split('-'); return `${dd}/${m}/${y}`; }
+  // Texto livre digitado no hub entra em innerHTML — escapar para não quebrar o layout.
+  function esc(t) {
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+  }
+
+  /** Bloco de recado da corretora, exibido no card e na tabela de clientes. */
+  function obsCorretoraHtml(c, compacto) {
+    const txt = (c.observacao_imobiliaria || '').trim();
+    if (!txt) return '';
+    const pad = compacto ? '6px 8px' : '10px 12px';
+    const fs  = compacto ? '10px' : '12px';
+    return `<div style="margin-top:8px;padding:${pad};background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
+      <div style="font-size:9px;font-weight:900;color:#1e40af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">💬 Recado da F&amp;G</div>
+      <div style="font-size:${fs};color:#1e3a5f;line-height:1.5;">${esc(txt)}</div>
+    </div>`;
+  }
 
   const STATUS = {
     aguardando_cotacao: ['sb-aguardando', '⏳ Aguardando'],
@@ -1526,6 +1544,7 @@
           ${apoliceLink}
           <div class="kc-data">${dataEnvio}</div>
           ${esperaHtml}
+          ${obsCorretoraHtml(c, true)}
           ${docsGarantia}
           ${btnAutorizar}
           ${jaAutorizou}
@@ -1621,7 +1640,10 @@
         <td>${colRes}</td><td>${colGar}</td>
         <td class="td-valor">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
         <td>${vencBadge(c.vigencia_fim)}</td>
-      </tr>`;
+      </tr>${(c.observacao_imobiliaria || '').trim() ? `
+      <tr style="${isCancelado ? 'background:#fff5f5;' : ''}">
+        <td colspan="10" style="padding:0 16px 12px;">${obsCorretoraHtml(c, false)}</td>
+      </tr>` : ''}`;
     }).join('');
   }
 
