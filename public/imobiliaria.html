@@ -1186,6 +1186,13 @@
     } catch(e) { alert('Erro ao enviar distrato: ' + e.message); if (btn) btn.innerHTML = '📄 Tentar novamente'; }
   }
 
+  // "Apenas Garantia Locaticia" grava tipo_seguro = 'garantia'. Testar so por
+  // 'residencial_garantia' deixava esse caso sem distrato, sem rescisao e
+  // rotulado como residencial. Teste unico para os dois lados.
+  function temGarantiaLocaticia(c) {
+    return c && (c.tipo_seguro === 'residencial_garantia' || c.tipo_seguro === 'garantia');
+  }
+
   function renderAlertasVencimento(cs) {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     // Todos: vencidos + próximos de vencer (30 dias)
@@ -1217,7 +1224,15 @@
             const dataVenc = new Date(c.vigencia_fim).toLocaleDateString('pt-BR');
             const urgencia = dias <= 7 ? '#dc2626' : '#d97706';
             const urgBg   = dias <= 7 ? '#fef2f2' : '#fffbeb';
-            const prazoLabel = dias === 0 ? 'Vence hoje!' : `Vence em ${dias} dia${dias!==1?'s':''}`;
+            // Já vencido mostra "Venceu há X dias" — antes aparecia "Vence em -99 dias".
+            const prazoLabel = dias === 0
+              ? 'Vence hoje!'
+              : dias < 0
+                ? `Venceu há ${-dias} dia${dias!==-1?'s':''}`
+                : `Vence em ${dias} dia${dias!==1?'s':''}`;
+            // Só a garantia locatícia precisa de distrato: a seguradora não cancela
+            // a apólice sem ele. Seguro residencial puro é só não renovar.
+            const temGarantia = temGarantiaLocaticia(c);
 
             if (conf === 'vai_renovar') return `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
@@ -1237,12 +1252,14 @@
                   </div>
                   <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
                 </div>
-                ${c.distrato_url
-                  ? `<a href="${c.distrato_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ Distrato enviado — clique para ver</a>`
-                  : `<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
-                      <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
-                      📄 Anexar distrato de locação
-                    </label>`
+                ${!temGarantia
+                  ? `<div style="font-size:11px;color:#94a3b8;font-weight:600;">Anotado — vamos encerrar o seguro residencial no vencimento. Não precisa enviar nada.</div>`
+                  : c.distrato_url
+                    ? `<a href="${c.distrato_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ Distrato enviado — clique para ver</a>`
+                    : `<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
+                        <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
+                        📄 Anexar distrato de locação
+                      </label>`
                 }
               </div>`;
 
@@ -1302,7 +1319,7 @@
     list.innerHTML = sorted.map(c => {
       const sRes = c.status_residencial || 'aguardando_cotacao';
       const [clsR, lblR] = STATUS[sRes] || STATUS['aguardando_cotacao'];
-      const temG = c.tipo_seguro === 'residencial_garantia';
+      const temG = temGarantiaLocaticia(c);
       const sGar = c.status_garantia || 'aguardando_cotacao';
       const [clsG, lblG] = STATUS[sGar] || STATUS['aguardando_cotacao'];
       const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -1491,7 +1508,7 @@
       if (!el) return;
       if (!cards.length) { el.innerHTML = '<div class="kanban-empty">Nenhum</div>'; return; }
       el.innerHTML = cards.map(c => {
-        const temG = c.tipo_seguro === 'residencial_garantia';
+        const temG = temGarantiaLocaticia(c);
         const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR');
         const apoliceLink = col.key === 'aprovado' && c.apolice_residencial_url
           ? `<a href="${c.apolice_residencial_url}" target="_blank" class="kanban-apolice">⬇ Apólice</a>` : '';
@@ -1626,7 +1643,7 @@
     }
 
     tbody.innerHTML = lista.map(c => {
-      const temG = c.tipo_seguro === 'residencial_garantia';
+      const temG = temGarantiaLocaticia(c);
       const sit = SITUACAO[c.status_apolice||'ativo'] || SITUACAO.ativo;
       const situacaoBadge = `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;background:${sit.bg};color:${sit.color};border:1px solid ${sit.border};border-radius:20px;font-size:10px;font-weight:900;white-space:nowrap;letter-spacing:.3px;">
         <span style="width:5px;height:5px;border-radius:50%;background:${sit.dot};flex-shrink:0;"></span>
@@ -1691,8 +1708,10 @@
     const filtrado = todosClientes.filter(c => {
       if (q && !(c.inquilino_nome||'').toLowerCase().includes(q)) return false;
       if (sit && (c.status_apolice||'ativo') !== sit) return false;
-      if (tipo === 'residencial' && c.tipo_seguro === 'residencial_garantia') return false;
-      if (tipo === 'garantia' && c.tipo_seguro !== 'residencial_garantia') return false;
+      // "Apenas Residencial" é só o residencial puro; "Com Garantia" inclui o
+      // combo e o de garantia pura, que antes não entrava em filtro nenhum.
+      if (tipo === 'residencial' && c.tipo_seguro !== 'residencial') return false;
+      if (tipo === 'garantia' && !temGarantiaLocaticia(c)) return false;
       if (filtroVencimento30) {
         if (!c.vigencia_fim || ['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
         const v = new Date(c.vigencia_fim);
@@ -1770,7 +1789,7 @@
   }
 
   function renderDocsPendentes(cs) {
-    const pendentes = cs.filter(c => c.tipo_seguro === 'residencial_garantia' &&
+    const pendentes = cs.filter(c => temGarantiaLocaticia(c) &&
       (c.status_garantia === 'aprovado' || c.status_garantia === 'emitido'));
     const area = document.getElementById('docs-pending-area');
     if (!pendentes.length) { area.innerHTML = ''; return; }
@@ -1841,8 +1860,9 @@
         seguradora: '', numero_apolice: '', valor_seguro: 0,
         parcela_atual: 1, total_parcelas: 12,
         data_inicio: new Date().toISOString().split('T')[0],
-        status: 'ativo', status_residencial: 'aguardando_cotacao',
-        status_garantia: tipoSeguro === 'residencial_garantia' ? 'aguardando_cotacao' : null,
+        status: 'ativo',
+        status_garantia: (tipoSeguro === 'residencial_garantia' || tipoSeguro === 'garantia') ? 'aguardando_cotacao' : null,
+        status_residencial: (tipoSeguro === 'residencial_garantia' || tipoSeguro === 'residencial') ? 'aguardando_cotacao' : null,
         kanban_status: 'solicitado',
         is_repasse: true,
       };
@@ -2020,7 +2040,7 @@
 
   /** Bloco de rescisão da linha da carteira. Devolve '' quando não se aplica. */
   function rescisaoHtml(c) {
-    const temG = c.tipo_seguro === 'residencial_garantia';
+    const temG = temGarantiaLocaticia(c);
     // Sem garantia locatícia não há apólice para cancelar na Fiantec. E quem já
     // está cancelado/saiu não precisa do botão.
     if (!temG) return '';
