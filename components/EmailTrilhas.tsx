@@ -46,6 +46,19 @@ const WHATSAPP_PADRAO = 'https://wa.me/5515998618659';
 const DIAS_SUGERIDOS = [1, 3, 7, 14, 21, 30, 45, 60];
 
 /** Transforma "Risco de Engenharia" em "risco-de-engenharia". */
+const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-slate-50';
+
+// Fica FORA do componente de propósito: se for declarado dentro, o React cria um
+// tipo novo a cada render, desmonta o input e o campo perde o foco a cada tecla
+// (dava a impressão de estar "digitando letra por letra").
+const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
+  <div>
+    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
+    {children}
+    {dica && <p className="text-[11px] text-slate-400 mt-1 leading-snug">{dica}</p>}
+  </div>
+);
+
 function gerarSlug(nome: string): string {
   return nome
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -244,16 +257,6 @@ export default function EmailTrilhas() {
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
-
-  const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
-    <div>
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
-      {children}
-      {dica && <p className="text-[11px] text-slate-400 mt-1 leading-snug">{dica}</p>}
-    </div>
-  );
-
-  const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-slate-50';
 
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 size={24} className="text-[#C69C6D] animate-spin" /></div>;
