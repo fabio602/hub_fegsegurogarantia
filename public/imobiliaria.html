@@ -1193,18 +1193,40 @@
     return c && (c.tipo_seguro === 'residencial_garantia' || c.tipo_seguro === 'garantia');
   }
 
+  // A imobiliária já fez a parte dela neste contrato?
+  //
+  // O painel é uma lista de pendências, não um histórico: depois de responder,
+  // o contrato não deve continuar ocupando espaço e disputando atenção com
+  // quem ainda espera resposta. O acompanhamento de todos fica na Carteira.
+  //
+  // A exceção é a garantia locatícia que não vai renovar: a seguradora não
+  // cancela a apólice sem o distrato, então enquanto o PDF não chega ainda
+  // existe uma tarefa aberta do lado dela.
+  function renovacaoResolvida(c) {
+    if (c.renovacao_confirmacao === 'vai_renovar') return true;
+    if (c.renovacao_confirmacao === 'nao_vai_renovar') {
+      return !temGarantiaLocaticia(c) || Boolean(c.distrato_url);
+    }
+    return false;
+  }
+
   function renderAlertasVencimento(cs) {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     // Todos: vencidos + próximos de vencer (30 dias)
-    const proximos = cs.filter(c => {
+    const naJanela = cs.filter(c => {
       if (!c.vigencia_fim) return false;
       if (['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
       const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
       return dias <= 30;
     }).sort((a, b) => new Date(a.vigencia_fim) - new Date(b.vigencia_fim));
 
+    const proximos  = naJanela.filter(c => !renovacaoResolvida(c));
+    const resolvidos = naJanela.filter(renovacaoResolvida);
+
     const el = document.getElementById('alertas-venc');
     if (!el) return;
+    // Sem pendência, o painel some por inteiro — inclusive quando ela acaba de
+    // responder o último. Sumir é a confirmação de que não sobrou nada.
     if (!proximos.length) { el.style.display = 'none'; return; }
     el.style.display = 'block';
 
@@ -1213,8 +1235,8 @@
         <div style="background:#1B263B;padding:16px 24px;display:flex;align-items:center;gap:12px;">
           <span style="font-size:18px;">⚠️</span>
           <div>
-            <div style="color:#fff;font-size:14px;font-weight:900;">Seguros vencendo em 30 dias — confirme a renovação</div>
-            <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;font-weight:600;">Por favor confirme se cada inquilino irá renovar para que possamos agir a tempo.</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;">${proximos.length} seguro${proximos.length!==1?'s':''} aguardando sua confirmação</div>
+            <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;font-weight:600;">Vencendo em até 30 dias. Confirme se o inquilino irá renovar para que possamos agir a tempo.</div>
           </div>
         </div>
         <div style="padding:8px 0;">
@@ -1230,19 +1252,9 @@
               : dias < 0
                 ? `Venceu há ${-dias} dia${dias!==-1?'s':''}`
                 : `Vence em ${dias} dia${dias!==1?'s':''}`;
-            // Só a garantia locatícia precisa de distrato: a seguradora não cancela
-            // a apólice sem ele. Seguro residencial puro é só não renovar.
-            const temGarantia = temGarantiaLocaticia(c);
 
-            if (conf === 'vai_renovar') return `
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
-                <div>
-                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
-                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
-                </div>
-                <span style="padding:5px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">✅ Vai renovar</span>
-              </div>`;
-
+            // Único caso já respondido que continua aqui: não vai renovar, tem
+            // garantia locatícia e falta o distrato. Os demais saíram no filtro.
             if (conf === 'nao_vai_renovar') return `
               <div style="padding:14px 24px;border-bottom:1px solid #f8f5f0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
@@ -1252,15 +1264,11 @@
                   </div>
                   <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
                 </div>
-                ${!temGarantia
-                  ? `<div style="font-size:11px;color:#94a3b8;font-weight:600;">Anotado — vamos encerrar o seguro residencial no vencimento. Não precisa enviar nada.</div>`
-                  : c.distrato_url
-                    ? `<a href="${c.distrato_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ Distrato enviado — clique para ver</a>`
-                    : `<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
-                        <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
-                        📄 Anexar distrato de locação
-                      </label>`
-                }
+                <div style="font-size:11px;color:#78716c;font-weight:600;margin-bottom:8px;">Falta só o distrato: a seguradora não cancela a garantia locatícia sem ele.</div>
+                <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
+                  <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
+                  📄 Anexar distrato de locação
+                </label>
               </div>`;
 
             // Vencidos: com botões também
@@ -1306,6 +1314,23 @@
               </div>`;
           }).join('')}
         </div>
+        ${resolvidos.length ? `
+        <!-- Fechado por padrão: serve para ela conferir que a resposta entrou,
+             sem que os respondidos disputem espaço com os pendentes. -->
+        <details style="border-top:1px solid #f0ede6;">
+          <summary style="padding:12px 24px;font-size:11px;font-weight:900;color:#94a3b8;cursor:pointer;list-style:none;">
+            ✅ ${resolvidos.length} já respondido${resolvidos.length!==1?'s':''} — ver
+          </summary>
+          <div style="padding:0 24px 14px;">
+            ${resolvidos.map(c => `
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;flex-wrap:wrap;">
+                <span style="font-size:12px;font-weight:700;color:#78716c;">${c.inquilino_nome}</span>
+                <span style="font-size:11px;font-weight:900;color:${c.renovacao_confirmacao==='vai_renovar'?'#16a34a':'#dc2626'};">
+                  ${c.renovacao_confirmacao==='vai_renovar' ? '✅ Vai renovar' : '❌ Não vai renovar'}
+                </span>
+              </div>`).join('')}
+          </div>
+        </details>` : ''}
       </div>`;
   }
 
