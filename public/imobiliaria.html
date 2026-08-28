@@ -5,414 +5,459 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal Imobiliária — F&G Seguro Garantia</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ═══════════════════════════════════════════════════════════════
+       Portal da Imobiliária — identidade visual F&G
+       Superfícies claras, cantos arredondados, sombras em camadas no
+       lugar de bordas duras. Toda transição usa a mesma curva (--ease)
+       para o portal parecer um objeto só, e não telas coladas.
+       ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --navy: #1B263B;
+      --navy-soft: #25334f;
+      --gold: #C69C6D;
+      --gold-soft: #e5cfb2;
+      --ink: #14203a;
+      --muted: #7b8698;
+      --line: rgba(27,38,59,.08);
+      --surface: #ffffff;
+      --bg: #f6f3ee;
+      --shadow-sm: 0 1px 2px rgba(27,38,59,.04);
+      --shadow: 0 1px 3px rgba(27,38,59,.05), 0 12px 32px -16px rgba(27,38,59,.22);
+      --shadow-lg: 0 2px 6px rgba(27,38,59,.06), 0 28px 60px -28px rgba(27,38,59,.32);
+      --ease: cubic-bezier(.22,.61,.36,1);
+      --r-lg: 26px;
+      --r: 18px;
+      --r-sm: 13px;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; color: #1B263B; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -.011em;
+    }
+    /* Brilho de fundo — dá profundidade sem pesar em nada */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(760px 420px at 12% -6%, rgba(198,156,109,.15), transparent 62%),
+        radial-gradient(620px 380px at 92% 0%, rgba(27,38,59,.06), transparent 60%);
+    }
 
     /* ── TOP BAR ── */
-    .topbar { background: #1B263B; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    .topbar-left { display: flex; align-items: center; gap: 14px; }
-    .logo { width: 36px; height: 36px; background: #C69C6D; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #1B263B; font-weight: 900; font-size: 13px; }
-    .topbar h1 { color: #fff; font-size: 15px; font-weight: 900; }
-    .topbar .sub { color: rgba(255,255,255,.45); font-size: 11px; }
-    .btn-sair { padding: 7px 16px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.7); cursor: pointer; transition: all .2s; }
-    .btn-sair:hover { background: rgba(239,68,68,.2); color: #fca5a5; border-color: rgba(239,68,68,.3); }
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(246,243,238,.82);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+      padding: 0 32px; height: 68px;
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 13px; }
+    .logo {
+      width: 42px; height: 42px; background: var(--navy); border-radius: 15px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .02em;
+      box-shadow: var(--shadow-sm); flex-shrink: 0;
+    }
+    .topbar h1 { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; }
+    .topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+    .btn-sair {
+      padding: 9px 17px; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 500;
+      color: var(--muted); cursor: pointer; transition: all .22s var(--ease);
+    }
+    .btn-sair:hover { color: #b91c1c; border-color: rgba(185,28,28,.24); transform: translateY(-1px); }
 
-    /* ── NAV TABS ── */
-    .nav { background: #fff; border-bottom: 1px solid #e8e4dc; display: flex; padding: 0 32px; gap: 0; }
-    .nav-btn { padding: 16px 20px; font-size: 13px; font-weight: 700; color: #78716c; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
-    .nav-btn:hover { color: #1B263B; }
-    .nav-btn.active { color: #1B263B; border-bottom-color: #C69C6D; }
-    .nav-btn .icon { margin-right: 6px; }
+    /* ── NAV: segmento com pílula deslizante ── */
+    .nav-wrap { max-width: 1180px; margin: 0 auto; padding: 18px 40px 4px; position: relative; z-index: 1; }
+    .nav {
+      position: relative; display: flex; gap: 4px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: 999px; padding: 6px;
+      box-shadow: var(--shadow-sm); overflow-x: auto; scrollbar-width: none;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-pill {
+      position: absolute; top: 6px; height: calc(100% - 12px); width: 0;
+      border-radius: 999px; background: var(--navy); z-index: 0;
+      transition: transform .42s var(--ease), width .42s var(--ease);
+    }
+    .nav-btn {
+      position: relative; z-index: 1; padding: 11px 20px; font: inherit;
+      font-size: 13.5px; font-weight: 500; color: var(--muted);
+      border: none; background: none; cursor: pointer; border-radius: 999px;
+      white-space: nowrap; transition: color .3s var(--ease);
+    }
+    .nav-btn:hover { color: var(--ink); }
+    .nav-btn.active { color: #fff; }
+    .nav-btn .icon { margin-right: 7px; opacity: .9; }
 
-    /* ── PAGES ── */
-    .page { display: none; padding: 32px 40px; }
-    #page-kanban { padding: 32px 40px; }
-    .page.active { display: block; }
+    /* ── PÁGINAS: entram com fade + subida, filhos em cascata ── */
+    .page { display: none; max-width: 1180px; margin: 0 auto; padding: 20px 40px 80px; position: relative; z-index: 1; }
+    #page-kanban { padding: 20px 40px 80px; }
+    .page.active { display: block; animation: entra .46s var(--ease) both; }
+    @keyframes entra { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .page.active > * { animation: entra .5s var(--ease) both; }
+    .page.active > *:nth-child(2) { animation-delay: .05s; }
+    .page.active > *:nth-child(3) { animation-delay: .1s; }
+    .page.active > *:nth-child(4) { animation-delay: .15s; }
+    @media (prefers-reduced-motion: reduce) {
+      .page.active, .page.active > * { animation: none; }
+      .nav-pill { transition: none; }
+    }
 
     /* ── DASHBOARD ── */
-    .dash-welcome { margin-bottom: 28px; }
-    .dash-welcome h2 { font-size: 24px; font-weight: 900; color: #1B263B; }
-    .dash-welcome p { color: #78716c; font-size: 13px; margin-top: 4px; }
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card { background: #fff; border-radius: 16px; padding: 22px; border: 1px solid #e8e4dc; }
-    .stat-card .label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 8px; }
-    .stat-card .value { font-size: 26px; font-weight: 900; color: #1B263B; }
-    .stat-card.gold { background: #1B263B; }
-    .stat-card.gold .label { color: rgba(255,255,255,.5); }
-    .stat-card.gold .value { color: #C69C6D; }
-    .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .action-card { background: #fff; border-radius: 16px; padding: 28px; border: 1px solid #e8e4dc; cursor: pointer; transition: all .2s; text-align: center; }
-    .action-card:hover { border-color: #C69C6D; box-shadow: 0 4px 20px rgba(198,156,109,.12); transform: translateY(-2px); }
-    .action-card .emoji { font-size: 36px; margin-bottom: 12px; }
-    .action-card h3 { font-size: 15px; font-weight: 900; color: #1B263B; margin-bottom: 6px; }
-    .action-card p { font-size: 12px; color: #78716c; }
+    .dash-welcome { margin-bottom: 26px; }
+    .dash-welcome h2 { font-size: 27px; font-weight: 600; color: var(--ink); letter-spacing: -.024em; line-height: 1.25; }
+    .dash-welcome p { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .stat-card {
+      background: var(--surface); border-radius: var(--r); padding: 21px 22px;
+      border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+      transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+    }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .stat-card .label { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 9px; }
+    .stat-card .value { font-size: 31px; font-weight: 600; color: var(--ink); letter-spacing: -.03em; line-height: 1; }
+    .stat-card.gold { background: var(--navy); border-color: var(--navy); }
+    .stat-card.gold .label { color: rgba(255,255,255,.55); }
+    .stat-card.gold .value { color: var(--gold); }
 
-    /* ── FORM SECTION ── */
+    /* Cartões de ação — sobem no hover e revelam um traço dourado */
+    .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 14px; }
+    .action-card {
+      position: relative; overflow: hidden; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--r-lg); padding: 27px 26px;
+      cursor: pointer; text-align: center; box-shadow: var(--shadow-sm);
+      transition: transform .34s var(--ease), box-shadow .34s var(--ease), border-color .34s var(--ease);
+    }
+    .action-card::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+      background: var(--gold); transform: scaleX(0); transform-origin: left;
+      transition: transform .42s var(--ease);
+    }
+    .action-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: rgba(198,156,109,.4); }
+    .action-card:hover::after { transform: scaleX(1); }
+    .action-card .emoji {
+      font-size: 30px; margin-bottom: 13px; display: inline-flex;
+      align-items: center; justify-content: center; width: 54px; height: 54px;
+      background: #f3ede4; border-radius: 17px;
+      transition: transform .34s var(--ease), background .34s var(--ease);
+    }
+    .action-card:hover .emoji { transform: scale(1.08) rotate(-4deg); background: var(--gold-soft); }
+    .action-card h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 7px; letter-spacing: -.018em; }
+    .action-card p { font-size: 13.5px; color: var(--muted); line-height: 1.62; }
+
+    /* ── CABEÇALHO DE SEÇÃO ── */
     .section-header { margin-bottom: 24px; }
-    .section-header h2 { font-size: 20px; font-weight: 900; }
-    .section-header p { font-size: 13px; color: #78716c; margin-top: 4px; }
-    .form-card { background: #fff; border-radius: 16px; border: 1px solid #e8e4dc; padding: 32px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .section-header h2 { font-size: 23px; font-weight: 600; letter-spacing: -.022em; }
+    .section-header p { font-size: 14px; color: var(--muted); margin-top: 5px; }
+
+    /* ── FORMULÁRIO ── */
+    .form-card { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--line); padding: 30px; box-shadow: var(--shadow-sm); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
     .form-grid .full { grid-column: 1 / -1; }
-    .form-group label { display: block; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
-    .form-group input, .form-group select { width: 100%; padding: 11px 14px; border: 1.5px solid #e8e4dc; border-radius: 12px; font-size: 13px; outline: none; background: #fafaf8; color: #1B263B; transition: border .2s; }
-    .form-group input:focus, .form-group select:focus { border-color: #C69C6D; background: #fff; }
-    .btn-primary { padding: 13px 28px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; transition: background .2s; margin-top: 8px; }
-    .btn-primary:hover { background: #243447; }
-    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-    .form-success { background: #f5faf7; border: 1px solid #c3dfd4; color: #2d6a4f; border-radius: 12px; padding: 14px 18px; font-weight: 700; font-size: 13px; margin-top: 14px; display: none; }
+    .form-group label { display: block; font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 7px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 13px 15px; border: 1px solid var(--line); border-radius: 14px;
+      font: inherit; font-size: 14px; outline: none; background: #fbfaf8; color: var(--ink);
+      transition: border-color .24s var(--ease), background .24s var(--ease), box-shadow .24s var(--ease);
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--gold); background: #fff; box-shadow: 0 0 0 4px rgba(198,156,109,.14);
+    }
+    .form-group input::placeholder { color: #b3bac6; }
+    .btn-primary {
+      padding: 14px 30px; background: var(--navy); color: #fff; font: inherit;
+      font-weight: 500; font-size: 14.5px; border: none; border-radius: 999px;
+      cursor: pointer; margin-top: 10px;
+      transition: transform .24s var(--ease), box-shadow .24s var(--ease), background .24s var(--ease);
+    }
+    .btn-primary:hover { background: var(--navy-soft); transform: translateY(-2px); box-shadow: 0 12px 26px -12px rgba(27,38,59,.6); }
+    .btn-primary:active { transform: translateY(0) scale(.985); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .form-success {
+      background: #eaf5ef; border: 1px solid #c3dfd4; color: #2c6b4a; border-radius: var(--r);
+      padding: 15px 19px; font-weight: 500; font-size: 13.5px; margin-top: 15px; display: none;
+    }
 
     /* ── CARTEIRA ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-bottom: 24px;
-    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 13px; margin-bottom: 24px; }
     .kpi-card {
-      background: #fff;
-      border: 1px solid #e8e4dc;
-      border-radius: 16px;
-      padding: 18px 20px;
-      cursor: pointer;
-      transition: all .2s;
-      position: relative;
-      overflow: hidden;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 19px 21px; cursor: pointer; position: relative; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
     }
-    .kpi-card:hover {
-      border-color: #C69C6D;
-      box-shadow: 0 4px 20px rgba(198,156,109,.12);
-      transform: translateY(-1px);
-    }
-    .kpi-card.active-filter {
-      border-color: #1B263B;
-      background: #1B263B;
-    }
-    .kpi-card.active-filter .kpi-count { color: #C69C6D; }
-    .kpi-card.active-filter .kpi-label { color: rgba(255,255,255,.5); }
-    .kpi-count {
-      font-size: 28px;
-      font-weight: 900;
-      color: #1B263B;
-      line-height: 1;
-      margin-bottom: 6px;
-      letter-spacing: -1px;
-    }
-    .kpi-label {
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #94a3b8;
-    }
-    .kpi-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 5px;
-      vertical-align: middle;
-    }
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: rgba(198,156,109,.4); }
+    .kpi-card.active-filter { border-color: var(--navy); background: var(--navy); }
+    .kpi-card.active-filter .kpi-count { color: var(--gold); }
+    .kpi-card.active-filter .kpi-label { color: rgba(255,255,255,.55); }
+    .kpi-count { font-size: 29px; font-weight: 600; color: var(--ink); line-height: 1; margin-bottom: 7px; letter-spacing: -.03em; }
+    .kpi-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .kpi-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
     .table-card {
-      background: #fff;
-      border-radius: 20px;
-      border: 1px solid #e8e4dc;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.03);
+      background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--line);
+      overflow: hidden; box-shadow: var(--shadow-sm);
     }
     .toolbar {
-      padding: 18px 24px;
-      border-bottom: 1px solid #f0ece4;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      background: #fafaf8;
+      padding: 19px 24px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fbfaf8;
     }
-    .toolbar h3 {
-      font-size: 14px;
-      font-weight: 900;
-      color: #1B263B;
-      margin-right: auto;
-      letter-spacing: -.2px;
-    }
+    .toolbar h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin-right: auto; letter-spacing: -.018em; }
     .carteira-count-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #f4f1ec;
-      color: #78716c;
-      font-size: 11px;
-      font-weight: 900;
-      padding: 2px 10px;
-      border-radius: 20px;
-      margin-left: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #f1eee8; color: var(--muted); font-size: 11.5px; font-weight: 600;
+      padding: 3px 10px; border-radius: 999px; margin-left: 8px;
     }
     .search-input {
-      border: 1.5px solid #e8e4dc;
-      border-radius: 10px;
-      padding: 8px 14px 8px 34px;
-      font-size: 12px;
-      outline: none;
-      background: #fff;
-      color: #1B263B;
-      min-width: 180px;
-      font-weight: 600;
-      transition: border .2s;
+      border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px;
+      font: inherit; font-size: 12.5px; font-weight: 400; outline: none;
+      background: #fff; color: var(--ink); min-width: 190px;
+      transition: border-color .24s var(--ease), box-shadow .24s var(--ease);
     }
-    .search-input:focus { border-color: #C69C6D; }
+    .search-input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
+    .search-input::placeholder { color: #b3bac6; }
     .select-filter {
-      border: 1.5px solid #e8e4dc;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 11px;
-      font-weight: 700;
-      outline: none;
-      background: #fff;
-      color: #1B263B;
-      cursor: pointer;
-      transition: border .2s;
+      border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px;
+      font: inherit; font-size: 12px; font-weight: 500; outline: none;
+      background: #fff; color: var(--ink); cursor: pointer;
+      transition: border-color .24s var(--ease), box-shadow .24s var(--ease);
     }
-    .select-filter:focus { border-color: #C69C6D; }
+    .select-filter:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
     .btn-limpar {
-      padding: 8px 14px;
-      background: transparent;
-      border: 1.5px solid #e8e4dc;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #94a3b8;
-      cursor: pointer;
-      transition: all .2s;
+      padding: 9px 16px; background: transparent; border: 1px solid var(--line);
+      border-radius: 999px; font: inherit; font-size: 12px; font-weight: 500;
+      color: var(--muted); cursor: pointer; transition: all .24s var(--ease);
     }
-    .btn-limpar:hover { border-color: #C69C6D; color: #C69C6D; background: #fef9f0; }
+    .btn-limpar:hover { border-color: var(--gold); color: var(--gold); background: #fdf6ec; }
     .scroll-x { overflow-x: auto; }
-    .scroll-x::-webkit-scrollbar { height: 4px; }
-    .scroll-x::-webkit-scrollbar-track { background: #f8f5f0; }
-    .scroll-x::-webkit-scrollbar-thumb { background: #C69C6D40; border-radius: 4px; }
-    .scroll-x::-webkit-scrollbar-thumb:hover { background: #C69C6D; }
+    .scroll-x::-webkit-scrollbar { height: 5px; }
+    .scroll-x::-webkit-scrollbar-track { background: transparent; }
+    .scroll-x::-webkit-scrollbar-thumb { background: rgba(198,156,109,.3); border-radius: 999px; }
+    .scroll-x::-webkit-scrollbar-thumb:hover { background: var(--gold); }
     .scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
     table td:first-child, table th:first-child { min-width: 220px; white-space: nowrap; }
     thead th {
-      padding: 11px 20px;
-      text-align: left;
-      font-size: 9px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1.8px;
-      color: #94a3b8;
-      background: #fafaf8;
-      border-bottom: 1px solid #f0ece4;
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none;
-      transition: color .15s;
+      padding: 14px 22px; text-align: left; font-size: 12.5px; font-weight: 500;
+      color: var(--muted); background: #fbfaf8; border-bottom: 1px solid var(--line);
+      white-space: nowrap; cursor: pointer; user-select: none; transition: color .2s var(--ease);
     }
-    thead th:hover { color: #C69C6D; }
-    tbody tr { border-bottom: 1px solid #f8f5f0; transition: background .1s; }
-    tbody tr:hover { background: #fafaf8; }
+    thead th:hover { color: var(--gold); }
+    tbody tr { border-bottom: 1px solid rgba(27,38,59,.045); transition: background .22s var(--ease); }
+    tbody tr:hover { background: #fbf8f3; }
     tbody tr:last-child { border-bottom: none; }
-    td { padding: 14px 20px; vertical-align: middle; font-size: 13px; }
-    .td-nome { font-weight: 800; color: #1B263B; white-space: nowrap; letter-spacing: -.1px; }
-    .td-data { color: #94a3b8; font-size: 11px; font-weight: 600; white-space: nowrap; }
-    .td-tipo { font-size: 11px; color: #78716c; }
-    .td-apolice { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #78716c; letter-spacing: .5px; }
-    .td-valor { font-weight: 700; color: #1B263B; white-space: nowrap; }
-    .empty { padding: 56px; text-align: center; color: #c9c2b8; font-size: 14px; font-weight: 700; }
+    td { padding: 16px 22px; vertical-align: middle; font-size: 14px; }
+    .td-nome { font-weight: 500; color: var(--ink); white-space: nowrap; letter-spacing: -.01em; }
+    .td-data { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+    .td-tipo { font-size: 12.5px; color: var(--muted); }
+    .td-apolice { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12.5px; color: var(--muted); letter-spacing: .3px; }
+    .td-valor { font-weight: 600; color: var(--ink); white-space: nowrap; }
+    .empty { padding: 60px; text-align: center; color: #c9c2b8; font-size: 14px; font-weight: 500; }
 
-    /* Status badges */
-    .sb { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 900; display: inline-block; white-space: nowrap; }
-    .sb-aguardando { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
-    .sb-analise    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-    .sb-aprovado   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .sb-emitido    { background: #fef9f0; color: #92400e; border: 1px solid #fde68a; }
-    .sb-recusado   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .sb-parc       { background: #f0f2f5; color: #1B263B; border: 1px solid #dde3ec; }
-    .btn-doc       { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 3px; }
-    .btn-doc:hover { background: #e8f5ef; }
+    /* Etiquetas de situação */
+    .sb { padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 500; display: inline-block; white-space: nowrap; }
+    .sb-aguardando { background: #f2f0ec; color: var(--muted); border: 1px solid transparent; }
+    .sb-analise    { background: #eaf1fa; color: #2b5788; border: 1px solid transparent; }
+    .sb-aprovado   { background: #eaf5ef; color: #2c6b4a; border: 1px solid transparent; }
+    .sb-emitido    { background: #fdf3e3; color: #96660f; border: 1px solid transparent; }
+    .sb-recusado   { background: #fbeaea; color: #99312f; border: 1px solid transparent; }
+    .sb-parc       { background: #f0f2f5; color: var(--navy); border: 1px solid transparent; }
+    .btn-doc {
+      display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px;
+      background: #eaf5ef; color: #2c6b4a; border: 1px solid transparent; border-radius: 999px;
+      font-size: 11.5px; font-weight: 500; text-decoration: none; margin-top: 3px;
+      transition: all .22s var(--ease);
+    }
+    .btn-doc:hover { background: #dcefe5; transform: translateY(-1px); }
 
     /* ── KANBAN ── */
-    /* Kanban — scroll horizontal para caber todas as colunas em qualquer tela */
     .kanban-scroll { overflow-x: auto; padding-bottom: 12px; margin: 0 -4px; }
-    .kanban-wrap { display: grid; grid-template-columns: repeat(6, minmax(160px, 1fr)); gap: 10px; padding: 0 4px; align-items: flex-start; min-width: 960px; }
-    .kanban-col { background: #fff; border-radius: 16px; padding: 14px; border: 1px solid #e8e4dc; border-top: 3px solid #e8e4dc; }
-    .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .kanban-col-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; }
-    .kanban-count { background: #f1f0ec; color: #64748b; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 20px; min-width: 24px; text-align: center; }
-    .kanban-card { background: #fafaf8; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #ede9e1; cursor: grab; transition: all .15s; }
-    .kanban-card:hover { background: #fff; box-shadow: 0 4px 16px rgba(27,38,59,.08); border-color: #C69C6D40; transform: translateY(-1px); }
-    .kanban-card .kc-nome { font-weight: 900; font-size: 12px; color: #1B263B; margin-bottom: 5px; line-height: 1.3; }
-    .kanban-card .kc-tipo { font-size: 10px; color: #94a3b8; font-weight: 700; }
-    .kanban-card .kc-data { font-size: 10px; color: #c9c2b8; margin-top: 8px; font-weight: 600; }
-    /* Column accent borders */
-    .col-solicitado { border-top-color: #94a3b8; }
+    .kanban-wrap { display: grid; grid-template-columns: repeat(6, minmax(165px, 1fr)); gap: 12px; padding: 0 4px; align-items: flex-start; min-width: 980px; }
+    .kanban-col { background: rgba(255,255,255,.62); border-radius: var(--r); padding: 15px; border: 1px solid var(--line); border-top: 3px solid var(--line); }
+    .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 2px; }
+    .kanban-col-title { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+    .kanban-count { background: #f1eee8; color: var(--muted); font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; min-width: 24px; text-align: center; }
+    .kanban-card {
+      background: #fff; border-radius: 15px; padding: 14px; margin-bottom: 9px;
+      border: 1px solid var(--line); cursor: grab; box-shadow: var(--shadow-sm);
+      transition: transform .26s var(--ease), box-shadow .26s var(--ease), border-color .26s var(--ease);
+    }
+    .kanban-card:hover { transform: translateY(-3px) scale(1.015); box-shadow: var(--shadow); border-color: rgba(198,156,109,.35); }
+    .kanban-card .kc-nome { font-weight: 600; font-size: 13.5px; color: var(--ink); margin-bottom: 5px; line-height: 1.35; }
+    .kanban-card .kc-tipo { font-size: 12px; color: var(--muted); font-weight: 400; }
+    .kanban-card .kc-data { font-size: 11.5px; color: #b4bbc6; margin-top: 8px; }
+    .col-solicitado { border-top-color: #b8c0cc; }
     .col-solicitado .kanban-col-title { color: #64748b; }
-    .col-atendimento { border-top-color: #C69C6D; }
+    .col-atendimento { border-top-color: var(--gold); }
     .col-atendimento .kanban-col-title { color: #b8895a; }
-    .col-atendimento .kanban-count { background: #fdf6ee; color: #b8895a; }
-    .col-seguradora { border-top-color: #1B263B; }
-    .col-seguradora .kanban-col-title { color: #1B263B; }
-    .col-seguradora .kanban-count { background: #f0f2f5; color: #1B263B; }
+    .col-atendimento .kanban-count { background: #fdf3e3; color: #b8895a; }
+    .col-seguradora { border-top-color: var(--navy); }
+    .col-seguradora .kanban-col-title { color: var(--navy); }
+    .col-seguradora .kanban-count { background: #f0f2f5; color: var(--navy); }
     .col-cliente { border-top-color: #3b5278; }
     .col-cliente .kanban-col-title { color: #3b5278; }
-    .col-cliente .kanban-count { background: #eef1f7; color: #3b5278; }
-    .col-aprovado { border-top-color: #2d6a4f; }
-    .col-aprovado .kanban-col-title { color: #2d6a4f; }
-    .col-aprovado .kanban-count { background: #f0f7f4; color: #2d6a4f; }
-    .col-recusado { border-top-color: #9b1c1c; }
-    .col-recusado .kanban-col-title { color: #9b1c1c; }
-    .col-recusado .kanban-count { background: #fdf2f2; color: #9b1c1c; }
-    .kanban-empty { text-align: center; padding: 24px 10px; color: #d4cfc8; font-size: 12px; font-weight: 700; letter-spacing: .5px; }
-    .kanban-apolice { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; background: #f0f7f4; color: #2d6a4f; border-radius: 8px; font-size: 10px; font-weight: 900; text-decoration: none; margin-top: 6px; border: 1px solid #c3dfd4; }
+    .col-cliente .kanban-count { background: #eaf1fa; color: #3b5278; }
+    .col-aprovado { border-top-color: #2c6b4a; }
+    .col-aprovado .kanban-col-title { color: #2c6b4a; }
+    .col-aprovado .kanban-count { background: #eaf5ef; color: #2c6b4a; }
+    .col-recusado { border-top-color: #99312f; }
+    .col-recusado .kanban-col-title { color: #99312f; }
+    .col-recusado .kanban-count { background: #fbeaea; color: #99312f; }
+    .kanban-empty { text-align: center; padding: 26px 10px; color: #cfc9c1; font-size: 12.5px; font-weight: 400; }
+    .kanban-apolice {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+      background: #eaf5ef; color: #2c6b4a; border-radius: 999px; font-size: 11.5px;
+      font-weight: 500; text-decoration: none; margin-top: 7px; border: 1px solid transparent;
+    }
 
-    /* ── REPASSE ── */
-    .repasse-hero { background: #1B263B; border-radius: 20px; padding: 28px; margin-bottom: 20px; }
-    .repasse-hero-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-    .repasse-hero h3 { color: #C69C6D; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
-    .repasse-hero .total { font-size: 32px; font-weight: 900; color: #C69C6D; }
-    .repasse-hero .mes { color: rgba(255,255,255,.5); font-size: 12px; margin-top: 4px; }
-    .pix-box { background: rgba(255,255,255,.08); border-radius: 14px; padding: 14px 18px; min-width: 220px; }
-    .pix-box .pix-label { font-size: 10px; color: rgba(255,255,255,.5); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-    .pix-box .pix-val { font-size: 14px; font-weight: 900; color: #C69C6D; margin-top: 4px; }
-    .pix-box .pix-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
-    .rep-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .rep-table thead th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,.4); border-bottom: 1px solid rgba(255,255,255,.08); }
-    .rep-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.05); }
-    .rep-table td { padding: 12px 14px; color: rgba(255,255,255,.8); vertical-align: middle; }
-    .rep-table .nome { font-weight: 800; color: #fff; }
-    .rep-table .valor { font-weight: 900; color: #C69C6D; }
+    /* ── FATURA / REPASSE ── */
+    .repasse-hero { background: var(--navy); border-radius: var(--r-lg); padding: 32px 34px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .repasse-hero-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; }
+    .repasse-hero h3 { color: rgba(255,255,255,.55); font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+    .repasse-hero .total { font-size: 42px; font-weight: 600; color: var(--gold); letter-spacing: -.035em; line-height: 1; }
+    .repasse-hero .mes { color: rgba(255,255,255,.45); font-size: 13px; margin-top: 9px; }
+    .pix-box { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: var(--r); padding: 18px 22px; min-width: 240px; }
+    .pix-box .pix-label { font-size: 12px; color: rgba(255,255,255,.5); font-weight: 500; }
+    .pix-box .pix-val { font-size: 14.5px; font-weight: 500; color: var(--gold); margin-top: 7px; }
+    .pix-box .pix-sub { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 3px; }
+    .rep-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .rep-table thead th { padding: 12px 14px; text-align: left; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.45); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .rep-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.05); transition: background .22s var(--ease); }
+    .rep-table tbody tr:hover { background: rgba(255,255,255,.04); }
+    .rep-table td { padding: 13px 14px; color: rgba(255,255,255,.8); vertical-align: middle; }
+    .rep-table .nome { font-weight: 500; color: #fff; }
+    .rep-table .valor { font-weight: 600; color: var(--gold); }
 
-    /* Histórico repasses */
+    /* Histórico de repasses */
     .hist-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .hist-controls select { padding: 9px 14px; border: 1.5px solid #e8e4dc; border-radius: 12px; font-size: 13px; font-weight: 700; background: #fff; color: #1B263B; outline: none; cursor: pointer; }
-    .hist-controls select:focus { border-color: #C69C6D; }
-    .hist-card { background: #fff; border-radius: 14px; border: 1px solid #e8e4dc; padding: 24px; margin-top: 20px; }
-    .hist-card h4 { font-size: 14px; font-weight: 900; color: #1B263B; margin-bottom: 16px; }
-    .hist-list { display: flex; flex-direction: column; gap: 12px; }
-    .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #fafaf8; border-radius: 14px; border: 1px solid #e8e4dc; flex-wrap: wrap; gap: 10px; }
+    .hist-controls select {
+      padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; font: inherit;
+      font-size: 13px; font-weight: 500; background: #fff; color: var(--ink); outline: none; cursor: pointer;
+      transition: border-color .24s var(--ease), box-shadow .24s var(--ease);
+    }
+    .hist-controls select:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
+    .hist-card { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--line); padding: 26px; margin-top: 20px; box-shadow: var(--shadow-sm); }
+    .hist-card h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 17px; letter-spacing: -.018em; }
+    .hist-list { display: flex; flex-direction: column; gap: 11px; }
+    .hist-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 15px 18px; background: #fbfaf8; border-radius: var(--r);
+      border: 1px solid var(--line); flex-wrap: wrap; gap: 10px;
+      transition: transform .26s var(--ease), box-shadow .26s var(--ease);
+    }
+    .hist-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
     .hist-item.pago { border-color: #c3dfd4; background: #f5faf7; }
-    .hist-mes { font-weight: 900; font-size: 14px; color: #1B263B; }
-    .hist-valor { font-weight: 900; color: #C69C6D; font-size: 15px; }
-    .hist-status-pago { background: #f5faf7; color: #2d6a4f; border: 1px solid #c3dfd4; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
-    .hist-status-pend { background: #fdf6ee; color: #b8895a; border: 1px solid #e8d5bc; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; }
-    .hist-data { font-size: 12px; color: #78716c; }
-    .btn-comp { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #f5f7fa; color: #1B263B; border: 1px solid #dde3ec; border-radius: 8px; font-size: 11px; font-weight: 900; text-decoration: none; }
-    /* venc-* classes kept for backward compat but overridden by inline vencBadge styles */
-    .venc-ok   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
-    .venc-warn { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
-    .venc-exp  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; white-space: nowrap; display: inline-flex; align-items: center; }
-    .alert-box { background: #faf8f5; border: 1.5px solid rgba(198,156,109,.25); border-left: 3px solid #C69C6D; border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; }
-    .alert-box h4 { font-size: 13px; font-weight: 900; color: #1B263B; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ede9e1; font-size: 13px; color: #1B263B; }
+    .hist-mes { font-weight: 600; font-size: 14px; color: var(--ink); }
+    .hist-valor { font-weight: 600; color: var(--gold); font-size: 15.5px; }
+    .hist-status-pago { background: #eaf5ef; color: #2c6b4a; border: 1px solid transparent; padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    .hist-status-pend { background: #fdf3e3; color: #96660f; border: 1px solid transparent; padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    .hist-data { font-size: 12.5px; color: var(--muted); }
+    .btn-comp {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px;
+      background: #f0f2f5; color: var(--navy); border: 1px solid transparent; border-radius: 999px;
+      font-size: 12px; font-weight: 500; text-decoration: none; transition: all .22s var(--ease);
+    }
+    .btn-comp:hover { background: #e4e8ee; transform: translateY(-1px); }
+    /* venc-* mantidas por compatibilidade — o vencBadge inline sobrescreve */
+    .venc-ok   { background: #eaf5ef; color: #2c6b4a; border: 1px solid transparent; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; }
+    .venc-warn { background: #fdf3e3; color: #96660f; border: 1px solid transparent; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; }
+    .venc-exp  { background: #fbeaea; color: #99312f; border: 1px solid transparent; padding: 4px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; }
+
+    /* Aviso — o ponto pulsa devagar para chamar atenção sem incomodar */
+    .alert-box { background: #fdf6ec; border: 1px solid #f0dcc0; border-radius: var(--r); padding: 18px 22px; margin-bottom: 20px; }
+    .alert-box h4 { font-size: 14px; font-weight: 600; color: #8a5a12; margin-bottom: 11px; display: flex; align-items: center; gap: 7px; }
+    .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(240,220,192,.7); font-size: 13.5px; color: var(--ink); }
     .alert-item:last-child { border-bottom: none; }
+    .alert-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: #d99a3a; flex: none;
+      box-shadow: 0 0 0 0 rgba(217,154,58,.55); animation: pulsa 2.4s infinite;
+    }
+    @keyframes pulsa { 70% { box-shadow: 0 0 0 11px rgba(217,154,58,0); } 100% { box-shadow: 0 0 0 0 rgba(217,154,58,0); } }
 
-    /* ── DOCS ── */
-    .docs-pending { background: #fdf6ee; border: 1.5px solid #e8d5bc; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
-    .docs-pending h4 { font-size: 13px; font-weight: 900; color: #b8895a; margin-bottom: 4px; }
-    .docs-pending p { font-size: 12px; color: #78716c; }
-    .doc-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #ede9e1; flex-wrap: wrap; gap: 8px; }
+    /* ── DOCUMENTOS ── */
+    .docs-pending { background: #fdf6ec; border: 1px solid #f0dcc0; border-radius: var(--r); padding: 21px 24px; margin-bottom: 20px; }
+    .docs-pending h4 { font-size: 14px; font-weight: 600; color: #8a5a12; margin-bottom: 5px; }
+    .docs-pending p { font-size: 13px; color: #9a6f2e; }
+    .doc-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 8px; }
     .doc-row:last-child { border-bottom: none; }
-    .doc-name { font-weight: 700; font-size: 13px; color: #1B263B; }
-    .doc-hint { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-    .btn-upload { padding: 7px 16px; background: #1B263B; color: #fff; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
-    .btn-upload:disabled { opacity: .5; }
+    .doc-name { font-weight: 500; font-size: 13.5px; color: var(--ink); }
+    .doc-hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .btn-upload {
+      padding: 9px 18px; background: var(--navy); color: #fff; border: none; border-radius: 999px;
+      font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      transition: transform .24s var(--ease), background .24s var(--ease);
+    }
+    .btn-upload:hover { background: var(--navy-soft); transform: translateY(-1px); }
+    .btn-upload:disabled { opacity: .5; transform: none; }
 
+    @media (max-width: 900px) {
+      .nav-wrap { padding: 16px 20px 4px; }
+      .page, #page-kanban { padding: 18px 20px 80px; }
+    }
     @media (max-width: 768px) {
       .cotacao-grid { grid-template-columns: 1fr !important; }
     }
     @media (max-width: 640px) {
       .topbar { padding: 0 16px; }
-      .nav { padding: 0 8px; overflow-x: auto; }
-      .page { padding: 20px 16px; }
       .form-grid { grid-template-columns: 1fr; }
       .form-grid .full { grid-column: 1; }
       .stat-grid { grid-template-columns: 1fr 1fr; }
       .action-grid { grid-template-columns: 1fr; }
+      .dash-welcome h2 { font-size: 23px; }
     }
 
-    /* Mobile bottom nav */
+    /* Navegação inferior no celular */
     @media (max-width: 768px) {
-      .nav { display: none !important; }
+      .nav-wrap { display: none !important; }
       .mobile-nav { display: flex !important; }
       .topbar { padding: 0 16px; }
-      .page, #page-kanban { padding: 16px; }
+      .page, #page-kanban { padding: 16px 16px 80px; }
+      body { padding-bottom: 76px; }
     }
     .mobile-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #1B263B;
-      border-top: 1px solid rgba(255,255,255,.1);
-      z-index: 200;
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(27,38,59,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,.08); z-index: 200;
       padding: 8px 0 env(safe-area-inset-bottom, 8px);
     }
     .mob-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 6px 4px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: rgba(255,255,255,.45);
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      transition: color .2s;
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 7px 4px; background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,.45); font: inherit; font-size: 10px; font-weight: 500;
+      transition: color .24s var(--ease), transform .24s var(--ease);
     }
-    .mob-btn:hover, .mob-btn.active { color: #C69C6D; }
+    .mob-btn:hover, .mob-btn.active { color: var(--gold); }
+    .mob-btn.active { transform: translateY(-2px); }
     .mob-btn .mob-icon { font-size: 20px; line-height: 1; }
-    /* Padding bottom on mobile to account for nav */
-    @media (max-width: 768px) {
-      body { padding-bottom: 72px; }
-    }
 
-    /* FAB */
+    /* Botão flutuante de nova solicitação */
     .fab {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 56px;
-      height: 56px;
-      background: #C69C6D;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      box-shadow: 0 4px 20px rgba(198,156,109,.4);
-      z-index: 150;
-      transition: transform .2s, box-shadow .2s;
+      position: fixed; bottom: 26px; right: 26px; width: 58px; height: 58px;
+      background: var(--gold); border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+      box-shadow: 0 8px 28px -8px rgba(198,156,109,.75); z-index: 150;
+      transition: transform .3s var(--ease), box-shadow .3s var(--ease);
     }
-    .fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(198,156,109,.5); }
+    .fab:hover { transform: scale(1.08) rotate(90deg); box-shadow: 0 12px 34px -8px rgba(198,156,109,.85); }
     .fab-tooltip {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      background: #1B263B;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 10px;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s;
-      z-index: 150;
+      position: fixed; bottom: 94px; right: 22px; background: var(--navy); color: #fff;
+      font-size: 12.5px; font-weight: 500; padding: 8px 14px; border-radius: 999px;
+      white-space: nowrap; opacity: 0; pointer-events: none;
+      transition: opacity .24s var(--ease); z-index: 150;
     }
     @media (max-width: 768px) {
-      .fab { bottom: 80px; }
-      .fab-tooltip { bottom: 146px; }
+      .fab { bottom: 88px; }
+      .fab-tooltip { bottom: 156px; }
     }
   </style>
 </head>
@@ -423,24 +468,27 @@
   <div class="topbar-left">
     <div class="logo">F&G</div>
     <div>
-      <div class="topbar h1" id="nome-parceiro" style="color:#fff;font-weight:900;font-size:15px">Carregando...</div>
+      <div class="topbar h1" id="nome-parceiro" style="font-weight:600;font-size:15px;color:var(--ink);letter-spacing:-.01em;">Carregando...</div>
       <div class="sub">Portal Imobiliária — F&G Seguro Garantia</div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.45);font-weight:700;">
+  <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);font-weight:500;">
     <span id="rt-status" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;transition:background .5s;"></span>
-    AO VIVO
+    Ao vivo
   </div>
   <button class="btn-sair" onclick="sair()">Sair</button>
 </div>
 
 <!-- NAV -->
-<div class="nav">
-  <button class="nav-btn active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
-  <button class="nav-btn" onclick="goTo('cotacao')"><span class="icon">➕</span> Solicitar Cotação</button>
-  <button class="nav-btn" onclick="goTo('kanban')"><span class="icon">📊</span> Minhas Solicitações</button>
-  <button class="nav-btn" onclick="goTo('carteira')"><span class="icon">📋</span> Carteira de Clientes</button>
-  <button class="nav-btn" onclick="goTo('fatura')"><span class="icon">💰</span> Fatura Mensal</button>
+<div class="nav-wrap">
+  <div class="nav">
+    <div class="nav-pill" id="nav-pill"></div>
+    <button class="nav-btn active" data-p="dashboard" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
+    <button class="nav-btn" data-p="cotacao" onclick="goTo('cotacao')"><span class="icon">➕</span> Solicitar Cotação</button>
+    <button class="nav-btn" data-p="kanban" onclick="goTo('kanban')"><span class="icon">📊</span> Minhas Solicitações</button>
+    <button class="nav-btn" data-p="carteira" onclick="goTo('carteira')"><span class="icon">📋</span> Carteira de Clientes</button>
+    <button class="nav-btn" data-p="fatura" onclick="goTo('fatura')"><span class="icon">💰</span> Fatura Mensal</button>
+  </div>
 </div>
 
 <!-- DASHBOARD -->
@@ -450,30 +498,30 @@
     <p>Acompanhe seus clientes, apólices e repasses em um só lugar.</p>
   </div>
   <!-- KPI cards -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;">
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorStatus('')" title="Ver carteira completa">
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Clientes Ativos</div>
-      <div id="kpi-ativos" style="font-size:28px;font-weight:900;color:#1B263B;">—</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">apólices emitidas</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;">
+    <div class="stat-card" style="cursor:pointer;" onclick="filtrarCarteiraPorStatus('')" title="Ver carteira completa">
+      <div class="label">Clientes ativos</div>
+      <div class="value" id="kpi-ativos" data-n="0">—</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">apólices emitidas</div>
     </div>
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="filtrarCarteiraPorVencimento30()" title="Ver apólices vencendo em 30 dias">
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Vencem em 30 dias</div>
-      <div id="kpi-vencendo" style="font-size:28px;font-weight:900;color:#a16207;">—</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">renovações próximas</div>
+    <div class="stat-card" style="cursor:pointer;" onclick="filtrarCarteiraPorVencimento30()" title="Ver apólices vencendo em 30 dias">
+      <div class="label">Vencem em 30 dias</div>
+      <div class="value" id="kpi-vencendo" data-n="0" style="color:#a16207;">—</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">renovações próximas</div>
     </div>
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #e8e4dc;cursor:pointer;" onclick="goTo('kanban')" title="Ver solicitações aguardando F&G">
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px;">Aguardando F&amp;G</div>
-      <div id="kpi-pendentes" style="font-size:28px;font-weight:900;color:#1d4ed8;">—</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">em análise / seguradora</div>
+    <div class="stat-card" style="cursor:pointer;" onclick="goTo('kanban')" title="Ver solicitações aguardando F&G">
+      <div class="label">Aguardando F&amp;G</div>
+      <div class="value" id="kpi-pendentes" data-n="0" style="color:#1d4ed8;">—</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">em análise / seguradora</div>
     </div>
-    <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #3b5278;cursor:pointer;" onclick="goTo('kanban')" title="Aguardando ação do cliente">
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#3b5278;margin-bottom:8px;">Aguardando o Cliente</div>
-      <div id="kpi-aguardando-cliente" style="font-size:28px;font-weight:900;color:#3b5278;">—</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">aguardando retorno</div>
+    <div class="stat-card" style="cursor:pointer;border-color:rgba(59,82,120,.35);" onclick="goTo('kanban')" title="Aguardando ação do cliente">
+      <div class="label" style="color:#3b5278;">Aguardando o cliente</div>
+      <div class="value" id="kpi-aguardando-cliente" data-n="0" style="color:#3b5278;">—</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px;">aguardando retorno</div>
     </div>
-    <div style="background:#1B263B;border-radius:18px;padding:20px;border:1px solid #1B263B;">
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.45);margin-bottom:8px;">Total Carteira</div>
-      <div id="kpi-total" style="font-size:28px;font-weight:900;color:#C69C6D;">—</div>
+    <div class="stat-card gold">
+      <div class="label">Total carteira</div>
+      <div class="value" id="kpi-total" data-n="0">—</div>
       <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">inquilinos cadastrados</div>
     </div>
   </div>
@@ -484,7 +532,7 @@
       <p>Envie os dados de um novo inquilino para cotação de seguro residencial ou garantia de aluguel.</p>
     </div>
     <div class="action-card" onclick="filtrarCarteiraPorStatus('');goTo('carteira');" style="position:relative;">
-      <span id="badge-cancelados" style="display:none;position:absolute;top:10px;right:10px;background:#dc2626;color:#fff;font-size:10px;font-weight:900;padding:4px 8px;border-radius:10px;align-items:center;gap:3px;flex-direction:column;text-align:center;line-height:1.2;"></span>
+      <span id="badge-cancelados" style="display:none;position:absolute;top:10px;right:10px;background:#dc2626;color:#fff;font-size:10px;font-weight:600;padding:4px 8px;border-radius:10px;align-items:center;gap:3px;flex-direction:column;text-align:center;line-height:1.2;"></span>
       <div class="emoji">📋</div>
       <h3>Carteira de Clientes</h3>
       <p>Veja todos os seus inquilinos, status das apólices e faça download dos documentos.</p>
@@ -564,7 +612,7 @@
 
   <!-- Header -->
   <div style="text-align:center;margin-bottom:32px;">
-    <h2 style="font-size:28px;font-weight:900;color:#1B263B;margin-bottom:6px;">
+    <h2 style="font-size:28px;font-weight:600;color:#1B263B;margin-bottom:6px;">
       F&amp;G Seguro Garantia &amp; <span id="cotacao-parceiro" style="color:#C69C6D;">Parceiro</span>
     </h2>
     <p style="color:#78716c;font-size:14px;">Soluções completas em proteção imobiliária</p>
@@ -574,19 +622,19 @@
   <div class="cotacao-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;">
 
     <!-- LEFT: Garantia Locatícia Fiantec -->
-    <div style="border-radius:20px;overflow:hidden;border:1px solid #e8e4dc;box-shadow:0 2px 12px rgba(27,38,59,.06);">
+    <div style="border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 12px rgba(27,38,59,.06);">
       <div style="background:#1B263B;padding:20px 24px;">
-        <h3 style="color:#fff;font-size:16px;font-weight:900;margin:0;">Garantia Locatícia Fiantec</h3>
+        <h3 style="color:#fff;font-size:16px;font-weight:600;margin:0;">Garantia Locatícia Fiantec</h3>
       </div>
       <div style="background:#fff;padding:24px;">
         <!-- Plan buttons -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
           <button id="btn-plan-12" onclick="setCalcPlano(12)" style="padding:14px;border-radius:12px;border:2px solid #1B263B;background:#fff;cursor:pointer;text-align:center;transition:all .2s;">
-            <div style="font-size:15px;font-weight:900;color:#1B263B;">12 Meses</div>
+            <div style="font-size:15px;font-weight:600;color:#1B263B;">12 Meses</div>
             <div style="font-size:11px;color:#78716c;margin-top:4px;line-height:1.4;">Contrato garantido até 12 meses. (É necessário renovar a cada 12 meses)</div>
           </button>
-          <button id="btn-plan-30" onclick="setCalcPlano(30)" style="padding:14px;border-radius:12px;border:2px solid #e8e4dc;background:#fff;cursor:pointer;text-align:center;transition:all .2s;">
-            <div style="font-size:15px;font-weight:900;color:#94a3b8;">30 Meses</div>
+          <button id="btn-plan-30" onclick="setCalcPlano(30)" style="padding:14px;border-radius:12px;border:2px solid rgba(27,38,59,.08);background:#fff;cursor:pointer;text-align:center;transition:all .2s;">
+            <div style="font-size:15px;font-weight:600;color:#94a3b8;">30 Meses</div>
             <div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.4;">Contrato garantido até 30 meses. (Não precisa renovar a cada 12 meses)</div>
           </button>
         </div>
@@ -594,15 +642,15 @@
         <!-- Inputs -->
         <div style="margin-bottom:16px;">
           <label style="display:block;font-size:13px;font-weight:700;color:#1B263B;margin-bottom:6px;">Valor do Aluguel</label>
-          <div style="display:flex;align-items:center;border:1.5px solid #e8e4dc;border-radius:12px;overflow:hidden;">
-            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid #e8e4dc;">R$</span>
+          <div style="display:flex;align-items:center;border:1.5px solid rgba(27,38,59,.08);border-radius:12px;overflow:hidden;">
+            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid rgba(27,38,59,.08);">R$</span>
             <input type="number" id="glc-aluguel" placeholder="0,00" step="0.01" oninput="calcGarantia()" style="flex:1;padding:12px 14px;border:none;outline:none;font-size:14px;font-weight:700;color:#1B263B;background:#fff;" />
           </div>
         </div>
         <div style="margin-bottom:20px;">
           <label style="display:block;font-size:13px;font-weight:700;color:#1B263B;margin-bottom:6px;">Condomínio / IPTU <span style="font-weight:400;color:#94a3b8;">(Opcional)</span></label>
-          <div style="display:flex;align-items:center;border:1.5px solid #e8e4dc;border-radius:12px;overflow:hidden;">
-            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid #e8e4dc;">R$</span>
+          <div style="display:flex;align-items:center;border:1.5px solid rgba(27,38,59,.08);border-radius:12px;overflow:hidden;">
+            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid rgba(27,38,59,.08);">R$</span>
             <input type="number" id="glc-iptu" placeholder="0,00" step="0.01" oninput="calcGarantia()" style="flex:1;padding:12px 14px;border:none;outline:none;font-size:14px;font-weight:700;color:#1B263B;background:#fff;" />
           </div>
           <p style="font-size:11px;color:#94a3b8;margin-top:5px;">Deixe em branco ou 0 se não houver.</p>
@@ -622,17 +670,17 @@
             <span style="font-size:13px;color:#78716c;">Setup (Taxa de Cadastro)</span>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:13px;font-weight:700;color:#1B263B;">R$ 250,00</span>
-              <span style="font-size:10px;font-weight:900;background:#C69C6D20;color:#C69C6D;border:1px solid #C69C6D50;padding:2px 8px;border-radius:6px;">Fixo</span>
+              <span style="font-size:10px;font-weight:600;background:#C69C6D20;color:#C69C6D;border:1px solid #C69C6D50;padding:2px 8px;border-radius:6px;">Fixo</span>
             </div>
           </div>
           <div style="text-align:center;margin-bottom:6px;">
-            <div id="glc-r-total" style="font-size:36px;font-weight:900;color:#1B263B;">R$ 250,00</div>
+            <div id="glc-r-total" style="font-size:36px;font-weight:600;color:#1B263B;">R$ 250,00</div>
             <div id="glc-r-parcela-c" style="font-size:13px;color:#78716c;margin-top:2px;">ou em até 12x de R$ 20,83</div>
           </div>
         </div>
 
         <!-- CTA button -->
-        <button onclick="abrirFormGarantia()" style="width:100%;padding:15px;background:#1B263B;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:16px;transition:background .2s;" onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
+        <button onclick="abrirFormGarantia()" style="width:100%;padding:15px;background:#1B263B;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;transition:background .2s;" onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
           Enviar informações para F&amp;G
         </button>
 
@@ -641,14 +689,14 @@
           <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
             <span style="font-size:18px;">💳</span>
             <div>
-              <div style="font-size:13px;font-weight:900;color:#1B263B;">Cartão de Crédito</div>
+              <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito</div>
               <div id="glc-r-cartao" style="font-size:12px;color:#C69C6D;font-weight:700;margin-top:2px;">Valor final sem juros em até 12x de R$ 20,83.</div>
             </div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
             <span style="font-size:18px;">📄</span>
             <div>
-              <div style="font-size:13px;font-weight:900;color:#1B263B;">Boleto Bancário</div>
+              <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
               <div style="font-size:12px;margin-top:2px;">
                 <span id="glc-r-boleto-p1" style="color:#C69C6D;font-weight:700;">1ª Parcela: R$ 250,00</span>
                 <br/><span id="glc-r-boleto-p2" style="color:#78716c;">Demais: R$ 0,00/mês</span>
@@ -659,7 +707,7 @@
 
         <!-- What's included -->
         <div style="border-top:1px solid #f0ece4;padding-top:20px;">
-          <h4 style="font-size:13px;font-weight:900;color:#1B263B;text-align:center;margin-bottom:16px;">O QUE ESTÁ INCLUÍDO NA GARANTIA?</h4>
+          <h4 style="font-size:13px;font-weight:600;color:#1B263B;text-align:center;margin-bottom:16px;">O QUE ESTÁ INCLUÍDO NA GARANTIA?</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
               <div style="font-size:24px;margin-bottom:5px;">🏠</div>
@@ -691,9 +739,9 @@
     </div>
 
     <!-- RIGHT: Seguro Residencial -->
-    <div style="border-radius:20px;overflow:hidden;border:1px solid #e8e4dc;box-shadow:0 2px 12px rgba(27,38,59,.06);">
+    <div style="border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 12px rgba(27,38,59,.06);">
       <div style="background:#1B263B;padding:20px 24px;">
-        <h3 style="color:#fff;font-size:16px;font-weight:900;margin:0 0 2px;">Seguro Residencial</h3>
+        <h3 style="color:#fff;font-size:16px;font-weight:600;margin:0 0 2px;">Seguro Residencial</h3>
         <p style="color:rgba(255,255,255,.5);font-size:12px;margin:0;">Tokio Marine</p>
       </div>
       <div style="background:#fff;padding:24px;display:flex;flex-direction:column;gap:20px;">
@@ -704,7 +752,7 @@
 
         <!-- Cobertura básica -->
         <div>
-          <div style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#C69C6D;margin-bottom:12px;">🔥 Cobertura Básica</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">🔥 Cobertura Básica</div>
           <div style="display:flex;flex-direction:column;gap:9px;">
             <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Proteção contra incêndio</span></div>
             <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de raio</span></div>
@@ -716,9 +764,9 @@
 
         <!-- Assistência 24h -->
         <div>
-          <div style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#C69C6D;margin-bottom:12px;">🔧 Assistência 24 Horas</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">🔧 Assistência 24 Horas</div>
           <div style="background:#fef9f0;border:1px solid #C69C6D40;border-radius:14px;padding:16px;">
-            <p style="font-size:13px;font-weight:900;color:#1B263B;margin:0 0 6px;">Serviços Incluídos sem custo adicional</p>
+            <p style="font-size:13px;font-weight:600;color:#1B263B;margin:0 0 6px;">Serviços Incluídos sem custo adicional</p>
             <p style="font-size:12px;color:#78716c;margin:0 0 12px;line-height:1.5;">Na contratação do seguro, você terá acesso a uma equipe de profissionais capacitados prontos para ajudar:</p>
             <div style="display:flex;flex-direction:column;gap:8px;">
               <div style="font-size:13px;font-weight:700;color:#1B263B;">🔑 <strong>Chaveiro</strong></div>
@@ -732,19 +780,19 @@
 
         <!-- Forma de pagamento -->
         <div>
-          <div style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#C69C6D;margin-bottom:12px;">💳 Forma de Pagamento</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">💳 Forma de Pagamento</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:flex-start;gap:10px;">
               <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div>
               <div>
-                <div style="font-size:13px;font-weight:900;color:#1B263B;">Cartão de Crédito em até 12x</div>
+                <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito em até 12x</div>
                 <div style="font-size:12px;color:#78716c;margin-top:3px;">O pagamento não compromete o limite do seu cartão de crédito</div>
               </div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:10px;">
               <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div>
               <div>
-                <div style="font-size:13px;font-weight:900;color:#1B263B;">Boleto Bancário</div>
+                <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
                 <div style="font-size:12px;color:#78716c;margin-top:3px;">Em até 4x sem juros ou 12x com juros</div>
               </div>
             </div>
@@ -755,8 +803,8 @@
   </div>
 
   <!-- Form section below -->
-  <div id="form-cotacao-section" style="background:#fff;border-radius:20px;border:1px solid #e8e4dc;padding:28px;box-shadow:0 2px 12px rgba(27,38,59,.06);">
-    <h3 style="font-size:16px;font-weight:900;color:#1B263B;margin-bottom:20px;">📋 Dados do Inquilino</h3>
+  <div id="form-cotacao-section" style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:28px;box-shadow:0 2px 12px rgba(27,38,59,.06);">
+    <h3 style="font-size:16px;font-weight:600;color:#1B263B;margin-bottom:20px;">📋 Dados do Inquilino</h3>
     <div class="form-grid">
       <div class="form-group full">
         <label>Tipo de Seguro *</label>
@@ -827,7 +875,7 @@
         <label>Dia de Vencimento do Aluguel <span style="color:#dc2626;">*</span></label>
         <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
           <input type="number" id="f-dia-vencimento" min="1" max="28" placeholder="Ex: 20"
-            style="width:120px;padding:11px 14px;border:1.5px solid #e8e4dc;border-radius:12px;font-size:15px;font-weight:900;outline:none;background:#fafaf8;color:#1B263B;"
+            style="width:120px;padding:11px 14px;border:1.5px solid rgba(27,38,59,.08);border-radius:12px;font-size:15px;font-weight:600;outline:none;background:#fafaf8;color:#1B263B;"
             oninput="this.style.borderColor='#C69C6D'" required />
           <span style="font-size:12px;color:#78716c;line-height:1.5;">Todo mês, o repasse do seguro deve ser enviado para a F&G <strong>10 dias antes</strong> deste dia.<br/>Ex: aluguel vence dia 20 → repasse enviado até dia 10.</span>
         </div>
@@ -837,11 +885,11 @@
       <label>Intenção da Solicitação</label>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button type="button" id="intencao-cotacao" onclick="setIntencao('cotacao')"
-          style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:900;cursor:pointer;border:2px solid #C69C6D;background:#C69C6D;color:#1B263B;transition:all .2s;">
+          style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #C69C6D;background:#C69C6D;color:#1B263B;transition:all .2s;">
           📋 Verificar aprovação
         </button>
         <button type="button" id="intencao-contratar" onclick="setIntencao('contratar')"
-          style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:900;cursor:pointer;border:2px solid #e8e4dc;background:#fff;color:#94a3b8;transition:all .2s;">
+          style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid rgba(27,38,59,.08);background:#fff;color:#94a3b8;transition:all .2s;">
           ✅ Pronto para contratar
         </button>
       </div>
@@ -855,7 +903,7 @@
 <!-- CARTEIRA -->
 <div class="page" id="page-carteira">
   <div style="margin-bottom:20px;">
-    <h2 style="font-size:22px;font-weight:900;color:#1B263B;letter-spacing:-.3px;margin-bottom:4px;">📋 Carteira de Clientes</h2>
+    <h2 style="font-size:22px;font-weight:600;color:#1B263B;letter-spacing:-.3px;margin-bottom:4px;">📋 Carteira de Clientes</h2>
     <p style="font-size:13px;color:#94a3b8;font-weight:600;">Todos os seus inquilinos e o status de cada apólice.</p>
   </div>
   <!-- Docs pendentes -->
@@ -881,10 +929,10 @@
         <option value="residencial">Apenas Residencial</option>
         <option value="garantia">Com Garantia</option>
       </select>
-      <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:11px;font-weight:900;color:#d97706;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#d97706;font-weight:900;font-size:13px;line-height:1;margin-left:2px;">×</button></span>
-      <span id="chip-filtro-ativo" style="display:none;align-items:center;gap:6px;padding:6px 14px;background:#1B263B;border-radius:20px;font-size:11px;font-weight:900;color:#fff;">
+      <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:11px;font-weight:600;color:#d97706;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#d97706;font-weight:600;font-size:13px;line-height:1;margin-left:2px;">×</button></span>
+      <span id="chip-filtro-ativo" style="display:none;align-items:center;gap:6px;padding:6px 14px;background:#1B263B;border-radius:20px;font-size:11px;font-weight:600;color:#fff;">
         <span id="chip-filtro-label"></span>
-        <button onclick="limparFiltrosCarteira()" style="background:rgba(255,255,255,.2);border:none;cursor:pointer;color:#fff;font-weight:900;font-size:13px;line-height:1;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">×</button>
+        <button onclick="limparFiltrosCarteira()" style="background:rgba(255,255,255,.2);border:none;cursor:pointer;color:#fff;font-weight:600;font-size:13px;line-height:1;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">×</button>
       </span>
       <button class="btn-limpar" onclick="limparFiltrosCarteira()">✕ Limpar</button>
     </div>
@@ -986,18 +1034,60 @@
 
   function sair() { localStorage.removeItem('parceiro_session'); window.location.href = 'parceiros-login.html'; }
 
+  // ── Pílula deslizante da navegação ──
+  function moverPill(btn) {
+    const pill = document.getElementById('nav-pill');
+    // offsetWidth = 0 quando a nav está escondida (mobile) — não faz nada
+    if (!pill || !btn || !btn.offsetWidth) return;
+    pill.style.width = btn.offsetWidth + 'px';
+    pill.style.transform = 'translateX(' + (btn.offsetLeft - 6) + 'px)';
+  }
+
+  // ── Contagem animada dos KPIs ──
+  function contarKpi(el, alvo) {
+    const valor = Number(alvo) || 0;
+    el.dataset.n = valor;
+    // Respeita quem prefere menos movimento e evita animar números grandes à toa
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || valor === 0) {
+      el.textContent = valor;
+      return;
+    }
+    const inicio = performance.now(), dur = 900;
+    (function passo(t) {
+      const p = Math.min((t - inicio) / dur, 1);
+      const suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(valor * suave);
+      if (p < 1) requestAnimationFrame(passo);
+    })(performance.now());
+  }
+
+  function setKpi(id, val) {
+    const el = document.getElementById(id);
+    if (el) contarKpi(el, val);
+  }
+
   function goTo(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.mob-btn').forEach(b => b.classList.remove('active'));
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
-    const navBtns = document.querySelectorAll('.nav-btn');
-    const navMap = {dashboard:0, cotacao:1, kanban:2, carteira:3, fatura:4};
-    if (navMap[id] !== undefined && navBtns[navMap[id]]) navBtns[navMap[id]].classList.add('active');
+    const btn = document.querySelector('.nav-btn[data-p="' + id + '"]');
+    if (btn) { btn.classList.add('active'); moverPill(btn); }
     const mobIds = {dashboard:'mob-dashboard', cotacao:'mob-cotacao', kanban:'mob-kanban', carteira:'mob-carteira', fatura:'mob-fatura'};
     if (mobIds[id]) { const mb = document.getElementById(mobIds[id]); if(mb) mb.classList.add('active'); }
+    // Recontagem dos KPIs ao voltar para o início
+    if (id === 'dashboard') {
+      document.querySelectorAll('#page-dashboard .value[data-n]').forEach(el => contarKpi(el, el.dataset.n));
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // Posiciona a pílula no carregamento e quando a janela muda de tamanho
+  function ajustarPill() { moverPill(document.querySelector('.nav-btn.active')); }
+  window.addEventListener('resize', ajustarPill);
+  window.addEventListener('load', ajustarPill);
+  document.addEventListener('DOMContentLoaded', ajustarPill);
 
   // Filtro extra por vencimento (aplicado junto com os outros filtros)
   let filtroVencimento30 = false;
@@ -1049,7 +1139,7 @@
       : { bg: '#eff6ff', bd: '#bfdbfe', tt: '#1e40af', tx: '#1e3a5f' };
     const titulo = pede ? '⚠️ A F&amp;G aguarda seu retorno' : '💬 Recado da F&amp;G';
     return `<div style="margin-top:8px;padding:${pad};background:${cor.bg};border:1px solid ${cor.bd};${pede ? 'border-left:3px solid #f97316;' : ''}border-radius:8px;">
-      <div style="font-size:9px;font-weight:900;color:${cor.tt};text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">${titulo}</div>
+      <div style="font-size:9px;font-weight:600;color:${cor.tt};text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;">${titulo}</div>
       <div style="font-size:${fs};color:${cor.tx};line-height:1.5;">${esc(txt)}</div>
     </div>`;
   }
@@ -1070,7 +1160,7 @@
       recusado:           { bg:'#fef2f2', color:'#dc2626', label:'Recusado' },
     };
     const cfg = MAP[s] || MAP.aguardando_cotacao;
-    return `<span style="display:inline-flex;align-items:center;padding:3px 10px;background:${cfg.bg};color:${cfg.color};border-radius:6px;font-size:10px;font-weight:900;">${cfg.label}</span>`;
+    return `<span style="display:inline-flex;align-items:center;padding:3px 10px;background:${cfg.bg};color:${cfg.color};border-radius:6px;font-size:10px;font-weight:600;">${cfg.label}</span>`;
   }
 
   const DOCS_DEF = [
@@ -1142,9 +1232,9 @@
     const venc = new Date(v + 'T12:00:00');
     const dias = Math.round((venc - hoje) / 86400000);
     const str = venc.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
-    if (dias < 0) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:900;">⚠ ${str}</span>`;
-    if (dias <= 30) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:8px;font-size:10px;font-weight:900;">⏰ ${str}</span>`;
-    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:900;">✓ ${str}</span>`;
+    if (dias < 0) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:600;">⚠ ${str}</span>`;
+    if (dias <= 30) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:8px;font-size:10px;font-weight:600;">⏰ ${str}</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:600;">✓ ${str}</span>`;
   }
 
   async function confirmarRenovacao(clientId, inquilinoNome, vigenciaFim, confirmacao) {
@@ -1231,11 +1321,11 @@
     el.style.display = 'block';
 
     el.innerHTML = `
-      <div style="background:#fff;border-radius:20px;border:1px solid #e8e4dc;overflow:hidden;margin-bottom:4px;">
+      <div style="background:#fff;border-radius:20px;border:1px solid var(--line);overflow:hidden;margin-bottom:4px;">
         <div style="background:#1B263B;padding:16px 24px;display:flex;align-items:center;gap:12px;">
           <span style="font-size:18px;">⚠️</span>
           <div>
-            <div style="color:#fff;font-size:14px;font-weight:900;">${proximos.length} seguro${proximos.length!==1?'s':''} aguardando sua confirmação</div>
+            <div style="color:#fff;font-size:14px;font-weight:600;">${proximos.length} seguro${proximos.length!==1?'s':''} aguardando sua confirmação</div>
             <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;font-weight:600;">Vencendo em até 30 dias. Confirme se o inquilino irá renovar para que possamos agir a tempo.</div>
           </div>
         </div>
@@ -1259,13 +1349,13 @@
               <div style="padding:14px 24px;border-bottom:1px solid #f8f5f0;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
                   <div>
-                    <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                    <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
                   </div>
-                  <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:900;white-space:nowrap;">❌ Não vai renovar</span>
+                  <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;">❌ Não vai renovar</span>
                 </div>
                 <div style="font-size:11px;color:#78716c;font-weight:600;margin-bottom:8px;">Falta só o distrato: a seguradora não cancela a garantia locatícia sem ele.</div>
-                <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:900;color:#78716c;cursor:pointer;">
+                <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:600;color:#78716c;cursor:pointer;">
                   <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
                   📄 Anexar distrato de locação
                 </label>
@@ -1275,18 +1365,18 @@
             if (dias < 0) return `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
                 <div>
-                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
-                  <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:11px;font-weight:900;">
+                  <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                  <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:11px;font-weight:600;">
                     ⛔ Vencido — ${dataVenc}
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
-                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                     ✅ Vai renovar
                   </button>
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
-                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                     ❌ Não vai renovar
                   </button>
                 </div>
@@ -1296,18 +1386,18 @@
             return `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid #f8f5f0;gap:12px;flex-wrap:wrap;">
                 <div>
-                  <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
-                  <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:${urgBg};color:${urgencia};border-radius:8px;font-size:11px;font-weight:900;">
+                  <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
+                  <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:${urgBg};color:${urgencia};border-radius:8px;font-size:11px;font-weight:600;">
                     ⏰ ${prazoLabel} — ${dataVenc}
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
-                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                     ✅ Vai renovar
                   </button>
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
-                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                    style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                     ❌ Não vai renovar
                   </button>
                 </div>
@@ -1318,14 +1408,14 @@
         <!-- Fechado por padrão: serve para ela conferir que a resposta entrou,
              sem que os respondidos disputem espaço com os pendentes. -->
         <details style="border-top:1px solid #f0ede6;">
-          <summary style="padding:12px 24px;font-size:11px;font-weight:900;color:#94a3b8;cursor:pointer;list-style:none;">
+          <summary style="padding:12px 24px;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;list-style:none;">
             ✅ ${resolvidos.length} já respondido${resolvidos.length!==1?'s':''} — ver
           </summary>
           <div style="padding:0 24px 14px;">
             ${resolvidos.map(c => `
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;flex-wrap:wrap;">
                 <span style="font-size:12px;font-weight:700;color:#78716c;">${c.inquilino_nome}</span>
-                <span style="font-size:11px;font-weight:900;color:${c.renovacao_confirmacao==='vai_renovar'?'#16a34a':'#dc2626'};">
+                <span style="font-size:11px;font-weight:600;color:${c.renovacao_confirmacao==='vai_renovar'?'#16a34a':'#dc2626'};">
                   ${c.renovacao_confirmacao==='vai_renovar' ? '✅ Vai renovar' : '❌ Não vai renovar'}
                 </span>
               </div>`).join('')}
@@ -1348,19 +1438,19 @@
       const sGar = c.status_garantia || 'aguardando_cotacao';
       const [clsG, lblG] = STATUS[sGar] || STATUS['aguardando_cotacao'];
       const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
-      return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer" onclick="goTo('carteira')">
+      return `<div style="background:#fff;border-radius:16px;border:1px solid var(--line);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer" onclick="goTo('carteira')">
         <div>
-          <div style="font-weight:900;font-size:14px;color:#1B263B">${c.inquilino_nome || '—'}</div>
+          <div style="font-weight:600;font-size:14px;color:#1B263B">${c.inquilino_nome || '—'}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:3px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Residencial'} · Enviado em ${dataEnvio}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="text-align:center">
-            <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Residencial</div>
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Residencial</div>
             <span class="sb ${clsR}">${lblR}</span>
             ${c.apolice_residencial_url ? `<br><a href="${c.apolice_residencial_url}" target="_blank" class="btn-doc" style="margin-top:4px">⬇ Apólice</a>` : ''}
           </div>
           ${temG ? `<div style="text-align:center">
-            <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Garantia</div>
+            <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Garantia</div>
             <span class="sb ${clsG}">${lblG}</span>
             ${c.apolice_garantia_url ? `<br><a href="${c.apolice_garantia_url}" target="_blank" class="btn-doc" style="margin-top:4px">⬇ Apólice</a>` : ''}
           </div>` : ''}
@@ -1436,11 +1526,11 @@
         <div style="background:#dc2626;padding:16px 24px;display:flex;align-items:center;gap:12px;">
           <span style="font-size:22px;">🚨</span>
           <div style="flex:1;">
-            <div style="color:#fff;font-size:15px;font-weight:900;">${cancelados.length} inquilino${cancelados.length>1?'s':''} SEM cobertura de seguro ativa</div>
+            <div style="color:#fff;font-size:15px;font-weight:600;">${cancelados.length} inquilino${cancelados.length>1?'s':''} SEM cobertura de seguro ativa</div>
             <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px;font-weight:600;">Imóveis desprotegidos. Em caso de sinistro, a imobiliária pode ser responsabilizada.</div>
           </div>
           <button onclick="filtrarCarteiraPorStatus('cancelado');goTo('carteira');"
-            style="padding:8px 16px;background:#fff;color:#dc2626;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+            style="padding:8px 16px;background:#fff;color:#dc2626;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">
             Ver todos →
           </button>
         </div>
@@ -1448,16 +1538,16 @@
           ${cancelados.slice(0,5).map(c => `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid #fee2e2;gap:12px;flex-wrap:wrap;">
               <div>
-                <div style="font-weight:900;font-size:13px;color:#1B263B;">${c.inquilino_nome||'—'}</div>
+                <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome||'—'}</div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Apólice ${c.numero_apolice||'—'} · ${c.seguradora&&c.seguradora!=='Importado'?c.seguradora:'—'}</div>
               </div>
               <div style="display:flex;gap:8px;flex-shrink:0;">
                 <button onclick="novaCotacaoParaCliente('${c.id}')"
-                  style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                  style="padding:7px 14px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                   + Solicitar nova cotação
                 </button>
                 <button onclick="naoVaiRenovarCancelado('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}')"
-                  style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;min-height:36px;">
+                  style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
                   ❌ Não vai renovar
                 </button>
               </div>
@@ -1488,10 +1578,8 @@
     ).length;
     const kpiPend = cs.filter(c => c.kanban_status && ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(c.kanban_status)).length;
     const kpiAguardandoCliente = cs.filter(c => c.kanban_status === 'aguardando_cliente').length;
-    const elAC = document.getElementById('kpi-aguardando-cliente');
-    if (elAC) elAC.textContent = kpiAguardandoCliente;
     const kpiTotal = cs.length;
-    const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    setKpi('kpi-aguardando-cliente', kpiAguardandoCliente);
     setKpi('kpi-ativos', kpiAtivos);
     setKpi('kpi-vencendo', kpiVenc);
     setKpi('kpi-pendentes', kpiPend);
@@ -1500,7 +1588,7 @@
     // Badge vermelho no card Carteira
     const badgeCart = document.getElementById('badge-cancelados');
     if (badgeCart) {
-      badgeCart.innerHTML = kpiCancelados > 0 ? `<span style="font-size:13px;font-weight:900;">${kpiCancelados}</span><span style="font-size:9px;opacity:.85;">sem seguro</span>` : '';
+      badgeCart.innerHTML = kpiCancelados > 0 ? `<span style="font-size:13px;font-weight:600;">${kpiCancelados}</span><span style="font-size:9px;opacity:.85;">sem seguro</span>` : '';
       badgeCart.style.display = kpiCancelados > 0 ? 'inline-flex' : 'none';
     }
 
@@ -1542,41 +1630,41 @@
         const sResColor = { aguardando_cotacao:'#78716c', em_analise:'#1e40af', aprovado:'#2d6a4f', emitido:'#C69C6D', recusado:'#9b1c1c' };
         const sRes = c.status_residencial || 'aguardando_cotacao';
         const sGar = c.status_garantia || 'aguardando_cotacao';
-        const resBadge = `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sRes]||'#78716c'};background:${sResColor[sRes]||'#78716c'}18;padding:2px 7px;border-radius:20px">Residencial: ${sResLabel[sRes]||sRes}</span>`;
-        const garBadge = temG ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:900;color:${sResColor[sGar]||'#78716c'};background:${sResColor[sGar]||'#78716c'}18;padding:2px 7px;border-radius:20px">Garantia: ${sResLabel[sGar]||sGar}</span>` : '';
+        const resBadge = `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:${sResColor[sRes]||'#78716c'};background:${sResColor[sRes]||'#78716c'}18;padding:2px 7px;border-radius:20px">Residencial: ${sResLabel[sRes]||sRes}</span>`;
+        const garBadge = temG ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:${sResColor[sGar]||'#78716c'};background:${sResColor[sGar]||'#78716c'}18;padding:2px 7px;border-radius:20px">Garantia: ${sResLabel[sGar]||sGar}</span>` : '';
         const diasEspera = Math.round((Date.now() - new Date(c.created_at).getTime()) / 86400000);
         const esperaCor = diasEspera <= 3 ? '#16a34a' : diasEspera <= 7 ? '#a16207' : '#dc2626';
         const esperaBg  = diasEspera <= 3 ? '#dcfce7' : diasEspera <= 7 ? '#fef9c3' : '#fee2e2';
-        const esperaHtml = `<span style="font-size:9px;font-weight:900;background:${esperaBg};color:${esperaCor};padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;">${diasEspera}d nesta etapa</span>`;
+        const esperaHtml = `<span style="font-size:9px;font-weight:600;background:${esperaBg};color:${esperaCor};padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;">${diasEspera}d nesta etapa</span>`;
         // Botão "Autorizar Contratação" — só aparece na coluna Aprovado quando intenção era cotação
         const btnAutorizar = col.key === 'aprovado' && !['contratar','nao_contratar'].includes(c.intencao) ? `
           <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
             <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','contratar')"
-              style="width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+              style="width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
               onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
               ✅ Autorizar Contratação
             </button>
             <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','declinar')"
-              style="width:100%;padding:8px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+              style="width:100%;padding:8px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
               onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
               ❌ Não vamos contratar
             </button>
           </div>` : '';
 
         const jaAutorizou = col.key === 'aprovado' && c.intencao === 'contratar' ? `
-          <div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:900;color:#166534;text-align:center;">
+          <div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:600;color:#166534;text-align:center;">
             ✓ Contratação autorizada
           </div>` : '';
 
         const jaDeclinada = col.key === 'aprovado' && c.intencao === 'nao_contratar' ? `
-          <div style="margin-top:8px;padding:6px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:900;color:#dc2626;text-align:center;">
+          <div style="margin-top:8px;padding:6px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:600;color:#dc2626;text-align:center;">
             ✕ Não irá contratar
           </div>` : '';
 
         // Upload de documentos de garantia — visível quando aprovado/em atendimento + garantia
         const docsGarantia = temG && ['aprovado','atendimento_iniciado'].includes(col.key) ? `
           <div style="margin-top:8px;border-top:1px solid #f0ece4;padding-top:8px;">
-            <div style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">📎 Documentos</div>
+            <div style="font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">📎 Documentos</div>
             ${[
               {key:'doc_contrato_url', label:'Contrato'},
               {key:'doc_termo_vistoria_url', label:'Vistoria'},
@@ -1670,15 +1758,15 @@
     tbody.innerHTML = lista.map(c => {
       const temG = temGarantiaLocaticia(c);
       const sit = SITUACAO[c.status_apolice||'ativo'] || SITUACAO.ativo;
-      const situacaoBadge = `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;background:${sit.bg};color:${sit.color};border:1px solid ${sit.border};border-radius:20px;font-size:10px;font-weight:900;white-space:nowrap;letter-spacing:.3px;">
+      const situacaoBadge = `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;background:${sit.bg};color:${sit.color};border:1px solid ${sit.border};border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;letter-spacing:.3px;">
         <span style="width:5px;height:5px;border-radius:50%;background:${sit.dot};flex-shrink:0;"></span>
         ${sit.label}
       </span>`;
       const btnApoliceRes = c.apolice_residencial_url
-        ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:900;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
         : '';
       const btnApoliceGar = c.apolice_garantia_url
-        ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:900;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
         : '';
       const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${btnApoliceRes}</div>`;
       const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${btnApoliceGar}</div>`
@@ -1822,8 +1910,8 @@
       <h4>📎 Documentos necessários — Garantia Locatícia</h4>
       <p style="margin-bottom:16px">Envie os documentos para os clientes com garantia aprovada.</p>
       ${pendentes.map(c => `
-        <div style="background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:12px;border:1px solid #e8e4dc">
-          <p style="font-weight:900;font-size:14px;margin-bottom:12px">${c.inquilino_nome}
+        <div style="background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:12px;border:1px solid var(--line)">
+          <p style="font-weight:600;font-size:14px;margin-bottom:12px">${c.inquilino_nome}
             ${DOCS_DEF.every(d => c[d.key]) ? '<span style="background:#f5faf7;color:#2d6a4f;border:1px solid #c3dfd4;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px">✅ Completo</span>' : ''}
           </p>
           ${DOCS_DEF.map(d => `<div class="doc-row">
@@ -1915,10 +2003,10 @@
     const btnF = document.getElementById('intencao-contratar');
     if (v === 'cotacao') {
       btnC.style.background='#C69C6D'; btnC.style.color='#1B263B'; btnC.style.borderColor='#C69C6D';
-      btnF.style.background='#fff'; btnF.style.color='#94a3b8'; btnF.style.borderColor='#e8e4dc';
+      btnF.style.background='#fff'; btnF.style.color='#94a3b8'; btnF.style.borderColor='rgba(27,38,59,.08)';
     } else {
       btnF.style.background='#1B263B'; btnF.style.color='#C69C6D'; btnF.style.borderColor='#1B263B';
-      btnC.style.background='#fff'; btnC.style.color='#94a3b8'; btnC.style.borderColor='#e8e4dc';
+      btnC.style.background='#fff'; btnC.style.color='#94a3b8'; btnC.style.borderColor='rgba(27,38,59,.08)';
     }
   }
 
@@ -1932,9 +2020,9 @@
     glcPlano = m;
     const b12 = document.getElementById('btn-plan-12');
     const b30 = document.getElementById('btn-plan-30');
-    b12.style.borderColor = m===12 ? '#1B263B' : '#e8e4dc';
+    b12.style.borderColor = m===12 ? '#1B263B' : 'rgba(27,38,59,.08)';
     b12.querySelector('div').style.color = m===12 ? '#1B263B' : '#94a3b8';
-    b30.style.borderColor = m===30 ? '#1B263B' : '#e8e4dc';
+    b30.style.borderColor = m===30 ? '#1B263B' : 'rgba(27,38,59,.08)';
     b30.querySelector('div').style.color = m===30 ? '#1B263B' : '#94a3b8';
     calcGarantia();
   }
@@ -2075,7 +2163,7 @@
       const quando = new Date(c.rescisao_solicitada_em).toLocaleDateString('pt-BR');
       return `
         <div style="padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-          <span style="font-size:11px;font-weight:900;color:#5b21b6;">🔄 Rescisão solicitada em ${quando} — a F&amp;G está processando o cancelamento.</span>
+          <span style="font-size:11px;font-weight:600;color:#5b21b6;">🔄 Rescisão solicitada em ${quando} — a F&amp;G está processando o cancelamento.</span>
         </div>`;
     }
 
@@ -2084,7 +2172,7 @@
     if (!rescisaoAberta.has(c.id)) {
       return `
         <button onclick="toggleRescisao('${c.id}')"
-          style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+          style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
           onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
           🔴 Solicitar rescisão
         </button>`;
@@ -2099,8 +2187,8 @@
     return `
       <div style="padding:16px 18px;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-          <span style="font-size:11px;font-weight:900;color:#991b1b;text-transform:uppercase;letter-spacing:1px;">🔴 Rescisão de contrato</span>
-          <button onclick="toggleRescisao('${c.id}')" style="background:none;border:none;color:#94a3b8;font-size:16px;font-weight:900;cursor:pointer;line-height:1;" title="Fechar">×</button>
+          <span style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;">🔴 Rescisão de contrato</span>
+          <button onclick="toggleRescisao('${c.id}')" style="background:none;border:none;color:#94a3b8;font-size:16px;font-weight:600;cursor:pointer;line-height:1;" title="Fechar">×</button>
         </div>
 
         <p style="margin:0 0 12px;font-size:12px;color:#7f1d1d;line-height:1.6;">
@@ -2109,21 +2197,21 @@
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           ${docs.map(d => c[d.key]
-            ? `<a href="${c[d.key]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ ${d.label}</a>`
-            : `<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px dashed #dc2626;border-radius:10px;font-size:11px;font-weight:900;color:#991b1b;cursor:pointer;">
+            ? `<a href="${c[d.key]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;">✅ ${d.label}</a>`
+            : `<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px dashed #dc2626;border-radius:10px;font-size:11px;font-weight:600;color:#991b1b;cursor:pointer;">
                 <input type="file" accept="application/pdf,image/*" style="display:none" onchange="uploadRescisaoDoc('${c.id}','${d.key}',this)" />
                 ⬆ ${d.label}
                </label>`
           ).join('')}
         </div>
 
-        <label style="display:block;font-size:10px;font-weight:900;color:#991b1b;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Observação (opcional)</label>
+        <label style="display:block;font-size:10px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;">Observação (opcional)</label>
         <textarea onblur="salvarObsRescisao('${c.id}', this)" rows="2" placeholder="Ex.: inquilino entregou as chaves no dia 20, há débito de condomínio em aberto."
           style="width:100%;padding:10px 12px;border:1px solid #fecaca;border-radius:10px;font-size:13px;font-family:inherit;color:#1B263B;resize:vertical;box-sizing:border-box;">${(c.rescisao_obs || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
 
         <button ${completo ? '' : 'disabled'}
           onclick="concluirRescisao('${c.id}','${nomeEsc}', this)"
-          style="margin-top:12px;width:100%;padding:11px;border:none;border-radius:10px;font-size:12px;font-weight:900;
+          style="margin-top:12px;width:100%;padding:11px;border:none;border-radius:10px;font-size:12px;font-weight:600;
                  ${completo
                    ? 'background:#dc2626;color:#fff;cursor:pointer;'
                    : 'background:#f1f5f9;color:#94a3b8;cursor:not-allowed;'}">
