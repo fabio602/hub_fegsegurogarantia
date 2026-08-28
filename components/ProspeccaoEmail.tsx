@@ -88,19 +88,34 @@ export default function ProspeccaoEmail() {
       ativo: true,
     }).select('id').single();
 
-    // Dispara Email 1 imediatamente
+    // Dispara o Email 1 na hora, sem esperar o cron do dia seguinte.
+    //
+    // Espera o retorno de propósito: antes isso era fire-and-forget com um
+    // recarregar depois de 1,5s, e o envio demora ~4s. A tabela recarregava
+    // antes de o `email_1_sent` ser gravado e o D+1 aparecia como relógio
+    // mesmo tendo dado certo — parecia que a cadência não tinha começado.
+    let erroEnvio: string | null = null;
     if (inserted?.id) {
-      supabase.functions.invoke('prospecting-cadence', {
-        body: { contact_id: inserted.id },
-      }).catch(e => console.warn('[Email 1 imediato]', e));
+      try {
+        const { data, error } = await supabase.functions.invoke('prospecting-cadence', {
+          body: { contact_id: inserted.id },
+        });
+        if (error) erroEnvio = error.message;
+        else if (data && data.success === false) erroEnvio = data.error || 'falha no envio';
+      } catch (e: any) {
+        erroEnvio = e?.message || String(e);
+      }
     }
 
     // Mantém a trilha escolhida — quem cadastra 10 contatos da mesma trilha não reescolhe 10 vezes.
     setForm({ ...EMPTY_FORM, trilha: form.trilha });
     setShowModal(false);
     setSaving(false);
-    // Aguarda 1s para o email_1_sent ser marcado antes de recarregar
-    setTimeout(() => load(), 1500);
+    await load();
+
+    // O contato entrou na cadência de qualquer jeito; só o primeiro e-mail
+    // falhou. Avisar é melhor que deixar um relógio silencioso na tabela.
+    if (erroEnvio) alert(`Contato cadastrado, mas o primeiro e-mail não saiu: ${erroEnvio}\n\nO cron das 07:00 tenta de novo amanhã.`);
   };
 
   const toggleAtivo = async (id: string, current: boolean) => {
