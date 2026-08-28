@@ -463,9 +463,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     // por página). Em vez de cadastrar seis vezes na mão, lemos o PDF, o
     // usuário confere/corrige a lista e cadastra tudo de uma vez.
     const [carneFile, setCarneFile] = useState<File | null>(null);
-    const [lendoCarne, setLendoCarne] = useState(false);
     const [salvandoCarne, setSalvandoCarne] = useState(false);
     const [carneParcelas, setCarneParcelas] = useState<{ parcela: string; vencimento: string; valor: string }[]>([]);
+    const [carneQtd, setCarneQtd] = useState('');
+    const [carnePrimeiroVenc, setCarnePrimeiroVenc] = useState('');
+    const [carneValor, setCarneValor] = useState('');
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const [showEmailDispatcher, setShowEmailDispatcher] = useState(false);
@@ -1394,10 +1396,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setBoletoModalContato(contato);
         setBoletoEmailSent(new Set());
         setBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
-        // Zera a importação de carnê: abrir outra venda não pode herdar a lista
-        // de parcelas lida da venda anterior.
+        // Zera o gerador de parcelas: abrir outra venda não pode herdar a lista
+        // montada para a venda anterior.
         setCarneFile(null);
         setCarneParcelas([]);
+        setCarneQtd('');
+        setCarnePrimeiroVenc('');
+        setCarneValor('');
         const { data } = await supabase
             .from('boletos')
             .select('id, parcela, vencimento, url, pago, valor')
@@ -1455,76 +1460,58 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
 
     /**
-     * Lê o PDF do carnê e monta a lista de parcelas para conferência.
+     * Monta a lista de parcelas a partir de três dados: quantidade, primeiro
+     * vencimento e valor.
      *
-     * Não grava nada ainda: o resultado vai para `carneParcelas`, que é
-     * editável na tela. Datas de carnê fogem do "todo dia 20" quando cai em
-     * fim de semana (20/07, 21/09, 23/11...), e é justamente a data certa que
-     * faz a cobrança automática disparar no dia certo — por isso a conferência.
+     * Não lê o PDF nem usa IA — de propósito. Carnê de seguro garantia é
+     * mensal: sabendo a primeira data, as outras são o mesmo dia nos meses
+     * seguintes. Ler o PDF com IA custaria uma chamada paga por importação
+     * para adivinhar o que estas três informações já dizem.
+     *
+     * A lista sai editável na tela porque o banco antecipa ou empurra o
+     * vencimento que cai em fim de semana ou feriado (20/07, 21/09, 23/11...),
+     * e é a data certa que faz o lembrete disparar no dia certo.
      */
-    const handleLerCarne = async (file: File) => {
-        setCarneFile(file);
-        setLendoCarne(true);
-        setCarneParcelas([]);
-        try {
-            const b64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-
-            const fnUrl = 'https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parse-documento-seguro';
-            const res = await fetch(fnUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pdf_base64: b64, modo: 'carne' }),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-            const data = await res.json();
-
-            const toISO = (s: string) => {
-                if (!s) return '';
-                const [d, m, y] = String(s).split('/');
-                if (!d || !m || !y) return '';
-                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-            };
-
-            const lista = (Array.isArray(data?.parcelas) ? data.parcelas : [])
-                .map((p: any) => ({
-                    parcela: String(p?.parcela ?? '').replace(/\D/g, ''),
-                    vencimento: toISO(p?.vencimento || ''),
-                    valor: String(p?.valor ?? '').replace(/^R\$\s*/, '').trim(),
-                }))
-                .filter((p: { parcela: string }) => p.parcela)
-                // A IA pode repetir um boleto que aparece duas vezes na página
-                // (via de cobrança + recibo do sacado). Uma parcela, uma linha.
-                .filter((p: { parcela: string }, i: number, arr: { parcela: string }[]) =>
-                    arr.findIndex(x => x.parcela === p.parcela) === i)
-                .sort((a: { parcela: string }, b: { parcela: string }) => Number(a.parcela) - Number(b.parcela));
-
-            if (!lista.length) {
-                toast('Não consegui identificar as parcelas neste PDF. Cadastre manualmente abaixo.', 'error');
-            }
-            setCarneParcelas(lista);
-        } catch (err: any) {
-            console.error('Erro ao ler carnê:', err);
-            toast(`Erro ao ler o carnê: ${err?.message || 'Tente novamente.'}`, 'error');
-        } finally {
-            setLendoCarne(false);
+    const handleGerarParcelas = () => {
+        const qtd = parseInt(carneQtd);
+        if (!qtd || qtd < 1 || qtd > 60) {
+            toast('Informe a quantidade de parcelas (1 a 60).', 'error');
+            return;
         }
+        if (!carnePrimeiroVenc) {
+            toast('Informe o vencimento da primeira parcela.', 'error');
+            return;
+        }
+
+        const [y, m, d] = carnePrimeiroVenc.split('-').map(Number);
+        const lista = Array.from({ length: qtd }, (_, i) => {
+            // Somar mês a mês sem escorregar: dia 31 + 1 mês vira 28/29/30,
+            // nunca o dia 3 do mês seguinte (que é o que `setMonth` faria).
+            const alvoMes  = m - 1 + i;
+            const ano      = y + Math.floor(alvoMes / 12);
+            const mes      = ((alvoMes % 12) + 12) % 12;
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            const dia      = Math.min(d, ultimoDia);
+            return {
+                parcela: String(i + 1),
+                vencimento: `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`,
+                valor: carneValor.trim(),
+            };
+        });
+        setCarneParcelas(lista);
     };
 
     /**
      * Cadastra de uma vez todas as parcelas conferidas.
      *
-     * O PDF do carnê é enviado UMA vez e todas as parcelas apontam para ele —
-     * o cliente recebe o carnê inteiro e localiza a parcela pela data. Separar
-     * o PDF em seis arquivos exigiria um editor de PDF no navegador, e o ganho
-     * seria pequeno perto do risco de cortar a página errada.
+     * O PDF do carnê é opcional. Quando enviado, sobe UMA vez e todas as
+     * parcelas apontam para ele — o cliente recebe o carnê inteiro e localiza
+     * a parcela pela data. Separar o PDF em seis arquivos exigiria um editor
+     * de PDF no navegador, e o ganho seria pequeno perto do risco de cortar a
+     * página errada.
      */
     const handleSalvarCarne = async () => {
-        if (!boletoModalSaleId || !carneFile || !carneParcelas.length) return;
+        if (!boletoModalSaleId || !carneParcelas.length) return;
         const novas = carneParcelas.filter(p => !boletos.some(b => b.parcela === parseInt(p.parcela)));
         if (!novas.length) {
             toast('Todas essas parcelas já estão cadastradas.', 'error');
@@ -1532,15 +1519,19 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
         setSalvandoCarne(true);
         try {
-            const ext = carneFile.name.split('.').pop() || 'pdf';
-            const path = `${boletoModalSaleId}/boletos/carne.${ext}`;
-            const { error: uploadError } = await supabase.storage
-                .from('apolices')
-                .upload(path, carneFile, { upsert: true, contentType: 'application/pdf' });
-            if (uploadError) throw new Error(`Upload: ${uploadError.message}`);
+            let carneUrl: string | null = null;
+            if (carneFile) {
+                const ext = carneFile.name.split('.').pop() || 'pdf';
+                const path = `${boletoModalSaleId}/boletos/carne.${ext}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('apolices')
+                    .upload(path, carneFile, { upsert: true, contentType: 'application/pdf' });
+                if (uploadError) throw new Error(`Upload: ${uploadError.message}`);
 
-            const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
-            if (!urlData?.publicUrl) throw new Error('Não foi possível obter a URL pública.');
+                const { data: urlData } = supabase.storage.from('apolices').getPublicUrl(path);
+                if (!urlData?.publicUrl) throw new Error('Não foi possível obter a URL pública.');
+                carneUrl = urlData.publicUrl;
+            }
 
             const { error: insertError } = await supabase.from('boletos').insert(
                 novas.map(p => ({
@@ -1548,7 +1539,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     parcela: parseInt(p.parcela),
                     vencimento: p.vencimento || null,
                     valor: parseValorParcela(p.valor),
-                    url: urlData.publicUrl,
+                    url: carneUrl,
                 }))
             );
             if (insertError) throw new Error(`Insert: ${insertError.message}`);
@@ -1568,6 +1559,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             }));
             setCarneParcelas([]);
             setCarneFile(null);
+            setCarneQtd('');
+            setCarnePrimeiroVenc('');
+            setCarneValor('');
             toast(`${novas.length} parcela(s) cadastrada(s).`, 'success');
         } catch (err: any) {
             console.error('Erro ao cadastrar carnê:', err);
@@ -3022,24 +3016,54 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <p className="text-sm text-slate-400 text-center py-4">Nenhum boleto cadastrado ainda.</p>
                         )}
 
-                        {/* Importar carnê — cadastra todas as parcelas de uma vez */}
+                        {/* Venda parcelada — gera todas as parcelas de uma vez */}
                         <div className="border-t border-slate-100 pt-5 space-y-3">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Venda parcelada? Importe o carnê</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Venda parcelada? Gere as parcelas</p>
                             <p className="text-[11px] text-slate-400 leading-relaxed">
-                                Envie o PDF do carnê inteiro. Eu leio as parcelas, você confere as datas e cadastra todas de uma vez —
-                                cada parcela passa a ser cobrada automaticamente no seu vencimento.
+                                Informe quantas parcelas, a data da primeira e o valor. Eu monto o carnê inteiro mês a mês,
+                                você ajusta as datas que o banco mudou e cadastra tudo de uma vez — cada parcela passa a
+                                ter seu próprio lembrete, 3 dias antes do vencimento.
                             </p>
-                            <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${lendoCarne ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-wait' : 'bg-white border-[#C69C6D] text-[#b8895a] hover:bg-[#C69C6D]/10 cursor-pointer'}`}>
-                                {lendoCarne ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-                                {lendoCarne ? 'Lendo o carnê...' : (carneFile ? carneFile.name.substring(0, 30) : 'Selecionar PDF do carnê')}
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    className="hidden"
-                                    disabled={lendoCarne}
-                                    onChange={e => { const f = e.target.files?.[0]; if (f) handleLerCarne(f); e.target.value = ''; }}
-                                />
-                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Parcelas</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        value={carneQtd}
+                                        onChange={e => setCarneQtd(e.target.value)}
+                                        placeholder="6"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">1º vencimento</label>
+                                    <input
+                                        type="date"
+                                        value={carnePrimeiroVenc}
+                                        onChange={e => setCarnePrimeiroVenc(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={carneValor}
+                                        onChange={e => setCarneValor(e.target.value)}
+                                        placeholder="2.083,53"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleGerarParcelas}
+                                className="w-full py-2.5 bg-white border border-[#C69C6D] text-[#b8895a] hover:bg-[#C69C6D]/10 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                <Plus size={14} /> Gerar parcelas
+                            </button>
 
                             {carneParcelas.length > 0 && (
                                 <div className="space-y-2 rounded-xl bg-[#f8f5f0] border border-[#e8e4dc] p-3">
@@ -3082,9 +3106,22 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )}
                                     {carneParcelas.some(p => !p.vencimento) && (
                                         <p className="text-[10px] text-red-500 font-bold">
-                                            Preencha o vencimento das parcelas em branco — é a data que dispara a cobrança automática.
+                                            Preencha o vencimento das parcelas em branco — é a data que dispara o lembrete.
                                         </p>
                                     )}
+
+                                    {/* PDF do carnê: opcional, e o mesmo arquivo vale para todas as parcelas. */}
+                                    <label className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-dashed border-slate-300 bg-white text-[11px] font-bold text-slate-500 hover:border-[#C69C6D] hover:text-[#b8895a] cursor-pointer transition-all">
+                                        <FileText size={13} />
+                                        {carneFile ? carneFile.name.substring(0, 30) : 'Anexar PDF do carnê (opcional)'}
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            className="hidden"
+                                            onChange={e => { const f = e.target.files?.[0]; if (f) setCarneFile(f); e.target.value = ''; }}
+                                        />
+                                    </label>
+
                                     <button
                                         onClick={handleSalvarCarne}
                                         disabled={salvandoCarne || carneParcelas.some(p => !p.vencimento)}

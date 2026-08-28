@@ -4,34 +4,43 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /**
  * Cobrança automática de boletos do seguro garantia.
  *
- * Roda uma vez por dia e dispara três avisos:
- *   D-3  → WhatsApp, 3 dias antes do vencimento
- *   D0   → WhatsApp, no dia do vencimento
- *   D+1  → WhatsApp + e-mail, no dia seguinte ao vencimento
+ * Roda uma vez por dia e dispara UM único aviso por boleto:
+ *   D-3 → WhatsApp, 3 dias antes do vencimento.
+ *
+ * ── Por que só antes do vencimento ───────────────────────────────────────
+ *
+ * Antes existiam também um aviso no dia (D0) e um de "venceu ontem" (D+1).
+ * Os dois foram removidos de propósito: cobrar quem já pagou é constrangedor,
+ * e evitar isso exigiria manter a marca `pago` de cada parcela em dia — um
+ * trabalho manual diário que não se sustenta.
+ *
+ * A inadimplência não some por isso: as seguradoras mandam o relatório de
+ * atraso todo mês, e essa cobrança é feita pontualmente, caso a caso.
+ *
+ * Consequência prática: o aviso D-3 é um lembrete, não uma cobrança. Ele sai
+ * três dias ANTES do vencimento, quando ninguém está devendo nada — por isso
+ * não consulta `pago` nem `pagamento_status` para decidir se envia.
  *
  * ── Duas fontes de vencimento ────────────────────────────────────────────
  *
  * 1. Tabela `boletos` (PARCELAS) — a fonte preferida. Cada parcela tem seu
- *    próprio vencimento, seu próprio `pago` e suas próprias marcas de envio,
- *    então uma venda em 6x recebe 6 ciclos de cobrança, e a parcela que o
- *    cliente já pagou para de ser cobrada.
+ *    próprio vencimento e sua própria marca de envio, então uma venda em 6x
+ *    recebe 6 lembretes, um por parcela.
  *
  * 2. Campo `sales.vencimento_boleto` (LEGADO) — usado apenas para vendas que
  *    NÃO têm nenhuma parcela cadastrada. É o comportamento antigo, mantido
- *    para não deixar de cobrar as vendas à vista já registradas assim.
+ *    para não deixar de avisar as vendas à vista já registradas assim.
  *
- * Uma venda nunca é cobrada pelos dois caminhos: se existe pelo menos uma
- * linha em `boletos` para aquela venda, o campo `vencimento_boleto` é
+ * Uma venda nunca é avisada pelos dois caminhos: se existe pelo menos uma
+ * parcela com vencimento para aquela venda, o campo `vencimento_boleto` é
  * ignorado (ele costuma repetir o vencimento da parcela 1).
  */
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_API_KEY   = Deno.env.get('RESEND_API_KEY')!;
 const ZAPI_INSTANCE    = '3F7C45AF93AD91301C9696FEEDA07377';
 const ZAPI_TOKEN       = '8E9F5BD8488D8591141B0834';
 const ZAPI_CLIENT      = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
-const BCC_EMAIL        = 'fabio@fegsegurogarantia.com.br';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 
@@ -52,22 +61,6 @@ function cleanPhone(raw: string | null): string | null {
   if (d.length < 10) return null;
   return d.startsWith('55') && d.length >= 12 ? d : `55${d}`;
 }
-/**
- * Só 'Pago' bloqueia a cobrança de parcelas.
- *
- * 'Em dia' significa "sem atraso até agora", não "quitado" — numa venda em 6x
- * ela continua verdadeira com 5 parcelas ainda por vencer. Se 'Em dia' também
- * bloqueasse, as parcelas seguintes nunca seriam cobradas.
- *
- * No caminho legado (venda à vista, sem parcelas) as duas continuam
- * bloqueando, como sempre foi.
- */
-function isQuitado(status: string | null): boolean {
-  return status === 'Pago';
-}
-function isPagoLegado(status: string | null): boolean {
-  return status === 'Pago' || status === 'Em dia';
-}
 
 async function sendZAPI(phone: string, msg: string): Promise<boolean> {
   try {
@@ -79,16 +72,6 @@ async function sendZAPI(phone: string, msg: string): Promise<boolean> {
     return r.ok;
   } catch { return false; }
 }
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
-      body: JSON.stringify({ from: 'F&G Seguro Garantia <noreply@fegsegurogarantia.com.br>', to: [to], bcc: [BCC_EMAIL], subject, html }),
-    });
-    return r.ok;
-  } catch { return false; }
-}
 
 /** "parcela 2 de 6" — vazio quando a venda não é parcelada. */
 function labelParcela(parcela: number | null, total: number | null): string {
@@ -96,54 +79,7 @@ function labelParcela(parcela: number | null, total: number | null): string {
   return ` (parcela ${parcela} de ${total})`;
 }
 
-function emailD1(nome: string, apolice: string, dataVenc: string, parcelaTxt: string, valorTxt: string): string {
-  const p = (nome || 'cliente').split(' ')[0];
-  const linhaParcela = parcelaTxt
-    ? `<p style="color:#64748b;font-size:13px;margin:0 0 4px">Refer&ecirc;ncia:<strong>${parcelaTxt}</strong></p>`
-    : '';
-  const linhaValor = valorTxt
-    ? `<p style="color:#64748b;font-size:13px;margin:0 0 4px">Valor: <strong>${valorTxt}</strong></p>`
-    : '';
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f1ec;font-family:'Segoe UI',Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ec;padding:32px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-<tr><td style="background:#1B263B;border-radius:16px 16px 0 0;padding:32px;text-align:center">
-  <div style="display:inline-block;background:#C69C6D;border-radius:12px;padding:10px 22px;margin-bottom:10px">
-    <span style="color:#1B263B;font-size:22px;font-weight:900;letter-spacing:-0.5px">F&amp;G</span>
-  </div>
-  <div style="color:#C69C6D;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-top:4px">Seguro Garantia</div>
-</td></tr>
-<tr><td style="background:#C69C6D;padding:14px 32px;text-align:center">
-  <span style="color:#1B263B;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:1px">Lembrete de Vencimento</span>
-</td></tr>
-<tr><td style="background:#ffffff;padding:40px">
-  <p style="color:#1B263B;font-size:18px;font-weight:900;margin:0 0 8px">Ol&aacute;, ${p}!</p>
-  <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 20px">Tudo bem? Aqui &eacute; a equipe da <strong>F&amp;G Seguro Garantia</strong>.</p>
-  <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 24px">Passando para lembrar que o boleto${parcelaTxt} da sua ap&oacute;lice <strong style="color:#1B263B">${apolice}</strong> venceu em <strong style="color:#C69C6D">${dataVenc}</strong>. Se j&aacute; realizou o pagamento, pode desconsiderar este aviso!</p>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ec;border-radius:12px;border-left:4px solid #C69C6D;margin-bottom:28px"><tr><td style="padding:20px 24px">
-    <p style="color:#1B263B;font-size:14px;font-weight:700;margin:0 0 6px">Ap&oacute;lice</p>
-    <p style="color:#C69C6D;font-size:22px;font-weight:900;margin:0 0 10px">${apolice}</p>
-    ${linhaParcela}
-    ${linhaValor}
-    <p style="color:#64748b;font-size:13px;margin:0">Vencimento: <strong>${dataVenc}</strong></p>
-  </td></tr></table>
-  <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 24px">Caso precise de segunda via ou tenha alguma d&uacute;vida, &eacute; s&oacute; nos chamar &mdash; estamos aqui para ajudar.</p>
-  <p style="color:#1B263B;font-size:15px;font-weight:700;margin:0">Conte sempre com a F&amp;G! &#128591;</p>
-</td></tr>
-<tr><td style="background:#1B263B;padding:28px 40px">
-  <p style="color:#C69C6D;font-size:15px;font-weight:900;margin:0 0 4px">F&aacute;bio Lima</p>
-  <p style="color:#94a3b8;font-size:13px;margin:0 0 16px">F&amp;G Seguro Garantia</p>
-  <p style="color:#94a3b8;font-size:12px;margin:0 0 4px">&#128241; (15) 99861-8659 &nbsp;|&nbsp; &#127758; fegsegurogarantia.com.br</p>
-  <p style="color:#94a3b8;font-size:12px;margin:0">&#128247; @fg_segurogarantia</p>
-</td></tr>
-<tr><td style="background:#0f172a;border-radius:0 0 16px 16px;padding:16px;text-align:center">
-  <p style="color:#475569;font-size:11px;margin:0">Lembrete autom&aacute;tico da F&amp;G Seguro Garantia. N&atilde;o responda diretamente a este e-mail.</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-}
-
-/** Uma cobrança a disparar — vinda de uma parcela ou do campo legado. */
+/** Um lembrete a disparar — vindo de uma parcela ou do campo legado. */
 interface Alvo {
   origem: 'parcela' | 'legado';
   boletoId: number | null;   // id em `boletos` (null no legado)
@@ -154,7 +90,6 @@ interface Alvo {
   valor: string | null;      // já formatado em BRL, ou '' se não houver
   nome: string;
   telefone: string | null;
-  email: string | null;
   apolice: string;
 }
 
@@ -166,14 +101,13 @@ Deno.serve(async (req) => {
     const today    = new Date();
     const todayISO = today.toISOString().split('T')[0];
     const d3ISO    = new Date(today.getTime() + 3 * 86400000).toISOString().split('T')[0];
-    const d1ISO    = new Date(today.getTime() - 1 * 86400000).toISOString().split('T')[0];
 
     // ── Vendas que têm parcelas cadastradas ──────────────────────────────
     // Precisamos disso duas vezes: para saber o total de parcelas de cada
     // venda ("parcela 2 de 6") e para excluir essas vendas do caminho legado.
     const { data: todasParcelas } = await supabase
       .from('boletos')
-      .select('id, sale_id, parcela, vencimento, valor, pago, cobranca_d3_sent, cobranca_d0_sent, cobranca_d1_sent')
+      .select('id, sale_id, parcela, vencimento, valor, pago, cobranca_d3_sent')
       .limit(20000);   // o padrão do PostgREST é 1000 — cortaria parcelas silenciosamente
 
     const totalPorVenda = new Map<number, number>();
@@ -189,14 +123,16 @@ Deno.serve(async (req) => {
      * Só entram as que têm parcela COM vencimento preenchido. Boa parte das
      * linhas antigas em `boletos` é só o anexo do boleto criado junto com a
      * venda, sem data — se elas contassem como "tem parcelas", a venda sairia
-     * do caminho legado e ninguém seria cobrado.
+     * do caminho legado e ninguém seria avisado.
      */
     const vendasComParcelas = new Set(
       (todasParcelas ?? []).filter(b => b.vencimento).map(b => b.sale_id)
     );
 
     // ── Auto-atualiza pagamento_status (nunca toca em 'Pago' ou 'Em dia') ─
-    // Caminho legado: continua olhando `vencimento_boleto`.
+    //
+    // Isto é só o painel do hub: mostra de relance o que já venceu. Não
+    // manda ninguém enviar mensagem — o lembrete D-3 acontece antes disso.
     await supabase.from('sales')
       .update({ pagamento_status: 'Vencido' })
       .not('pagamento_status', 'in', '("Pago","Em dia")')
@@ -225,17 +161,16 @@ Deno.serve(async (req) => {
     }
 
     // ── Monta a lista de alvos ───────────────────────────────────────────
-    const datas = [d3ISO, todayISO, d1ISO];
-
-    const parcelasDoDia = (todasParcelas ?? []).filter(
-      b => !b.pago && b.vencimento && datas.includes(b.vencimento)
-    );
+    //
+    // Sem filtro por `pago`: faltando três dias para vencer, o lembrete cabe
+    // tenha o cliente pago ou não. É o que dispensa a marcação manual.
+    const parcelasDoDia = (todasParcelas ?? []).filter(b => b.vencimento === d3ISO);
 
     const saleIdsParcelas = [...new Set(parcelasDoDia.map(b => b.sale_id))];
     const vendasPorId = new Map<number, any>();
     if (saleIdsParcelas.length) {
       const { data: vendas } = await supabase.from('sales')
-        .select('id, nome, decisor, telefone, email, numero_boleto, pagamento_status, vendeu')
+        .select('id, nome, decisor, telefone, numero_boleto, vendeu')
         .in('id', saleIdsParcelas);
       for (const v of vendas ?? []) vendasPorId.set(v.id, v);
     }
@@ -246,7 +181,6 @@ Deno.serve(async (req) => {
       const s = vendasPorId.get(b.sale_id);
       if (!s) continue;
       if (s.vendeu !== 'Sim') continue;
-      if (isQuitado(s.pagamento_status)) { console.log(`[parcela] venda #${s.id} quitada — skip`); continue; }
       alvos.push({
         origem: 'parcela',
         boletoId: b.id,
@@ -257,22 +191,19 @@ Deno.serve(async (req) => {
         valor: fmtBRL(b.valor),
         nome: s.decisor || s.nome || 'cliente',
         telefone: s.telefone,
-        email: s.email,
         apolice: s.numero_boleto || '—',
       });
     }
 
     // Caminho legado: só vendas SEM nenhuma parcela cadastrada.
     const { data: legado } = await supabase.from('sales')
-      .select('id, nome, decisor, telefone, email, premio, vencimento_boleto, numero_boleto, pagamento_status, cobranca_d3_sent, cobranca_d0_sent, cobranca_d1_sent')
+      .select('id, nome, decisor, telefone, premio, vencimento_boleto, numero_boleto, cobranca_d3_sent')
       .eq('vendeu', 'Sim')
-      .in('vencimento_boleto', datas)
-      .not('vencimento_boleto', 'is', null);
+      .eq('vencimento_boleto', d3ISO);
 
     const legadoFlags = new Map<number, any>();
     for (const s of legado ?? []) {
       if (vendasComParcelas.has(s.id)) continue;   // já coberta pelas parcelas
-      if (isPagoLegado(s.pagamento_status)) { console.log(`[legado] venda #${s.id} paga — skip`); continue; }
       legadoFlags.set(s.id, s);
       alvos.push({
         origem: 'legado',
@@ -284,32 +215,32 @@ Deno.serve(async (req) => {
         valor: fmtBRL(s.premio),
         nome: s.decisor || s.nome || 'cliente',
         telefone: s.telefone,
-        email: s.email,
         apolice: s.numero_boleto || '—',
       });
     }
 
     // ── Já enviado? ──────────────────────────────────────────────────────
-    const jaEnviado = (a: Alvo, campo: 'cobranca_d3_sent' | 'cobranca_d0_sent' | 'cobranca_d1_sent'): boolean => {
+    // A marca é definitiva: o lembrete de uma parcela sai uma vez só, mesmo
+    // que a função rode várias vezes no mesmo dia.
+    const jaEnviado = (a: Alvo): boolean => {
       if (a.origem === 'parcela') {
-        const b = parcelasDoDia.find(x => x.id === a.boletoId);
-        return Boolean(b?.[campo]);
+        return Boolean(parcelasDoDia.find(x => x.id === a.boletoId)?.cobranca_d3_sent);
       }
-      return Boolean(legadoFlags.get(a.saleId)?.[campo]);
+      return Boolean(legadoFlags.get(a.saleId)?.cobranca_d3_sent);
     };
-    const marcarEnviado = async (a: Alvo, campo: 'cobranca_d3_sent' | 'cobranca_d0_sent' | 'cobranca_d1_sent') => {
+    const marcarEnviado = async (a: Alvo) => {
       if (a.origem === 'parcela') {
-        await supabase.from('boletos').update({ [campo]: true }).eq('id', a.boletoId!);
+        await supabase.from('boletos').update({ cobranca_d3_sent: true }).eq('id', a.boletoId!);
       } else {
-        await supabase.from('sales').update({ [campo]: true }).eq('id', a.saleId);
+        await supabase.from('sales').update({ cobranca_d3_sent: true }).eq('id', a.saleId);
       }
     };
 
-    let sent_d3 = 0, sent_d0 = 0, sent_d1 = 0, errors = 0;
+    let sent = 0, errors = 0;
 
-    // ── D-3 ──────────────────────────────────────────────────────────────
-    for (const a of alvos.filter(x => x.vencimento === d3ISO)) {
-      if (jaEnviado(a, 'cobranca_d3_sent')) continue;
+    // ── D-3: o único aviso ───────────────────────────────────────────────
+    for (const a of alvos) {
+      if (jaEnviado(a)) continue;
       const phone = cleanPhone(a.telefone); if (!phone) continue;
       const p = a.nome.split(' ')[0];
       const ref = labelParcela(a.parcela, a.totalParcelas);
@@ -318,64 +249,18 @@ Deno.serve(async (req) => {
         `Hoje vim trazer algumas informações sobre sua apólice ${a.apolice}. ` +
         `Seu boleto${ref} vence em 3 dias, no dia ${fmtDate(a.vencimento)}.` +
         (a.valor ? ` Valor: ${a.valor}.` : '') + `\n\n` +
-        `Se precisar de qualquer apoio, conte comigo. 😊`;
-      if (await sendZAPI(phone, msg)) { await marcarEnviado(a, 'cobranca_d3_sent'); sent_d3++; }
+        `Se já realizou o pagamento, é só desconsiderar. Qualquer apoio, conte comigo. 😊`;
+      if (await sendZAPI(phone, msg)) { await marcarEnviado(a); sent++; }
       else errors++;
       await new Promise(r => setTimeout(r, 1000));
-    }
-
-    // ── D0 ───────────────────────────────────────────────────────────────
-    for (const a of alvos.filter(x => x.vencimento === todayISO)) {
-      if (jaEnviado(a, 'cobranca_d0_sent')) continue;
-      const phone = cleanPhone(a.telefone); if (!phone) continue;
-      const p = a.nome.split(' ')[0];
-      const ref = labelParcela(a.parcela, a.totalParcelas);
-      const msg =
-        `Oi ${p}! Aqui é a F&G Seguro Garantia.\n\n` +
-        `Seu boleto${ref} da apólice ${a.apolice} vence hoje, ${fmtDate(a.vencimento)}.` +
-        (a.valor ? ` Valor: ${a.valor}.` : '') + `\n\n` +
-        `Se já está tudo certo, ótimo! Qualquer dúvida estamos aqui. 😊`;
-      if (await sendZAPI(phone, msg)) { await marcarEnviado(a, 'cobranca_d0_sent'); sent_d0++; }
-      else errors++;
-      await new Promise(r => setTimeout(r, 1000));
-    }
-
-    // ── D+1 ──────────────────────────────────────────────────────────────
-    for (const a of alvos.filter(x => x.vencimento === d1ISO)) {
-      if (jaEnviado(a, 'cobranca_d1_sent')) continue;
-      const phone = cleanPhone(a.telefone);
-      const data  = fmtDate(a.vencimento);
-      const ref   = labelParcela(a.parcela, a.totalParcelas);
-      let wppOk = false, emailOk = false;
-      if (phone) {
-        const p = a.nome.split(' ')[0];
-        const msg =
-          `Oi ${p}! Aqui é a F&G Seguro Garantia.\n\n` +
-          `O boleto${ref} da sua apólice ${a.apolice} venceu ontem, ${data}.` +
-          (a.valor ? ` Valor: ${a.valor}.` : '') + `\n\n` +
-          `Se já realizou o pagamento, ótimo! Caso precise de algum apoio, estamos à disposição. 🙏`;
-        wppOk = await sendZAPI(phone, msg);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      if (a.email) {
-        const assunto = ref
-          ? `Lembrete — Boleto${ref} da apólice ${a.apolice}`
-          : `Lembrete — Boleto da apólice ${a.apolice}`;
-        emailOk = await sendEmail(a.email, assunto, emailD1(a.nome, a.apolice, data, ref, a.valor || ''));
-      }
-      if (wppOk || emailOk) {
-        await marcarEnviado(a, 'cobranca_d1_sent');
-        sent_d1++;
-        console.log(`[D+1] OK: ${a.nome}${ref} wpp=${wppOk} email=${emailOk}`);
-      } else errors++;
     }
 
     const porParcela = alvos.filter(a => a.origem === 'parcela').length;
-    console.log(`[garantia-cobranca] alvos:${alvos.length} (parcelas:${porParcela} legado:${alvos.length - porParcela}) D-3:${sent_d3} D0:${sent_d0} D+1:${sent_d1} erros:${errors}`);
+    console.log(`[garantia-cobranca] alvos:${alvos.length} (parcelas:${porParcela} legado:${alvos.length - porParcela}) enviados:${sent} erros:${errors}`);
     return new Response(JSON.stringify({
       success: true,
       alvos: { total: alvos.length, parcelas: porParcela, legado: alvos.length - porParcela },
-      sent: { d3: sent_d3, d0: sent_d0, d1: sent_d1 },
+      sent,
       errors,
     }), { headers: { ...cors, 'Content-Type': 'application/json' } });
 

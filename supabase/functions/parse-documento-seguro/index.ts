@@ -24,32 +24,6 @@ Campos a extrair:
 Se um campo não estiver disponível, use string vazia "".
 Retorne APENAS o JSON, sem nenhum texto antes ou depois.`;
 
-/**
- * Modo "carnê": ler o PDF de boletos parcelados e devolver uma parcela por boleto.
- *
- * Carnê brasileiro costuma trazer DOIS boletos por página, cada um com o campo
- * "Nº do documento" no formato "003/006" — daí a insistência do prompt em não
- * pular nem repetir parcelas.
- */
-const SYSTEM_PROMPT_CARNE = `Você é um extrator de carnês de boleto bancário brasileiros.
-
-O documento é um carnê: várias parcelas do mesmo contrato, normalmente DOIS BOLETOS POR PÁGINA.
-Cada boleto traz um campo "Nº do documento" ou "Parcela" no formato "003/006" ou "3 de 6",
-uma data de vencimento e um valor do documento.
-
-Retorne APENAS um JSON válido, sem markdown, neste formato:
-{"parcelas":[{"parcela":1,"vencimento":"22/06/2026","valor":"2.083,55"}]}
-
-Regras:
-- Liste TODAS as parcelas encontradas, uma entrada por boleto, em ordem crescente de parcela.
-- "parcela" é um número inteiro (o numerador de "003/006").
-- "vencimento" no formato dd/mm/aaaa.
-- "valor" é o valor do documento em reais, sem "R$" (ex: "2.083,53").
-- Não invente parcelas que não estejam no documento e nunca repita a mesma parcela.
-- Se o documento tiver um único boleto, devolva uma lista com uma parcela só.
-
-Retorne APENAS o JSON, sem nenhum texto antes ou depois.`;
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function b64ToBytes(b64: string): Uint8Array {
@@ -162,9 +136,7 @@ Deno.serve(async (req: Request) => {
   const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 
   try {
-    // `modo` = 'apolice' (padrão, comportamento de sempre) ou 'carne'.
-    const { pdf_base64, modo } = await req.json();
-    const isCarne = modo === 'carne';
+    const { pdf_base64 } = await req.json();
 
     if (!pdf_base64) {
       return new Response(JSON.stringify({ error: 'pdf_base64 é obrigatório' }), {
@@ -183,16 +155,14 @@ Deno.serve(async (req: Request) => {
     // 1. Desempacota assinatura digital CMS, se presente
     const cleanPdfBase64 = extractPdfIfCmsWrapped(pdf_base64);
 
-    // 2. Corta o PDF nas primeiras páginas.
-    //    Apólice: 3 páginas bastam (face + demonstrativo de prêmio) e isso
-    //    corta ~92% dos tokens. Carnê: cada página traz DOIS boletos, então
-    //    cortar em 3 perderia parcelas — 12 páginas cobrem até 24 parcelas.
-    const MAX_PAGINAS = isCarne ? 12 : 3;
+    // 2. Corta o PDF nas primeiras 3 páginas (face da apólice + demonstrativo
+    //    de prêmio). Reduz ~92% dos tokens sem perder nenhum campo relevante.
+    const MAX_PAGINAS = 3;
     const cleanBytes = b64ToBytes(cleanPdfBase64);
     const { bytes: trimmedBytes, totalPages } = await trimToFirstPages(cleanBytes, MAX_PAGINAS);
     const trimmedBase64 = bytesToB64(trimmedBytes);
     const sentPages = Math.min(MAX_PAGINAS, totalPages || MAX_PAGINAS);
-    console.log(`[parse] modo:${isCarne ? 'carne' : 'apolice'} | total:${totalPages}p | enviando:${sentPages}p | bytes:${trimmedBytes.length}`);
+    console.log(`[parse] total:${totalPages}p | enviando:${sentPages}p | bytes:${trimmedBytes.length}`);
 
     // 3. Envia à Anthropic
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -205,9 +175,8 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        // Carnê devolve uma lista: 24 parcelas ocupam bem mais que 1024 tokens.
-        max_tokens: isCarne ? 4096 : 1024,
-        system: isCarne ? SYSTEM_PROMPT_CARNE : SYSTEM_PROMPT,
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
         messages: [{
           role: 'user',
           content: [
@@ -217,9 +186,7 @@ Deno.serve(async (req: Request) => {
             },
             {
               type: 'text',
-              text: isCarne
-                ? 'Extraia TODAS as parcelas deste carnê. Atenção: normalmente há dois boletos por página. Retorne o JSON com a lista completa.'
-                : 'Extraia os dados deste documento de seguro garantia. Lembre-se: nome e cnpj devem ser do TOMADOR (empresa privada), e orgao_licitante deve ser o SEGURADO/BENEFICIÁRIO (órgão público). Retorne o JSON.'
+              text: 'Extraia os dados deste documento de seguro garantia. Lembre-se: nome e cnpj devem ser do TOMADOR (empresa privada), e orgao_licitante deve ser o SEGURADO/BENEFICIÁRIO (órgão público). Retorne o JSON.'
             }
           ]
         }]
