@@ -32,6 +32,8 @@
       --r-lg: 26px;
       --r: 18px;
       --r-sm: 13px;
+      /* Largura útil do conteúdo — em telas grandes o portal respira até 1720px */
+      --largura: 1720px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -67,8 +69,32 @@
       color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .02em;
       box-shadow: var(--shadow-sm); flex-shrink: 0;
     }
-    .topbar h1 { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; }
-    .topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+    /* Não usar seletor de elemento aqui: o nome do parceiro é uma div comum */
+    .topbar-nome { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.25; }
+    .topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; line-height: 1.25; }
+
+    /* ── ÍCONES (SVG traçado, herdam a cor do texto) ── */
+    .ico {
+      width: 17px; height: 17px; flex-shrink: 0;
+      fill: none; stroke: currentColor; stroke-width: 1.7;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .ico-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+    /* Variações de tamanho. O .ico-inline entra no meio de frases, por isso o
+       vertical-align negativo: alinha o traço do ícone com a base da letra. */
+    .ico-inline { width: 14px; height: 14px; vertical-align: -2px; }
+    .ico-esc { width: 13px; height: 13px; color: var(--gold); }
+    .ico-md { width: 19px; height: 19px; }
+    .ico-lg { width: 23px; height: 23px; }
+    .ico-fab { width: 24px; height: 24px; stroke-width: 2; }
+
+    /* Ícone dos cards de cobertura (bloco "o que está incluído") */
+    .tile-ico {
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 7px; color: var(--navy);
+    }
+    .tile-ico .ico { width: 22px; height: 22px; stroke-width: 1.6; }
     .btn-sair {
       padding: 9px 17px; background: var(--surface); border: 1px solid var(--line);
       border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 500;
@@ -77,7 +103,7 @@
     .btn-sair:hover { color: #b91c1c; border-color: rgba(185,28,28,.24); transform: translateY(-1px); }
 
     /* ── NAV: segmento com pílula deslizante ── */
-    .nav-wrap { max-width: 1180px; margin: 0 auto; padding: 18px 40px 4px; position: relative; z-index: 1; }
+    .nav-wrap { max-width: var(--largura); margin: 0 auto; padding: 18px 44px 4px; position: relative; z-index: 1; }
     .nav {
       position: relative; display: flex; gap: 4px; background: var(--surface);
       border: 1px solid var(--line); border-radius: 999px; padding: 6px;
@@ -97,11 +123,13 @@
     }
     .nav-btn:hover { color: var(--ink); }
     .nav-btn.active { color: #fff; }
-    .nav-btn .icon { margin-right: 7px; opacity: .9; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 8px; }
+    .nav-btn .ico { opacity: .85; transition: opacity .3s var(--ease); }
+    .nav-btn.active .ico { opacity: 1; }
 
     /* ── PÁGINAS: entram com fade + subida, filhos em cascata ── */
-    .page { display: none; max-width: 1180px; margin: 0 auto; padding: 20px 40px 80px; position: relative; z-index: 1; }
-    #page-kanban { padding: 20px 40px 80px; }
+    .page { display: none; max-width: var(--largura); margin: 0 auto; padding: 20px 44px 80px; position: relative; z-index: 1; }
+    #page-kanban { padding: 20px 44px 80px; }
     .page.active { display: block; animation: entra .46s var(--ease) both; }
     @keyframes entra { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     .page.active > * { animation: entra .5s var(--ease) both; }
@@ -146,12 +174,13 @@
     .action-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: rgba(198,156,109,.4); }
     .action-card:hover::after { transform: scaleX(1); }
     .action-card .emoji {
-      font-size: 30px; margin-bottom: 13px; display: inline-flex;
+      margin-bottom: 13px; display: inline-flex;
       align-items: center; justify-content: center; width: 54px; height: 54px;
-      background: #f3ede4; border-radius: 17px;
-      transition: transform .34s var(--ease), background .34s var(--ease);
+      background: #f3ede4; border-radius: 17px; color: var(--navy);
+      transition: transform .34s var(--ease), background .34s var(--ease), color .34s var(--ease);
     }
-    .action-card:hover .emoji { transform: scale(1.08) rotate(-4deg); background: var(--gold-soft); }
+    .action-card .emoji .ico { width: 24px; height: 24px; stroke-width: 1.6; }
+    .action-card:hover .emoji { transform: scale(1.06); background: var(--navy); color: var(--gold); }
     .action-card h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 7px; letter-spacing: -.018em; }
     .action-card p { font-size: 13.5px; color: var(--muted); line-height: 1.62; }
 
@@ -285,7 +314,13 @@
     .kanban-wrap { display: grid; grid-template-columns: repeat(6, minmax(165px, 1fr)); gap: 12px; padding: 0 4px; align-items: flex-start; min-width: 980px; }
     .kanban-col { background: rgba(255,255,255,.62); border-radius: var(--r); padding: 15px; border: 1px solid var(--line); border-top: 3px solid var(--line); }
     .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 2px; }
-    .kanban-col-title { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+    .kanban-col-title { font-size: 12.5px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; }
+    /* Ponto de status: usa currentColor, então herda a cor de cada coluna sem
+       precisar de uma regra por coluna. */
+    .ponto {
+      width: 7px; height: 7px; border-radius: 999px;
+      background: currentColor; margin-right: 8px; flex-shrink: 0;
+    }
     .kanban-count { background: #f1eee8; color: var(--muted); font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; min-width: 24px; text-align: center; }
     .kanban-card {
       background: #fff; border-radius: 15px; padding: 14px; margin-bottom: 9px;
@@ -331,7 +366,9 @@
     .pix-box .pix-val { font-size: 14.5px; font-weight: 500; color: var(--gold); margin-top: 7px; }
     .pix-box .pix-sub { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 3px; }
     .rep-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    .rep-table thead th { padding: 12px 14px; text-align: left; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.45); border-bottom: 1px solid rgba(255,255,255,.08); }
+    /* background transparente na marra: senão herda o cinza claro do thead geral e some no fundo navy */
+    .rep-table thead th { padding: 12px 14px; text-align: left; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.5); background: transparent; border-bottom: 1px solid rgba(255,255,255,.08); cursor: default; }
+    .rep-table thead th:hover { color: rgba(255,255,255,.5); }
     .rep-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.05); transition: background .22s var(--ease); }
     .rep-table tbody tr:hover { background: rgba(255,255,255,.04); }
     .rep-table td { padding: 13px 14px; color: rgba(255,255,255,.8); vertical-align: middle; }
@@ -438,7 +475,8 @@
     }
     .mob-btn:hover, .mob-btn.active { color: var(--gold); }
     .mob-btn.active { transform: translateY(-2px); }
-    .mob-btn .mob-icon { font-size: 20px; line-height: 1; }
+    .mob-btn .mob-icon { display: inline-flex; line-height: 1; }
+    .mob-btn .mob-icon .ico { width: 21px; height: 21px; stroke-width: 1.6; }
 
     /* Botão flutuante de nova solicitação */
     .fab {
@@ -463,12 +501,67 @@
 </head>
 <body>
 
+<!-- Biblioteca de ícones: traçado simples, herdam a cor do texto via currentColor -->
+<svg class="ico-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-inicio" viewBox="0 0 24 24">
+    <path d="M3 10.2a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6a2 2 0 0 1 .7 1.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <path d="M9.5 21v-6.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V21"/>
+  </symbol>
+  <symbol id="i-cotacao" viewBox="0 0 24 24">
+    <path d="M14.5 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+    <path d="M14.5 2.5V7H19"/>
+    <path d="M12 11.5v6M9 14.5h6"/>
+  </symbol>
+  <symbol id="i-pipeline" viewBox="0 0 24 24">
+    <rect x="3" y="3.5" width="18" height="17" rx="2.5"/>
+    <path d="M9 3.5v17M15 3.5v17"/>
+    <path d="M5.6 8h1.8M11.6 8h1.8M17.6 8h1.8"/>
+  </symbol>
+  <symbol id="i-carteira" viewBox="0 0 24 24">
+    <rect x="8.5" y="2.5" width="7" height="4" rx="1.3"/>
+    <path d="M15.5 4.5H17a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h1.5"/>
+    <path d="M12 11.5h4M12 16h4M8.4 11.5h.02M8.4 16h.02"/>
+  </symbol>
+  <symbol id="i-fatura" viewBox="0 0 24 24">
+    <path d="M19 8V5.5a1 1 0 0 0-1-1H6a2.5 2.5 0 0 0 0 5h13a1 1 0 0 1 1 1v3.5h-3a2 2 0 0 0 0 4h3"/>
+    <path d="M3.5 7v11.5a2.5 2.5 0 0 0 2.5 2.5h13a1 1 0 0 0 1-1v-3.5"/>
+  </symbol>
+  <symbol id="i-recibo" viewBox="0 0 24 24">
+    <path d="M5 2.8v18.4l2-1.1 2 1.1 2-1.1 2 1.1 2-1.1 2 1.1V2.8l-2 1.1-2-1.1-2 1.1-2-1.1-2 1.1z"/>
+    <path d="M15.5 8.5h-5a1.9 1.9 0 0 0 0 3.8h3a1.9 1.9 0 0 1 0 3.8h-5"/>
+    <path d="M12 7v10.5"/>
+  </symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.9-3.9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 3v13"/><path d="M7 11.5 12 16l5-4.5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-anexo" viewBox="0 0 24 24"><path d="M20.5 11.5 12 20a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.9-7.8"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17.2h.02"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 22s8-3.6 8-10V5.5l-8-3-8 3V12c0 6.4 8 10 8 10z"/></symbol>
+  <symbol id="i-predio" viewBox="0 0 24 24"><path d="M4 21V5.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2V21"/><path d="M15 10h3a2 2 0 0 1 2 2v9"/><path d="M8 8h3M8 12h3M8 16h3M2.5 21h19"/></symbol>
+  <symbol id="i-balanca" viewBox="0 0 24 24"><path d="M12 3.5v17M7.5 20.5h9M4 7.5h16"/><path d="M7.5 7.5 4.5 14h6zM16.5 7.5l-3 6.5h6z"/><path d="M4.5 14a3 3 0 0 0 6 0M13.5 14a3 3 0 0 0 6 0"/></symbol>
+  <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.4A6 6 0 0 1 6 13.4C6 9.3 12 3 12 3z"/></symbol>
+  <symbol id="i-bloqueio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6 18.4 18.4"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14.5 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><path d="M14.5 2.5V7H19"/><path d="M8.5 13h7M8.5 17h4.5"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.3 2"/></symbol>
+  <symbol id="i-ciclo" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 0 1-14.6 5.9L3.5 15.5M3.5 12a8.5 8.5 0 0 1 14.6-5.9l2.4 2.4"/><path d="M20.5 4v4.5H16M3.5 20v-4.5H8"/></symbol>
+  <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11.5 12 20 3.5M17 6.5l2.5 2.5M14.5 9l2 2"/></symbol>
+  <symbol id="i-ferramenta" viewBox="0 0 24 24"><path d="M14.2 6.2a4.5 4.5 0 0 0 5.9 5.9l-8.3 8.3a2.6 2.6 0 0 1-3.7-3.7z"/><path d="M19 3.5 15.5 7"/></symbol>
+  <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10.5H13z"/></symbol>
+  <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 20V4.5M6 10.5 12 4.5l6 6"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-balao" viewBox="0 0 24 24"><path d="M20.5 12.5a7.5 7.5 0 0 1-10.9 6.7L4 20.5l1.4-5.4A7.5 7.5 0 1 1 20.5 12.5z"/></symbol>
+  <symbol id="i-proibido" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+</svg>
+
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-left">
     <div class="logo">F&G</div>
     <div>
-      <div class="topbar h1" id="nome-parceiro" style="font-weight:600;font-size:15px;color:var(--ink);letter-spacing:-.01em;">Carregando...</div>
+      <div class="topbar-nome" id="nome-parceiro">Carregando...</div>
       <div class="sub">Portal Imobiliária — F&G Seguro Garantia</div>
     </div>
   </div>
@@ -483,18 +576,18 @@
 <div class="nav-wrap">
   <div class="nav">
     <div class="nav-pill" id="nav-pill"></div>
-    <button class="nav-btn active" data-p="dashboard" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</button>
-    <button class="nav-btn" data-p="cotacao" onclick="goTo('cotacao')"><span class="icon">➕</span> Solicitar Cotação</button>
-    <button class="nav-btn" data-p="kanban" onclick="goTo('kanban')"><span class="icon">📊</span> Minhas Solicitações</button>
-    <button class="nav-btn" data-p="carteira" onclick="goTo('carteira')"><span class="icon">📋</span> Carteira de Clientes</button>
-    <button class="nav-btn" data-p="fatura" onclick="goTo('fatura')"><span class="icon">💰</span> Fatura Mensal</button>
+    <button class="nav-btn active" data-p="dashboard" onclick="goTo('dashboard')"><svg class="ico"><use href="#i-inicio"/></svg>Início</button>
+    <button class="nav-btn" data-p="cotacao" onclick="goTo('cotacao')"><svg class="ico"><use href="#i-cotacao"/></svg>Solicitar Cotação</button>
+    <button class="nav-btn" data-p="kanban" onclick="goTo('kanban')"><svg class="ico"><use href="#i-pipeline"/></svg>Minhas Solicitações</button>
+    <button class="nav-btn" data-p="carteira" onclick="goTo('carteira')"><svg class="ico"><use href="#i-carteira"/></svg>Carteira de Clientes</button>
+    <button class="nav-btn" data-p="fatura" onclick="goTo('fatura')"><svg class="ico"><use href="#i-fatura"/></svg>Fatura Mensal</button>
   </div>
 </div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="dash-welcome">
-    <h2>Olá, Equipe Bordin e Zanolla! Bem-vinda ao seu portal. 👋</h2>
+    <h2>Olá, Equipe Bordin e Zanolla! Bem-vinda ao seu portal.</h2>
     <p>Acompanhe seus clientes, apólices e repasses em um só lugar.</p>
   </div>
   <!-- KPI cards -->
@@ -527,18 +620,18 @@
   </div>
   <div class="action-grid">
     <div class="action-card" onclick="goTo('cotacao')">
-      <div class="emoji">➕</div>
+      <div class="emoji"><svg class="ico"><use href="#i-cotacao"/></svg></div>
       <h3>Solicitar Cotação</h3>
       <p>Envie os dados de um novo inquilino para cotação de seguro residencial ou garantia de aluguel.</p>
     </div>
     <div class="action-card" onclick="filtrarCarteiraPorStatus('');goTo('carteira');" style="position:relative;">
       <span id="badge-cancelados" style="display:none;position:absolute;top:10px;right:10px;background:#dc2626;color:#fff;font-size:10px;font-weight:600;padding:4px 8px;border-radius:10px;align-items:center;gap:3px;flex-direction:column;text-align:center;line-height:1.2;"></span>
-      <div class="emoji">📋</div>
+      <div class="emoji"><svg class="ico"><use href="#i-carteira"/></svg></div>
       <h3>Carteira de Clientes</h3>
       <p>Veja todos os seus inquilinos, status das apólices e faça download dos documentos.</p>
     </div>
     <div class="action-card" onclick="goTo('fatura')">
-      <div class="emoji">🧾</div>
+      <div class="emoji"><svg class="ico"><use href="#i-recibo"/></svg></div>
       <h3>Fatura Mensal</h3>
       <p>Confira quais clientes precisam de repasse este mês e o valor total a ser pago.</p>
     </div>
@@ -556,49 +649,49 @@
 <!-- KANBAN -->
 <div class="page" id="page-kanban">
   <div class="section-header">
-    <h2>📊 Minhas Solicitações</h2>
+    <h2>Minhas Solicitações</h2>
     <p>Acompanhe o andamento das cotações. Após 3 dias de aprovadas ou recusadas, vão para a Carteira de Clientes.</p>
   </div>
   <div class="kanban-scroll">
   <div class="kanban-wrap">
     <div class="kanban-col col-solicitado">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">📬 Solicitado</span>
+        <span class="kanban-col-title"><i class="ponto"></i>Solicitado</span>
         <span class="kanban-count" id="k-count-solicitado">0</span>
       </div>
       <div id="k-col-solicitado"><div class="kanban-empty">Nenhum</div></div>
     </div>
     <div class="kanban-col col-atendimento">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">🔄 F&G em atendimento</span>
+        <span class="kanban-col-title"><i class="ponto"></i>F&G em atendimento</span>
         <span class="kanban-count" id="k-count-atendimento">0</span>
       </div>
       <div id="k-col-atendimento"><div class="kanban-empty">Nenhum</div></div>
     </div>
     <div class="kanban-col col-seguradora">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">⏳ Aguardando Seguradora</span>
+        <span class="kanban-col-title"><i class="ponto"></i>Aguardando Seguradora</span>
         <span class="kanban-count" id="k-count-seguradora">0</span>
       </div>
       <div id="k-col-seguradora"><div class="kanban-empty">Nenhum</div></div>
     </div>
     <div class="kanban-col col-cliente">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">👤 Aguardando o Cliente</span>
+        <span class="kanban-col-title"><i class="ponto"></i>Aguardando o Cliente</span>
         <span class="kanban-count" id="k-count-cliente">0</span>
       </div>
       <div id="k-col-cliente"><div class="kanban-empty">Nenhum</div></div>
     </div>
     <div class="kanban-col col-aprovado">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">✅ Aprovado</span>
+        <span class="kanban-col-title"><i class="ponto"></i>Aprovado</span>
         <span class="kanban-count" id="k-count-aprovado">0</span>
       </div>
       <div id="k-col-aprovado"><div class="kanban-empty">Nenhum</div></div>
     </div>
     <div class="kanban-col col-recusado">
       <div class="kanban-col-header">
-        <span class="kanban-col-title">❌ Recusado</span>
+        <span class="kanban-col-title"><i class="ponto"></i>Recusado</span>
         <span class="kanban-count" id="k-count-recusado">0</span>
       </div>
       <div id="k-col-recusado"><div class="kanban-empty">Nenhum</div></div>
@@ -687,14 +780,14 @@
         <!-- Payment options -->
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
           <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
-            <span style="font-size:18px;">💳</span>
+            <svg class="ico ico-md"><use href="#i-cartao"/></svg>
             <div>
               <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito</div>
               <div id="glc-r-cartao" style="font-size:12px;color:#C69C6D;font-weight:700;margin-top:2px;">Valor final sem juros em até 12x de R$ 20,83.</div>
             </div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
-            <span style="font-size:18px;">📄</span>
+            <svg class="ico ico-md"><use href="#i-doc"/></svg>
             <div>
               <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
               <div style="font-size:12px;margin-top:2px;">
@@ -710,29 +803,29 @@
           <h4 style="font-size:13px;font-weight:600;color:#1B263B;text-align:center;margin-bottom:16px;">O QUE ESTÁ INCLUÍDO NA GARANTIA?</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div style="font-size:24px;margin-bottom:5px;">🏠</div>
+              <div class="tile-ico"><svg class="ico"><use href="#i-inicio"/></svg></div>
               <div style="font-size:11px;font-weight:700;color:#1B263B;">Aluguéis atrasados</div>
             </div>
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div style="font-size:24px;margin-bottom:5px;">🏢</div>
+              <div class="tile-ico"><svg class="ico"><use href="#i-predio"/></svg></div>
               <div style="font-size:11px;font-weight:700;color:#1B263B;">Condomínio e IPTU</div>
             </div>
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div style="font-size:24px;margin-bottom:5px;">⚖️</div>
+              <div class="tile-ico"><svg class="ico"><use href="#i-balanca"/></svg></div>
               <div style="font-size:11px;font-weight:700;color:#1B263B;">Multas contratuais</div>
             </div>
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div style="font-size:24px;margin-bottom:5px;">💧</div>
+              <div class="tile-ico"><svg class="ico"><use href="#i-gota"/></svg></div>
               <div style="font-size:11px;font-weight:700;color:#1B263B;">Água e Luz</div>
             </div>
             <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;grid-column:1/-1;">
-              <div style="font-size:24px;margin-bottom:5px;">🚫</div>
+              <div class="tile-ico"><svg class="ico"><use href="#i-bloqueio"/></svg></div>
               <div style="font-size:11px;font-weight:700;color:#1B263B;">Despejo com assessoria jurídica</div>
             </div>
           </div>
           <div style="font-size:12px;color:#78716c;line-height:1.6;">
-            <p style="margin-bottom:6px;">⏱ <strong>Aluguéis Atrasados:</strong> Reembolsado em até 10 dias sem juros ou até 30 dias com juros e multa.</p>
-            <p>📄 <strong>Outras Despesas:</strong> Multas, condomínio, IPTU e contas serão reembolsadas após negociação extrajudicial ou judicial.</p>
+            <p style="margin-bottom:6px;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> <strong>Aluguéis Atrasados:</strong> Reembolsado em até 10 dias sem juros ou até 30 dias com juros e multa.</p>
+            <p><svg class="ico ico-inline"><use href="#i-doc"/></svg> <strong>Outras Despesas:</strong> Multas, condomínio, IPTU e contas serão reembolsadas após negociação extrajudicial ou judicial.</p>
           </div>
         </div>
       </div>
@@ -752,27 +845,27 @@
 
         <!-- Cobertura básica -->
         <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">🔥 Cobertura Básica</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Cobertura Básica</div>
           <div style="display:flex;flex-direction:column;gap:9px;">
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Proteção contra incêndio</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de raio</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Explosão</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Fumaça</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de aeronaves</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Proteção contra incêndio</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de raio</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Explosão</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Fumaça</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de aeronaves</span></div>
           </div>
         </div>
 
         <!-- Assistência 24h -->
         <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">🔧 Assistência 24 Horas</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Assistência 24 Horas</div>
           <div style="background:#fef9f0;border:1px solid #C69C6D40;border-radius:14px;padding:16px;">
             <p style="font-size:13px;font-weight:600;color:#1B263B;margin:0 0 6px;">Serviços Incluídos sem custo adicional</p>
             <p style="font-size:12px;color:#78716c;margin:0 0 12px;line-height:1.5;">Na contratação do seguro, você terá acesso a uma equipe de profissionais capacitados prontos para ajudar:</p>
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-size:13px;font-weight:700;color:#1B263B;">🔑 <strong>Chaveiro</strong></div>
-              <div style="font-size:13px;font-weight:700;color:#1B263B;">🔧 <strong>Encanador</strong></div>
-              <div style="font-size:13px;font-weight:700;color:#1B263B;">⚡ <strong>Eletricista</strong></div>
-              <div style="font-size:13px;color:#1B263B;">🔩 <strong>Reparo de eletrodomésticos</strong> <span style="font-weight:400;color:#78716c;">(Geladeira, Fogão, Máquina de Lavar)</span></div>
+              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-chave"/></svg> <strong>Chaveiro</strong></div>
+              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-ferramenta"/></svg> <strong>Encanador</strong></div>
+              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-raio"/></svg> <strong>Eletricista</strong></div>
+              <div style="font-size:13px;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-ferramenta"/></svg> <strong>Reparo de eletrodomésticos</strong> <span style="font-weight:400;color:#78716c;">(Geladeira, Fogão, Máquina de Lavar)</span></div>
             </div>
             <a href="https://www.tokiomarine.com.br/para-voce/residencial.html" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;font-size:12px;font-weight:700;color:#1B263B;text-decoration:underline;">Ver detalhes completos das assistências Tokio →</a>
           </div>
@@ -780,17 +873,17 @@
 
         <!-- Forma de pagamento -->
         <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">💳 Forma de Pagamento</div>
+          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Forma de Pagamento</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div>
+              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div>
               <div>
                 <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito em até 12x</div>
                 <div style="font-size:12px;color:#78716c;margin-top:3px;">O pagamento não compromete o limite do seu cartão de crédito</div>
               </div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🛡️</div>
+              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div>
               <div>
                 <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
                 <div style="font-size:12px;color:#78716c;margin-top:3px;">Em até 4x sem juros ou 12x com juros</div>
@@ -804,7 +897,7 @@
 
   <!-- Form section below -->
   <div id="form-cotacao-section" style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:28px;box-shadow:0 2px 12px rgba(27,38,59,.06);">
-    <h3 style="font-size:16px;font-weight:600;color:#1B263B;margin-bottom:20px;">📋 Dados do Inquilino</h3>
+    <h3 style="font-size:16px;font-weight:600;color:#1B263B;margin-bottom:20px;">Dados do Inquilino</h3>
     <div class="form-grid">
       <div class="form-group full">
         <label>Tipo de Seguro *</label>
@@ -886,24 +979,24 @@
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button type="button" id="intencao-cotacao" onclick="setIntencao('cotacao')"
           style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #C69C6D;background:#C69C6D;color:#1B263B;transition:all .2s;">
-          📋 Verificar aprovação
+          <svg class="ico ico-inline"><use href="#i-carteira"/></svg> Verificar aprovação
         </button>
         <button type="button" id="intencao-contratar" onclick="setIntencao('contratar')"
           style="flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid rgba(27,38,59,.08);background:#fff;color:#94a3b8;transition:all .2s;">
-          ✅ Pronto para contratar
+          <svg class="ico ico-inline"><use href="#i-check"/></svg> Pronto para contratar
         </button>
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:6px;">Escolha se é apenas para análise cadastral ou se o inquilino já decidiu contratar.</p>
     </div>
     <button class="btn-primary" id="btn-enviar" onclick="enviarSolicitacao()">Enviar Solicitação</button>
-    <div class="form-success" id="form-success">✅ Solicitação enviada! Entraremos em contato em breve.</div>
+    <div class="form-success" id="form-success"><svg class="ico ico-inline"><use href="#i-check"/></svg> Solicitação enviada! Entraremos em contato em breve.</div>
   </div>
 </div>
 
 <!-- CARTEIRA -->
 <div class="page" id="page-carteira">
   <div style="margin-bottom:20px;">
-    <h2 style="font-size:22px;font-weight:600;color:#1B263B;letter-spacing:-.3px;margin-bottom:4px;">📋 Carteira de Clientes</h2>
+    <h2 style="font-size:22px;font-weight:600;color:#1B263B;letter-spacing:-.3px;margin-bottom:4px;">Carteira de Clientes</h2>
     <p style="font-size:13px;color:#94a3b8;font-weight:600;">Todos os seus inquilinos e o status de cada apólice.</p>
   </div>
   <!-- Docs pendentes -->
@@ -912,7 +1005,7 @@
   <div class="table-card">
     <div class="toolbar">
       <h3>Todos os clientes <span class="carteira-count-badge" id="carteira-count"></span></h3>
-      <input type="text" class="search-input" id="busca" placeholder="🔍 Buscar inquilino..." oninput="filtrar()" style="padding-left:14px;" />
+      <input type="text" class="search-input" id="busca" placeholder="Buscar inquilino..." oninput="filtrar()" style="padding-left:14px;" />
       <select class="select-filter" id="filtro-situacao" onchange="filtrar()">
         <option value="">Todas situações</option>
         <option value="ativo">Ativo</option>
@@ -934,7 +1027,7 @@
         <span id="chip-filtro-label"></span>
         <button onclick="limparFiltrosCarteira()" style="background:rgba(255,255,255,.2);border:none;cursor:pointer;color:#fff;font-weight:600;font-size:13px;line-height:1;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">×</button>
       </span>
-      <button class="btn-limpar" onclick="limparFiltrosCarteira()">✕ Limpar</button>
+      <button class="btn-limpar" onclick="limparFiltrosCarteira()"><svg class="ico ico-inline"><use href="#i-x"/></svg> Limpar</button>
     </div>
     <div class="scroll scroll-x">
       <table>
@@ -961,12 +1054,12 @@
 <!-- REPASSE -->
 <div class="page" id="page-fatura">
   <div class="section-header">
-    <h2>🧾 Fatura Mensal</h2>
+    <h2>Fatura Mensal</h2>
     <p>Clientes com parcela em aberto e histórico de pagamentos.</p>
   </div>
   <div class="hist-controls">
     <select id="sel-mes" onchange="renderRepasse(todosClientes)">
-      <option value="0">📅 Mês atual</option>
+      <option value="0">Mês atual</option>
     </select>
     <span style="font-size:12px;color:#94a3b8">Selecione para ver meses anteriores</span>
   </div>
@@ -990,7 +1083,7 @@
   </div>
   <!-- Histórico -->
   <div class="hist-card" id="hist-repasses" style="display:none;margin-top:20px">
-    <h4>📅 Histórico de Repasses</h4>
+    <h4>Histórico de Repasses</h4>
     <div class="hist-list" id="hist-list"><p style="color:#94a3b8;font-size:13px">Nenhum repasse registrado ainda.</p></div>
   </div>
 </div>
@@ -998,26 +1091,26 @@
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav" id="mobile-nav">
   <button class="mob-btn active" id="mob-dashboard" onclick="goTo('dashboard')">
-    <span class="mob-icon">🏠</span>Início
+    <span class="mob-icon"><svg class="ico"><use href="#i-inicio"/></svg></span>Início
   </button>
   <button class="mob-btn" id="mob-cotacao" onclick="goTo('cotacao')">
-    <span class="mob-icon">➕</span>Cotação
+    <span class="mob-icon"><svg class="ico"><use href="#i-cotacao"/></svg></span>Cotação
   </button>
   <button class="mob-btn" id="mob-kanban" onclick="goTo('kanban')">
-    <span class="mob-icon">📊</span>Pipeline
+    <span class="mob-icon"><svg class="ico"><use href="#i-pipeline"/></svg></span>Pipeline
   </button>
   <button class="mob-btn" id="mob-carteira" onclick="goTo('carteira')">
-    <span class="mob-icon">📋</span>Carteira
+    <span class="mob-icon"><svg class="ico"><use href="#i-carteira"/></svg></span>Carteira
   </button>
   <button class="mob-btn" id="mob-fatura" onclick="goTo('fatura')">
-    <span class="mob-icon">💰</span>Fatura
+    <span class="mob-icon"><svg class="ico"><use href="#i-fatura"/></svg></span>Fatura
   </button>
 </nav>
 
 <!-- FAB -->
 <div class="fab-tooltip" id="fab-tooltip">Nova Solicitação</div>
 <button class="fab" onclick="goTo('cotacao')" onmouseenter="document.getElementById('fab-tooltip').style.opacity=1" onmouseleave="document.getElementById('fab-tooltip').style.opacity=0" title="Nova Solicitação">
-  ➕
+  <svg class="ico ico-fab"><use href="#i-mais"/></svg>
 </button>
 
 <script>
@@ -1137,7 +1230,7 @@
     const cor  = pede
       ? { bg: '#fff7ed', bd: '#fdba74', tt: '#c2410c', tx: '#7c2d12' }
       : { bg: '#eff6ff', bd: '#bfdbfe', tt: '#1e40af', tx: '#1e3a5f' };
-    const titulo = pede ? '⚠️ A F&amp;G aguarda seu retorno' : '💬 Recado da F&amp;G';
+    const titulo = pede ? '<svg class="ico ico-inline"><use href="#i-alerta"/></svg> A F&amp;G aguarda seu retorno' : '<svg class="ico ico-inline"><use href="#i-balao"/></svg> Recado da F&amp;G';
     return `<div style="margin-top:8px;padding:${pad};background:${cor.bg};border:1px solid ${cor.bd};${pede ? 'border-left:3px solid #f97316;' : ''}border-radius:8px;">
       <div style="font-size:9px;font-weight:600;color:${cor.tt};text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;">${titulo}</div>
       <div style="font-size:${fs};color:${cor.tx};line-height:1.5;">${esc(txt)}</div>
@@ -1145,11 +1238,11 @@
   }
 
   const STATUS = {
-    aguardando_cotacao: ['sb-aguardando', '⏳ Aguardando'],
-    em_analise:         ['sb-analise',    '🔍 Em análise'],
-    aprovado:           ['sb-aprovado',   '✅ Aprovado'],
-    emitido:            ['sb-emitido',    '📄 Emitido'],
-    recusado:           ['sb-recusado',   '❌ Recusado'],
+    aguardando_cotacao: ['sb-aguardando', '<svg class="ico ico-inline"><use href="#i-relogio"/></svg> Aguardando'],
+    em_analise:         ['sb-analise',    '<svg class="ico ico-inline"><use href="#i-busca"/></svg> Em análise'],
+    aprovado:           ['sb-aprovado',   '<svg class="ico ico-inline"><use href="#i-check"/></svg> Aprovado'],
+    emitido:            ['sb-emitido',    '<svg class="ico ico-inline"><use href="#i-doc"/></svg> Emitido'],
+    recusado:           ['sb-recusado',   '<svg class="ico ico-inline"><use href="#i-x"/></svg> Recusado'],
   };
   function sbadge(s) {
     const MAP = {
@@ -1215,13 +1308,13 @@
       <div class="hist-item ${h.status === 'pago' ? 'pago' : ''}">
         <div>
           <div class="hist-mes">${MESES[h.mes]} de ${h.ano}</div>
-          <div class="hist-data">${h.data_pagamento ? '📅 Pago em ' + h.data_pagamento.split('-').reverse().join('/') : 'Aguardando pagamento'}</div>
+          <div class="hist-data">${h.data_pagamento ? '<svg class="ico ico-inline"><use href="#i-calendario"/></svg> Pago em ' + h.data_pagamento.split('-').reverse().join('/') : 'Aguardando pagamento'}</div>
           ${h.observacoes ? `<div style="font-size:11px;color:#78716c;margin-top:2px">${h.observacoes}</div>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span class="hist-valor">${fmtBRL(h.valor_total)}</span>
-          <span class="${h.status === 'pago' ? 'hist-status-pago' : 'hist-status-pend'}">${h.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</span>
-          ${h.comprovante_url ? `<a href="${h.comprovante_url}" target="_blank" class="btn-comp">📎 Comprovante</a>` : ''}
+          <span class="${h.status === 'pago' ? 'hist-status-pago' : 'hist-status-pend'}">${h.status === 'pago' ? '<svg class="ico ico-inline"><use href="#i-check"/></svg> Pago' : '<svg class="ico ico-inline"><use href="#i-relogio"/></svg> Pendente'}</span>
+          ${h.comprovante_url ? `<a href="${h.comprovante_url}" target="_blank" class="btn-comp"><svg class="ico ico-inline"><use href="#i-anexo"/></svg> Comprovante</a>` : ''}
         </div>
       </div>`).join('');
   }
@@ -1232,9 +1325,9 @@
     const venc = new Date(v + 'T12:00:00');
     const dias = Math.round((venc - hoje) / 86400000);
     const str = venc.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
-    if (dias < 0) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:600;">⚠ ${str}</span>`;
-    if (dias <= 30) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:8px;font-size:10px;font-weight:600;">⏰ ${str}</span>`;
-    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:600;">✓ ${str}</span>`;
+    if (dias < 0) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:600;"><svg class="ico ico-inline"><use href="#i-alerta"/></svg> ${str}</span>`;
+    if (dias <= 30) return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:8px;font-size:10px;font-weight:600;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> ${str}</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:600;"><svg class="ico ico-inline"><use href="#i-check"/></svg> ${str}</span>`;
   }
 
   async function confirmarRenovacao(clientId, inquilinoNome, vigenciaFim, confirmacao) {
@@ -1273,7 +1366,7 @@
         }),
       });
       await carregar();
-    } catch(e) { alert('Erro ao enviar distrato: ' + e.message); if (btn) btn.innerHTML = '📄 Tentar novamente'; }
+    } catch(e) { alert('Erro ao enviar distrato: ' + e.message); if (btn) btn.innerHTML = '<svg class="ico ico-inline"><use href="#i-doc"/></svg> Tentar novamente'; }
   }
 
   // "Apenas Garantia Locaticia" grava tipo_seguro = 'garantia'. Testar so por
@@ -1323,7 +1416,7 @@
     el.innerHTML = `
       <div style="background:#fff;border-radius:20px;border:1px solid var(--line);overflow:hidden;margin-bottom:4px;">
         <div style="background:#1B263B;padding:16px 24px;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:18px;">⚠️</span>
+          <svg class="ico ico-md"><use href="#i-alerta"/></svg>
           <div>
             <div style="color:#fff;font-size:14px;font-weight:600;">${proximos.length} seguro${proximos.length!==1?'s':''} aguardando sua confirmação</div>
             <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;font-weight:600;">Vencendo em até 30 dias. Confirme se o inquilino irá renovar para que possamos agir a tempo.</div>
@@ -1352,12 +1445,12 @@
                     <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${prazoLabel} — ${dataVenc}</div>
                   </div>
-                  <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;">❌ Não vai renovar</span>
+                  <span style="padding:5px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;"><svg class="ico ico-inline"><use href="#i-x"/></svg> Não vai renovar</span>
                 </div>
                 <div style="font-size:11px;color:#78716c;font-weight:600;margin-bottom:8px;">Falta só o distrato: a seguradora não cancela a garantia locatícia sem ele.</div>
                 <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8f5f0;border:1.5px dashed #C69C6D;border-radius:10px;font-size:11px;font-weight:600;color:#78716c;cursor:pointer;">
                   <input type="file" accept="application/pdf" style="display:none" onchange="uploadDistrato('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}',this)" />
-                  📄 Anexar distrato de locação
+                  <svg class="ico ico-inline"><use href="#i-doc"/></svg> Anexar distrato de locação
                 </label>
               </div>`;
 
@@ -1367,17 +1460,17 @@
                 <div>
                   <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
                   <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:11px;font-weight:600;">
-                    ⛔ Vencido — ${dataVenc}
+                    <svg class="ico ico-inline"><use href="#i-proibido"/></svg> Vencido — ${dataVenc}
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
                     style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
-                    ✅ Vai renovar
+                    <svg class="ico ico-inline"><use href="#i-check"/></svg> Vai renovar
                   </button>
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
                     style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
-                    ❌ Não vai renovar
+                    <svg class="ico ico-inline"><use href="#i-x"/></svg> Não vai renovar
                   </button>
                 </div>
               </div>`;
@@ -1394,11 +1487,11 @@
                 <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','vai_renovar')"
                     style="padding:8px 16px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
-                    ✅ Vai renovar
+                    <svg class="ico ico-inline"><use href="#i-check"/></svg> Vai renovar
                   </button>
                   <button onclick="confirmarRenovacao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${c.vigencia_fim}','nao_vai_renovar')"
                     style="padding:8px 16px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
-                    ❌ Não vai renovar
+                    <svg class="ico ico-inline"><use href="#i-x"/></svg> Não vai renovar
                   </button>
                 </div>
               </div>`;
@@ -1409,14 +1502,14 @@
              sem que os respondidos disputem espaço com os pendentes. -->
         <details style="border-top:1px solid #f0ede6;">
           <summary style="padding:12px 24px;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;list-style:none;">
-            ✅ ${resolvidos.length} já respondido${resolvidos.length!==1?'s':''} — ver
+            <svg class="ico ico-inline"><use href="#i-check"/></svg> ${resolvidos.length} já respondido${resolvidos.length!==1?'s':''} — ver
           </summary>
           <div style="padding:0 24px 14px;">
             ${resolvidos.map(c => `
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;flex-wrap:wrap;">
                 <span style="font-size:12px;font-weight:700;color:#78716c;">${c.inquilino_nome}</span>
                 <span style="font-size:11px;font-weight:600;color:${c.renovacao_confirmacao==='vai_renovar'?'#16a34a':'#dc2626'};">
-                  ${c.renovacao_confirmacao==='vai_renovar' ? '✅ Vai renovar' : '❌ Não vai renovar'}
+                  ${c.renovacao_confirmacao==='vai_renovar' ? '<svg class="ico ico-inline"><use href="#i-check"/></svg> Vai renovar' : '<svg class="ico ico-inline"><use href="#i-x"/></svg> Não vai renovar'}
                 </span>
               </div>`).join('')}
           </div>
@@ -1441,18 +1534,18 @@
       return `<div style="background:#fff;border-radius:16px;border:1px solid var(--line);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer" onclick="goTo('carteira')">
         <div>
           <div style="font-weight:600;font-size:14px;color:#1B263B">${c.inquilino_nome || '—'}</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Residencial'} · Enviado em ${dataEnvio}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px">${temG ? '<svg class="ico ico-inline"><use href="#i-inicio"/></svg><svg class="ico ico-inline"><use href="#i-bloqueio"/></svg> Residencial + Garantia' : '<svg class="ico ico-inline"><use href="#i-inicio"/></svg> Residencial'} · Enviado em ${dataEnvio}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="text-align:center">
             <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Residencial</div>
             <span class="sb ${clsR}">${lblR}</span>
-            ${c.apolice_residencial_url ? `<br><a href="${c.apolice_residencial_url}" target="_blank" class="btn-doc" style="margin-top:4px">⬇ Apólice</a>` : ''}
+            ${c.apolice_residencial_url ? `<br><a href="${c.apolice_residencial_url}" target="_blank" class="btn-doc" style="margin-top:4px"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>` : ''}
           </div>
           ${temG ? `<div style="text-align:center">
             <div style="font-size:9px;font-weight:600;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Garantia</div>
             <span class="sb ${clsG}">${lblG}</span>
-            ${c.apolice_garantia_url ? `<br><a href="${c.apolice_garantia_url}" target="_blank" class="btn-doc" style="margin-top:4px">⬇ Apólice</a>` : ''}
+            ${c.apolice_garantia_url ? `<br><a href="${c.apolice_garantia_url}" target="_blank" class="btn-doc" style="margin-top:4px"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>` : ''}
           </div>` : ''}
           <div style="color:#94a3b8;font-size:18px">›</div>
         </div>
@@ -1524,7 +1617,7 @@
     el.innerHTML = `
       <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:20px;overflow:hidden;">
         <div style="background:#dc2626;padding:16px 24px;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:22px;">🚨</span>
+          <svg class="ico ico-lg"><use href="#i-alerta"/></svg>
           <div style="flex:1;">
             <div style="color:#fff;font-size:15px;font-weight:600;">${cancelados.length} inquilino${cancelados.length>1?'s':''} SEM cobertura de seguro ativa</div>
             <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px;font-weight:600;">Imóveis desprotegidos. Em caso de sinistro, a imobiliária pode ser responsabilizada.</div>
@@ -1548,7 +1641,7 @@
                 </button>
                 <button onclick="naoVaiRenovarCancelado('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}')"
                   style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;min-height:36px;">
-                  ❌ Não vai renovar
+                  <svg class="ico ico-inline"><use href="#i-x"/></svg> Não vai renovar
                 </button>
               </div>
             </div>`).join('')}
@@ -1596,12 +1689,12 @@
   }
 
   const KANBAN_COLS = [
-    { key: 'solicitado',          id: 'solicitado',   label: '📬 Solicitado' },
-    { key: 'atendimento_iniciado',id: 'atendimento',  label: '🔄 F&G em atendimento' },
+    { key: 'solicitado',          id: 'solicitado',   label: 'Solicitado' },
+    { key: 'atendimento_iniciado',id: 'atendimento',  label: 'F&G em atendimento' },
     { key: 'aguardando_seguradora',id:'seguradora',   label: '⏳ Aguardando Seguradora' },
-    { key: 'aguardando_cliente',  id: 'cliente',      label: '👤 Aguardando o Cliente' },
-    { key: 'aprovado',            id: 'aprovado',     label: '✅ Aprovado' },
-    { key: 'recusado',            id: 'recusado',     label: '❌ Recusado' },
+    { key: 'aguardando_cliente',  id: 'cliente',      label: 'Aguardando o Cliente' },
+    { key: 'aprovado',            id: 'aprovado',     label: '<svg class="ico ico-inline"><use href="#i-check"/></svg> Aprovado' },
+    { key: 'recusado',            id: 'recusado',     label: '<svg class="ico ico-inline"><use href="#i-x"/></svg> Recusado' },
   ];
 
   function renderKanban(cs) {
@@ -1624,7 +1717,7 @@
         const temG = temGarantiaLocaticia(c);
         const dataEnvio = new Date(c.created_at).toLocaleDateString('pt-BR');
         const apoliceLink = col.key === 'aprovado' && c.apolice_residencial_url
-          ? `<a href="${c.apolice_residencial_url}" target="_blank" class="kanban-apolice">⬇ Apólice</a>` : '';
+          ? `<a href="${c.apolice_residencial_url}" target="_blank" class="kanban-apolice"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>` : '';
         // Status badges
         const sResLabel = { aguardando_cotacao:'Aguardando', em_analise:'Em análise', aprovado:'Aprovado', emitido:'Emitido', recusado:'Recusado' };
         const sResColor = { aguardando_cotacao:'#78716c', em_analise:'#1e40af', aprovado:'#2d6a4f', emitido:'#C69C6D', recusado:'#9b1c1c' };
@@ -1642,45 +1735,45 @@
             <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','contratar')"
               style="width:100%;padding:8px;background:#1B263B;color:#C69C6D;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
               onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
-              ✅ Autorizar Contratação
+              <svg class="ico ico-inline"><use href="#i-check"/></svg> Autorizar Contratação
             </button>
             <button onclick="chamarDecisao('${c.id}','${(c.inquilino_nome||'').replace(/'/g,"\\'")}','${session.name.replace(/'/g,"\\'")}','declinar')"
               style="width:100%;padding:8px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
               onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
-              ❌ Não vamos contratar
+              <svg class="ico ico-inline"><use href="#i-x"/></svg> Não vamos contratar
             </button>
           </div>` : '';
 
         const jaAutorizou = col.key === 'aprovado' && c.intencao === 'contratar' ? `
           <div style="margin-top:8px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:10px;font-weight:600;color:#166534;text-align:center;">
-            ✓ Contratação autorizada
+            <svg class="ico ico-inline"><use href="#i-check"/></svg> Contratação autorizada
           </div>` : '';
 
         const jaDeclinada = col.key === 'aprovado' && c.intencao === 'nao_contratar' ? `
           <div style="margin-top:8px;padding:6px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:10px;font-weight:600;color:#dc2626;text-align:center;">
-            ✕ Não irá contratar
+            <svg class="ico ico-inline"><use href="#i-x"/></svg> Não irá contratar
           </div>` : '';
 
         // Upload de documentos de garantia — visível quando aprovado/em atendimento + garantia
         const docsGarantia = temG && ['aprovado','atendimento_iniciado'].includes(col.key) ? `
           <div style="margin-top:8px;border-top:1px solid #f0ece4;padding-top:8px;">
-            <div style="font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">📎 Documentos</div>
+            <div style="font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;"><svg class="ico ico-inline"><use href="#i-anexo"/></svg> Documentos</div>
             ${[
               {key:'doc_contrato_url', label:'Contrato'},
               {key:'doc_termo_vistoria_url', label:'Vistoria'},
               {key:'doc_fotos_vistoria_url', label:'Fotos'},
             ].map(d => c[d.key]
-              ? `<div style="font-size:9px;font-weight:700;color:#16a34a;margin-bottom:3px;">✓ ${d.label}</div>`
+              ? `<div style="font-size:9px;font-weight:700;color:#16a34a;margin-bottom:3px;"><svg class="ico ico-inline"><use href="#i-check"/></svg> ${d.label}</div>`
               : `<label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;color:#94a3b8;cursor:pointer;margin-bottom:3px;">
                   <input type="file" accept="application/pdf,image/*" style="display:none" onchange="uploadDocGarantia('${c.id}','${d.key}',this)" />
-                  ⬆ ${d.label}
+                  <svg class="ico ico-inline"><use href="#i-enviar"/></svg> ${d.label}
                  </label>`
             ).join('')}
           </div>` : '';
 
         return `<div class="kanban-card">
           <div class="kc-nome">${c.inquilino_nome || '—'}</div>
-          <div class="kc-tipo" style="margin-bottom:6px">${temG ? '🏠🔒 Residencial + Garantia' : '🏠 Seguro Residencial'}</div>
+          <div class="kc-tipo" style="margin-bottom:6px">${temG ? '<svg class="ico ico-inline"><use href="#i-inicio"/></svg><svg class="ico ico-inline"><use href="#i-bloqueio"/></svg> Residencial + Garantia' : '<svg class="ico ico-inline"><use href="#i-inicio"/></svg> Seguro Residencial'}</div>
           <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:6px">${resBadge}${garBadge}</div>
           ${c.valor_seguro > 0 ? `<div style="font-size:11px;font-weight:700;color:#1B263B">${fmtBRL(c.valor_seguro)}</div>` : ''}
           ${apoliceLink}
@@ -1763,10 +1856,10 @@
         ${sit.label}
       </span>`;
       const btnApoliceRes = c.apolice_residencial_url
-        ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        ? `<a href="${c.apolice_residencial_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> PDF</a>`
         : '';
       const btnApoliceGar = c.apolice_garantia_url
-        ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;">⬇ PDF</a>`
+        ? `<a href="${c.apolice_garantia_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#1B263B;color:#C69C6D;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none;letter-spacing:.3px;"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> PDF</a>`
         : '';
       const colRes = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_residencial||'aguardando_cotacao')}${btnApoliceRes}</div>`;
       const colGar = temG ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${sbadge(c.status_garantia||'aguardando_cotacao')}${btnApoliceGar}</div>`
@@ -1774,8 +1867,8 @@
       const isCancelado = c.status_apolice === 'cancelado';
       return `<tr style="${isCancelado ? 'background:#fff5f5;' : ''}">
         <td class="td-data">${fmtData(c.data_inicio)}</td>
-        <td class="td-nome" style="${isCancelado ? 'display:flex;align-items:center;gap:8px;' : ''}">${isCancelado ? '<span style="color:#dc2626;font-size:14px;" title="Sem cobertura ativa">⚠</span>' : ''}${c.inquilino_nome||'—'}</td>
-        <td class="td-tipo" style="white-space:nowrap;">${temG ? '🏠🔒 Res.+Garantia' : '🏠 Residencial'}</td>
+        <td class="td-nome" style="${isCancelado ? 'display:flex;align-items:center;gap:8px;' : ''}">${isCancelado ? '<span style="color:#dc2626;font-size:14px;" title="Sem cobertura ativa"><svg class="ico ico-inline"><use href="#i-alerta"/></svg></span>' : ''}${c.inquilino_nome||'—'}</td>
+        <td class="td-tipo" style="white-space:nowrap;">${temG ? '<svg class="ico ico-inline"><use href="#i-inicio"/></svg><svg class="ico ico-inline"><use href="#i-bloqueio"/></svg> Res.+Garantia' : '<svg class="ico ico-inline"><use href="#i-inicio"/></svg> Residencial'}</td>
         <td>${situacaoBadge}</td>
         <td style="font-size:12px;font-weight:700;color:#1B263B;">${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</td>
         <td class="td-apolice">${c.numero_apolice || '—'}</td>
@@ -1907,17 +2000,17 @@
     const area = document.getElementById('docs-pending-area');
     if (!pendentes.length) { area.innerHTML = ''; return; }
     area.innerHTML = `<div class="docs-pending" style="margin-bottom:20px">
-      <h4>📎 Documentos necessários — Garantia Locatícia</h4>
+      <h4><svg class="ico ico-inline"><use href="#i-anexo"/></svg> Documentos necessários — Garantia Locatícia</h4>
       <p style="margin-bottom:16px">Envie os documentos para os clientes com garantia aprovada.</p>
       ${pendentes.map(c => `
         <div style="background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:12px;border:1px solid var(--line)">
           <p style="font-weight:600;font-size:14px;margin-bottom:12px">${c.inquilino_nome}
-            ${DOCS_DEF.every(d => c[d.key]) ? '<span style="background:#f5faf7;color:#2d6a4f;border:1px solid #c3dfd4;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px">✅ Completo</span>' : ''}
+            ${DOCS_DEF.every(d => c[d.key]) ? '<span style="background:#f5faf7;color:#2d6a4f;border:1px solid #c3dfd4;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px"><svg class="ico ico-inline"><use href="#i-check"/></svg> Completo</span>' : ''}
           </p>
           ${DOCS_DEF.map(d => `<div class="doc-row">
             <div><div class="doc-name">${d.label}</div><div class="doc-hint">${d.hint}</div></div>
             ${c[d.key]
-              ? `<a href="${c[d.key]}" target="_blank" class="btn-doc" style="font-size:12px;padding:6px 14px">✅ Ver arquivo</a>`
+              ? `<a href="${c[d.key]}" target="_blank" class="btn-doc" style="font-size:12px;padding:6px 14px"><svg class="ico ico-inline"><use href="#i-check"/></svg> Ver arquivo</a>`
               : `<div style="display:flex;align-items:center;gap:8px">
                    <input type="file" id="file-${c.id}-${d.key}" accept="application/pdf" style="display:none" onchange="uploadDoc('${c.id}','${d.key}',this)"/>
                    <button class="btn-upload" onclick="document.getElementById('file-${c.id}-${d.key}').click()" id="btn-${c.id}-${d.key}">Enviar PDF</button>
@@ -2080,7 +2173,7 @@
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
       await client.from('imobiliaria_clientes').update({ [field]: urlData.publicUrl }).eq('id', clientId);
       await carregar();
-    } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '⬆ Tentar novamente'; }
+    } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '<svg class="ico ico-inline"><use href="#i-enviar"/></svg> Tentar novamente'; }
   }
 
   // ── RESCISÃO DE CONTRATO ─────────────────────────────────
@@ -2163,7 +2256,7 @@
       const quando = new Date(c.rescisao_solicitada_em).toLocaleDateString('pt-BR');
       return `
         <div style="padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
-          <span style="font-size:11px;font-weight:600;color:#5b21b6;">🔄 Rescisão solicitada em ${quando} — a F&amp;G está processando o cancelamento.</span>
+          <span style="font-size:11px;font-weight:600;color:#5b21b6;"><svg class="ico ico-inline"><use href="#i-ciclo"/></svg> Rescisão solicitada em ${quando} — a F&amp;G está processando o cancelamento.</span>
         </div>`;
     }
 
@@ -2174,7 +2267,7 @@
         <button onclick="toggleRescisao('${c.id}')"
           style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
           onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
-          🔴 Solicitar rescisão
+          <svg class="ico ico-inline"><use href="#i-alerta"/></svg> Solicitar rescisão
         </button>`;
     }
 
@@ -2187,7 +2280,7 @@
     return `
       <div style="padding:16px 18px;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-          <span style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;">🔴 Rescisão de contrato</span>
+          <span style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;"><svg class="ico ico-inline"><use href="#i-alerta"/></svg> Rescisão de contrato</span>
           <button onclick="toggleRescisao('${c.id}')" style="background:none;border:none;color:#94a3b8;font-size:16px;font-weight:600;cursor:pointer;line-height:1;" title="Fechar">×</button>
         </div>
 
@@ -2197,10 +2290,10 @@
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           ${docs.map(d => c[d.key]
-            ? `<a href="${c[d.key]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;">✅ ${d.label}</a>`
+            ? `<a href="${c[d.key]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><svg class="ico ico-inline"><use href="#i-check"/></svg> ${d.label}</a>`
             : `<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px dashed #dc2626;border-radius:10px;font-size:11px;font-weight:600;color:#991b1b;cursor:pointer;">
                 <input type="file" accept="application/pdf,image/*" style="display:none" onchange="uploadRescisaoDoc('${c.id}','${d.key}',this)" />
-                ⬆ ${d.label}
+                <svg class="ico ico-inline"><use href="#i-enviar"/></svg> ${d.label}
                </label>`
           ).join('')}
         </div>
@@ -2215,7 +2308,7 @@
                  ${completo
                    ? 'background:#dc2626;color:#fff;cursor:pointer;'
                    : 'background:#f1f5f9;color:#94a3b8;cursor:not-allowed;'}">
-          ${completo ? '📤 Concluir rescisão e avisar a F&G' : '🔒 Anexe os dois documentos para concluir'}
+          ${completo ? '<svg class="ico ico-inline"><use href="#i-enviar"/></svg> Concluir rescisão e avisar a F&G' : '<svg class="ico ico-inline"><use href="#i-bloqueio"/></svg> Anexe os dois documentos para concluir'}
         </button>
       </div>`;
   }
