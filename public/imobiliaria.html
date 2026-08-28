@@ -1081,6 +1081,11 @@
 
   let todosClientes = [];
 
+  // Quais linhas estão com o painel de rescisão aberto. A carteira é
+  // re-renderizada inteira a cada upload, então sem isto o painel fecharia
+  // sozinho no meio do preenchimento.
+  const rescisaoAberta = new Set();
+
   // Populate month selector (last 12 months)
   (function() {
     const sel = document.getElementById('sel-mes');
@@ -1647,10 +1652,21 @@
         <td>${colRes}</td><td>${colGar}</td>
         <td class="td-valor">${c.valor_seguro > 0 ? fmtBRL(c.valor_seguro) : '—'}</td>
         <td>${vencBadge(c.vigencia_fim)}</td>
-      </tr>${(c.observacao_imobiliaria || '').trim() ? `
+      </tr>${(() => {
+        // Segunda linha: recado da corretora e/ou o bloco de rescisão. Só sai
+        // do caminho quando não há nem um nem outro.
+        const obs = (c.observacao_imobiliaria || '').trim() ? obsCorretoraHtml(c, false) : '';
+        const resc = rescisaoHtml(c);
+        if (!obs && !resc) return '';
+        return `
       <tr style="${isCancelado ? 'background:#fff5f5;' : ''}">
-        <td colspan="10" style="padding:0 16px 12px;">${obsCorretoraHtml(c, false)}</td>
-      </tr>` : ''}`;
+        <td colspan="10" style="padding:0 16px 12px;">
+          ${obs}
+          ${obs && resc ? '<div style="height:8px;"></div>' : ''}
+          ${resc}
+        </td>
+      </tr>`;
+      })()}`;
     }).join('');
   }
 
@@ -1932,6 +1948,143 @@
       await client.from('imobiliaria_clientes').update({ [field]: urlData.publicUrl }).eq('id', clientId);
       await carregar();
     } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '⬆ Tentar novamente'; }
+  }
+
+  // ── RESCISÃO DE CONTRATO ─────────────────────────────────
+  // O inquilino saiu do imóvel antes do fim da vigência. A F&G precisa avisar a
+  // Fiantec para cancelar a apólice, e a seguradora exige o termo de distrato e
+  // a vistoria de saída — por isso os dois anexos são obrigatórios.
+
+  function toggleRescisao(clientId) {
+    if (rescisaoAberta.has(clientId)) rescisaoAberta.delete(clientId);
+    else rescisaoAberta.add(clientId);
+    filtrar(); // re-renderiza preservando a busca/filtro que estiver ativo
+  }
+
+  async function uploadRescisaoDoc(clientId, field, input) {
+    const file = input.files[0]; if (!file) return;
+    const label = input.closest('label');
+    const original = label ? label.innerHTML : '';
+    if (label) label.innerHTML = '⏳ Enviando...';
+    try {
+      const path = `${session.id}/${clientId}/${field}_${Date.now()}`;
+      const { error: upErr } = await client.storage.from('imobiliaria-docs')
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
+      const { error: dbErr } = await client.from('imobiliaria_clientes')
+        .update({ [field]: urlData.publicUrl }).eq('id', clientId);
+      if (dbErr) throw dbErr;
+      rescisaoAberta.add(clientId); // o painel precisa continuar aberto
+      await carregar();
+    } catch(e) {
+      alert('Erro ao enviar o documento: ' + e.message);
+      if (label) label.innerHTML = original;
+    }
+  }
+
+  // A observação é salva ao sair do campo — assim ela sobrevive ao
+  // re-render que acontece quando o outro anexo é enviado.
+  async function salvarObsRescisao(clientId, el) {
+    const texto = (el.value || '').trim();
+    try {
+      await client.from('imobiliaria_clientes')
+        .update({ rescisao_obs: texto || null }).eq('id', clientId);
+      const c = todosClientes.find(x => x.id === clientId);
+      if (c) c.rescisao_obs = texto || null;
+    } catch(e) { console.error('[rescisao obs]', e); }
+  }
+
+  async function concluirRescisao(clientId, inquilinoNome, btn) {
+    if (!confirm(`Confirmar a rescisão do contrato de ${inquilinoNome}?\n\nA F&G será avisada e a apólice será cancelada junto à seguradora.`)) return;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Enviando...';
+    try {
+      const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-rescisao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      const dados = await res.json().catch(() => ({}));
+      if (!res.ok || dados.error) throw new Error(dados.error || 'Falha no envio');
+      rescisaoAberta.delete(clientId);
+      alert('Rescisão enviada. A F&G já foi avisada e dará baixa na apólice.');
+      await carregar();
+    } catch(e) {
+      alert('Não foi possível enviar a rescisão: ' + e.message);
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  }
+
+  /** Bloco de rescisão da linha da carteira. Devolve '' quando não se aplica. */
+  function rescisaoHtml(c) {
+    const temG = c.tipo_seguro === 'residencial_garantia';
+    // Sem garantia locatícia não há apólice para cancelar na Fiantec. E quem já
+    // está cancelado/saiu não precisa do botão.
+    if (!temG) return '';
+    if (['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return '';
+
+    if (c.rescisao_solicitada_em) {
+      const quando = new Date(c.rescisao_solicitada_em).toLocaleDateString('pt-BR');
+      return `
+        <div style="padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;">
+          <span style="font-size:11px;font-weight:900;color:#5b21b6;">🔄 Rescisão solicitada em ${quando} — a F&amp;G está processando o cancelamento.</span>
+        </div>`;
+    }
+
+    const nomeEsc = (c.inquilino_nome || '').replace(/'/g, "\\'");
+
+    if (!rescisaoAberta.has(c.id)) {
+      return `
+        <button onclick="toggleRescisao('${c.id}')"
+          style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;"
+          onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
+          🔴 Solicitar rescisão
+        </button>`;
+    }
+
+    const docs = [
+      { key: 'rescisao_distrato_url', label: 'Termo de distrato assinado' },
+      { key: 'rescisao_vistoria_url', label: 'Vistoria de saída' },
+    ];
+    const completo = docs.every(d => c[d.key]);
+
+    return `
+      <div style="padding:16px 18px;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+          <span style="font-size:11px;font-weight:900;color:#991b1b;text-transform:uppercase;letter-spacing:1px;">🔴 Rescisão de contrato</span>
+          <button onclick="toggleRescisao('${c.id}')" style="background:none;border:none;color:#94a3b8;font-size:16px;font-weight:900;cursor:pointer;line-height:1;" title="Fechar">×</button>
+        </div>
+
+        <p style="margin:0 0 12px;font-size:12px;color:#7f1d1d;line-height:1.6;">
+          A seguradora só cancela a apólice com os dois documentos abaixo. Anexe os dois para liberar o envio.
+        </p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          ${docs.map(d => c[d.key]
+            ? `<a href="${c[d.key]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;font-size:11px;font-weight:900;text-decoration:none;">✅ ${d.label}</a>`
+            : `<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px dashed #dc2626;border-radius:10px;font-size:11px;font-weight:900;color:#991b1b;cursor:pointer;">
+                <input type="file" accept="application/pdf,image/*" style="display:none" onchange="uploadRescisaoDoc('${c.id}','${d.key}',this)" />
+                ⬆ ${d.label}
+               </label>`
+          ).join('')}
+        </div>
+
+        <label style="display:block;font-size:10px;font-weight:900;color:#991b1b;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">Observação (opcional)</label>
+        <textarea onblur="salvarObsRescisao('${c.id}', this)" rows="2" placeholder="Ex.: inquilino entregou as chaves no dia 20, há débito de condomínio em aberto."
+          style="width:100%;padding:10px 12px;border:1px solid #fecaca;border-radius:10px;font-size:13px;font-family:inherit;color:#1B263B;resize:vertical;box-sizing:border-box;">${(c.rescisao_obs || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+
+        <button ${completo ? '' : 'disabled'}
+          onclick="concluirRescisao('${c.id}','${nomeEsc}', this)"
+          style="margin-top:12px;width:100%;padding:11px;border:none;border-radius:10px;font-size:12px;font-weight:900;
+                 ${completo
+                   ? 'background:#dc2626;color:#fff;cursor:pointer;'
+                   : 'background:#f1f5f9;color:#94a3b8;cursor:not-allowed;'}">
+          ${completo ? '📤 Concluir rescisão e avisar a F&G' : '🔒 Anexe os dois documentos para concluir'}
+        </button>
+      </div>`;
   }
 
   carregar();
