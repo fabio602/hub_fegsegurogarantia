@@ -447,6 +447,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedApolice, setSelectedApolice] = useState<File | null>(null);
     const [selectedBoleto, setSelectedBoleto] = useState<File | null>(null);
+    // Quantidade de parcelas do formulário de venda.
+    //
+    // Fica fora de `formData` de propósito: o payload enviado ao Supabase é uma
+    // lista fechada de colunas que existem na tabela `sales`, e parcela não é
+    // uma delas — mora em `boletos`. Uma chave desconhecida quebraria o insert.
+    const [qtdParcelas, setQtdParcelas] = useState('1');
     const [uploadingApoliceId, setUploadingApoliceId] = useState<number | null>(null);
     const [boletoModalSaleId, setBoletoModalSaleId] = useState<number | null>(null);
     const [boletoModalNome, setBoletoModalNome] = useState('');
@@ -1127,6 +1133,38 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 }
             }
 
+            // Parcelamento: cria as parcelas em `boletos` já no registro da venda.
+            //
+            // Fica FORA do bloco do PDF acima de propósito — as parcelas existem
+            // para o lembrete disparar na data certa, e isso independe de ter
+            // carnê anexado. O PDF, quando vem, é da parcela 1 e o bloco acima
+            // já cuidou dela.
+            //
+            // Só insere o que falta: reeditar uma venda não pode duplicar nem
+            // sobrescrever parcela que ele já ajustou à mão no modal de Boletos.
+            const qtd = parseInt(qtdParcelas) || 1;
+            if (savedId && payload.vendeu === 'Sim' && qtd > 1 && payload.vencimento_boleto) {
+                const datas   = gerarVencimentosMensais(payload.vencimento_boleto, qtd);
+                const premio  = parseValorParcela(payload.premio || '');
+                const valores = premio ? dividirEmParcelas(premio, qtd) : null;
+
+                const { data: jaExistem } = await supabase.from('boletos')
+                    .select('parcela').eq('sale_id', savedId);
+                const cadastradas = new Set((jaExistem ?? []).map(b => b.parcela));
+
+                const novas = datas
+                    .map((venc, i) => ({
+                        sale_id: savedId,
+                        parcela: i + 1,
+                        vencimento: venc,
+                        valor: valores ? valores[i] : null,
+                        pago: false,
+                    }))
+                    .filter(p => !cadastradas.has(p.parcela));
+
+                if (novas.length) await supabase.from('boletos').insert(novas);
+            }
+
             await fetchData();
             setSaveSuccess(true);
 
@@ -1271,6 +1309,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSelectedFile(null);
         setSelectedApolice(null);
         setSelectedBoleto(null);
+        setQtdParcelas('1');
     };
 
     /**
@@ -1343,6 +1382,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         // Guarda o `vendeu` que veio do banco, antes de qualquer alteração no formulário.
         vendeuOriginalRef.current = sale.vendeu ?? null;
         setFormData(sale);
+        // Reabre mostrando o parcelamento que a venda já tem. Sem isso o campo
+        // voltaria em "à vista" e um simples reeditar pareceria uma mudança.
+        setQtdParcelas(String(boletosSummary[sale.id]?.total || 1));
         if (sale.limites_seguradoras) {
             try {
                 setLimitesArray(JSON.parse(sale.limites_seguradoras));
@@ -1418,6 +1460,41 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         return Number.isFinite(n) && n > 0 ? n : null;
     };
 
+    /**
+     * Datas das parcelas a partir do primeiro vencimento: mesmo dia, meses
+     * seguintes. Carnê de seguro garantia é mensal, então a primeira data já
+     * determina todas as outras.
+     *
+     * O dia é limitado ao último do mês de destino: 31/01 + 1 mês vira 28/02,
+     * nunca 03/03 (que é o que `setMonth` faria).
+     */
+    const gerarVencimentosMensais = (primeiro: string, qtd: number): string[] => {
+        const [y, m, d] = primeiro.split('-').map(Number);
+        return Array.from({ length: qtd }, (_, i) => {
+            const alvoMes   = m - 1 + i;
+            const ano       = y + Math.floor(alvoMes / 12);
+            const mes       = ((alvoMes % 12) + 12) % 12;
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            const dia       = Math.min(d, ultimoDia);
+            return `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        });
+    };
+
+    /**
+     * Divide um valor em N parcelas sem perder centavo.
+     *
+     * A divisão simples deixa sobra (12.501,20 ÷ 6 = 2.083,5333...). Aqui cada
+     * parcela fica com o valor arredondado para baixo e a sobra vai toda para
+     * a primeira — que é como as seguradoras montam o carnê. A soma volta a
+     * bater exatamente com o prêmio.
+     */
+    const dividirEmParcelas = (total: number, qtd: number): number[] => {
+        const centavos = Math.round(total * 100);
+        const base     = Math.floor(centavos / qtd);
+        const sobra    = centavos - base * qtd;
+        return Array.from({ length: qtd }, (_, i) => (i === 0 ? base + sobra : base) / 100);
+    };
+
     const handleAddBoleto = async () => {
         if (!boletoModalSaleId || !boletoForm.file || !boletoForm.parcela) return;
         setUploadingBoleto(true);
@@ -1483,21 +1560,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             return;
         }
 
-        const [y, m, d] = carnePrimeiroVenc.split('-').map(Number);
-        const lista = Array.from({ length: qtd }, (_, i) => {
-            // Somar mês a mês sem escorregar: dia 31 + 1 mês vira 28/29/30,
-            // nunca o dia 3 do mês seguinte (que é o que `setMonth` faria).
-            const alvoMes  = m - 1 + i;
-            const ano      = y + Math.floor(alvoMes / 12);
-            const mes      = ((alvoMes % 12) + 12) % 12;
-            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
-            const dia      = Math.min(d, ultimoDia);
-            return {
-                parcela: String(i + 1),
-                vencimento: `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`,
-                valor: carneValor.trim(),
-            };
-        });
+        const lista = gerarVencimentosMensais(carnePrimeiroVenc, qtd).map((venc, i) => ({
+            parcela: String(i + 1),
+            vencimento: venc,
+            valor: carneValor.trim(),
+        }));
         setCarneParcelas(lista);
     };
 
@@ -2567,7 +2634,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             {formData.vendeu === 'Sim' && (
                                 <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-100 space-y-3">
                                     <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">💰 Cobrança / Boleto</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nº do Boleto</label>
                                             <input type="text" id="numero_boleto" value={(formData as any).numero_boleto || ''} onChange={handleInputChange}
@@ -2576,7 +2643,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                                <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>Vencimento do Boleto</span>
+                                                <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>{parseInt(qtdParcelas) > 1 ? '1º Vencimento' : 'Vencimento do Boleto'}</span>
                                                 <span className="text-red-500">*</span>
                                             </label>
                                             <input type="date" id="vencimento_boleto" value={(formData as any).vencimento_boleto || ''} onChange={handleInputChange}
@@ -2584,6 +2651,18 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             {!(formData as any).vencimento_boleto && (
                                                 <p className="text-[10px] text-red-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
                                             )}
+                                        </div>
+                                        <div>
+                                            {/* Parcelamento aqui mesmo: registrar a venda já cria as parcelas
+                                                em `boletos`, sem precisar abrir o modal depois. */}
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Parcelas</label>
+                                            <select value={qtdParcelas} onChange={e => setQtdParcelas(e.target.value)}
+                                                className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20">
+                                                <option value="1">À vista (1x)</option>
+                                                {Array.from({ length: 23 }, (_, i) => i + 2).map(n => (
+                                                    <option key={n} value={String(n)}>{n}x mensais</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Status Pagamento</label>
@@ -2605,7 +2684,30 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             </select>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-amber-600/70 font-medium italic">O lembrete sai 3 dias antes do vencimento, uma vez só — não precisa marcar "Pago" para ele parar. Venda parcelada: cadastre as parcelas no botão Boletos, na tabela abaixo.</p>
+                                    {/* Prévia do carnê: mostra o que vai ser gravado antes de salvar,
+                                        para ele conferir o valor da parcela contra o carnê da seguradora. */}
+                                    {(() => {
+                                        const qtd = parseInt(qtdParcelas) || 1;
+                                        const venc = (formData as any).vencimento_boleto;
+                                        if (qtd < 2 || !venc) return null;
+                                        const datas = gerarVencimentosMensais(venc, qtd);
+                                        const premio = parseValorParcela(formData.premio || '');
+                                        const valores = premio ? dividirEmParcelas(premio, qtd) : null;
+                                        return (
+                                            <div className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-[11px] text-slate-600 font-medium">
+                                                <span className="font-black text-amber-600">{qtd}x</span>
+                                                {valores && <> de <span className="font-bold">{formatCurrency(valores[1])}</span> (1ª de {formatCurrency(valores[0])})</>}
+                                                {' — '}1º vencimento em {datas[0].split('-').reverse().join('/')}, último em {datas[qtd - 1].split('-').reverse().join('/')}.
+                                                {!valores && <span className="text-amber-600"> Preencha o prêmio para dividir o valor.</span>}
+                                            </div>
+                                        );
+                                    })()}
+                                    <p className="text-[10px] text-amber-600/70 font-medium italic">
+                                        O lembrete sai 3 dias antes do vencimento, uma vez só — não precisa marcar "Pago" para ele parar.
+                                        {parseInt(qtdParcelas) > 1
+                                            ? ' As parcelas são criadas ao salvar; para ajustar datas ou valores, use o botão Boletos na tabela abaixo.'
+                                            : ''}
+                                    </p>
                                 </div>
                             )}
 
