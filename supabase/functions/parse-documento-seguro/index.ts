@@ -91,16 +91,17 @@ function extractPdfIfCmsWrapped(pdfBase64: string): string {
  * Reduz o PDF às primeiras N páginas antes de enviar à Anthropic.
  *
  * Todos os campos que extraímos (tomador, segurado, LMG, prêmio, vigência)
- * estão nas primeiras ~140 linhas do texto. As demais páginas são Condições
- * Gerais padronizadas (SUSEP ramo 775), idênticas em toda apólice — incluí-las
- * desperdiça ~97% dos tokens sem nenhum ganho de qualidade.
+ * estão nas primeiras páginas. As demais são Condições Gerais padronizadas
+ * (SUSEP ramo 775), idênticas em toda apólice — incluí-las desperdiça ~92%
+ * dos tokens sem nenhum ganho de qualidade.
  *
- * Usa 2 páginas por padrão para cobrir casos em que a face da apólice quebra
- * de página (ex.: AllSeg carta de rosto + dados na p.2).
+ * Usa 3 páginas por padrão. Com 2 páginas o Valor Prêmio vinha sempre vazio
+ * nas apólices da AllSeg: p.1 é a carta de rosto, p.2 tem a face (tomador,
+ * segurado, IS, vigências) e o DEMONSTRATIVO DE PRÊMIO só aparece na p.3.
  *
  * Fallback: qualquer erro no pdf-lib devolve o PDF original intacto.
  */
-async function trimToFirstPages(pdfBytes: Uint8Array, maxPages = 2): Promise<{ bytes: Uint8Array; totalPages: number }> {
+async function trimToFirstPages(pdfBytes: Uint8Array, maxPages = 3): Promise<{ bytes: Uint8Array; totalPages: number }> {
   try {
     const srcDoc = await PDFDocument.load(pdfBytes);
     const total  = srcDoc.getPageCount();
@@ -154,12 +155,13 @@ Deno.serve(async (req: Request) => {
     // 1. Desempacota assinatura digital CMS, se presente
     const cleanPdfBase64 = extractPdfIfCmsWrapped(pdf_base64);
 
-    // 2. Corta o PDF nas primeiras 2 páginas (face da apólice).
-    //    Reduz ~97% dos tokens sem perder nenhum campo relevante.
+    // 2. Corta o PDF nas primeiras 3 páginas (face da apólice + demonstrativo
+    //    de prêmio). Reduz ~92% dos tokens sem perder nenhum campo relevante.
+    const MAX_PAGINAS = 3;
     const cleanBytes = b64ToBytes(cleanPdfBase64);
-    const { bytes: trimmedBytes, totalPages } = await trimToFirstPages(cleanBytes, 2);
+    const { bytes: trimmedBytes, totalPages } = await trimToFirstPages(cleanBytes, MAX_PAGINAS);
     const trimmedBase64 = bytesToB64(trimmedBytes);
-    const sentPages = Math.min(2, totalPages || 2);
+    const sentPages = Math.min(MAX_PAGINAS, totalPages || MAX_PAGINAS);
     console.log(`[parse] total:${totalPages}p | enviando:${sentPages}p | bytes:${trimmedBytes.length}`);
 
     // 3. Envia à Anthropic
