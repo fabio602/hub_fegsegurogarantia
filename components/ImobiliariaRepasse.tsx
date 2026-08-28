@@ -523,8 +523,31 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     && !emAndamento(c)
     && ((c as any).status_apolice === 'ativo' || c.status === 'ativo')
   );
-  // Repasse ativo sem valor mensal = e-mail de cobrança de R$ 0,00 para a imobiliária.
-  const repassesSemValor = ativos.filter(c => !(Number(c.valor_seguro) > 0));
+  // ── Precisa de atenção ──────────────────────────────────────────────────
+  // Um repasse só chega a ser cobrado quando três campos independentes
+  // concordam: is_repasse marcado, status_apolice = 'ativo' e o kanban já fora
+  // das etapas de atendimento. Quando eles se contradizem o cliente não entra
+  // em nenhuma das listas da tela — simplesmente some, sem aviso. Foi o caso da
+  // Kamila: repasse marcado, mas em renovação. Aqui a contradição fica visível.
+  const SITUACOES_ENCERRADAS = ['cancelado', 'desistiu', 'reprovado', 'vencido', 'saiu_imovel'];
+  const problemasDoRepasse = (c: any): string[] => {
+    if (c.is_repasse !== true) return [];
+    // Quem já encerrou não é pendência: não há repasse a cobrar.
+    if (c.status === 'encerrado' || SITUACOES_ENCERRADAS.includes(c.status_apolice)) return [];
+    const p: string[] = [];
+    if (!(Number(c.valor_seguro) > 0)) p.push('Sem valor mensal');
+    if (!c.dia_vencimento_aluguel) p.push('Sem dia de vencimento');
+    if (c.status_apolice && c.status_apolice !== 'ativo') {
+      p.push(STATUS_APOLICE_LABELS[c.status_apolice] || c.status_apolice);
+    }
+    if (emAndamento(c)) p.push('Apólice não emitida');
+    return p;
+  };
+  const precisamAtencao = clientes
+    .map(c => ({ cliente: c, problemas: problemasDoRepasse(c) }))
+    .filter(x => x.problemas.length > 0);
+  // Fora da tabela de ativos = fora do total mensal e fora do e-mail automático.
+  const foraDaCobranca = (c: any) => !ativos.some(a => a.id === c.id);
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
@@ -742,15 +765,47 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         </div>
       )}
 
-      {/* Repasse ativo sem valor mensal — a cobrança sairia como R$ 0,00 */}
-      {repassesSemValor.length > 0 && (
-        <div className="bg-[#fff7ed] border border-[#fdba74] rounded-2xl px-5 py-4">
-          <p className="flex items-center gap-2 text-[#c2410c] font-black text-sm">
-            <AlertTriangle size={16} /> {repassesSemValor.length} repasse{repassesSemValor.length > 1 ? 's' : ''} sem valor mensal
-          </p>
-          <p className="text-[#7c2d12] text-[11px] font-semibold mt-1">
-            {repassesSemValor.map(c => c.inquilino_nome).join(' · ')} — abra o cliente e informe o valor, senão a imobiliária recebe cobrança de R$ 0,00.
-          </p>
+      {/* Precisa de atenção — repasses que, como estão, não vão ser cobrados.
+          O alerta antigo só olhava a lista de ativos, então justamente quem
+          havia sumido da tela não era apontado em lugar nenhum. */}
+      {precisamAtencao.length > 0 && (
+        <div className="bg-white rounded-[2rem] border border-[#fdba74] shadow-sm overflow-hidden">
+          <div className="bg-[#7c2d12] px-6 py-4 flex items-center gap-3">
+            <AlertTriangle size={17} className="text-[#fdba74]" />
+            <div>
+              <p className="text-white font-black text-sm">Precisa de atenção ({precisamAtencao.length})</p>
+              <p className="text-white/60 text-[11px] font-semibold mt-0.5">
+                Marcados como repasse, mas com dado faltando. Clique no cliente para corrigir.
+              </p>
+            </div>
+          </div>
+          {precisamAtencao.map(({ cliente: c, problemas }) => (
+            <button
+              key={c.id}
+              onClick={() => openEditStatus(c)}
+              className="w-full flex items-center gap-3 px-6 py-3.5 border-b border-slate-50 last:border-0 hover:bg-[#fff7ed] transition-colors text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-[#1B263B] flex items-center justify-center shrink-0">
+                <User size={14} className="text-[#C69C6D]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-black text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  {problemas.map(p => (
+                    <span key={p} className="px-2 py-0.5 rounded-lg bg-[#fff7ed] border border-[#fdba74] text-[#c2410c] text-[10px] font-black">
+                      {p}
+                    </span>
+                  ))}
+                  {foraDaCobranca(c) && (
+                    <span className="text-[10px] font-bold text-slate-400">· não aparece na lista de ativos</span>
+                  )}
+                </div>
+              </div>
+              <span className="flex items-center gap-1.5 text-[#C69C6D] font-black text-xs shrink-0">
+                <Pencil size={13} /> Corrigir
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
