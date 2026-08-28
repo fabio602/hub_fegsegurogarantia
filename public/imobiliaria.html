@@ -1041,9 +1041,16 @@
     if (!txt) return '';
     const pad = compacto ? '6px 8px' : '10px 12px';
     const fs  = compacto ? '10px' : '12px';
-    return `<div style="margin-top:8px;padding:${pad};background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
-      <div style="font-size:9px;font-weight:900;color:#1e40af;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">💬 Recado da F&amp;G</div>
-      <div style="font-size:${fs};color:#1e3a5f;line-height:1.5;">${esc(txt)}</div>
+    // Recado marcado como "precisa de retorno" vira laranja: é uma pergunta
+    // aberta, não pode se perder no meio dos avisos comuns.
+    const pede = !!c.recado_precisa_retorno;
+    const cor  = pede
+      ? { bg: '#fff7ed', bd: '#fdba74', tt: '#c2410c', tx: '#7c2d12' }
+      : { bg: '#eff6ff', bd: '#bfdbfe', tt: '#1e40af', tx: '#1e3a5f' };
+    const titulo = pede ? '⚠️ A F&amp;G aguarda seu retorno' : '💬 Recado da F&amp;G';
+    return `<div style="margin-top:8px;padding:${pad};background:${cor.bg};border:1px solid ${cor.bd};${pede ? 'border-left:3px solid #f97316;' : ''}border-radius:8px;">
+      <div style="font-size:9px;font-weight:900;color:${cor.tt};text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">${titulo}</div>
+      <div style="font-size:${fs};color:${cor.tx};line-height:1.5;">${esc(txt)}</div>
     </div>`;
   }
 

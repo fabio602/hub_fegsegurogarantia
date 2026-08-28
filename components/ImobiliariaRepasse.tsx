@@ -160,7 +160,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false });
 
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
   const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-slate-50 text-slate-600' };
@@ -187,7 +187,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   const openEditStatus = (c: Cliente) => {
     setEditingStatus(c);
-    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '' });
+    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno) });
   };
   const saveStatus = async () => {
     if (!editingStatus) return;
@@ -218,6 +218,18 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       if (!seguir) return;
     }
 
+    // Recado: decide se a imobiliária precisa ser avisada por e-mail.
+    // Só dispara quando o corretor marcou "preciso de retorno" e o aviso ainda
+    // não saiu para este texto — assim salvar o cadastro de novo não reenvia.
+    const recadoNovo = editStatusForm.observacao_imobiliaria.trim();
+    const recadoAntigo = ((editingStatus as any).observacao_imobiliaria || '').trim();
+    const pedeRetorno = Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno;
+    const avisarRecado = pedeRetorno && (
+      recadoNovo !== recadoAntigo ||
+      !(editingStatus as any).recado_precisa_retorno ||
+      !(editingStatus as any).recado_enviado_em
+    );
+
     const updatePayload: Record<string, unknown> = {
       status_residencial: editStatusForm.status_residencial,
       status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
@@ -232,7 +244,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       dia_vencimento_aluguel: diaVencEdit,
       // Recado que a imobiliária lê no portal — não confundir com "observacoes",
       // que é anotação interna e continua invisível para o parceiro.
-      observacao_imobiliaria: editStatusForm.observacao_imobiliaria.trim() || null,
+      observacao_imobiliaria: recadoNovo || null,
+      recado_precisa_retorno: Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno,
       updated_at: new Date().toISOString(),
     };
     if (valorSegEdit !== undefined) updatePayload.valor_seguro = valorSegEdit;
@@ -304,6 +317,21 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         body: { client_id: editingStatus.id },
       }).catch(e => console.warn('Email apólice:', e));
     }
+
+    // Aviso do recado que pede retorno — aqui esperamos a resposta de propósito:
+    // se o e-mail não sair, o corretor precisa saber na hora, senão fica
+    // esperando um retorno que nunca foi pedido.
+    if (avisarRecado) {
+      const { data: aviso, error: avisoErr } = await supabase.functions.invoke('imobiliaria-recado', {
+        body: { client_id: editingStatus.id },
+      });
+      if (avisoErr || (aviso as any)?.error) {
+        alert(`Recado salvo, mas o e-mail para a imobiliária não foi enviado.\n\n${(aviso as any)?.error || avisoErr?.message || ''}`);
+      } else {
+        alert(`E-mail enviado para ${((aviso as any)?.enviado_para || []).join(', ')} pedindo o retorno.`);
+      }
+    }
+
     load();
   };
 
@@ -1094,6 +1122,29 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 className="w-full px-3 py-2.5 border border-blue-200 bg-white rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] resize-y"
               />
               <p className="text-[10px] text-blue-600">👁️ A imobiliária vê este texto no portal. Para anotação interna, use o campo de observações do cadastro.</p>
+
+              {/* Recado que é pergunta: o portal sozinho não avisa ninguém.
+                  Marcando aqui, a imobiliária recebe um e-mail com o texto. */}
+              <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${editStatusForm.recado_precisa_retorno ? 'bg-orange-50 border-orange-200' : 'bg-white border-blue-200'} ${!editStatusForm.observacao_imobiliaria.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <input
+                  type="checkbox"
+                  disabled={!editStatusForm.observacao_imobiliaria.trim()}
+                  checked={editStatusForm.recado_precisa_retorno}
+                  onChange={e => setEditStatusForm(f => ({ ...f, recado_precisa_retorno: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-orange-500"
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-bold text-slate-700">Preciso de retorno da imobiliária</span>
+                  <span className="block text-[10px] text-slate-500 leading-relaxed">
+                    Envia um e-mail com este recado para o parceiro e destaca no portal até você desmarcar.
+                  </span>
+                </span>
+              </label>
+              {(editingStatus as any).recado_enviado_em && (
+                <p className="text-[10px] text-slate-400">
+                  Último aviso enviado em {new Date((editingStatus as any).recado_enviado_em).toLocaleString('pt-BR')}
+                </p>
+              )}
             </div>
 
             {/* Apólice Residencial */}
