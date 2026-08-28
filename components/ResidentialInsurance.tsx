@@ -308,14 +308,27 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
         window.setTimeout(() => setPublicFormCopied(false), 2000);
     };
 
+    /**
+     * O spinner de tela cheia só pode aparecer na primeira carga.
+     *
+     * Esta função também é chamada ao fim de cada salvamento automático, e o
+     * `loading` troca a tela inteira por "Carregando Base..." (ver abaixo).
+     * Enquanto a pessoa preenchia uma data, o formulário era desmontado no meio
+     * da digitação e o campo voltava vazio — e num `<input type="date">` vazio o
+     * Chrome preenche os pedaços que faltam com a data de hoje. Era esse o bug
+     * do "altero a vigência e ela volta para hoje".
+     */
+    const jaCarregouRef = useRef(false);
+
     const fetchClients = useCallback(async () => {
-        setLoading(true);
+        if (!jaCarregouRef.current) setLoading(true);
         const { data, error } = await supabase
             .from('residential_clients')
             .select('*')
             .order('id', { ascending: false });
         if (error) console.error('Erro ao buscar clientes:', error);
         setClients(data || []);
+        jaCarregouRef.current = true;
         setLoading(false);
     }, []);
 

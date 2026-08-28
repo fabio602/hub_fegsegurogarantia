@@ -160,14 +160,20 @@ const AutoInsurance: React.FC = () => {
     return () => { table.removeEventListener('scroll', onTable); top.removeEventListener('scroll', onTop); ro.disconnect(); };
   }, []);
 
+  // Só a primeira carga mostra "Carregando...". Esta função também roda ao fim
+  // de cada salvamento automático, e piscar a lista a cada 1,2 s de digitação
+  // atrapalha quem está preenchendo o formulário logo acima dela.
+  const jaCarregouRef = useRef(false);
+
   const fetchClients = useCallback(async () => {
-    setLoading(true);
+    if (!jaCarregouRef.current) setLoading(true);
     const { data, error } = await supabase
       .from('auto_clients')
       .select('*')
       .order('id', { ascending: false });
     if (error) console.error('Erro ao buscar clientes:', error);
     setClients(data || []);
+    jaCarregouRef.current = true;
     setLoading(false);
   }, []);
 
