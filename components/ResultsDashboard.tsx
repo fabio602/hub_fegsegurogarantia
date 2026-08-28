@@ -348,6 +348,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
      * `null` = entrada nova, ainda não existe no banco.
      */
     const vendeuOriginalRef = React.useRef<string | null>(null);
+
+    /**
+     * Qual botão disparou o submit.
+     *
+     * Os dois botões do rodapé ("Enviar Apólice" e "Adicionar Venda") usam o
+     * mesmo `handleSaleSubmit`, então sem esta marca eles teriam exatamente o
+     * mesmo comportamento — era por isso que "Adicionar Venda" também mandava
+     * e-mail para o cliente.
+     *
+     * "Enviar Apólice" liga a marca no onClick, antes do submit; "Adicionar
+     * Venda" desliga. O handler lê e zera no início, para que um submit por
+     * Enter no formulário nunca herde a marca do clique anterior.
+     */
+    const enviarAoClienteRef = React.useRef(false);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
 
     // Pre-fill form when arriving from WhatsApp
@@ -375,6 +389,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    // Confirma na tela que a apólice/boleto saíram para o cliente. Existia uma
+    // chamada a `setEmailSuccess` sem estado correspondente: todo envio bem-
+    // sucedido estourava ReferenceError e caía no catch, logando "Failed".
+    const [emailSuccess, setEmailSuccess] = useState(false);
     /** Toast global (portal em document.body) — evita recorte por overflow no layout do App */
     const [emailToast, setEmailToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
 
@@ -974,9 +992,16 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
     const handleSaleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Lê e zera de imediato: se o próximo submit vier de outro botão (ou de
+        // um Enter no formulário), ele começa sem enviar nada.
+        const enviarAoCliente = enviarAoClienteRef.current;
+        enviarAoClienteRef.current = false;
+
         setSaving(true);
         setSaveError(null);
         setSaveSuccess(false);
+        setEmailSuccess(false);
 
         // Validação: dataPregao obrigatório quando tipo = 'Licitante'
         if (formData.tipo === 'Licitante' && !formData.dataPregao) {
@@ -1084,10 +1109,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             await fetchData();
             setSaveSuccess(true);
 
-            // Os e-mails saem só quando a venda ACABA de virar "Sim" — nunca em
-            // reedições de uma venda que já estava fechada (anexar boleto, corrigir
-            // um campo). Entrada nova tem `vendeuOriginalRef` = null, então conta
-            // como transição.
+            // O aviso ao parceiro sai só quando a venda ACABA de virar "Sim" —
+            // nunca em reedições de uma venda que já estava fechada (anexar
+            // boleto, corrigir um campo). Entrada nova tem `vendeuOriginalRef`
+            // = null, então conta como transição.
             const virouVenda = payload.vendeu === 'Sim' && vendeuOriginalRef.current !== 'Sim';
 
             // Se venda fechada com parceiro → dispara email de agradecimento automaticamente
@@ -1120,8 +1145,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 }
             }
 
-            // E-mail de agradecimento ao cliente — só na transição para "Sim".
-            if (virouVenda && payload.email) {
+            // E-mail com a apólice e o boleto: sai APENAS quando o clique veio
+            // do botão "Enviar Apólice". "Adicionar Venda" registra e não manda
+            // nada ao cliente. Aqui não checamos a transição de `vendeu`: se o
+            // usuário clicou em "Enviar Apólice", ele quer enviar — inclusive
+            // reenviar numa venda já fechada (ex.: boleto que faltava).
+            if (enviarAoCliente && payload.vendeu === 'Sim' && payload.email) {
                 setSendingEmail(true);
                 try {
                     console.log('[Manual Email] Starting attachment processing...', { selectedApolice: !!selectedApolice, selectedBoleto: !!selectedBoleto });
@@ -1994,6 +2023,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <CheckCircle2 size={18} />
                                     Venda salva com sucesso!
                                 </div>
+                                {emailSuccess && (
+                                    <div className="bg-white border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                                        <span className="text-emerald-600 text-base">📎</span>
+                                        <p className="text-emerald-700 text-xs font-bold flex-1">
+                                            Apólice e boleto enviados ao cliente por e-mail.
+                                        </p>
+                                    </div>
+                                )}
                                 {partnerThankYou && (
                                     <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-3">
                                         <span className="text-blue-500 text-base">✉️</span>
@@ -2217,17 +2254,19 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </select>
                                     {/*
                                       * O salvamento automático grava os campos, mas nunca envia e-mail.
-                                      * Quando a venda ACABA de virar "Sim", avisamos que ainda falta
-                                      * clicar em Salvar — senão a venda fica registrada e o e-mail de
-                                      * agradecimento nunca sai, sem ninguém perceber.
+                                      * Quando a venda ACABA de virar "Sim", explicamos qual botão faz o
+                                      * quê — senão a venda fica registrada e a apólice nunca sai, sem
+                                      * ninguém perceber. Só aparece quando o botão "Enviar Apólice"
+                                      * existe na tela (tipos Licitante e Performance).
                                       */}
-                                    {formData.vendeu === 'Sim' && vendeuOriginalRef.current !== 'Sim' && (
+                                    {formData.vendeu === 'Sim' && vendeuOriginalRef.current !== 'Sim'
+                                      && (formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
                                         <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-[11px] font-semibold text-amber-800 leading-relaxed">
                                             <AlertCircle size={14} className="mt-0.5 shrink-0" />
                                             <span>
-                                                Falta clicar em <strong>Salvar</strong> aqui embaixo. O e-mail de
-                                                agradecimento e a apólice só saem quando você salva — o salvamento
-                                                automático guarda os dados, mas não envia nada.
+                                                Para o cliente receber, clique em <strong>Enviar Apólice</strong> aqui
+                                                embaixo — é esse botão que manda a apólice e o boleto.
+                                                <strong> Adicionar Venda</strong> apenas registra, sem enviar nada.
                                             </span>
                                         </div>
                                     )}
@@ -2448,9 +2487,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-emerald-600/70 font-medium italic text-center">
-                                        {sendingEmail 
-                                            ? "📤 Enviando e-mail com anexos... por favor aguarde." 
-                                            : "Ao salvar com status 'Sim', os arquivos serão enviados automaticamente ao cliente."}
+                                        {sendingEmail
+                                            ? "📤 Enviando e-mail com anexos... por favor aguarde."
+                                            : "Estes arquivos só vão para o cliente quando você clicar em “Enviar Apólice”. “Adicionar Venda” apenas registra a venda."}
                                     </p>
                                 </div>
                             )}
@@ -2505,9 +2544,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 )}
 
                                 {(formData.tipo === 'Licitante' || formData.tipo === 'Performance') && (
-                                    <button 
+                                    <button
                                         type={formData.vendeu === 'Sim' ? 'submit' : 'button'}
-                                        onClick={formData.vendeu === 'Sim' ? undefined : handleSendDraft}
+                                        // Só este botão marca o envio ao cliente. O submit acontece
+                                        // logo depois do onClick, e o handler lê a marca.
+                                        onClick={formData.vendeu === 'Sim'
+                                            ? () => { enviarAoClienteRef.current = true; }
+                                            : handleSendDraft}
                                         disabled={saving || !formData.email}
                                         className={`${formData.vendeu === 'Sim' ? 'bg-[#1B263B] hover:bg-[#2c3e5a]' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
                                     >
@@ -2517,7 +2560,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 )}
 
                                 {!editingId && (
-                                    <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                    <button
+                                        type="submit"
+                                        // Registra a venda e não envia nada ao cliente.
+                                        onClick={() => { enviarAoClienteRef.current = false; }}
+                                        disabled={saving}
+                                        title="Registra a venda sem enviar e-mail ao cliente"
+                                        className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                                    >
                                         {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                                         Adicionar Venda
                                     </button>
