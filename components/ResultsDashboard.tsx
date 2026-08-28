@@ -2590,7 +2590,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <select id="pagamento_status" value={(formData as any).pagamento_status || 'Em dia'} onChange={async (e) => {
                                                 const val = e.target.value;
                                                 handleInputChange(e as any);
-                                                // Save imediato quando marcado como 'Pago' para bloquear cobranças
+                                                // 'Pago' grava na hora: é o único status que a rotina
+                                                // diária nunca sobrescreve, então vale registrar mesmo
+                                                // que o formulário não seja salvo depois.
                                                 if (val === 'Pago' && editingId) {
                                                     await supabase.from('sales').update({ pagamento_status: 'Pago' }).eq('id', editingId);
                                                 }
@@ -2603,7 +2605,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             </select>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-amber-600/70 font-medium italic">Ao marcar como "Pago", as cobranças automáticas são bloqueadas imediatamente.</p>
+                                    <p className="text-[10px] text-amber-600/70 font-medium italic">O lembrete sai 3 dias antes do vencimento, uma vez só — não precisa marcar "Pago" para ele parar. Venda parcelada: cadastre as parcelas no botão Boletos, na tabela abaixo.</p>
                                 </div>
                             )}
 
