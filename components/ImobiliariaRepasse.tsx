@@ -269,7 +269,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false });
+  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
 
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
   const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-slate-50 text-slate-600' };
@@ -296,7 +296,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   const openEditStatus = (c: Cliente) => {
     setEditingStatus(c);
-    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno) });
+    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) });
   };
   const saveStatus = async () => {
     if (!editingStatus) return;
@@ -316,7 +316,16 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     // e-mail de "R$ 0,00". Avisamos, mas não travamos o salvamento: muitas
     // vezes o cliente ainda está em cotação e só se quer anotar um recado.
     const jaTemValor = Number((editingStatus as any).valor_seguro) > 0;
-    const ehRepasse = Boolean((editingStatus as any).is_repasse);
+    const ehRepasse = editStatusForm.is_repasse;
+    const eraRepasse = Boolean((editingStatus as any).is_repasse);
+
+    // Marcar "É repasse" sem valor mensal não faz sentido: o cliente entraria na
+    // lista de ativos e a imobiliária receberia cobrança de R$ 0,00.
+    if (ehRepasse && !eraRepasse && valorSegEdit === undefined && !jaTemValor) {
+      alert('Informe o "Valor Mensal (R$)" antes de marcar este cliente como repasse.');
+      return;
+    }
+
     if (ehRepasse && diaVencEdit && valorSegEdit === undefined && !jaTemValor) {
       const seguir = confirm(
         'Este cliente está como repasse, vencimento dia ' + diaVencEdit + ', mas sem "Valor Mensal (R$)".\n\n' +
@@ -355,9 +364,18 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       // que é anotação interna e continua invisível para o parceiro.
       observacao_imobiliaria: recadoNovo || null,
       recado_precisa_retorno: Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno,
+      is_repasse: ehRepasse,
       updated_at: new Date().toISOString(),
     };
     if (valorSegEdit !== undefined) updatePayload.valor_seguro = valorSegEdit;
+
+    // Ao converter um cliente para repasse, repetimos a regra do modal de
+    // aprovação: a 1ª parcela sempre é paga pelo próprio cliente, então a
+    // cobrança da imobiliária começa na 2ª.
+    if (ehRepasse && !eraRepasse) {
+      if (!Number((editingStatus as any).total_parcelas)) updatePayload.total_parcelas = 12;
+      if (!(Number((editingStatus as any).parcela_atual) > 1)) updatePayload.parcela_atual = 2;
+    }
 
     const { error: updateError } = await supabase
       .from('imobiliaria_clientes')
@@ -1385,6 +1403,24 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {/* Repasse */}
             <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
               <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Repasse Mensal</p>
+
+              {/* Sem esta marcação o cliente não entra na lista de repasses ativos
+                  nem no total mensal — os campos abaixo ficariam sem efeito. */}
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editStatusForm.is_repasse}
+                  onChange={e => setEditStatusForm(f => ({...f, is_repasse: e.target.checked}))}
+                  className="mt-0.5 w-4 h-4 accent-[#C69C6D] cursor-pointer"
+                />
+                <span className="text-xs font-bold text-slate-700 leading-tight">
+                  Este seguro é cobrado por repasse da imobiliária
+                  <span className="block text-[10px] font-medium text-amber-600 mt-0.5">
+                    A 1ª parcela é sempre paga pelo cliente; a cobrança da imobiliária começa na 2ª.
+                  </span>
+                </span>
+              </label>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Valor Mensal (R$)</label>
