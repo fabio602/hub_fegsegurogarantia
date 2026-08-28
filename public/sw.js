@@ -1,5 +1,10 @@
 // Service Worker — F&G Seguro Garantia Hub
-const CACHE_NAME = 'fg-hub-v1';
+//
+// O nome do cache é versionado: trocar o número aqui faz o `activate` apagar
+// tudo que sobrou do SW anterior. Foi para v2 junto com o aviso de versão
+// nova, porque o v1 servia o index.html do cache antes da rede — quem já
+// tinha o hub aberto ficava uma visita inteira atrasado a cada deploy.
+const CACHE_NAME = 'fg-hub-v2';
 const SUPABASE_DOMAIN = 'hfjvwibucplyhsvnwfor.supabase.co';
 
 // Assets estáticos que vão para cache imediatamente
@@ -59,7 +64,15 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
   if (url.hostname !== self.location.hostname && url.hostname !== 'fonts.googleapis.com' && url.hostname !== 'fonts.gstatic.com') return;
 
+  // O version.json é justamente o arquivo que não pode vir do cache — ele
+  // existe para dizer qual build está publicado agora. Sai daqui sem
+  // respondWith: vai direto para a rede, como se o SW não existisse.
+  if (url.pathname === '/version.json') return;
+
   // Cache-first para assets estáticos (JS, CSS, imagens, fontes)
+  //
+  // Seguro porque o Vite põe hash no nome: build novo gera arquivo com nome
+  // novo, que por definição não está no cache e vem da rede.
   if (
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)$/) ||
     url.hostname.includes('fonts.')
@@ -68,8 +81,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate para HTML e tudo mais
-  event.respondWith(staleWhileRevalidate(request));
+  // HTML: rede primeiro, cache só como rede de segurança.
+  //
+  // Aqui estava o furo do v1. O index.html é o único arquivo com nome fixo, e
+  // é ele que aponta para o bundle com hash. Servindo-o do cache primeiro, o
+  // navegador continuava carregando o JS antigo mesmo depois do deploy — e o
+  // botão "Atualizar" do aviso de versão nova recarregaria para a mesma
+  // versão velha, num laço sem fim. Offline continua funcionando pelo
+  // fallback, que é o que o cache de HTML precisa fazer num PWA.
+  event.respondWith(networkFirstComCache(request));
 });
 
 // ── Estratégias de cache ──────────────────────────────────────────────────────
@@ -101,12 +121,17 @@ async function cacheFirst(request) {
   }
 }
 
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) cache.put(request, response.clone());
+/** Rede primeiro, guardando a resposta boa para servir quando estiver offline. */
+async function networkFirstComCache(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
     return response;
-  }).catch(() => null);
-  return cached || (await fetchPromise) || new Response('', { status: 503 });
+  } catch {
+    const cached = await caches.match(request);
+    return cached || new Response('', { status: 503 });
+  }
 }

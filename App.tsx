@@ -45,6 +45,7 @@ import UserManager from './components/UserManager';
 import EndossoAllseg from './components/EndossoAllseg';
 import RCInsurance from './components/RCInsurance';
 import ChatWidget from './components/ChatWidget';
+import AvisoNovaVersao from './components/AvisoNovaVersao.tsx';
 import WhatsAppHub from './components/WhatsAppHub';
 import ImobiliariaRepasse from './components/ImobiliariaRepasse';
 import WhatsAppBlast from './components/WhatsAppBlast';
@@ -899,6 +900,9 @@ const App: React.FC = () => {
       </main>
 
       <ChatWidget activeView={activeView} />
+      {/* Avisa quando sai deploy novo, para ninguém passar a semana na versão
+          antiga só por deixar a aba aberta. */}
+      <AvisoNovaVersao />
     </div>
     </ToastProvider>
   );

@@ -1,3 +1,14 @@
+# O arquivo real vence o redirect abaixo, então /version.json continua sendo
+# servido de verdade e não cai no index.html.
+#
+# Sem cache em lugar nenhum: este arquivo existe só para dizer qual build está
+# publicado agora. Uma cópia guardada no CDN faria o hub achar que está
+# atualizado quando não está — que é exatamente o problema que ele resolve.
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
