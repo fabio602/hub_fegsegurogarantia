@@ -24,10 +24,18 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const hoje = new Date();
-    const diaHoje = hoje.getDate();
-    // Dia alvo = hoje + 10 (com wrap no mês)
-    const diaAlvo = diaHoje + 10 > 28 ? (diaHoje + 10 - 28) : diaHoje + 10;
+    // Dia alvo = hoje + 10 dias de calendário.
+    //
+    // A conta antiga era `diaHoje + 10 > 28 ? diaHoje + 10 - 28 : diaHoje + 10`,
+    // que virava o mês em 28 dias sempre. Em agosto (31 dias), dia 28 + 10 dava
+    // "dia 10" em vez de 7 — três dias de erro. Na prática os vencimentos do
+    // começo do mês eram avisados na data errada. Somar na própria Date resolve,
+    // porque ela já sabe o tamanho de cada mês.
+    const hojeBRT = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    const [ano, mes, dia] = hojeBRT.split('-').map(Number);
+    const diaAlvo = new Date(Date.UTC(ano, mes - 1, dia + 10)).getUTCDate();
 
     // Busca clientes ativos com repasse e dia_vencimento = diaAlvo
     const { data: clientes } = await supabase
