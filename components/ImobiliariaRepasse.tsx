@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
-  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil
+  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil, Search
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -527,6 +527,19 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const repassesSemValor = ativos.filter(c => !(Number(c.valor_seguro) > 0));
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
+
+  // Busca em TODOS os clientes, não só nos ativos.
+  //
+  // Existia um buraco: a tela só lista renovações pendentes, ativos e
+  // encerrados, e o kanban esconde os "aprovado" com mais de 3 dias. Quem está
+  // em renovação, por exemplo, não aparecia em lugar nenhum — não tinha como
+  // abrir o cadastro para informar o valor do repasse. Daí a busca.
+  const [busca, setBusca] = useState('');
+  const termoBusca = busca.trim().toLowerCase();
+  const resultadosBusca = termoBusca.length < 2 ? [] : clientes.filter(c =>
+    (c.inquilino_nome || '').toLowerCase().includes(termoBusca) ||
+    (c.numero_apolice || '').toLowerCase().includes(termoBusca)
+  );
 
   // Dar baixa = informar a nova vigência. Com a data nova o registro sai deste painel
   // e some do alerta de vencimento do portal da imobiliária, sem precisar de flag extra.
@@ -1060,6 +1073,55 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
         );
       })()}
+
+      {/* Busca — abre qualquer cliente, esteja ele em que lista estiver */}
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 mb-5">
+        <div className="flex items-center gap-3">
+          <Search size={16} className="text-slate-400 shrink-0" />
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar qualquer cliente por nome ou nº da apólice (inclusive em renovação e encerrados)"
+            className="flex-1 text-sm font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-300 outline-none"
+          />
+          {busca && (
+            <button onClick={() => setBusca('')} className="text-slate-300 hover:text-slate-500 shrink-0">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {termoBusca.length >= 2 && (
+          <div className="mt-4 border-t border-slate-100 pt-3 space-y-1">
+            {resultadosBusca.length === 0 ? (
+              <p className="text-sm font-bold text-slate-300 py-2">Nenhum cliente encontrado</p>
+            ) : resultadosBusca.map(c => (
+              <button
+                key={c.id}
+                onClick={() => openEditStatus(c)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#1B263B] flex items-center justify-center shrink-0">
+                  <User size={13} className="text-[#C69C6D]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
+                  <p className="text-[11px] font-bold text-slate-400">
+                    {STATUS_APOLICE_LABELS[(c as any).status_apolice] || (c as any).status_apolice || '—'}
+                    {c.numero_apolice ? ` · ${c.numero_apolice}` : ''}
+                  </p>
+                </div>
+                {(c as any).is_repasse && (
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-50 text-amber-600 shrink-0">
+                    Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
+                  </span>
+                )}
+                <Pencil size={14} className="text-slate-300 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Active clients table */}
       {loading ? (
