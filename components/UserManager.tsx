@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, X, Loader2, ShieldCheck, Key, UserX } from 'lucide-react';
+import { Plus, Trash2, Save, X, Loader2, ShieldCheck, Key, UserX, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { ADMIN_EMAIL, MODULOS } from '../lib/permissoes.ts';
 
 interface HubUser {
     id: string;
@@ -24,6 +25,13 @@ const UserManager: React.FC = () => {
     const [pwForm, setPwForm] = useState<{ userId: string; email: string; password: string } | null>(null);
     const [pwSaving, setPwSaving] = useState(false);
     const [pwError, setPwError] = useState<string | null>(null);
+
+    // Permissões por usuário. `permMap` guarda só quem TEM linha na tabela —
+    // ausência significa acesso total, então não dá para preencher com [] por
+    // padrão sem tirar o acesso de todo mundo.
+    const [permMap, setPermMap] = useState<Record<string, string[]>>({});
+    const [permForm, setPermForm] = useState<{ email: string; modulos: string[] } | null>(null);
+    const [permSaving, setPermSaving] = useState(false);
 
     const getToken = async () => {
         const { data } = await supabase.auth.getSession();
@@ -54,7 +62,53 @@ const UserManager: React.FC = () => {
         }
     };
 
-    useEffect(() => { fetchUsers(); }, []);
+    const fetchPerms = async () => {
+        const { data } = await supabase.from('hub_permissoes').select('user_email, modulos');
+        const map: Record<string, string[]> = {};
+        (data ?? []).forEach((p: any) => { map[p.user_email] = p.modulos ?? []; });
+        setPermMap(map);
+    };
+
+    useEffect(() => { fetchUsers(); fetchPerms(); }, []);
+
+    const TODOS_MODULOS = MODULOS.map(m => m.key);
+
+    /** Quem não tem linha vê tudo — abre o modal com tudo marcado. */
+    const abrirPermissoes = (email: string) =>
+        setPermForm({ email, modulos: permMap[email] ?? TODOS_MODULOS });
+
+    const salvarPermissoes = async () => {
+        if (!permForm) return;
+        setPermSaving(true);
+        try {
+            // Tudo marcado volta a ser "sem restrição": apaga a linha em vez de
+            // gravar a lista cheia. Assim um módulo novo criado no futuro já
+            // nasce liberado para quem nunca foi restringido.
+            if (permForm.modulos.length === TODOS_MODULOS.length) {
+                await supabase.from('hub_permissoes').delete().eq('user_email', permForm.email);
+            } else {
+                await supabase.from('hub_permissoes').upsert({
+                    user_email: permForm.email,
+                    modulos: permForm.modulos,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_email' });
+            }
+            await fetchPerms();
+            setPermForm(null);
+        } catch (e: any) {
+            alert('Erro ao salvar permissões: ' + e.message);
+        } finally {
+            setPermSaving(false);
+        }
+    };
+
+    const resumoAcesso = (email: string) => {
+        if (email === ADMIN_EMAIL) return 'Administrador';
+        const m = permMap[email];
+        if (!m) return 'Acesso total';
+        if (!m.length) return 'Só a Visão Geral';
+        return `${m.length} de ${TODOS_MODULOS.length} módulos`;
+    };
 
     const handleCreate = async () => {
         if (!form.email.trim() || !form.password.trim()) {
@@ -201,6 +255,84 @@ const UserManager: React.FC = () => {
                 </div>
             )}
 
+            {/* Permissions Modal */}
+            {permForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg space-y-5 max-h-[90vh] overflow-y-auto">
+                        <div>
+                            <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                                <Lock size={18} className="text-[#C69C6D]" /> O que este usuário vê
+                            </h3>
+                            <p className="text-sm text-slate-500 font-medium mt-1">{permForm.email}</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPermForm(f => f ? { ...f, modulos: TODOS_MODULOS } : f)}
+                                className="text-[11px] font-black px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                            >
+                                Marcar tudo
+                            </button>
+                            <button
+                                onClick={() => setPermForm(f => f ? { ...f, modulos: [] } : f)}
+                                className="text-[11px] font-black px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                            >
+                                Desmarcar tudo
+                            </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            {MODULOS.map(m => {
+                                const marcado = permForm.modulos.includes(m.key);
+                                return (
+                                    <label
+                                        key={m.key}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border transition-all ${
+                                            marcado ? 'bg-[#C69C6D]/10 border-[#C69C6D]/40' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={marcado}
+                                            onChange={() => setPermForm(f => f ? {
+                                                ...f,
+                                                modulos: marcado ? f.modulos.filter(k => k !== m.key) : [...f.modulos, m.key],
+                                            } : f)}
+                                            className="w-4 h-4 accent-[#C69C6D]"
+                                        />
+                                        <div className="min-w-0">
+                                            <p className="font-black text-slate-800 text-sm">{m.label}</p>
+                                            <p className="text-[11px] text-slate-400 font-medium">
+                                                {m.views.length} {m.views.length === 1 ? 'tela' : 'telas'}
+                                            </p>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 font-medium bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
+                            A Visão Geral fica sempre visível — sem ela a pessoa abriria o hub numa tela em branco.
+                            A mudança vale na hora, sem precisar deslogar. Marcar todos os módulos equivale a acesso total.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={salvarPermissoes}
+                                disabled={permSaving}
+                                className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                            >
+                                {permSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                                {permSaving ? 'Salvando...' : 'Salvar'}
+                            </button>
+                            <button onClick={() => setPermForm(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
+                                <X size={15} /> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Users Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 {loading ? (
@@ -214,6 +346,7 @@ const UserManager: React.FC = () => {
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-100">
                                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Acesso</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Criado em</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Último acesso</th>
                                 <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
@@ -223,10 +356,29 @@ const UserManager: React.FC = () => {
                             {users.map(u => (
                                 <tr key={u.id} className="hover:bg-slate-50/80 transition-all">
                                     <td className="px-6 py-4 font-black text-slate-800">{u.email}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${
+                                            u.email === ADMIN_EMAIL ? 'bg-[#1B263B] text-[#C69C6D]'
+                                            : permMap[u.email] ? 'bg-amber-50 text-amber-700'
+                                            : 'bg-slate-100 text-slate-500'
+                                        }`}>
+                                            {resumoAcesso(u.email)}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 text-slate-500 text-xs">{fmtDate(u.created_at)}</td>
                                     <td className="px-6 py-4 text-slate-500 text-xs">{fmtDate(u.last_sign_in_at)}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center gap-2">
+                                            {/* O admin não tem o que restringir: vê tudo por definição. */}
+                                            {u.email !== ADMIN_EMAIL && (
+                                                <button
+                                                    onClick={() => abrirPermissoes(u.email)}
+                                                    className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                    title="Definir o que este usuário vê"
+                                                >
+                                                    <Lock size={15} />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => setPwForm({ userId: u.id, email: u.email, password: '' })}
                                                 className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
@@ -234,7 +386,7 @@ const UserManager: React.FC = () => {
                                             >
                                                 <Key size={15} />
                                             </button>
-                                            {u.email !== 'fabio@fegsegurogarantia.com.br' && (
+                                            {u.email !== ADMIN_EMAIL && (
                                                 <button
                                                     onClick={() => handleDelete(u.id, u.email)}
                                                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"

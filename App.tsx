@@ -28,6 +28,7 @@ import {
   Search,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
+import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
 import Auth from './components/Auth';
 import Calculator from './components/Calculator';
 import NominationLetter from './components/NominationLetter';
@@ -136,6 +137,8 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
+  // Módulos liberados para quem está logado. `null` = vê tudo.
+  const [modulos, setModulos] = useState<string[] | null>(null);
   const [badges, setBadges] = useState<{
     whatsapp: number;
     imobiliaria: number;
@@ -175,12 +178,18 @@ const App: React.FC = () => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         const map: Record<string, string> = { '1': 'dashboard', '2': 'goals', '3': 'residential', '4': 'whatsapp' };
-        if (map[e.key]) { e.preventDefault(); setActiveView(map[e.key] as View); }
+        const alvo = map[e.key];
+        if (!alvo) return;
+        e.preventDefault();
+        // O atalho não pode furar a permissão: quem não vê o WhatsApp no menu
+        // também não chega nele por Ctrl+4.
+        if (modulos && !viewsDosModulos(modulos).has(alvo)) return;
+        setActiveView(alvo as View);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setActiveView]);
+  }, [modulos]);
 
   const [pendingSale, setPendingSale] = useState<{ nome: string; telefone: string } | null>(null);
   // Cliente vindo do Repasse Imobiliárias para o cadastro Residencial / Locatícia.
@@ -216,6 +225,34 @@ const App: React.FC = () => {
     const interval = setInterval(loadBadges, 120000);
     return () => clearInterval(interval);
   }, [loadBadges, session]);
+
+  // Permissões do usuário logado. `null` = sem restrição (admin, ou quem
+  // ainda não tem linha na tabela) — ver lib/permissoes.ts.
+  useEffect(() => {
+    if (!session) { setModulos(null); return; }
+    carregarModulos(session.user?.email).then(setModulos);
+  }, [session]);
+
+  // Reagir a mudança de permissão sem esperar o próximo login: o admin marca
+  // ou desmarca um módulo e a tela da pessoa se ajusta na hora.
+  useEffect(() => {
+    const email = session?.user?.email;
+    if (!email || email === ADMIN_EMAIL) return;
+    const canal = supabase
+      .channel('hub-permissoes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'hub_permissoes', filter: `user_email=eq.${email}` },
+        () => { carregarModulos(email).then(setModulos); })
+      .subscribe();
+    return () => { supabase.removeChannel(canal); };
+  }, [session]);
+
+  // Se a view aberta deixou de ser permitida (o admin acabou de tirar o
+  // acesso), volta para a Visão Geral em vez de deixar a tela renderizada.
+  useEffect(() => {
+    if (!modulos) return;
+    if (!viewsDosModulos(modulos).has(activeView)) setActiveView('dashboard');
+  }, [modulos, activeView]);
 
   // Keep ref in sync so realtime callback can read current view
   useEffect(() => { activeViewRef.current = activeView; }, [activeView]);
@@ -268,11 +305,26 @@ const App: React.FC = () => {
   const toggleGroup = (key: string) =>
     setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
 
+  // ── Checagens de permissão ────────────────────────────────────────
+  // `modulos === null` significa sem restrição, então tudo passa.
+  const podeModulo = (key: string) => !modulos || modulos.includes(key);
+  const podeVer = (view: View) => !modulos || viewsDosModulos(modulos).has(view);
+
+  // View efetivamente renderizada. É `null` quando a pessoa não tem acesso à
+  // tela aberta — o useEffect acima devolve para a Visão Geral, mas sem esta
+  // barreira o componente ainda montaria e buscaria dados no quadro anterior
+  // ao redirecionamento. Todo o bloco de render abaixo compara com `vista`.
+  const vista: View | null = podeVer(activeView) ? activeView : null;
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   const navigate = (view: View) => {
+    // Barreira única de navegação: o menu já esconde o que a pessoa não pode
+    // ver, mas atalho de teclado, busca global e botões de atalho da Visão
+    // Geral entram por aqui também.
+    if (!podeVer(view)) return;
     setActiveView(view);
     if (view === 'whatsapp') setUnreadWhatsApp(0);
     if (view !== 'goals') setPendingSale(null);
@@ -410,7 +462,8 @@ const App: React.FC = () => {
 
   return (
     <ToastProvider>
-    <GlobalSearch onNavigate={(view) => setActiveView(view as View)} />
+    {/* Passa por navigate() para a busca global respeitar a permissão. */}
+    <GlobalSearch onNavigate={(view) => navigate(view as View)} />
     <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
       {/* Overlay mobile — fecha sidebar ao clicar fora */}
       {isSidebarOpen && (
@@ -435,6 +488,7 @@ const App: React.FC = () => {
               <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Visão Geral" />
 
               {/* ── Seguro Garantia ─────────────────────── */}
+              {podeModulo('garantia') && (
               <NavGroup
                 groupKey="garantia"
                 icon={<ShieldCheck size={16} />}
@@ -471,8 +525,10 @@ const App: React.FC = () => {
                 <NavSubItem view="calculator" label="Cálculo de Garantia" />
                 <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
               </NavGroup>
+              )}
 
               {/* ── Seguro AUTO ─────────────────────────── */}
+              {podeModulo('auto') && (
               <NavGroup
                 groupKey="auto"
                 icon={<Car size={16} />}
@@ -482,8 +538,10 @@ const App: React.FC = () => {
                 <NavSubItem view="auto" label="Registro de Vendas" />
                 <NavSubItem view="auto-seguradoras" label="Seguradoras" />
               </NavGroup>
+              )}
 
               {/* ── Seguro Residencial ──────────────────── */}
+              {podeModulo('residencial') && (
               <NavGroup
                 groupKey="residencial"
                 icon={<Home size={16} />}
@@ -504,8 +562,10 @@ const App: React.FC = () => {
                 </FeatureTip>
                 <NavSubItem view="inadimplentes" label="Inadimplentes" />
               </NavGroup>
+              )}
 
               {/* ── Responsabilidade Civil ──────────────── */}
+              {podeModulo('rc') && (
               <NavGroup
                 groupKey="rc"
                 icon={<ShieldAlert size={16} />}
@@ -515,8 +575,10 @@ const App: React.FC = () => {
                 <NavSubItem view="rc" label="Registro de Vendas" />
                 <NavSubItem view="rc-seguradoras" label="Seguradoras" />
               </NavGroup>
+              )}
 
               {/* ── Gestão Financeira ────────────────────── */}
+              {podeModulo('financeiro') && (
               <NavGroup
                 groupKey="financeiro"
                 icon={<Target size={16} />}
@@ -526,7 +588,9 @@ const App: React.FC = () => {
                 <NavSubItem view="metas-mensais" label="Metas Mensais" />
                 <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
+              )}
 
+              {podeModulo('whatsapp') && (
               <FeatureTip
                 id="whatsapp-hub-2026"
                 title="WhatsApp Hub integrado"
@@ -542,10 +606,12 @@ const App: React.FC = () => {
                   <NavSubItem view="whatsapp-blast" label="Prospecção" />
                 </NavGroup>
               </FeatureTip>
+              )}
 
-              <NavItem view="email-followup" icon={<Mail size={16} />} label="Follow-up de Email" />
-              <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />
-              <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />
+              {podeModulo('email-followup') && <NavItem view="email-followup" icon={<Mail size={16} />} label="Follow-up de Email" />}
+              {podeModulo('manual') && <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />}
+              {podeModulo('agenda') && <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />}
+              {podeModulo('parceiros') && (
               <FeatureTip
                 id="parceiros-portal-2026"
                 title="Portal de Parceiros"
@@ -554,7 +620,8 @@ const App: React.FC = () => {
               >
                 <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
               </FeatureTip>
-              {session?.user?.email === 'fabio@fegsegurogarantia.com.br' && (
+              )}
+              {session?.user?.email === ADMIN_EMAIL && (
                 <NavItem view="usuarios" icon={<ShieldCheck size={16} />} label="Usuários do Hub" />
               )}
             </nav>
@@ -691,7 +758,10 @@ const App: React.FC = () => {
                       { title: 'Residencial', desc: 'Registro de Clientes', icon: <Home size={22} />, view: 'residential' as View, color: 'bg-emerald-50 text-emerald-600' },
                       { title: 'WhatsApp', desc: 'Central de Mensagens', icon: <Users size={22} />, view: 'whatsapp' as View, color: 'bg-amber-50 text-amber-600' },
                       { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros' as View, color: 'bg-slate-100 text-[#1B263B]' },
-                    ] as { title: string; desc: string; icon: React.ReactNode; view: View; color: string }[]).map((item, idx) => (
+                    ] as { title: string; desc: string; icon: React.ReactNode; view: View; color: string }[])
+                      // Atalho para tela sem permissão vira botão morto — some.
+                      .filter(item => podeVer(item.view))
+                      .map((item, idx) => (
                       <button key={idx} onClick={() => navigate(item.view)}
                         className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-[#C69C6D] hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
                         <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 shadow-sm`}>
@@ -742,17 +812,17 @@ const App: React.FC = () => {
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
               {/* Seguro Garantia */}
-              {activeView === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
-              {activeView === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
-              {activeView === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
-              {activeView === 'prospeccao-email' && <ProspeccaoEmail />}
-              {activeView === 'email-trilhas' && <EmailTrilhas />}
-              {activeView === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
-              {activeView === 'seg-licitante' && <ResultsDashboard key="seg-licitante" initialSection="licitante" hideTabs onVerVendas={() => navigate('goals')} />}
-              {activeView === 'seg-contrato' && <ResultsDashboard key="seg-contrato" initialSection="contrato" hideTabs onVerVendas={() => navigate('goals')} />}
-              {activeView === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" hideTabs />}
-              {activeView === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" hideTabs />}
-              {activeView === 'directory' && (
+              {vista === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
+              {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
+              {vista === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
+              {vista === 'prospeccao-email' && <ProspeccaoEmail />}
+              {vista === 'email-trilhas' && <EmailTrilhas />}
+              {vista === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
+              {vista === 'seg-licitante' && <ResultsDashboard key="seg-licitante" initialSection="licitante" hideTabs onVerVendas={() => navigate('goals')} />}
+              {vista === 'seg-contrato' && <ResultsDashboard key="seg-contrato" initialSection="contrato" hideTabs onVerVendas={() => navigate('goals')} />}
+              {vista === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" hideTabs />}
+              {vista === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" hideTabs />}
+              {vista === 'directory' && (
                 <InsuranceDirectory
                   tableName="insurers"
                   title="Seguradoras — Garantia"
@@ -761,14 +831,14 @@ const App: React.FC = () => {
                   emptyStateText="Adicionar Seguradora"
                 />
               )}
-              {activeView === 'banks' && <BanksDirectory />}
-              {activeView === 'letter' && <NominationLetter />}
-              {activeView === 'calculator' && <Calculator />}
-              {activeView === 'endosso-allseg' && <EndossoAllseg />}
+              {vista === 'banks' && <BanksDirectory />}
+              {vista === 'letter' && <NominationLetter />}
+              {vista === 'calculator' && <Calculator />}
+              {vista === 'endosso-allseg' && <EndossoAllseg />}
 
               {/* Seguro AUTO */}
-              {activeView === 'auto' && <AutoInsurance />}
-              {activeView === 'auto-seguradoras' && (
+              {vista === 'auto' && <AutoInsurance />}
+              {vista === 'auto-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_auto"
                   title="Seguradoras AUTO"
@@ -779,8 +849,8 @@ const App: React.FC = () => {
               )}
 
               {/* Seguro Residencial */}
-              {activeView === 'residential' && <ResidentialInsurance prefill={pendingResidential} onPrefillConsumed={() => setPendingResidential(null)} />}
-              {activeView === 'residencial-seguradoras' && (
+              {vista === 'residential' && <ResidentialInsurance prefill={pendingResidential} onPrefillConsumed={() => setPendingResidential(null)} />}
+              {vista === 'residencial-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_residencial"
                   title="Seguradoras Residencial"
@@ -789,7 +859,7 @@ const App: React.FC = () => {
                   emptyStateText="Adicionar Seguradora"
                 />
               )}
-              {activeView === 'residencial-garantidoras' && (
+              {vista === 'residencial-garantidoras' && (
                 <InsuranceDirectory
                   tableName="garantidoras_residencial"
                   title="Garantidoras"
@@ -800,11 +870,11 @@ const App: React.FC = () => {
               )}
 
               {/* Responsabilidade Civil */}
-              {activeView === 'imobiliaria-repasse' && <ImobiliariaRepasse onGoToSale={(data) => { setPendingResidential(data); navigate('residential'); }} />}
-              {activeView === 'garantia-locaticia' && <GarantiaLocaticia />}
-              {activeView === 'inadimplentes' && <InadimplentesResidencial />}
-              {activeView === 'rc' && <RCInsurance />}
-              {activeView === 'rc-seguradoras' && (
+              {vista === 'imobiliaria-repasse' && <ImobiliariaRepasse onGoToSale={(data) => { setPendingResidential(data); navigate('residential'); }} />}
+              {vista === 'garantia-locaticia' && <GarantiaLocaticia />}
+              {vista === 'inadimplentes' && <InadimplentesResidencial />}
+              {vista === 'rc' && <RCInsurance />}
+              {vista === 'rc-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_rc"
                   title="Seguradoras — RC"
@@ -815,14 +885,14 @@ const App: React.FC = () => {
               )}
 
               {/* Outros */}
-              {activeView === 'whatsapp' && <WhatsAppHub onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
-              {activeView === 'whatsapp-blast' && <WhatsAppBlast />}
-              {activeView === 'email-followup' && <EmailFollowUp />}
-              {activeView === 'sureties' && <SuretiesDirectory />}
-              {activeView === 'manual' && <InternalProcedures />}
-              {activeView === 'agenda' && <AgendaHub />}
-              {activeView === 'parceiros' && <ParceiroManager />}
-              {activeView === 'usuarios' && <UserManager />}
+              {vista === 'whatsapp' && <WhatsAppHub onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
+              {vista === 'whatsapp-blast' && <WhatsAppBlast />}
+              {vista === 'email-followup' && <EmailFollowUp />}
+              {vista === 'sureties' && <SuretiesDirectory />}
+              {vista === 'manual' && <InternalProcedures />}
+              {vista === 'agenda' && <AgendaHub />}
+              {vista === 'parceiros' && <ParceiroManager />}
+              {vista === 'usuarios' && <UserManager />}
             </div>
           </div>
         </div>
