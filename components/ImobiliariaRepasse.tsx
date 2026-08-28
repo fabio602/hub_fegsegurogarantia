@@ -30,6 +30,113 @@ interface Cliente {
 const fmtBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Datas do banco vêm como 'YYYY-MM-DD'. new Date('2026-06-26') é interpretado como
+// UTC e, no fuso de Brasília, "volta" um dia. Por isso montamos a data local na mão.
+const parseDataLocal = (s: string) => {
+  const [a, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(a, m - 1, d);
+};
+
+const diasAte = (s: string) => {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  return Math.round((parseDataLocal(s).getTime() - hoje.getTime()) / 86400000);
+};
+
+const fmtData = (s: string) => parseDataLocal(s).toLocaleDateString('pt-BR');
+
+// Etapas anteriores à emissão da apólice — o registro ainda é uma solicitação.
+const ETAPAS_EM_ANDAMENTO = ['solicitado', 'atendimento_iniciado', 'aguardando_seguradora', 'aguardando_cliente'];
+
+// "Apenas Garantia Locatícia" é a primeira opção do formulário do portal e grava
+// tipo_seguro = 'garantia'. Testar só por 'residencial_garantia' deixava esse caso
+// de fora de tudo: rescisão, distrato e rótulo na tela.
+const temGarantia = (c: any) => c?.tipo_seguro === 'residencial_garantia' || c?.tipo_seguro === 'garantia';
+const temResidencial = (c: any) => c?.tipo_seguro === 'residencial_garantia' || c?.tipo_seguro === 'residencial';
+const rotuloTipoSeguro = (c: any) =>
+  temGarantia(c) && temResidencial(c) ? '🏠🔒 + Garantia' : temGarantia(c) ? '🔒 Garantia Locatícia' : '🏠 Residencial';
+
+// Linha do painel "Pendências do portal". Renovação, cancelamento e rescisão têm
+// o mesmo formato — só muda a etiqueta, os documentos e o botão de baixa.
+function LinhaPendencia({
+  cliente, parceiros, etiqueta, detalhe, documentos = [], observacao, acao, onGoToSale, fundo,
+}: {
+  // O projeto não tem @types/react instalado, então o TS não reconhece `key`
+  // como prop reservada de componente — por isso ela é declarada aqui.
+  key?: string | undefined;
+  cliente: any;
+  parceiros: { id: number; name: string }[];
+  etiqueta: { texto: string; bg: string; cor: string };
+  detalhe?: { texto: string; bg: string; cor: string } | undefined;
+  documentos?: { label: string; url?: string | null | undefined }[] | undefined;
+  observacao?: string | undefined;
+  acao: { label: string; onClick: () => void };
+  onGoToSale?: ((data: { nome: string; telefone: string }) => void) | undefined;
+  fundo?: string | undefined;
+}) {
+  const parceiro = parceiros.find(p => p.id === cliente.partner_id);
+  return (
+    <div
+      className="flex items-start justify-between gap-3 flex-wrap px-6 py-4 border-b border-slate-50 last:border-b-0"
+      style={{ background: fundo }}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-lg" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
+            {etiqueta.texto}
+          </span>
+          <p className="font-black text-[13px] text-[#1B263B]">{cliente.inquilino_nome}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap mt-1.5">
+          {detalhe && (
+            <span className="text-[11px] font-black px-2.5 py-0.5 rounded-lg" style={{ background: detalhe.bg, color: detalhe.cor }}>
+              {detalhe.texto}
+            </span>
+          )}
+          <span className="text-[10px] font-bold text-slate-400">{rotuloTipoSeguro(cliente)}</span>
+          {parceiro && (
+            <span className="text-[10px] font-black text-[#78716c] bg-[#f4f1ec] px-2 py-0.5 rounded-lg">
+              {parceiro.name.replace('Imobiliária ', '')}
+            </span>
+          )}
+        </div>
+        {documentos.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+            {documentos.map(d => d.url ? (
+              <a
+                key={d.label} href={d.url} target="_blank" rel="noreferrer"
+                className="text-[10px] font-black text-[#16a34a] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-0.5 rounded-lg hover:underline"
+              >{d.label}</a>
+            ) : (
+              <span key={d.label} className="text-[10px] font-black text-[#c2410c] bg-[#fff7ed] border border-[#fdba74] px-2 py-0.5 rounded-lg">
+                {d.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {observacao && (
+          <p className="text-[11px] text-slate-500 font-semibold mt-1.5 max-w-xl">{observacao}</p>
+        )}
+      </div>
+      <div className="flex gap-2 flex-shrink-0">
+        {onGoToSale && (
+          <button
+            onClick={() => onGoToSale({ nome: cliente.inquilino_nome, telefone: cliente.telefone || '' })}
+            className="text-[11px] font-black bg-white border border-slate-200 hover:border-[#C69C6D] text-slate-600 px-3 py-2 rounded-xl transition-colors"
+          >
+            → Registro de Venda
+          </button>
+        )}
+        <button
+          onClick={acao.onClick}
+          className="flex items-center gap-1.5 text-[11px] font-black bg-[#1B263B] hover:bg-[#2a3a56] text-[#C69C6D] px-3 py-2 rounded-xl transition-colors"
+        >
+          <CheckCircle2 size={13} /> {acao.label}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const EMPTY_FORM = {
   inquilino_nome: '',
   seguradora: '',
@@ -118,10 +225,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   const moveCard = async (clienteId: string, newStatus: string) => {
     setDraggingId(null); setDragOver(null);
-    // Se movendo para Aprovado, verifica se é cliente novo do portal (is_repasse = false)
+    // Ao aprovar, pede a configuração do repasse se ainda não há valor mensal.
+    // Antes o teste era `!is_repasse`, mas o portal já insere is_repasse: true com
+    // valor_seguro 0 — o modal nunca abria e o valor ficava zerado para sempre.
     if (newStatus === 'aprovado') {
       const cliente = clientes.find(c => c.id === clienteId);
-      if (cliente && !(cliente as any).is_repasse) {
+      if (cliente && !(Number((cliente as any).valor_seguro) > 0)) {
         setRepasseSetupForm({ total_parcelas: 12, valor_seguro: '' });
         setRepasseSetupModal({ clienteId, nome: cliente.inquilino_nome, newStatus });
         return; // aguarda confirmação no modal
@@ -232,9 +341,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
     const updatePayload: Record<string, unknown> = {
       status_residencial: editStatusForm.status_residencial,
-      status_garantia: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.status_garantia : null,
+      status_garantia: temGarantia(editingStatus) ? editStatusForm.status_garantia : null,
       apolice_residencial_url: editStatusForm.apolice_residencial_url || null,
-      apolice_garantia_url: editingStatus.tipo_seguro === 'residencial_garantia' ? editStatusForm.apolice_garantia_url || null : null,
+      apolice_garantia_url: temGarantia(editingStatus) ? editStatusForm.apolice_garantia_url || null : null,
       vigencia_fim: editStatusForm.vigencia_fim || null,
       status_apolice: editStatusForm.status_apolice || 'ativo',
       status: editStatusForm.status_apolice || 'ativo',
@@ -355,11 +464,99 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   useEffect(() => { load(); }, [load]);
 
+  // Renovações que a imobiliária já confirmou no portal e que ainda não foram feitas.
+  // Sem esse painel a confirmação só chegava por WhatsApp e se perdia — apólices
+  // venceram sem ninguém perceber. A baixa é dar a nova vigência: aí o registro
+  // sai daqui e some também do alerta do portal.
+  const encerrado = (c: any) => ['cancelado', 'saiu_imovel', 'desistiu', 'reprovado'].includes(c.status_apolice);
+
+  const renovacoesPendentes = clientes
+    .filter(c => {
+      if ((c as any).renovacao_confirmacao !== 'vai_renovar') return false;
+      if (!(c as any).vigencia_fim) return false;
+      if (encerrado(c)) return false;
+      return diasAte((c as any).vigencia_fim) <= 45;
+    })
+    .sort((a, b) => diasAte((a as any).vigencia_fim) - diasAte((b as any).vigencia_fim));
+
+  // A imobiliária avisou que não renova: é preciso cancelar na seguradora.
+  // Sem garantia locatícia basta deixar vencer, mas a garantia só é cancelada
+  // com o distrato em mãos — por isso o documento aparece aqui.
+  const cancelamentosPendentes = clientes
+    .filter(c => (c as any).renovacao_confirmacao === 'nao_vai_renovar' && !encerrado(c))
+    .sort((a, b) => String((a as any).vigencia_fim || '').localeCompare(String((b as any).vigencia_fim || '')));
+
+  // Rescisão no meio do contrato: o portal grava a data e os dois documentos,
+  // e até agora nada disso aparecia aqui — só um e-mail.
+  const rescisoesPendentes = clientes
+    .filter(c => (c as any).rescisao_solicitada_em && !encerrado(c))
+    .sort((a, b) => String((b as any).rescisao_solicitada_em).localeCompare(String((a as any).rescisao_solicitada_em)));
+
+  const totalPendenciasPortal = renovacoesPendentes.length + cancelamentosPendentes.length + rescisoesPendentes.length;
+
   // Pendentes = solicitações da imobiliária sem apólice ainda emitida
-  const pendentes = clientes.filter(c => ['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes((c as any).kanban_status || 'solicitado') && !c.numero_apolice);
-  const ativos = clientes.filter(c => ((c as any).status_apolice === 'ativo' || c.status === 'ativo') && (c as any).is_repasse === true);
+  const emAndamento = (c: any) => ETAPAS_EM_ANDAMENTO.includes(c.kanban_status || 'solicitado') && !c.numero_apolice;
+  const pendentes = clientes.filter(emAndamento);
+  // O insert do portal já grava status: 'ativo' na própria solicitação, então o
+  // teste de status sozinho contava como ativo quem ainda nem tem apólice.
+  // Quem está em andamento é pendente e não pode aparecer também aqui.
+  const ativos = clientes.filter(c =>
+    (c as any).is_repasse === true
+    && !emAndamento(c)
+    && ((c as any).status_apolice === 'ativo' || c.status === 'ativo')
+  );
+  // Repasse ativo sem valor mensal = e-mail de cobrança de R$ 0,00 para a imobiliária.
+  const repassesSemValor = ativos.filter(c => !(Number(c.valor_seguro) > 0));
   const encerrados = clientes.filter(c => c.status === 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
+
+  // Dar baixa = informar a nova vigência. Com a data nova o registro sai deste painel
+  // e some do alerta de vencimento do portal da imobiliária, sem precisar de flag extra.
+  const darBaixaRenovacao = async (c: any) => {
+    const atual = parseDataLocal(c.vigencia_fim);
+    const sugestao = new Date(atual.getFullYear() + 1, atual.getMonth(), atual.getDate());
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const resp = prompt(
+      `Renovação de ${c.inquilino_nome}\n\nNova data de fim de vigência (AAAA-MM-DD):`,
+      iso(sugestao)
+    );
+    if (!resp) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(resp.trim())) { alert('Data inválida. Use o formato AAAA-MM-DD.'); return; }
+
+    const novaData = resp.trim();
+    if (diasAte(novaData) <= 0) { alert('A nova vigência precisa ser uma data futura.'); return; }
+
+    const { error } = await supabase
+      .from('imobiliaria_clientes')
+      .update({
+        vigencia_fim: novaData,
+        renovacao_confirmacao: null, // zera para o próximo ciclo de vencimento
+        status_apolice: 'ativo',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', c.id);
+
+    if (error) { alert(`Erro ao dar baixa: ${error.message}`); return; }
+    load();
+  };
+
+  // Baixa de cancelamento/rescisão: marca a apólice como cancelada. Com isso o
+  // registro sai deste painel e o portal para de exibir o cliente como ativo.
+  const encerrarApolice = async (c: any, motivo: string) => {
+    if (!confirm(`Confirmar que a apólice de ${c.inquilino_nome} foi cancelada na seguradora?\n\nMotivo: ${motivo}`)) return;
+    const { error } = await supabase
+      .from('imobiliaria_clientes')
+      .update({
+        status_apolice: 'cancelado',
+        status: 'encerrado',
+        renovacao_confirmacao: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', c.id);
+    if (error) { alert(`Erro ao dar baixa: ${error.message}`); return; }
+    load();
+  };
 
   const handleSave = async () => {
     if (!form.inquilino_nome || !form.seguradora || !form.numero_apolice || !form.valor_seguro) return;
@@ -383,7 +580,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const avancarParcela = async (c: Cliente) => {
     const proxima = c.parcela_atual + 1;
     if (proxima > c.total_parcelas) {
-      await supabase.from('imobiliaria_clientes').update({ status: 'encerrado', updated_at: new Date().toISOString() }).eq('id', c.id);
+      // Grava os dois campos: o portal lê status_apolice e continuaria exibindo "Ativo".
+      await supabase.from('imobiliaria_clientes').update({ status: 'encerrado', status_apolice: 'encerrado', updated_at: new Date().toISOString() }).eq('id', c.id);
     } else {
       await supabase.from('imobiliaria_clientes').update({ parcela_atual: proxima, updated_at: new Date().toISOString() }).eq('id', c.id);
     }
@@ -510,6 +708,105 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {sendError && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-3 rounded-xl font-bold text-sm">
           <AlertTriangle size={16} /> {sendError}
+        </div>
+      )}
+
+      {/* Repasse ativo sem valor mensal — a cobrança sairia como R$ 0,00 */}
+      {repassesSemValor.length > 0 && (
+        <div className="bg-[#fff7ed] border border-[#fdba74] rounded-2xl px-5 py-4">
+          <p className="flex items-center gap-2 text-[#c2410c] font-black text-sm">
+            <AlertTriangle size={16} /> {repassesSemValor.length} repasse{repassesSemValor.length > 1 ? 's' : ''} sem valor mensal
+          </p>
+          <p className="text-[#7c2d12] text-[11px] font-semibold mt-1">
+            {repassesSemValor.map(c => c.inquilino_nome).join(' · ')} — abra o cliente e informe o valor, senão a imobiliária recebe cobrança de R$ 0,00.
+          </p>
+        </div>
+      )}
+
+      {/* Pendências do portal — tudo que a imobiliária pediu e ainda está em aberto */}
+      {totalPendenciasPortal > 0 && (
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="bg-[#1B263B] px-6 py-4 flex items-center gap-3">
+            <RefreshCw size={17} className="text-[#C69C6D]" />
+            <div>
+              <p className="text-white font-black text-sm">Pendências do portal ({totalPendenciasPortal})</p>
+              <p className="text-white/50 text-[11px] font-semibold mt-0.5">
+                O que a imobiliária registrou e ainda depende de você. Fica aqui até dar baixa.
+              </p>
+            </div>
+          </div>
+
+          {/* Renovações confirmadas pela imobiliária */}
+          {renovacoesPendentes.map(c => {
+            const dias = diasAte((c as any).vigencia_fim);
+            const vencido = dias < 0;
+            const urgente = dias >= 0 && dias <= 7;
+            const prazo = dias === 0
+              ? 'Vence hoje!'
+              : vencido
+                ? `Venceu há ${-dias} dia${dias !== -1 ? 's' : ''}`
+                : `Vence em ${dias} dia${dias !== 1 ? 's' : ''}`;
+            return (
+              <LinhaPendencia
+                key={`ren-${c.id}`}
+                cliente={c}
+                parceiros={parceiros}
+                fundo={vencido ? '#fef2f2' : undefined}
+                etiqueta={{ texto: '🔄 Renovar', bg: '#f8f5f0', cor: '#78716c' }}
+                detalhe={{
+                  texto: `${vencido ? '⛔ ' : urgente ? '⚠️ ' : ''}${prazo} — ${fmtData((c as any).vigencia_fim)}`,
+                  bg: vencido ? '#fecaca' : urgente ? '#fff7ed' : '#f4f1ec',
+                  cor: vencido ? '#7f1d1d' : urgente ? '#c2410c' : '#78716c',
+                }}
+                onGoToSale={onGoToSale}
+                acao={{ label: 'Renovada', onClick: () => darBaixaRenovacao(c) }}
+              />
+            );
+          })}
+
+          {/* Não vai renovar — precisa cancelar na seguradora */}
+          {cancelamentosPendentes.map(c => (
+            <LinhaPendencia
+              key={`can-${c.id}`}
+              cliente={c}
+              parceiros={parceiros}
+              etiqueta={{ texto: '❌ Cancelar na seguradora', bg: '#fef2f2', cor: '#dc2626' }}
+              detalhe={
+                (c as any).vigencia_fim
+                  ? { texto: `Vigência até ${fmtData((c as any).vigencia_fim)}`, bg: '#f4f1ec', cor: '#78716c' }
+                  : undefined
+              }
+              documentos={
+                temGarantia(c)
+                  ? [{ label: (c as any).distrato_url ? '📄 Distrato' : '⚠️ Sem distrato', url: (c as any).distrato_url }]
+                  : []
+              }
+              observacao={temGarantia(c) && !(c as any).distrato_url ? 'A garantia locatícia só é cancelada com o distrato — cobre a imobiliária.' : undefined}
+              acao={{ label: 'Cancelada', onClick: () => encerrarApolice(c, 'inquilino não vai renovar') }}
+            />
+          ))}
+
+          {/* Rescisão no meio do contrato */}
+          {rescisoesPendentes.map(c => (
+            <LinhaPendencia
+              key={`res-${c.id}`}
+              cliente={c}
+              parceiros={parceiros}
+              fundo="#f5f3ff"
+              etiqueta={{ texto: '📋 Rescisão solicitada', bg: '#ddd6fe', cor: '#5b21b6' }}
+              detalhe={{
+                texto: `Pedida em ${new Date((c as any).rescisao_solicitada_em).toLocaleDateString('pt-BR')}`,
+                bg: '#ede9fe',
+                cor: '#5b21b6',
+              }}
+              documentos={[
+                { label: (c as any).rescisao_distrato_url ? '📄 Distrato' : '⚠️ Sem distrato', url: (c as any).rescisao_distrato_url },
+                { label: (c as any).rescisao_vistoria_url ? '📄 Vistoria' : '⚠️ Sem vistoria', url: (c as any).rescisao_vistoria_url },
+              ]}
+              observacao={(c as any).rescisao_obs || undefined}
+              acao={{ label: 'Cancelada', onClick: () => encerrarApolice(c, 'rescisão de contrato') }}
+            />
+          ))}
         </div>
       )}
 
@@ -671,7 +968,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>
-                                {(c as any).tipo_seguro === 'residencial_garantia' ? '🏠🔒 + Garantia' : '🏠 Residencial'}
+                                {rotuloTipoSeguro(c)}
                               </span>
                               {(c as any).intencao === 'contratar' ? (
                                 <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', border: '1px solid #c3dfd4', padding: '1px 6px', borderRadius: '20px' }}>✅ Contratar</span>
@@ -706,7 +1003,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 → Registro de Venda
                               </button>
                             )}
-                            {col.key === 'aprovado' && (c as any).tipo_seguro === 'residencial_garantia' && (
+                            {col.key === 'aprovado' && temGarantia(c) && (
                               <button
                                 onClick={async e => {
                                   e.stopPropagation();
@@ -804,7 +1101,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                       {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
                     </td>
                     <td className="px-5 py-4">
-                      {c.tipo_seguro === 'residencial_garantia' ? (
+                      {temGarantia(c) ? (
                         <div className="space-y-1">
                           <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                             {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
@@ -1175,7 +1472,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             </div>
 
             {/* Garantia */}
-            {(editingStatus as any).tipo_seguro === 'residencial_garantia' && (
+            {temGarantia(editingStatus) && (
               <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Garantia de Aluguel</p>
                 <div>
