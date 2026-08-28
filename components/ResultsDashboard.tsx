@@ -1069,7 +1069,6 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             valorContrato: formData.valorContrato || null,
             limites_seguradoras: limitesArray.length > 0 ? JSON.stringify(limitesArray) : null,
             parceiro: (formData as any).parceiro || null,
-            numero_boleto: (formData as any).numero_boleto || null,
             vencimento_boleto: (formData as any).vencimento_boleto || null,
             pagamento_status: (formData as any).pagamento_status || 'Em dia',
         };
@@ -1338,7 +1337,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             objetoContrato: dados.objetoContrato || null, segurado: dados.segurado || null,
             valorContrato: dados.valorContrato || null,
             limites_seguradoras: limites.length > 0 ? JSON.stringify(limites) : null,
-            parceiro: (dados as any).parceiro || null, numero_boleto: (dados as any).numero_boleto || null,
+            parceiro: (dados as any).parceiro || null,
             vencimento_boleto: (dados as any).vencimento_boleto || null,
             pagamento_status: (dados as any).pagamento_status || 'Em dia',
         };
@@ -2634,13 +2633,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             {formData.vendeu === 'Sim' && (
                                 <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-100 space-y-3">
                                     <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">💰 Cobrança / Boleto</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nº do Boleto</label>
-                                            <input type="text" id="numero_boleto" value={(formData as any).numero_boleto || ''} onChange={handleInputChange}
-                                                placeholder="Ex: 9655696"
-                                                className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20" />
-                                        </div>
+                                    {/* O campo "Nº do Boleto" saiu daqui: nunca era preenchido, e o
+                                        que ele alimentava (o número citado no WhatsApp) foi removido
+                                        da mensagem. A coluna continua na tabela com o histórico. */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                                 <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>{parseInt(qtdParcelas) > 1 ? '1º Vencimento' : 'Vencimento do Boleto'}</span>

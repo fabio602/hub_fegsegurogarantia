@@ -90,7 +90,6 @@ interface Alvo {
   valor: string | null;      // já formatado em BRL, ou '' se não houver
   nome: string;
   telefone: string | null;
-  apolice: string;
 }
 
 Deno.serve(async (req) => {
@@ -170,7 +169,7 @@ Deno.serve(async (req) => {
     const vendasPorId = new Map<number, any>();
     if (saleIdsParcelas.length) {
       const { data: vendas } = await supabase.from('sales')
-        .select('id, nome, decisor, telefone, numero_boleto, vendeu')
+        .select('id, nome, decisor, telefone, vendeu')
         .in('id', saleIdsParcelas);
       for (const v of vendas ?? []) vendasPorId.set(v.id, v);
     }
@@ -191,13 +190,12 @@ Deno.serve(async (req) => {
         valor: fmtBRL(b.valor),
         nome: s.decisor || s.nome || 'cliente',
         telefone: s.telefone,
-        apolice: s.numero_boleto || '—',
       });
     }
 
     // Caminho legado: só vendas SEM nenhuma parcela cadastrada.
     const { data: legado } = await supabase.from('sales')
-      .select('id, nome, decisor, telefone, premio, vencimento_boleto, numero_boleto, cobranca_d3_sent')
+      .select('id, nome, decisor, telefone, premio, vencimento_boleto, cobranca_d3_sent')
       .eq('vendeu', 'Sim')
       .eq('vencimento_boleto', d3ISO);
 
@@ -215,7 +213,6 @@ Deno.serve(async (req) => {
         valor: fmtBRL(s.premio),
         nome: s.decisor || s.nome || 'cliente',
         telefone: s.telefone,
-        apolice: s.numero_boleto || '—',
       });
     }
 
@@ -244,10 +241,13 @@ Deno.serve(async (req) => {
       const phone = cleanPhone(a.telefone); if (!phone) continue;
       const p = a.nome.split(' ')[0];
       const ref = labelParcela(a.parcela, a.totalParcelas);
+      // O número da apólice saiu da mensagem: vinha de `sales.numero_boleto`,
+      // um campo que na prática nunca era preenchido — o cliente recebia
+      // "sobre sua apólice —". O nome, a data e o valor já identificam o
+      // boleto sem depender de um cadastro manual.
       const msg =
         `Oi ${p}! Aqui é a F&G Seguro Garantia.\n\n` +
-        `Hoje vim trazer algumas informações sobre sua apólice ${a.apolice}. ` +
-        `Seu boleto${ref} vence em 3 dias, no dia ${fmtDate(a.vencimento)}.` +
+        `Passando para avisar: seu boleto${ref} vence em 3 dias, no dia ${fmtDate(a.vencimento)}.` +
         (a.valor ? ` Valor: ${a.valor}.` : '') + `\n\n` +
         `Se já realizou o pagamento, é só desconsiderar. Qualquer apoio, conte comigo. 😊`;
       if (await sendZAPI(phone, msg)) { await marcarEnviado(a); sent++; }
