@@ -21,7 +21,8 @@
 
     <!-- Ícone padrão -->
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- O Tailwind é compilado no build (tailwind.config.js + postcss.config.js)
+         e entra pelo index.css, importado no index.tsx. Não usar mais o CDN. -->
     <!-- Biblioteca para exportação de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,7 +82,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased min-h-screen overflow-x-hidden overflow-y-auto">
     <div id="root"></div>
