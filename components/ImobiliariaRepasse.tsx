@@ -295,7 +295,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
 
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
   const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-slate-50 text-slate-600' };
@@ -322,10 +322,20 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   const openEditStatus = (c: Cliente) => {
     setEditingStatus(c);
-    setEditStatusForm({ status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) });
+    setEditStatusForm({ inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) });
   };
   const saveStatus = async () => {
     if (!editingStatus) return;
+
+    // O nome é como o cliente aparece na lista, nos e-mails e no portal da
+    // imobiliária — deixar salvar em branco sumiria com a linha da tela.
+    const nomeEditado = editStatusForm.inquilino_nome.trim();
+    if (!nomeEditado) {
+      alert('O nome do inquilino não pode ficar em branco.');
+      return;
+    }
+    const nomeAntigo = (editingStatus.inquilino_nome || '').trim();
+
     // Auto-advance kanban when policy is emitted or approved
     let kanban = editStatusForm.kanban_status || 'solicitado';
     if (['emitido','aprovado'].includes(editStatusForm.status_residencial) &&
@@ -375,6 +385,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     );
 
     const updatePayload: Record<string, unknown> = {
+      inquilino_nome: nomeEditado,
       status_residencial: editStatusForm.status_residencial,
       status_garantia: temGarantia(editingStatus) ? editStatusForm.status_garantia : null,
       apolice_residencial_url: editStatusForm.apolice_residencial_url || null,
@@ -422,18 +433,22 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     setEditingStatus(null);
 
     // ── Sync para residential_clients quando emitido ──────────────
-    if (editStatusForm.status_residencial === 'emitido' && editingStatus.inquilino_nome) {
+    if (editStatusForm.status_residencial === 'emitido') {
       const parceiroNome = (editingStatus as any).parceiro_nome ||
         parceiros.find(p => p.id === (editingStatus as any).partner_id)?.name || null;
 
-      // Busca o registro correspondente em residential_clients
+      // Busca o registro correspondente em residential_clients.
+      // Procura pelo nome antigo, que é o que está gravado lá; se o nome mudou
+      // aqui, o registro do Residencial é renomeado junto para os dois não
+      // ficarem apontando para pessoas com nomes diferentes.
       const { data: rcList } = await supabase
         .from('residential_clients')
         .select('id, situacao')
-        .ilike('nome', editingStatus.inquilino_nome.trim())
+        .ilike('nome', nomeAntigo || nomeEditado)
         .limit(1);
 
       const rcUpdate: Record<string, unknown> = {
+        nome: nomeEditado,
         situacao: 'Ativo',
         parceiro_nome: parceiroNome,
       };
@@ -448,7 +463,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       } else {
         // Cria novo registro no Residencial
         await supabase.from('residential_clients').insert({
-          nome: editingStatus.inquilino_nome,
+          nome: nomeEditado,
           cpf: (editingStatus as any).cpf || null,
           telefone: (editingStatus as any).telefone || null,
           email: (editingStatus as any).email_inquilino || null,
@@ -1239,12 +1254,23 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 {ativos.map(c => (
                   <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
+                      {/* O nome abre a edição: é onde a mão vai primeiro quando
+                          se quer mexer numa linha. O botão "Status" no fim da
+                          linha continua ali para quem já se acostumou com ele. */}
+                      <button
+                        type="button"
+                        onClick={() => openEditStatus(c)}
+                        className="group flex items-center gap-2 text-left"
+                        title="Clique para editar este cliente"
+                      >
                         <div className="w-8 h-8 rounded-full bg-[#1B263B] flex items-center justify-center shrink-0">
                           <User size={13} className="text-[#C69C6D]" />
                         </div>
-                        <span className="font-bold text-slate-800 text-sm">{c.inquilino_nome}</span>
-                      </div>
+                        <span className="font-bold text-slate-800 text-sm group-hover:text-[#C69C6D] transition-colors">
+                          {c.inquilino_nome}
+                        </span>
+                        <Pencil size={12} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
                     </td>
                     {!filterParceiro && (
                       <td className="px-5 py-4">
@@ -1486,13 +1512,21 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-slate-100">
             <div>
               <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
-              <p className="text-sm text-slate-500 mt-0.5">{editingStatus.inquilino_nome}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{editStatusForm.inquilino_nome || editingStatus.inquilino_nome}</p>
             </div>
             <button onClick={() => setEditingStatus(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
           </div>
 
           <div className="px-7 py-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Inquilino</label>
+                <input
+                  value={editStatusForm.inquilino_nome}
+                  onChange={e => setEditStatusForm(f => ({...f, inquilino_nome: e.target.value}))}
+                  placeholder="Nome do inquilino"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]" />
+              </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
                 <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
