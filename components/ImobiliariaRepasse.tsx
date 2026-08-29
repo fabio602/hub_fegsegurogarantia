@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
-  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil, Search
+  User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil, Search,
+  XCircle, Mail, Info
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -55,10 +56,95 @@ const temResidencial = (c: any) => c?.tipo_seguro === 'residencial_garantia' || 
 const rotuloTipoSeguro = (c: any) =>
   temGarantia(c) && temResidencial(c) ? '🏠🔒 + Garantia' : temGarantia(c) ? '🔒 Garantia Locatícia' : '🏠 Residencial';
 
+// Passo a passo da operação, escrito para quem nunca mexeu nesta tela. Fica no
+// botão "Como funciona", ao lado do título.
+const GUIA_PASSOS: { titulo: string; texto: string; atencao?: string }[] = [
+  {
+    titulo: 'A imobiliária pede o seguro pelo portal',
+    texto: 'Ela preenche os dados do inquilino no portal e o cadastro cai aqui automaticamente, na coluna Solicitado do quadro. Você recebe um e-mail avisando. Não precisa cadastrar nada à mão.',
+  },
+  {
+    titulo: 'Você assume e cota na seguradora',
+    texto: 'Arraste o card para F&G em Atendimento e faça a cotação. Enquanto espera resposta da seguradora, deixe em Aguardando Seguradora. Se a bola estiver com o inquilino (documento faltando, escolha de plano), use Aguardando o Cliente.',
+    atencao: 'A imobiliária enxerga em que coluna o cadastro está. Manter a coluna certa evita a cobrança de "e aí, saiu?".',
+  },
+  {
+    titulo: 'Precisa falar com a imobiliária? Use o recado',
+    texto: 'Clique no nome do inquilino, escreva no campo de recado e marque "preciso de retorno". O recado aparece em destaque no portal e sai um e-mail pedindo a resposta. Serve para pedir documento, distrato, confirmação de valor.',
+  },
+  {
+    titulo: 'Aprovou: arraste para Aprovado e configure o repasse',
+    texto: 'Ao soltar o card em Aprovado, o hub abre uma tela pedindo o valor mensal do seguro, o dia de vencimento do aluguel e a quantidade de parcelas. Preencha na hora, é o que faz o cliente entrar na cobrança.',
+    atencao: 'Sem valor mensal preenchido o cliente nunca aparece no repasse e você deixa de cobrar. Ele vai parar no painel laranja "Precisa de atenção", no topo desta tela.',
+  },
+  {
+    titulo: 'A 1ª parcela é do inquilino, o repasse começa na 2ª',
+    texto: 'O inquilino paga a primeira parcela direto para a seguradora. Por isso o hub já marca o cadastro como parcela 2 e a imobiliária só passa a ver o cliente na cobrança a partir daí.',
+  },
+  {
+    titulo: 'Todo mês você confere e envia o relatório',
+    texto: 'A lista de ativos mostra quem entra na cobrança do mês, com valor e número da parcela. Confira, clique em Enviar Relatório e a imobiliária recebe o fechamento por e-mail. O botão Enviar Teste Para Mim manda uma cópia só para você antes.',
+  },
+  {
+    titulo: 'Recebeu o pagamento: registre o repasse',
+    texto: 'Use Registrar Repasse para lançar o mês, o valor total pago e o comprovante. É o que fecha o mês e serve de histórico quando a imobiliária questiona algum valor.',
+  },
+  {
+    titulo: 'Renovação, rescisão e saída caem em Pendências do portal',
+    texto: 'Quando a imobiliária confirma renovação, avisa que não vai renovar ou pede rescisão, o cadastro aparece no painel escuro Pendências do portal. Ele fica lá até você dar a baixa, então nada se perde.',
+  },
+  {
+    titulo: 'Dar baixa: Renovada ou Não vai renovar',
+    texto: 'Em Renovada você informa a nova data de fim de vigência e o cliente continua na carteira. Em Não vai renovar você escolhe o que aconteceu (saiu do imóvel, cancelado, optou não contratar ou reprovado) e o hub oferece avisar a imobiliária por e-mail.',
+    atencao: 'O e-mail de encerramento já avisa que a parcela sai da cobrança. Enviar evita a dúvida no repasse do mês seguinte.',
+  },
+];
+
+const GUIA_LEMBRETES = [
+  'Garantia locatícia só é cancelada com o distrato em mãos. A linha da pendência mostra se o documento já chegou.',
+  'O aviso automático de repasse sai 10 dias antes do vencimento do aluguel, por isso o dia precisa estar preenchido.',
+  'Clicar no nome do inquilino abre a edição completa, inclusive para corrigir o nome, o valor e a apólice.',
+  'O painel laranja no topo aponta quem está com repasse mal configurado. Se ele estiver vazio, a carteira está redonda.',
+];
+
+// As quatro saídas possíveis de um cliente da carteira. São os mesmos valores
+// que o portal da imobiliária já entende como encerrado, então basta gravar
+// status_apolice com um deles para o cadastro sair da lista de ativos.
+const SITUACOES_ENCERRAMENTO = [
+  {
+    valor: 'saiu_imovel',
+    rotulo: 'Saiu do Imóvel',
+    ajuda: 'O inquilino desocupou o imóvel.',
+    motivoEmail: 'O inquilino saiu do imóvel.',
+    cor: '#7c3aed', bg: '#f5f3ff', borda: '#ddd6fe',
+  },
+  {
+    valor: 'cancelado',
+    rotulo: 'Cancelado',
+    ajuda: 'A apólice foi cancelada na seguradora.',
+    motivoEmail: 'A apólice foi cancelada na seguradora.',
+    cor: '#dc2626', bg: '#fef2f2', borda: '#fecaca',
+  },
+  {
+    valor: 'desistiu',
+    rotulo: 'Optou Não Contratar',
+    ajuda: 'Desistiu antes de a apólice ser emitida.',
+    motivoEmail: 'O cliente optou por não contratar o seguro.',
+    cor: '#c2410c', bg: '#fff7ed', borda: '#fdba74',
+  },
+  {
+    valor: 'reprovado',
+    rotulo: 'Reprovado',
+    ajuda: 'A análise da seguradora não aprovou.',
+    motivoEmail: 'A análise da seguradora não aprovou o cliente.',
+    cor: '#475569', bg: '#f8fafc', borda: '#e2e8f0',
+  },
+];
+
 // Linha do painel "Pendências do portal". Renovação, cancelamento e rescisão têm
 // o mesmo formato — só muda a etiqueta, os documentos e o botão de baixa.
 function LinhaPendencia({
-  cliente, parceiros, etiqueta, detalhe, documentos = [], observacao, acao, onGoToSale, fundo,
+  cliente, parceiros, etiqueta, detalhe, documentos = [], observacao, acao, acaoSecundaria, onGoToSale, fundo,
 }: {
   // O projeto não tem @types/react instalado, então o TS não reconhece `key`
   // como prop reservada de componente — por isso ela é declarada aqui.
@@ -70,6 +156,9 @@ function LinhaPendencia({
   documentos?: { label: string; url?: string | null | undefined }[] | undefined;
   observacao?: string | undefined;
   acao: { label: string; onClick: () => void };
+  // Segunda saída da linha, quando existe mais de um desfecho possível. Ex.: a
+  // renovação que não vai acontecer porque o inquilino avisou direto para nós.
+  acaoSecundaria?: { label: string; onClick: () => void } | undefined;
   onGoToSale?: ((data: { nome: string; telefone: string }) => void) | undefined;
   fundo?: string | undefined;
 }) {
@@ -124,6 +213,14 @@ function LinhaPendencia({
             className="text-[11px] font-black bg-white border border-slate-200 hover:border-[#C69C6D] text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             → Registro de Venda
+          </button>
+        )}
+        {acaoSecundaria && (
+          <button
+            onClick={acaoSecundaria.onClick}
+            className="flex items-center gap-1.5 text-[11px] font-black bg-white border border-slate-200 hover:border-[#dc2626] hover:text-[#dc2626] text-slate-600 px-3 py-2 rounded-xl transition-colors"
+          >
+            <XCircle size={13} /> {acaoSecundaria.label}
           </button>
         )}
         <button
@@ -248,6 +345,16 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   // Modal de configuração de repasse ao aprovar cliente do portal
   const [repasseSetupModal, setRepasseSetupModal] = useState<{ clienteId: string; nome: string; newStatus: string } | null>(null);
   const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '', dia_vencimento_aluguel: '' });
+
+  // Modal de encerramento: uma tela só para todo cliente que sai da carteira,
+  // não importa se a notícia veio pelo portal ou se o próprio inquilino avisou.
+  const [encerramentoModal, setEncerramentoModal] = useState<{ cliente: any; situacao: string; observacao: string; avisar: boolean } | null>(null);
+  const [encerrando, setEncerrando] = useState(false);
+  const [encerramentoErro, setEncerramentoErro] = useState('');
+
+  // Guia de operação. Hoje só o Fábio sabe a ordem certa das coisas nesta tela,
+  // então o passo a passo mora aqui dentro, não na cabeça dele.
+  const [guiaAberto, setGuiaAberto] = useState(false);
 
   const moveCard = async (clienteId: string, newStatus: string) => {
     setDraggingId(null); setDragOver(null);
@@ -639,21 +746,66 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     load();
   };
 
-  // Baixa de cancelamento/rescisão: marca a apólice como cancelada. Com isso o
+  // Abre a tela de encerramento já sugerindo a situação mais provável para
+  // aquela origem. Fábio confirma ou troca, porque quem sabe o que aconteceu
+  // de verdade é ele, não o motivo que estava registrado no portal.
+  const abrirEncerramento = (c: any, situacaoSugerida: string) => {
+    setEncerramentoErro('');
+    // Sem imobiliária vinculada não há para quem mandar, então já vem desmarcado.
+    setEncerramentoModal({ cliente: c, situacao: situacaoSugerida, observacao: '', avisar: !!c.partner_id });
+  };
+
+  // Baixa de encerramento: marca a apólice com a situação escolhida. Com isso o
   // registro sai deste painel e o portal para de exibir o cliente como ativo.
-  const encerrarApolice = async (c: any, motivo: string) => {
-    if (!confirm(`Confirmar que a apólice de ${c.inquilino_nome} foi cancelada na seguradora?\n\nMotivo: ${motivo}`)) return;
-    const { error } = await supabase
-      .from('imobiliaria_clientes')
-      .update({
-        status_apolice: 'cancelado',
-        status: 'encerrado',
-        renovacao_confirmacao: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', c.id);
-    if (error) { alert(`Erro ao dar baixa: ${error.message}`); return; }
-    load();
+  const confirmarEncerramento = async () => {
+    if (!encerramentoModal) return;
+    const { cliente: c, situacao, observacao, avisar } = encerramentoModal;
+    setEncerrando(true);
+    setEncerramentoErro('');
+    try {
+      const { error } = await supabase
+        .from('imobiliaria_clientes')
+        .update({
+          status_apolice: situacao,
+          status: 'encerrado',
+          renovacao_confirmacao: null,
+          rescisao_solicitada_em: null, // sai também do grupo de rescisões pendentes
+          observacoes: observacao.trim()
+            ? `${c.observacoes ? c.observacoes + '\n' : ''}${SITUACOES_ENCERRAMENTO.find(s => s.valor === situacao)?.rotulo}: ${observacao.trim()}`
+            : c.observacoes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', c.id);
+      if (error) throw new Error(error.message);
+
+      if (avisar) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const supabaseUrl = (supabase as any).supabaseUrl as string;
+        const supabaseKey = (supabase as any).supabaseKey as string;
+        const res = await fetch(`${supabaseUrl}/functions/v1/imobiliaria-encerramento`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || supabaseKey}`, 'apikey': supabaseKey },
+          body: JSON.stringify({
+            client_id: c.id,
+            motivo: SITUACOES_ENCERRAMENTO.find(s => s.valor === situacao)?.motivoEmail || situacao,
+            observacao: observacao.trim() || undefined,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          // A baixa já está gravada. Avisamos que só o e-mail falhou para ele
+          // não achar que precisa refazer tudo.
+          throw new Error(`A baixa foi salva, mas o e-mail não saiu: ${json.error || 'erro no envio'}`);
+        }
+      }
+
+      setEncerramentoModal(null);
+      load();
+    } catch (e) {
+      setEncerramentoErro(e instanceof Error ? e.message : 'Erro ao encerrar');
+    } finally {
+      setEncerrando(false);
+    }
   };
 
   const handleSave = async () => {
@@ -731,8 +883,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <span className="text-lg text-[#C69C6D] ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
             )}
           </h2>
-          <p className="text-slate-500 font-semibold mt-1">
+          <p className="text-slate-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
             Gestão de clientes residenciais por imobiliária parceira
+            <button
+              onClick={() => setGuiaAberto(true)}
+              className="flex items-center gap-1.5 text-[11px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 border border-[#C69C6D]/40 px-2.5 py-1 rounded-lg transition-colors"
+              title="Como operar esta tela, passo a passo"
+            >
+              <Info size={12} /> Como funciona
+            </button>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -889,6 +1048,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   cor: vencido ? '#7f1d1d' : urgente ? '#c2410c' : '#78716c',
                 }}
                 onGoToSale={onGoToSale}
+                acaoSecundaria={{ label: 'Não vai renovar', onClick: () => abrirEncerramento(c, 'saiu_imovel') }}
                 acao={{ label: 'Renovada', onClick: () => darBaixaRenovacao(c) }}
               />
             );
@@ -912,7 +1072,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   : []
               }
               observacao={temGarantia(c) && !(c as any).distrato_url ? 'A garantia locatícia só é cancelada com o distrato — cobre a imobiliária.' : undefined}
-              acao={{ label: 'Cancelada', onClick: () => encerrarApolice(c, 'inquilino não vai renovar') }}
+              acao={{ label: 'Cancelada', onClick: () => abrirEncerramento(c, 'cancelado') }}
             />
           ))}
 
@@ -934,7 +1094,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 { label: (c as any).rescisao_vistoria_url ? '📄 Vistoria' : '⚠️ Sem vistoria', url: (c as any).rescisao_vistoria_url },
               ]}
               observacao={(c as any).rescisao_obs || undefined}
-              acao={{ label: 'Cancelada', onClick: () => encerrarApolice(c, 'rescisão de contrato') }}
+              acao={{ label: 'Cancelada', onClick: () => abrirEncerramento(c, 'saiu_imovel') }}
             />
           ))}
         </div>
@@ -1390,6 +1550,176 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           )}
         </div>
       )}
+    {/* Guia de operação — o passo a passo da contratação, do pedido ao encerramento */}
+    {guiaAberto && createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-start justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+        onClick={() => setGuiaAberto(false)}
+      >
+        <div
+          className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="bg-[#1B263B] px-7 py-5 flex items-start justify-between gap-4 sticky top-0">
+            <div>
+              <h3 className="text-white font-black text-lg">Como funciona esta tela</h3>
+              <p className="text-white/50 text-[12px] font-semibold mt-1">
+                O caminho de um cliente residencial, do pedido da imobiliária até a saída da carteira.
+              </p>
+            </div>
+            <button onClick={() => setGuiaAberto(false)} className="text-white/40 hover:text-white flex-shrink-0">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="px-7 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            {GUIA_PASSOS.map((p, i) => (
+              <div key={p.titulo} className="flex gap-4">
+                <div className="flex flex-col items-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#1B263B] text-[#C69C6D] font-black text-[13px] flex items-center justify-center">
+                    {i + 1}
+                  </div>
+                  {i < GUIA_PASSOS.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
+                </div>
+                <div className="pb-1">
+                  <p className="font-black text-[14px] text-[#1B263B]">{p.titulo}</p>
+                  <p className="text-[13px] text-slate-600 font-semibold leading-relaxed mt-1">{p.texto}</p>
+                  {p.atencao && (
+                    <div className="flex items-start gap-2 mt-2 bg-[#fff7ed] border border-[#fdba74] rounded-xl px-3 py-2">
+                      <AlertTriangle size={13} className="text-[#c2410c] flex-shrink-0 mt-0.5" />
+                      <p className="text-[12px] font-bold text-[#9a3412] leading-relaxed">{p.atencao}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <div className="bg-[#f8f5f0] border border-[#e8e4dc] rounded-2xl px-5 py-4">
+              <p className="text-[10px] font-black text-[#78716c] uppercase tracking-widest mb-2">Para lembrar</p>
+              <ul className="space-y-1.5">
+                {GUIA_LEMBRETES.map(l => (
+                  <li key={l} className="flex items-start gap-2 text-[12.5px] text-slate-600 font-semibold leading-relaxed">
+                    <span className="text-[#C69C6D] font-black flex-shrink-0">•</span> {l}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="px-7 py-4 bg-[#f8f5f0] border-t border-[#e8e4dc] flex justify-end">
+            <button
+              onClick={() => setGuiaAberto(false)}
+              className="px-5 py-2.5 bg-[#1B263B] hover:bg-[#2a3a56] text-[#C69C6D] font-black text-sm rounded-xl transition-colors"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* Encerramento do seguro — escolher a situação e avisar a imobiliária */}
+    {encerramentoModal && createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-black text-slate-800 text-lg">Encerrar o seguro</h3>
+              <p className="text-slate-500 text-sm mt-1">O cadastro sai da carteira ativa e do portal da imobiliária.</p>
+            </div>
+            <button onClick={() => setEncerramentoModal(null)} className="text-slate-300 hover:text-slate-500">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="bg-[#1B263B]/5 rounded-xl px-4 py-3 border border-[#C69C6D]/20">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="font-black text-slate-800">{encerramentoModal.cliente.inquilino_nome}</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">O que aconteceu</label>
+            <div className="grid grid-cols-2 gap-2">
+              {SITUACOES_ENCERRAMENTO.map(s => {
+                const ativa = encerramentoModal.situacao === s.valor;
+                return (
+                  <button
+                    key={s.valor} type="button"
+                    onClick={() => setEncerramentoModal(m => m ? { ...m, situacao: s.valor } : m)}
+                    className="text-left px-3 py-2.5 rounded-xl border-2 transition-all"
+                    style={{
+                      background: ativa ? s.bg : '#fff',
+                      borderColor: ativa ? s.cor : '#e2e8f0',
+                    }}
+                  >
+                    <p className="font-black text-[12px]" style={{ color: ativa ? s.cor : '#334155' }}>{s.rotulo}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 leading-tight mt-0.5">{s.ajuda}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observação (opcional)</label>
+            <textarea
+              rows={2}
+              value={encerramentoModal.observacao}
+              onChange={e => setEncerramentoModal(m => m ? { ...m, observacao: e.target.value } : m)}
+              placeholder="Ex: avisou por telefone que entrega as chaves dia 30."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#C69C6D] resize-none"
+            />
+            <p className="text-[11px] text-slate-400">Se preencher, vai junto no e-mail da imobiliária.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setEncerramentoModal(m => m ? { ...m, avisar: !m.avisar } : m)}
+            className={`w-full flex items-start gap-3 text-left px-4 py-3 rounded-xl border-2 transition-all ${encerramentoModal.avisar ? 'border-[#C69C6D] bg-[#C69C6D]/5' : 'border-slate-200 bg-white'}`}
+          >
+            <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${encerramentoModal.avisar ? 'bg-[#C69C6D]' : 'bg-slate-200'}`}>
+              {encerramentoModal.avisar && <CheckCircle2 size={13} className="text-white" />}
+            </div>
+            <div>
+              <p className="font-black text-[12px] text-slate-700 flex items-center gap-1.5">
+                <Mail size={12} className="text-[#C69C6D]" /> Avisar a imobiliária por e-mail
+              </p>
+              <p className="text-[11px] font-semibold text-slate-400 leading-tight mt-0.5">
+                {parceiros.find(p => p.id === encerramentoModal.cliente.partner_id)?.name.replace('Imobiliária ', '')
+                  || 'Nenhuma imobiliária vinculada a este cadastro'}
+              </p>
+            </div>
+          </button>
+
+          {encerramentoErro && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl font-bold text-[12px]">
+              <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" /> {encerramentoErro}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={confirmarEncerramento}
+              disabled={encerrando}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#1B263B] hover:bg-[#2a3a56] disabled:opacity-50 text-[#C69C6D] font-black text-sm rounded-xl transition-all"
+            >
+              {encerrando ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+              {encerrando ? 'Encerrando...' : 'Encerrar'}
+            </button>
+            <button
+              onClick={() => setEncerramentoModal(null)}
+              disabled={encerrando}
+              className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl disabled:opacity-50"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
     {/* Registrar Repasse Modal */}
     {/* Modal de configuração de repasse para novos clientes do portal */}
     {repasseSetupModal && createPortal(
