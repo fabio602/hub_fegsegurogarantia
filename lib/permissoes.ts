@@ -23,7 +23,7 @@ export interface Modulo {
 }
 
 export const MODULOS: Modulo[] = [
-  { key: 'garantia', label: 'Seguro Garantia', views: ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pnpc', 'seg-licitante', 'seg-contrato'] },
+  { key: 'garantia', label: 'Seguro Garantia', views: ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'] },
   { key: 'auto', label: 'Seguro AUTO', views: ['auto', 'auto-seguradoras'] },
   { key: 'residencial', label: 'Residencial / Locatícia', views: ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'] },
   { key: 'rc', label: 'Responsabilidade Civil', views: ['rc', 'rc-seguradoras'] },

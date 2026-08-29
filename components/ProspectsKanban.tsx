@@ -41,22 +41,54 @@ const colorToHeader = (colorKey: string) => {
     return found ? found.header : 'bg-[#1B263B] text-white';
 };
 
+// Colunas usadas pelas automações (webhook do Resend / prospecção PNCP).
+// Elas precisam existir em todo Kanban, senão os leads movidos por status
+// sumiriam da tela; por isso são fundidas na configuração salva do usuário.
+const REQUIRED_COLUMNS: KanbanColumn[] = [
+    { id: 'Em contato', title: 'Em contato', color: 'fg_gold_1', protected: true },
+    // Leads do garimpo com telefone mas sem e-mail: a Bruna trabalha manualmente.
+    { id: 'Contato por WhatsApp', title: 'Contato por WhatsApp', color: 'fg_gold_2', protected: true },
+    { id: 'Sem e-mail válido', title: 'Sem e-mail válido', color: 'fg_blue_2', protected: true },
+];
+
 const DEFAULT_COLUMNS: KanbanColumn[] = [
     { id: 'Novos Leads', title: 'Novos Leads', color: 'fg_blue_1', protected: true },
+    { id: 'Em contato', title: 'Em contato', color: 'fg_gold_1', protected: true },
+    { id: 'Contato por WhatsApp', title: 'Contato por WhatsApp', color: 'fg_gold_2', protected: true },
     { id: 'Leads Sem demanda', title: 'Sem Demanda', color: 'fg_blue_2' },
     { id: 'Leads Rafael', title: 'Leads Rafael', color: 'fg_gold_1' },
     { id: 'Leads Andréia', title: 'Leads Andréia', color: 'fg_gold_2' },
+    { id: 'Sem e-mail válido', title: 'Sem e-mail válido', color: 'fg_blue_2', protected: true },
 ];
 
 const STORAGE_KEY = 'kanban_columns_v1_shared';
+const BACKUP_KEY = 'kanban_columns_backup_pre_pncp_auto';
+
+/**
+ * Acrescenta as colunas obrigatórias que faltarem na configuração salva,
+ * sem apagar nem reordenar as que já existem (as novas entram no final).
+ * Antes da primeira fusão, guarda uma cópia da configuração original.
+ */
+const mergeRequiredColumns = (cols: KanbanColumn[], savedRaw: string | null): KanbanColumn[] => {
+    const faltantes = REQUIRED_COLUMNS.filter(req => !cols.some(c => c.id === req.id));
+    if (!faltantes.length) return cols;
+    try {
+        if (savedRaw && !localStorage.getItem(BACKUP_KEY)) {
+            localStorage.setItem(BACKUP_KEY, savedRaw);
+        }
+    } catch { /* ignore */ }
+    const merged = [...cols, ...faltantes];
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
+    return merged;
+};
 
 const loadColumns = (): KanbanColumn[] => {
     try {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
+        if (saved) return mergeRequiredColumns(JSON.parse(saved), saved);
         // Migrar config anterior (por produto)
         const legacy = localStorage.getItem('kanban_columns_v1_Seguro_Garantia');
-        if (legacy) return JSON.parse(legacy);
+        if (legacy) return mergeRequiredColumns(JSON.parse(legacy), legacy);
     } catch { /* ignore */ }
     return DEFAULT_COLUMNS;
 };

@@ -34,7 +34,7 @@ interface Trilha {
   descricao: string | null;
 }
 
-const EMPTY_FORM = { nome_contato: '', nome_empresa: '', email: '', trilha: '' };
+const EMPTY_FORM = { nome_contato: '', nome_empresa: '', email: '', cidade: '', trilha: '' };
 
 export default function ProspeccaoEmail() {
   const [contatos, setContatos] = useState<Contato[]>([]);
@@ -82,6 +82,8 @@ export default function ProspeccaoEmail() {
       nome_contato: form.nome_contato.trim(),
       nome_empresa: form.nome_empresa.trim(),
       email: form.email.trim().toLowerCase(),
+      // Alimenta o [CIDADE] dos templates da trilha; vazio cai em "sua cidade".
+      cidade: form.cidade.trim() || null,
       origem: 'hub',
       trilha: form.trilha,
       data_inicio: new Date().toISOString().split('T')[0],
@@ -435,6 +437,7 @@ export default function ProspeccaoEmail() {
                 { label: 'Nome do Contato', key: 'nome_contato', placeholder: 'Ex: João Silva' },
                 { label: 'Nome da Empresa', key: 'nome_empresa', placeholder: 'Ex: Construtora ABC Ltda' },
                 { label: 'Email', key: 'email', placeholder: 'joao@empresa.com.br', type: 'email' },
+                { label: 'Cidade (para o [CIDADE] dos e-mails)', key: 'cidade', placeholder: 'Ex: Sorocaba' },
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>

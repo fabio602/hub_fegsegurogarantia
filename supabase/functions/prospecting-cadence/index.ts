@@ -79,9 +79,15 @@ function dd(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-/** Troca os placeholders de contato. Vale para assunto e para HTML. */
-function personalizar(texto: string, nome: string, empresa: string): string {
-  return texto.replaceAll('[NOME_CONTATO]', nome).replaceAll('[NOME_EMPRESA]', empresa);
+/** Troca os placeholders de contato. Vale para assunto e para HTML.
+ *  Contato sem cidade cadastrada recebe "sua cidade", para frases como
+ *  "regiao de [CIDADE]" nao sairem truncadas. */
+function personalizar(texto: string, nome: string, empresa: string, cidade = '', site = ''): string {
+  return texto
+    .replaceAll('[NOME_CONTATO]', nome)
+    .replaceAll('[NOME_EMPRESA]', empresa)
+    .replaceAll('[CIDADE]', cidade.trim() || 'sua cidade')
+    .replaceAll('[SITE]', site);
 }
 
 /**
@@ -94,12 +100,14 @@ function montarEmail(
   total: number,
   nome: string,
   empresa: string,
+  cidade = '',
+  site = '',
 ): { assunto: string; html: string } {
-  const assunto = personalizar(etapa.assunto, nome, empresa);
+  const assunto = personalizar(etapa.assunto, nome, empresa, cidade, site);
 
   // Escape hatch: se a etapa trouxer HTML completo, ele manda — o molde é ignorado.
   if (etapa.html_completo && etapa.html_completo.trim()) {
-    return { assunto, html: personalizar(etapa.html_completo, nome, empresa) };
+    return { assunto, html: personalizar(etapa.html_completo, nome, empresa, cidade, site) };
   }
 
   const corpo = (etapa.corpo_html ?? '')
@@ -117,7 +125,7 @@ function montarEmail(
     rodape:  trilha.rodape,
   });
 
-  return { assunto, html: personalizar(html, nome, empresa) };
+  return { assunto, html: personalizar(html, nome, empresa, cidade, site) };
 }
 
 /** Carrega uma trilha e suas etapas ativas, em ordem. */
@@ -202,6 +210,8 @@ Deno.serve(async (req) => {
 
       const nome    = String(body.nome_contato ?? 'Fábio');
       const empresa = String(body.nome_empresa ?? 'Empresa Exemplo');
+      const cidadePrev = String(body.cidade ?? '');
+      const sitePrev   = String(body.site ?? '');
       const ordem   = body.ordem ? Number(body.ordem) : null;
       const alvo    = ordem ? etapas.filter(e => e.ordem === ordem) : etapas;
       if (!alvo.length) return json({ success: false, error: `Etapa ${ordem} não existe ou está inativa` }, 404);
@@ -209,7 +219,7 @@ Deno.serve(async (req) => {
       const montados = alvo.map(e => ({
         ordem: e.ordem,
         dia: e.dia,
-        ...montarEmail(trilha, e, etapas.length, nome, empresa),
+        ...montarEmail(trilha, e, etapas.length, nome, empresa, cidadePrev, sitePrev),
       }));
 
       if (body.modo === 'preview') {
@@ -231,7 +241,7 @@ Deno.serve(async (req) => {
     if (body.contact_id) {
       const { data: c } = await supabase
         .from('email_cadencia')
-        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha')
+        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha, cidade, site')
         .eq('id', body.contact_id)
         .single();
 
@@ -246,7 +256,10 @@ Deno.serve(async (req) => {
 
       const { trilha, etapas } = carregada;
       const primeira = etapas[0];
-      const { assunto, html } = montarEmail(trilha, primeira, etapas.length, c.nome_contato, c.nome_empresa);
+      const { assunto, html } = montarEmail(
+        trilha, primeira, etapas.length, c.nome_contato, c.nome_empresa,
+        String((c as any).cidade ?? ''), String((c as any).site ?? ''),
+      );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
         await registrarEnvio(supabase, c.id, primeira.ordem);
@@ -293,7 +306,7 @@ Deno.serve(async (req) => {
 
     const { data: contatos, error: errContatos } = await supabase
       .from('email_cadencia')
-      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio')
+      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site')
       .eq('ativo', true)
       .gte('data_inicio', limiteInicio)
       .lte('data_inicio', today);
@@ -336,7 +349,10 @@ Deno.serve(async (req) => {
       const pendente = etapas.find(e => e.dia <= decorridos && !jaEnviado.has(`${c.id}:${e.ordem}`));
       if (!pendente) continue;
 
-      const { assunto, html } = montarEmail(trilha, pendente, etapas.length, c.nome_contato, c.nome_empresa);
+      const { assunto, html } = montarEmail(
+        trilha, pendente, etapas.length, c.nome_contato, c.nome_empresa,
+        String((c as any).cidade ?? ''), String((c as any).site ?? ''),
+      );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
         await registrarEnvio(supabase, c.id, pendente.ordem);

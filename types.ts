@@ -165,3 +165,137 @@ export interface CRMTask {
    */
   assigned_staff_id?: string;
 }
+
+/** Leads enviados da aba Prospecção PNCP (tabela `leads_seguro_garantia`). */
+export type PncpTipoLeadEnviado = 'Seguro Garantia' | 'Judicial' | 'Energia' | 'Seguro de Crédito';
+
+export type PncpProbabilidadeSg = 'alta' | 'media' | 'verificar';
+
+export interface PncpContratoNormalizado {
+  /** Chave estável para dedup e React key */
+  dedupKey: string;
+  nomeRazaoSocialFornecedor: string;
+  niFornecedor: string;
+  objetoContrato: string;
+  valorGlobal: number;
+  orgaoRazaoSocial: string;
+  municipioNome: string;
+  ufSigla: string;
+  dataAssinatura: string;
+  probabilidadeSg: PncpProbabilidadeSg;
+}
+
+/** Dados enriquecidos via BrasilAPI (consulta pública de CNPJ). */
+export interface BrasilApiEmpresa {
+  razaoSocial: string;
+  nomeFantasia: string;
+  telefone: string;
+  email: string;
+  socioResponsavel: string;
+  porte: string;
+  capitalSocial: string;
+  cidade: string;
+  uf: string;
+  cnaePrincipal: string;
+  cnaeDescricao: string;
+  situacao: string;
+}
+
+/** Configuração da prospecção automática PNCP (tabela `prospeccao_pncp_config`). */
+export interface ProspeccaoPncpConfig {
+  id: number;
+  ativo: boolean;
+  dry_run: boolean;
+  pausado: boolean;
+  pausado_motivo: string | null;
+  pausado_em: string | null;
+  ufs: string[];
+  valor_minimo: number;
+  dispensa_inexig_valor_minimo: number;
+  cnae_divisoes_incluir: string[];
+  cnae_divisoes_excluir: string[];
+  limite_diario: number;
+  max_consultas_brasilapi: number;
+  pausa_entre_consultas_ms: number;
+  bounce_max_percentual: number;
+  bounce_min_quantidade: number;
+  trilha: string;
+  email_relatorio: string;
+  /** Trechos que marcam o e-mail como de contabilidade (só marcação, não bloqueia). */
+  email_padroes_contador: string[];
+  /** Prefixos (antes do @) que marcam o e-mail como caixa genérica corporativa. */
+  email_prefixos_genericos: string[];
+  /** Por quantos dias um CNPJ pendente da fila migra para os dias seguintes. */
+  fila_validade_dias: number;
+}
+
+/** Uma execução da prospecção automática (tabela `prospeccao_pncp_execucoes`). */
+export interface ProspeccaoPncpExecucao {
+  id: string;
+  executado_em: string;
+  data_referencia: string;
+  dry_run: boolean;
+  /** processando = a fila do dia ainda tem candidatos; finalizada = relatório enviado. */
+  fase: 'processando' | 'finalizada';
+  coletados: number;
+  enriquecidos: number;
+  enviados: number;
+  sem_email: number;
+  fora_do_perfil: number;
+  bounces: number;
+  erros: number;
+  arquivo_relatorio: string | null;
+  detalhes: Record<string, unknown> | null;
+}
+
+/** Uma campanha de garimpo no Google Maps (tabela `campanhas_garimpo`). */
+export interface CampanhaGarimpo {
+  id: string;
+  slug: string;
+  nome: string;
+  ativo: boolean;
+  dry_run: boolean;
+  fonte: 'maps' | 'instagram';
+  termos_busca: string[];
+  cidades: string[];
+  palavras_exclusao: string[];
+  trilha: string;
+  tipo_prospect: string;
+  limite_diario: number;
+  cadencia_garimpo_dias: number;
+  exigir_cnpj: boolean;
+  garimpo_cursor: number;
+  garimpo_ciclo_iniciado: string | null;
+  apify_run_id: string | null;
+  apify_cidade: string | null;
+  criado_em: string;
+}
+
+/** Uma execução diária de uma campanha (tabela `garimpo_execucoes`). */
+export interface GarimpoExecucao {
+  id: string;
+  campanha_id: string;
+  data_referencia: string;
+  executado_em: string;
+  dry_run: boolean;
+  fase: 'processando' | 'finalizada';
+  garimpados: number;
+  enriquecidos: number;
+  enviados: number;
+  so_whatsapp: number;
+  descartados: number;
+  bounces: number;
+  erros: number;
+  arquivo_relatorio: string | null;
+  detalhes: Record<string, unknown> | null;
+}
+
+/** Pausa global por domínio remetente (tabela `reputacao_envio`). */
+export interface ReputacaoEnvio {
+  dominio: string;
+  pausado: boolean;
+  pausado_motivo: string | null;
+  pausado_em: string | null;
+  bounce_max_percentual: number;
+  bounce_min_quantidade: number;
+}
