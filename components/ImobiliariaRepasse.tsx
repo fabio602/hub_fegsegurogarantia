@@ -406,10 +406,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     };
     if (valorSegEdit !== undefined) updatePayload.valor_seguro = valorSegEdit;
 
-    // Ao converter um cliente para repasse, repetimos a regra do modal de
-    // aprovação: a 1ª parcela sempre é paga pelo próprio cliente, então a
-    // cobrança da imobiliária começa na 2ª.
-    if (ehRepasse && !eraRepasse) {
+    // A 1ª parcela sempre é paga pelo próprio cliente, então a cobrança da
+    // imobiliária começa na 2ª. Vale para quem está virando repasse agora e
+    // também para quem já estava marcado como repasse e só agora ganhou valor
+    // mensal: sem isso ele ficaria parado em 1/12 e nunca apareceria no portal,
+    // que esconde a 1ª parcela de propósito.
+    const ganhouValorAgora = ehRepasse && eraRepasse && !jaTemValor && valorSegEdit !== undefined;
+    if ((ehRepasse && !eraRepasse) || ganhouValorAgora) {
       if (!Number((editingStatus as any).total_parcelas)) updatePayload.total_parcelas = 12;
       if (!(Number((editingStatus as any).parcela_atual) > 1)) updatePayload.parcela_atual = 2;
     }
