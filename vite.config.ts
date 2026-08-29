@@ -36,6 +36,37 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        {
+          // Carimba o mesmo timestamp nos portais estáticos de public/.
+          //
+          // Esses HTMLs não passam pelo bundle, então não recebem o
+          // `__BUILD_TIME__` do `define` abaixo. O jeito de cada página saber a
+          // própria versão é o build escrever o valor na <meta name="fg-build">.
+          // Roda em `writeBundle` porque é só aí que o Vite já copiou public/
+          // para dist/.
+          name: 'fg-carimba-portais',
+          apply: 'build' as const,
+          async writeBundle(this: any, options: any) {
+            const fs = await import('fs/promises');
+            const dir = options.dir || path.resolve(__dirname, 'dist');
+            const portais = [
+              'imobiliaria.html',
+              'parceiros.html',
+              'apolices.html',
+              'parceiros-login.html',
+            ];
+            for (const nome of portais) {
+              const alvo = path.join(dir, nome);
+              try {
+                const html = await fs.readFile(alvo, 'utf-8');
+                if (!html.includes('__FG_BUILD_TIME__')) continue;
+                await fs.writeFile(alvo, html.split('__FG_BUILD_TIME__').join(buildTime), 'utf-8');
+              } catch {
+                // portal ausente no build: nada a carimbar
+              }
+            }
+          },
+        },
       ],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
