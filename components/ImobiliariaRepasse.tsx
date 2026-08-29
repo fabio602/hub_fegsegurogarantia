@@ -137,6 +137,32 @@ function LinhaPendencia({
   );
 }
 
+/** Lê um valor em reais digitado à mão.
+ *
+ *  O campo é texto livre, então chega de tudo: "44,28", "R$ 44,28", "1.234,56",
+ *  "1234.56". O código antigo só trocava a vírgula por ponto — "R$ 44,28" virava
+ *  "R$ 44.28", que o parseFloat lê como NaN. Resultado: o hub avisava que o
+ *  valor estava em branco com R$ 44,28 escrito na tela. Pior, "1.234,56" virava
+ *  "1.234.56" e era salvo como 1,23.
+ *
+ *  Devolve null quando não há número nenhum. */
+export function lerValorBRL(bruto: string): number | null {
+  const limpo = (bruto || '').replace(/[^\d.,-]/g, '');
+  if (!limpo) return null;
+  let normal: string;
+  if (limpo.includes(',')) {
+    // Tem vírgula: ela é o decimal e o ponto só pode ser separador de milhar.
+    normal = limpo.replace(/\./g, '').replace(',', '.');
+  } else if (/^-?\d{1,3}(\.\d{3})+$/.test(limpo)) {
+    // "1.234" / "1.234.567": em pt-BR isso é milhar, não decimal.
+    normal = limpo.replace(/\./g, '');
+  } else {
+    normal = limpo;
+  }
+  const n = parseFloat(normal);
+  return isNaN(n) ? null : n;
+}
+
 const EMPTY_FORM = {
   inquilino_nome: '',
   seguradora: '',
@@ -244,7 +270,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
   const confirmarRepasseSetup = async () => {
     if (!repasseSetupModal) return;
-    const valor = parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    const valor = lerValorBRL(repasseSetupForm.valor_seguro) ?? 0;
     const diaVenc = parseInt(repasseSetupForm.dia_vencimento_aluguel) || null;
     // Marcar como repasse sem valor faz a imobiliária receber cobrança de R$ 0,00.
     if (!(valor > 0)) {
@@ -309,8 +335,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     if (editStatusForm.status_residencial === 'recusado') kanban = 'recusado';
 
     const diaVencEdit = parseInt(editStatusForm.dia_vencimento_aluguel) || null;
-    const valorSegRaw = parseFloat((editStatusForm.valor_seguro || '').replace(',', '.'));
-    const valorSegEdit = isNaN(valorSegRaw) || valorSegRaw === 0 ? undefined : valorSegRaw;
+    const valorSegRaw = lerValorBRL(editStatusForm.valor_seguro);
+    const valorSegEdit = valorSegRaw === null || valorSegRaw === 0 ? undefined : valorSegRaw;
 
     // Repasse com dia de vencimento mas sem valor é o cadastro que gerava o
     // e-mail de "R$ 0,00". Avisamos, mas não travamos o salvamento: muitas
@@ -619,7 +645,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       inquilino_nome: form.inquilino_nome,
       seguradora: form.seguradora,
       numero_apolice: form.numero_apolice,
-      valor_seguro: parseFloat(form.valor_seguro.replace(',', '.')),
+      valor_seguro: lerValorBRL(form.valor_seguro) ?? 0,
       parcela_atual: parseInt(form.parcela_atual),
       total_parcelas: parseInt(form.total_parcelas),
       data_inicio: form.data_inicio,
@@ -1387,7 +1413,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={confirmarRepasseSetup}
-              disabled={!(parseFloat(repasseSetupForm.valor_seguro.replace(/[^\d,]/g, '').replace(',', '.')) > 0)}
+              disabled={!((lerValorBRL(repasseSetupForm.valor_seguro) ?? 0) > 0)}
               className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
               ✅ Aprovar e configurar repasse
             </button>
