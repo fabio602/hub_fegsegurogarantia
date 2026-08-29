@@ -5,46 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Acesso de Parceiros — F&G Seguro Garantia</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ═══════════════════════════════════════════════════════════════
+       Entrada do parceiro — a primeira tela que ele vê. Mesma identidade
+       dos portais: superfície clara, cantos arredondados, sombra em
+       camadas, uma única curva de transição (--ease).
+       ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --navy: #1B263B;
+      --navy-soft: #25334f;
+      --gold: #C69C6D;
+      --ink: #14203a;
+      --muted: #7b8698;
+      --line: rgba(27,38,59,.08);
+      --bg: #f6f3ee;
+      --shadow-lg: 0 2px 6px rgba(27,38,59,.06), 0 28px 60px -28px rgba(27,38,59,.32);
+      --ease: cubic-bezier(.22,.61,.36,1);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f1ec; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-    .card { background: #fff; border-radius: 24px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: 0 4px 32px rgba(0,0,0,.08); border: 1px solid #e2e8f0; }
-    .logo { width: 56px; height: 56px; background: #1B263B; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #C69C6D; font-weight: 900; font-size: 20px; margin: 0 auto 20px; }
-    h1 { text-align: center; font-size: 20px; font-weight: 900; color: #1B263B; margin-bottom: 4px; }
-    p { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 28px; }
-    label { display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
-    input { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; margin-bottom: 16px; background: #f8fafc; color: #1B263B; transition: border .2s; }
-    input:focus { border-color: #C69C6D; background: #fff; }
-    button { width: 100%; padding: 14px; background: #1B263B; color: #fff; font-weight: 900; font-size: 14px; border: none; border-radius: 12px; cursor: pointer; transition: background .2s; margin-top: 4px; }
-    button:hover { background: #243447; }
-    button:disabled { opacity: .6; cursor: not-allowed; }
-    .erro { color: #ef4444; font-size: 13px; font-weight: 600; text-align: center; margin-top: 12px; display: none; }
-    .link-forgot { text-align: center; margin-top: 14px; font-size: 12px; color: #94a3b8; }
-    .link-forgot a { color: #C69C6D; font-weight: 700; cursor: pointer; text-decoration: none; }
-    .link-forgot a:hover { text-decoration: underline; }
-    .forgot-form { display: none; }
-    .msg-ok { color: #16a34a; font-size: 13px; font-weight: 700; text-align: center; margin-top: 12px; background: #f0fdf4; padding: 10px; border-radius: 10px; display: none; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; -webkit-font-smoothing: antialiased;
+    }
+    /* Brilho difuso atrás do cartão — o fundo deixa de ser chapado */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background: radial-gradient(780px 480px at 50% 18%, rgba(198,156,109,.18), transparent 64%);
+    }
+
+    .card {
+      position: relative; width: 100%; max-width: 420px;
+      background: #fff; border-radius: 28px; padding: 42px 38px 36px;
+      box-shadow: var(--shadow-lg);
+      animation: entra .55s var(--ease) both;
+    }
+    @keyframes entra { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
+
+    .logo {
+      width: 58px; height: 58px; margin: 0 auto 20px;
+      background: var(--navy); color: var(--gold); border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; letter-spacing: .5px;
+    }
+    h1 { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -.4px; color: var(--navy); }
+    .sub { text-align: center; font-size: 13px; color: var(--muted); margin: 6px 0 30px; }
+
+    label {
+      display: block; font-size: 11.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 8px;
+    }
+    input {
+      width: 100%; padding: 14px 17px; margin-bottom: 18px;
+      border: 1px solid var(--line); border-radius: 999px;
+      font: inherit; font-size: 14.5px; color: var(--ink);
+      background: #faf8f5; outline: none;
+      transition: border-color .24s var(--ease), background .24s var(--ease), box-shadow .24s var(--ease);
+    }
+    input::placeholder { color: #b3b9c4; }
+    input:focus {
+      border-color: var(--gold); background: #fff;
+      box-shadow: 0 0 0 4px rgba(198,156,109,.14);
+    }
+
+    button {
+      width: 100%; padding: 15px; margin-top: 4px;
+      background: var(--navy); color: #fff; border: none; border-radius: 999px;
+      font: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer;
+      transition: transform .24s var(--ease), background .24s var(--ease);
+    }
+    button:hover:not(:disabled) { background: var(--navy-soft); transform: translateY(-1px); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .erro {
+      display: none; margin-top: 14px; padding: 12px 15px;
+      background: #fdecec; border-radius: 14px;
+      font-size: 12.5px; color: #b5352f; text-align: center; line-height: 1.5;
+      animation: entra .34s var(--ease) both;
+    }
+    .erro a { color: #8a2f2a; font-weight: 600; text-decoration: underline; }
+
+    .link-forgot { text-align: center; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+    .link-forgot a {
+      color: var(--gold); font-weight: 500; cursor: pointer; text-decoration: none;
+      border-bottom: 1px solid transparent; transition: border-color .24s var(--ease);
+    }
+    .link-forgot a:hover { border-bottom-color: var(--gold); }
+
+    .forgot-form { display: none; margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .msg-ok {
+      display: none; margin-top: 14px; padding: 12px 15px;
+      background: #eef7f0; border-radius: 14px;
+      font-size: 12.5px; color: #1f6b3c; text-align: center; line-height: 1.5;
+      animation: entra .34s var(--ease) both;
+    }
+    .msg-ok .ico { width: 15px; height: 15px; vertical-align: -3px; margin-right: 4px; }
+    .ico {
+      fill: none; stroke: currentColor; stroke-width: 1.8;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .ico-sprite { display: none; }
+
+    @media (max-width: 460px) {
+      .card { padding: 34px 24px 30px; border-radius: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before { animation: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
+  <svg class="ico-sprite" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.4 12.3 2.5 2.5 4.7-5"/></symbol>
+  </svg>
+
   <div class="card">
     <div class="logo">F&G</div>
     <h1>Área do Parceiro</h1>
-    <p>F&G Seguro Garantia</p>
-    <label>Usuário</label>
+    <p class="sub">F&G Seguro Garantia</p>
+
+    <label for="usuario">Usuário</label>
     <input type="text" id="usuario" placeholder="Seu usuário" autocomplete="username" />
-    <label>Senha</label>
+
+    <label for="senha">Senha</label>
     <input type="password" id="senha" placeholder="Sua senha" autocomplete="current-password" />
+
     <button id="btn-login" onclick="login()">Entrar</button>
-    <div class="erro" id="erro">Usuário ou senha incorretos. <a href="https://wa.me/5515998618659?text=Preciso+de+ajuda+para+acessar+o+portal+de+parceiros" target="_blank" style="color:#C69C6D;font-weight:700;">Precisa de ajuda?</a></div>
+
+    <div class="erro" id="erro">
+      Usuário ou senha incorretos.
+      <a href="https://wa.me/5515998618659?text=Preciso+de+ajuda+para+acessar+o+portal+de+parceiros" target="_blank" rel="noopener">Precisa de ajuda?</a>
+    </div>
     <div class="link-forgot"><a onclick="toggleForgot()">Esqueci minha senha</a></div>
 
     <!-- Formulário recuperação -->
-    <div class="forgot-form" id="forgot-form" style="margin-top:20px;border-top:1px solid #f1f5f9;padding-top:20px;">
-      <label>E-mail cadastrado</label>
+    <div class="forgot-form" id="forgot-form">
+      <label for="forgot-email">E-mail cadastrado</label>
       <input type="email" id="forgot-email" placeholder="seu@email.com" />
-      <button onclick="recuperarSenha()" id="btn-forgot" style="margin-top:8px;">Enviar minha senha</button>
-      <div class="msg-ok" id="msg-ok">✅ Se o e-mail estiver cadastrado, você receberá suas credenciais em instantes.</div>
+      <button onclick="recuperarSenha()" id="btn-forgot">Enviar minha senha</button>
+      <div class="msg-ok" id="msg-ok">
+        <svg class="ico"><use href="#i-check"/></svg>
+        Se o e-mail estiver cadastrado, você receberá suas credenciais em instantes.
+      </div>
     </div>
   </div>
 

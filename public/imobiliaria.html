@@ -421,6 +421,75 @@
     }
     @keyframes pulsa { 70% { box-shadow: 0 0 0 11px rgba(217,154,58,0); } 100% { box-shadow: 0 0 0 0 rgba(217,154,58,0); } }
 
+    /* ── RECADO DA F&G ──
+       Um recado é escrito por uma pessoa, não pelo sistema. O bloco imita uma
+       mensagem de conversa: avatar com iniciais, nome de quem escreveu, quando
+       escreveu e um botão para responder. A "rabinha" (::before) reforça que
+       é uma fala, não um aviso automático. */
+    .recado {
+      margin-top: 12px; position: relative;
+      background: #fff; border: 1px solid var(--line);
+      border-radius: 16px; padding: 14px 16px 13px;
+      box-shadow: 0 1px 2px rgba(20,32,58,.05), 0 8px 22px -14px rgba(20,32,58,.28);
+    }
+    /* rabinha do balão, apontando para a linha do cliente logo acima */
+    .recado::before {
+      content: ''; position: absolute; top: -6px; left: 30px;
+      width: 11px; height: 11px; background: #fff;
+      border-left: 1px solid var(--line); border-top: 1px solid var(--line);
+      transform: rotate(45deg); border-radius: 2px 0 0 0;
+    }
+    /* Pergunta em aberto: fundo âmbar e faixa lateral. Não some no meio dos
+       recados comuns porque alguém está literalmente esperando resposta. */
+    .recado.pede { background: #fffaf2; border-color: #f0d9b4; }
+    .recado.pede::before { background: #fffaf2; border-color: #f0d9b4; }
+    .recado.pede::after {
+      content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
+      width: 3px; border-radius: 0 3px 3px 0; background: var(--gold);
+    }
+
+    .recado-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    /* Avatar com as iniciais de quem escreveu — o rosto da mensagem. */
+    .recado-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--navy); color: var(--gold);
+      font-size: 11.5px; font-weight: 600; letter-spacing: .4px;
+    }
+    .recado-quem { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .recado-nome { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+    .recado-papel { font-size: 11px; color: var(--muted); line-height: 1.2; }
+    .recado-quando { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+    .recado-texto { font-size: 13.5px; color: var(--ink); line-height: 1.6; }
+    .recado.pede .recado-texto { color: #6b4a15; }
+
+    .recado-pe { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 11px; }
+    .recado-aviso {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11.5px; font-weight: 500; color: #92610f;
+    }
+    .btn-responder {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 15px; border-radius: 999px; text-decoration: none;
+      background: var(--navy); color: #fff;
+      font-size: 12px; font-weight: 500; white-space: nowrap;
+      transition: transform .24s var(--ease), background .24s var(--ease);
+    }
+    .btn-responder:hover { background: var(--navy-soft); transform: translateY(-1px); }
+    .recado-pe .btn-responder { margin-left: auto; }
+
+    /* Versão do card (compacto): mesma ideia, menos ar. */
+    .recado.compacto { padding: 11px 12px 10px; border-radius: 13px; margin-top: 10px; }
+    .recado.compacto::before { left: 22px; }
+    .recado.compacto .recado-avatar { width: 27px; height: 27px; font-size: 10px; }
+    .recado.compacto .recado-texto { font-size: 12.5px; }
+
+    @media (max-width: 640px) {
+      .recado-quando { margin-left: 0; width: 100%; }
+      .recado-pe .btn-responder { margin-left: 0; }
+    }
+
     /* ── DOCUMENTOS ── */
     .docs-pending { background: #fdf6ec; border: 1px solid #f0dcc0; border-radius: var(--r); padding: 21px 24px; margin-bottom: 20px; }
     .docs-pending h4 { font-size: 14px; font-weight: 600; color: #8a5a12; margin-bottom: 5px; }
@@ -1022,7 +1091,7 @@
         <option value="residencial">Apenas Residencial</option>
         <option value="garantia">Com Garantia</option>
       </select>
-      <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:11px;font-weight:600;color:#d97706;">⏰ Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#d97706;font-weight:600;font-size:13px;line-height:1;margin-left:2px;">×</button></span>
+      <span id="filtro-venc-badge" style="display:none;align-items:center;gap:5px;padding:6px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:11px;font-weight:600;color:#d97706;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> Vencendo em 30d <button onclick="filtroVencimento30=false;filtrar();" style="background:none;border:none;cursor:pointer;color:#d97706;font-weight:600;font-size:13px;line-height:1;margin-left:2px;">×</button></span>
       <span id="chip-filtro-ativo" style="display:none;align-items:center;gap:6px;padding:6px 14px;background:#1B263B;border-radius:20px;font-size:11px;font-weight:600;color:#fff;">
         <span id="chip-filtro-label"></span>
         <button onclick="limparFiltrosCarteira()" style="background:rgba(255,255,255,.2);border:none;cursor:pointer;color:#fff;font-weight:600;font-size:13px;line-height:1;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">×</button>
@@ -1218,22 +1287,58 @@
       .replace(/"/g, '&quot;').replace(/\n/g, '<br>');
   }
 
-  /** Bloco de recado da corretora, exibido no card e na tabela de clientes. */
+  /** Quem escreve os recados. Um dia isso vem do banco (o corretor que salvou);
+      por enquanto é o Fábio, que é quem atende as imobiliárias. */
+  const AUTOR_RECADO = { nome: 'Fábio', papel: 'F&G Seguro Garantia', iniciais: 'F' };
+  const WHATS_FG = '5515998618659';
+
+  /** "hoje", "ontem", "há 4 dias", "12/08" — tempo em linguagem de gente. */
+  function quando(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (dias <= 0) return 'hoje';
+    if (dias === 1) return 'ontem';
+    if (dias < 7) return `há ${dias} dias`;
+    return fmtData(iso);
+  }
+
+  /** Bloco de recado da corretora, exibido no card e na tabela de clientes.
+      É desenhado como uma mensagem de conversa — com rosto, nome, horário e
+      botão de resposta — para deixar claro que tem gente do outro lado, e não
+      um aviso automático do sistema. */
   function obsCorretoraHtml(c, compacto) {
     const txt = (c.observacao_imobiliaria || '').trim();
     if (!txt) return '';
-    const pad = compacto ? '6px 8px' : '10px 12px';
-    const fs  = compacto ? '10px' : '12px';
-    // Recado marcado como "precisa de retorno" vira laranja: é uma pergunta
-    // aberta, não pode se perder no meio dos avisos comuns.
+    // Recado marcado como "precisa de retorno" é uma pergunta aberta: ganha
+    // destaque âmbar para não se perder no meio dos avisos comuns.
     const pede = !!c.recado_precisa_retorno;
-    const cor  = pede
-      ? { bg: '#fff7ed', bd: '#fdba74', tt: '#c2410c', tx: '#7c2d12' }
-      : { bg: '#eff6ff', bd: '#bfdbfe', tt: '#1e40af', tx: '#1e3a5f' };
-    const titulo = pede ? '<svg class="ico ico-inline"><use href="#i-alerta"/></svg> A F&amp;G aguarda seu retorno' : '<svg class="ico ico-inline"><use href="#i-balao"/></svg> Recado da F&amp;G';
-    return `<div style="margin-top:8px;padding:${pad};background:${cor.bg};border:1px solid ${cor.bd};${pede ? 'border-left:3px solid #f97316;' : ''}border-radius:8px;">
-      <div style="font-size:9px;font-weight:600;color:${cor.tt};text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;">${titulo}</div>
-      <div style="font-size:${fs};color:${cor.tx};line-height:1.5;">${esc(txt)}</div>
+    const nome = c.inquilino_nome || '';
+    const data = quando(c.recado_enviado_em);
+
+    const msg = pede
+      ? `Olá, ${AUTOR_RECADO.nome}! Sobre o recado do cadastro de ${nome}: `
+      : `Olá, ${AUTOR_RECADO.nome}! Sobre o cadastro de ${nome}: `;
+    const responder = `<a class="btn-responder" target="_blank" rel="noopener"
+        href="https://wa.me/${WHATS_FG}?text=${encodeURIComponent(msg)}">
+        <svg class="ico ico-inline"><use href="#i-balao"/></svg> Responder ${AUTOR_RECADO.nome}
+      </a>`;
+
+    return `<div class="recado${pede ? ' pede' : ''}${compacto ? ' compacto' : ''}">
+      <div class="recado-topo">
+        <div class="recado-avatar">${AUTOR_RECADO.iniciais}</div>
+        <div class="recado-quem">
+          <span class="recado-nome">${AUTOR_RECADO.nome}</span>
+          <span class="recado-papel">${AUTOR_RECADO.papel}</span>
+        </div>
+        ${data ? `<span class="recado-quando">${data}</span>` : ''}
+      </div>
+      <div class="recado-texto">${esc(txt)}</div>
+      <div class="recado-pe">
+        ${pede ? '<span class="recado-aviso"><svg class="ico ico-inline"><use href="#i-alerta"/></svg> Está esperando sua resposta</span>' : ''}
+        ${responder}
+      </div>
     </div>`;
   }
 
@@ -1347,7 +1452,7 @@
   async function uploadDistrato(clientId, inquilinoNome, input) {
     const file = input.files[0]; if (!file) return;
     const btn = input.closest('label');
-    if (btn) btn.innerHTML = '⏳ Enviando...';
+    if (btn) btn.innerHTML = '<svg class="ico ico-inline"><use href="#i-ciclo"/></svg> Enviando...';
     try {
       const path = `${session.id}/${clientId}/distrato_${Date.now()}.pdf`;
       const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
@@ -1481,7 +1586,7 @@
                 <div>
                   <div style="font-weight:600;font-size:13px;color:#1B263B;">${c.inquilino_nome}</div>
                   <div style="margin-top:4px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:${urgBg};color:${urgencia};border-radius:8px;font-size:11px;font-weight:600;">
-                    ⏰ ${prazoLabel} — ${dataVenc}
+                    <svg class="ico ico-inline"><use href="#i-relogio"/></svg> ${prazoLabel} — ${dataVenc}
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-shrink:0;">
@@ -1691,7 +1796,7 @@
   const KANBAN_COLS = [
     { key: 'solicitado',          id: 'solicitado',   label: 'Solicitado' },
     { key: 'atendimento_iniciado',id: 'atendimento',  label: 'F&G em atendimento' },
-    { key: 'aguardando_seguradora',id:'seguradora',   label: '⏳ Aguardando Seguradora' },
+    { key: 'aguardando_seguradora',id:'seguradora',   label: '<svg class="ico ico-inline"><use href="#i-relogio"/></svg> Aguardando Seguradora' },
     { key: 'aguardando_cliente',  id: 'cliente',      label: 'Aguardando o Cliente' },
     { key: 'aprovado',            id: 'aprovado',     label: '<svg class="ico ico-inline"><use href="#i-check"/></svg> Aprovado' },
     { key: 'recusado',            id: 'recusado',     label: '<svg class="ico ico-inline"><use href="#i-x"/></svg> Recusado' },
@@ -2165,7 +2270,7 @@
   async function uploadDocGarantia(clientId, field, input) {
     const file = input.files[0]; if (!file) return;
     const label = input.closest('label');
-    if (label) label.innerHTML = '⏳ Enviando...';
+    if (label) label.innerHTML = '<svg class="ico ico-inline"><use href="#i-ciclo"/></svg> Enviando...';
     try {
       const path = `${session.id}/${clientId}/${field}_${Date.now()}`;
       const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType: file.type, upsert: true });
@@ -2191,7 +2296,7 @@
     const file = input.files[0]; if (!file) return;
     const label = input.closest('label');
     const original = label ? label.innerHTML : '';
-    if (label) label.innerHTML = '⏳ Enviando...';
+    if (label) label.innerHTML = '<svg class="ico ico-inline"><use href="#i-ciclo"/></svg> Enviando...';
     try {
       const path = `${session.id}/${clientId}/${field}_${Date.now()}`;
       const { error: upErr } = await client.storage.from('imobiliaria-docs')
@@ -2225,7 +2330,7 @@
     if (!confirm(`Confirmar a rescisão do contrato de ${inquilinoNome}?\n\nA F&G será avisada e a apólice será cancelada junto à seguradora.`)) return;
     const original = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '⏳ Enviando...';
+    btn.innerHTML = '<svg class="ico ico-inline"><use href="#i-ciclo"/></svg> Enviando...';
     try {
       const res = await fetch('https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/imobiliaria-rescisao', {
         method: 'POST',
