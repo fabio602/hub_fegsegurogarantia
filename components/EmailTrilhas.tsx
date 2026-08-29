@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Loader2, Save, Trash2, Eye, Send, X, Mail,
-  ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
+  ChevronDown, ChevronRight, AlertCircle, CheckCircle2, GripVertical,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -77,6 +77,8 @@ export default function EmailTrilhas() {
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
 
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null);
+  const [sobreId, setSobreId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ assunto: string; html: string } | null>(null);
   const [carregandoPreview, setCarregandoPreview] = useState<string | null>(null);
   const [enviandoTeste, setEnviandoTeste] = useState(false);
@@ -203,7 +205,7 @@ export default function EmailTrilhas() {
       trilha: trilha.slug,
       ordem: proximaOrdem,
       dia: proximoDia,
-      assunto: `E-mail ${proximaOrdem} — [NOME_EMPRESA]`,
+      assunto: `E-mail ${proximaOrdem} para a [NOME_EMPRESA]`,
       titulo: 'Título do e-mail',
       corpo_html: '<p style="{{P}}">Olá [NOME_CONTATO], escreva aqui o texto do e-mail.</p>\n<p style="{{PF}}">Último parágrafo, antes do botão.</p>',
       cta_texto: 'Falar com um especialista',
@@ -224,6 +226,63 @@ export default function EmailTrilhas() {
     if (error) return notificar('erro', 'Erro ao excluir: ' + error.message);
     setEtapas(prev => prev.filter(e => e.id !== etapa.id));
     notificar('ok', 'E-mail excluído.');
+  };
+
+  // ─── Reordenar arrastando ──────────────────────────────────────────────────
+  //
+  // Arrastar um e-mail move a POSIÇÃO dele na trilha. Os dias (D+) não viajam
+  // junto com o e-mail: eles ficam presos às posições, na ordem crescente que
+  // já estava lá. Ou seja, quem for parar no 2º lugar dispara no dia do 2º
+  // lugar. É o que faz sentido para uma cadência — se o dia viajasse junto,
+  // a trilha passaria a mandar D+18 antes de D+7.
+
+  const soltarEm = async (destinoId: string) => {
+    const origemId = arrastandoId;
+    setArrastandoId(null);
+    setSobreId(null);
+    if (!origemId || origemId === destinoId) return;
+
+    const lista = [...etapasDaTrilha];
+    const de = lista.findIndex(e => e.id === origemId);
+    const para = lista.findIndex(e => e.id === destinoId);
+    if (de < 0 || para < 0) return;
+
+    const diasPorPosicao = lista.map(e => e.dia); // já vem ordenado por ordem
+    const [movida] = lista.splice(de, 1);
+    lista.splice(para, 0, movida);
+
+    const novas = lista.map((e, i) => ({ ...e, ordem: i + 1, dia: diasPorPosicao[i] ?? e.dia }));
+    const antigas = new Map<string, Etapa>(etapasDaTrilha.map(e => [e.id, e] as [string, Etapa]));
+    const mudaram = novas.filter(n => {
+      const a = antigas.get(n.id)!;
+      return a.ordem !== n.ordem || a.dia !== n.dia;
+    });
+    if (!mudaram.length) return;
+
+    // Atualiza a tela na hora, antes de ir ao banco: arrastar tem que parecer instantâneo.
+    setEtapas(prev => prev.map(e => novas.find(n => n.id === e.id) ?? e));
+
+    setSalvando(true);
+    // Duas passadas de propósito. Se gravasse direto, duas etapas ficariam com a
+    // mesma ordem no meio do caminho; a faixa dos 1000 é um estacionamento
+    // temporário onde ninguém colide com a numeração antiga.
+    for (const e of mudaram)
+      await supabase.from('email_trilha_etapas').update({ ordem: 1000 + e.ordem }).eq('id', e.id);
+
+    let erro: { message: string } | null = null;
+    for (const e of mudaram) {
+      const { error } = await supabase.from('email_trilha_etapas')
+        .update({ ordem: e.ordem, dia: e.dia }).eq('id', e.id);
+      if (error) erro = error;
+    }
+    setSalvando(false);
+
+    if (erro) {
+      notificar('erro', 'Erro ao reordenar: ' + erro.message);
+      await load(); // desfaz o otimismo: volta ao que o banco realmente tem
+    } else {
+      notificar('ok', 'Nova ordem salva.');
+    }
   };
 
   // ─── Preview e teste ───────────────────────────────────────────────────────
@@ -374,6 +433,9 @@ export default function EmailTrilhas() {
                   <p className="text-xs text-slate-400 mt-0.5">
                     Use <code className="font-mono text-[#C69C6D]">[NOME_CONTATO]</code> e <code className="font-mono text-[#C69C6D]">[NOME_EMPRESA]</code> em qualquer campo.
                   </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Arraste pela alça <GripVertical size={12} className="inline text-slate-300 -mt-0.5" /> para mudar a posição. Os dias ficam presos às posições, então a cadência continua crescente.
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={enviarTeste} disabled={enviandoTeste || !etapasDaTrilha.length}
@@ -391,24 +453,43 @@ export default function EmailTrilhas() {
               <div className="divide-y divide-slate-100">
                 {etapasDaTrilha.map(etapa => {
                   const aberta = !!abertas[etapa.id];
+                  const arrastando = arrastandoId === etapa.id;
+                  const alvo = sobreId === etapa.id && !arrastando;
                   return (
-                    <div key={etapa.id}>
-                      <button
-                        onClick={() => setAbertas(prev => ({ ...prev, [etapa.id]: !aberta }))}
-                        className="w-full flex items-center gap-3 px-6 py-4 hover:bg-slate-50/60 text-left"
-                      >
-                        {aberta ? <ChevronDown size={16} className="text-slate-400 shrink-0" /> : <ChevronRight size={16} className="text-slate-400 shrink-0" />}
-                        <span className="text-[10px] font-black text-[#C69C6D] bg-[#C69C6D]/10 px-2 py-1 rounded-full shrink-0">
-                          D+{etapa.dia}
-                        </span>
-                        <span className="font-bold text-slate-700 text-sm truncate flex-1">{etapa.assunto}</span>
-                        {!etapa.ativo && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
-                      </button>
+                    <div key={etapa.id}
+                      draggable
+                      onDragStart={ev => { setArrastandoId(etapa.id); ev.dataTransfer.effectAllowed = 'move'; }}
+                      onDragEnd={() => { setArrastandoId(null); setSobreId(null); }}
+                      onDragOver={ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; setSobreId(etapa.id); }}
+                      onDragLeave={() => setSobreId(prev => prev === etapa.id ? null : prev)}
+                      onDrop={ev => { ev.preventDefault(); soltarEm(etapa.id); }}
+                      className={`transition-all ${arrastando ? 'opacity-40' : ''} ${alvo ? 'ring-2 ring-[#C69C6D]/40 ring-inset bg-[#C69C6D]/5' : ''}`}
+                    >
+                      <div className="w-full flex items-center gap-2 px-4 py-4 hover:bg-slate-50/60">
+                        <GripVertical
+                          size={16}
+                          className="text-slate-300 hover:text-[#C69C6D] shrink-0 cursor-grab active:cursor-grabbing"
+                        />
+                        <button
+                          onClick={() => setAbertas(prev => ({ ...prev, [etapa.id]: !aberta }))}
+                          className="flex items-center gap-3 text-left flex-1 min-w-0"
+                        >
+                          {aberta ? <ChevronDown size={16} className="text-slate-400 shrink-0" /> : <ChevronRight size={16} className="text-slate-400 shrink-0" />}
+                          <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                            {etapa.ordem}º
+                          </span>
+                          <span className="text-[10px] font-black text-[#C69C6D] bg-[#C69C6D]/10 px-2 py-1 rounded-full shrink-0">
+                            D+{etapa.dia}
+                          </span>
+                          <span className="font-bold text-slate-700 text-sm truncate flex-1">{etapa.assunto}</span>
+                          {!etapa.ativo && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
+                        </button>
+                      </div>
 
                       {aberta && (
                         <div className="px-6 pb-6 space-y-4 bg-slate-50/40">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <Campo label="Ordem">
+                            <Campo label="Ordem" dica="Ou arraste o e-mail pela alça, ali em cima.">
                               <input type="number" min={1} className={inputCls} value={etapa.ordem}
                                 onChange={e => alterarEtapa(etapa.id, 'ordem', Number(e.target.value))} />
                             </Campo>
