@@ -421,6 +421,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [editingClientName, setEditingClientName] = useState<string | null>(null);
     const [clientEditForm, setClientEditForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
     const [sendingLimitsTo, setSendingLimitsTo] = useState<string | null>(null);
+    /** Cliente aguardando confirmação de exclusão (nome exibido) e o que será apagado junto. */
+    const [clienteParaExcluir, setClienteParaExcluir] = useState<{ nome: string; salesIds: number[]; vendas: number } | null>(null);
+    const [excluindoCliente, setExcluindoCliente] = useState(false);
     const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
     const [newManualClientForm, setNewManualClientForm] = useState({ nome: '', cnpj: '', telefone: '', email: '', decisor: '' });
     const [addingManualClient, setAddingManualClient] = useState(false);
@@ -1725,6 +1728,31 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             setSaveError(error?.message || 'Erro ao atualizar cliente.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    /** Apaga o cliente da carteira.
+     *
+     *  A carteira não é uma tabela: é o agrupamento das linhas de `sales` pelo
+     *  nome. Então "excluir o cliente" é apagar os registros dele — e o banco
+     *  leva junto, em cascata, as tarefas do CRM e os boletos ligados a cada um.
+     *  Por isso a confirmação mostra o que vai embora antes de apagar. */
+    const handleExcluirCliente = async () => {
+        if (!clienteParaExcluir) return;
+        setExcluindoCliente(true);
+        setSaveError(null);
+        try {
+            const { error } = await supabase.from('sales').delete().in('id', clienteParaExcluir.salesIds);
+            if (error) throw error;
+            await fetchData();
+            await fetchTasks();
+            setClienteParaExcluir(null);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error: any) {
+            setSaveError(error?.message || 'Não foi possível excluir o cliente.');
+        } finally {
+            setExcluindoCliente(false);
         }
     };
 
@@ -3498,6 +3526,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     >
                                                         <Edit2 size={14} />
                                                     </button>
+                                                    <button
+                                                        onClick={() => setClienteParaExcluir({
+                                                            nome: client.nome,
+                                                            salesIds: client.salesIds,
+                                                            vendas: client.salesVendidas.length,
+                                                        })}
+                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                        title="Excluir cliente da carteira"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
                                                 </div>
 
                                                 {editingClientName === client.nome ? (
@@ -4379,6 +4418,59 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 </section>
             )}
         </div>
+        {/* Confirmação de exclusão: diz em números o que some junto antes de apagar. */}
+        {clienteParaExcluir &&
+            createPortal(
+                <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm border-0 cursor-default"
+                        aria-label="Fechar"
+                        disabled={excluindoCliente}
+                        onClick={() => !excluindoCliente && setClienteParaExcluir(null)}
+                    />
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200"
+                    >
+                        <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mb-5">
+                            <Trash2 size={20} className="text-rose-600" />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 leading-tight">Excluir {clienteParaExcluir.nome}?</h3>
+                        <p className="mt-3 text-sm text-slate-500 leading-relaxed">
+                            Isso apaga {clienteParaExcluir.salesIds.length === 1 ? 'o registro' : `os ${clienteParaExcluir.salesIds.length} registros`} deste cliente
+                            {clienteParaExcluir.vendas > 0 && (
+                                <>, incluindo <strong className="text-rose-600">{clienteParaExcluir.vendas} venda{clienteParaExcluir.vendas > 1 ? 's' : ''} fechada{clienteParaExcluir.vendas > 1 ? 's' : ''}</strong>, que {clienteParaExcluir.vendas > 1 ? 'saem' : 'sai'} das metas e dos resultados</>
+                            )}.
+                            As tarefas do CRM e os boletos vinculados também vão junto. Não dá para desfazer.
+                        </p>
+                        {saveError && (
+                            <p className="mt-4 text-xs font-bold text-rose-600 bg-rose-50 rounded-xl px-4 py-3">{saveError}</p>
+                        )}
+                        <div className="flex gap-3 mt-7">
+                            <button
+                                type="button"
+                                disabled={excluindoCliente}
+                                onClick={() => setClienteParaExcluir(null)}
+                                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                disabled={excluindoCliente}
+                                onClick={handleExcluirCliente}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white bg-rose-600 hover:bg-rose-700 transition-all disabled:opacity-50"
+                            >
+                                {excluindoCliente ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                                {excluindoCliente ? 'Excluindo…' : 'Excluir'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         {isAddClientModalOpen &&
             createPortal(
                 <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 animate-in fade-in duration-200">
