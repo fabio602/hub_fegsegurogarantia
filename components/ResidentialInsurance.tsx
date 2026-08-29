@@ -792,7 +792,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                <Loader2 size={40} className="animate-spin mb-4 text-[#C69C6D]" />
+                <Loader2 size={40} className="animate-spin mb-4 text-gold" />
                 <p className="font-bold uppercase tracking-widest text-xs">Carregando Base...</p>
             </div>
         );
@@ -804,7 +804,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     const isNovoLead = (c: ResidentialClient) => c.situacao === 'Lead (site)';
 
     const situacaoColor = (s: string) => {
-        if (s === 'Lead (site)') return 'bg-[#C69C6D]/15 text-[#1B263B] border border-[#C69C6D]/40';
+        if (s === 'Lead (site)') return 'bg-gold/15 text-navy border border-gold/40';
         if (s === 'Ativo') return 'bg-emerald-50 text-emerald-600';
         if (s === 'Vencido') return 'bg-red-50 text-red-600';
         if (s === 'Cancelado') return 'bg-slate-100 text-slate-500';
@@ -870,7 +870,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         <input
                             type="text" placeholder="Buscar nome, CPF, apólice, CEP..."
                             value={search} onChange={e => setSearch(e.target.value)}
-                            className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20"
+                            className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-gold/20"
                         />
                     </div>
                     {hasTableFilters && (
@@ -894,9 +894,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                 </div>
             </div>
 
-            <div className="bg-[#1B263B]/[0.04] border border-[#C69C6D]/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="bg-navy/[0.04] border border-gold/25 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest">Link para o cliente (site público)</p>
+                    <p className="text-[10px] font-black text-gold uppercase tracking-widest">Link para o cliente (site público)</p>
                     <p className="text-xs text-slate-600 truncate font-mono mt-1" title={getPublicResidentialFormUrl()}>{getPublicResidentialFormUrl()}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
@@ -904,14 +904,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         href={getPublicResidentialFormPath()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#243347] transition-all"
+                        className="inline-flex items-center gap-2 bg-navy text-white px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-navy-light transition-all"
                     >
                         <ExternalLink size={14} /> Abrir
                     </a>
                     <button
                         type="button"
                         onClick={copyPublicFormUrl}
-                        className="inline-flex items-center gap-2 bg-white text-[#1B263B] px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 hover:border-[#C69C6D]/40 transition-all"
+                        className="inline-flex items-center gap-2 bg-white text-navy px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 hover:border-gold/40 transition-all"
                     >
                         <Copy size={14} /> {publicFormCopied ? 'Copiado!' : 'Copiar'}
                     </button>
@@ -922,7 +922,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             <div ref={formRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+                        <div className="w-1.5 h-6 bg-gold rounded-full"></div>
                         {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                     </h3>
                     {editingId && (
@@ -932,13 +932,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
 
                 {editingId && (formData.created_at || formData.origem_publica) && (
                     <div className="mb-6 flex flex-wrap gap-3 items-center text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-[#1B263B]">
-                            <Calendar size={14} className="text-[#C69C6D]" />
+                        <span className="inline-flex items-center gap-1.5 text-navy">
+                            <Calendar size={14} className="text-gold" />
                             Entrada no sistema:
                             <span className="font-black text-slate-800">{formatEntrada(formData.created_at)}</span>
                         </span>
                         {formData.origem_publica && (
-                            <span className="text-[10px] font-black uppercase tracking-wider bg-[#1B263B] text-[#C69C6D] px-2 py-1 rounded-md">
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-navy text-gold px-2 py-1 rounded-md">
                                 Formulário do site
                             </span>
                         )}
@@ -959,7 +959,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Block 1: Client Data */}
                     <div>
-                        <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest mb-4">Dados do Cliente</p>
+                        <p className="text-[10px] font-black text-gold uppercase tracking-widest mb-4">Dados do Cliente</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                             {[
                                 { id: 'nome', label: 'Nome do Cliente', placeholder: 'Nome completo', required: true },
@@ -976,7 +976,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                         onChange={handleInputChange}
                                         required={f.required}
                                         placeholder={f.placeholder}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all outline-none"
                                     />
                                 </div>
                             ))}
@@ -984,8 +984,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     </div>
 
                     {/* Block 1b: Lead site / imóvel (preenchido pelo formulário público ou manualmente) */}
-                    <div className="p-6 bg-[#F5F1EA]/80 rounded-2xl border border-[#C69C6D]/20">
-                        <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest mb-4">Cotação e imóvel (formulário do site)</p>
+                    <div className="p-6 bg-[#F5F1EA]/80 rounded-2xl border border-gold/20">
+                        <p className="text-[10px] font-black text-gold uppercase tracking-widest mb-4">Cotação e imóvel (formulário do site)</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Estado civil</label>
@@ -1035,7 +1035,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
 
                     {/* Block 2: Policy Data */}
                     <div>
-                        <p className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest mb-4">Dados da Apólice</p>
+                        <p className="text-[10px] font-black text-gold uppercase tracking-widest mb-4">Dados da Apólice</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Produto</label>
@@ -1083,7 +1083,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     id="parceiro_nome"
                                     value={formData.parceiro_nome || ''}
                                     onChange={handleInputChange}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] cursor-pointer"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold cursor-pointer"
                                 >
                                     <option value="">— Sem parceiro —</option>
                                     {imobParceiros.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1106,9 +1106,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     <button onClick={() => setFormData(prev => ({ ...prev, apolice_url: null } as any))} className="text-slate-400 hover:text-red-400 transition-colors"><X size={14} /></button>
                                   </div>
                                 ) : (
-                                  <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingApolice ? 'border-slate-200 bg-slate-50' : 'border-[#C69C6D]/40 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5'}`}>
+                                  <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingApolice ? 'border-slate-200 bg-slate-50' : 'border-gold/40 hover:border-gold hover:bg-gold/5'}`}>
                                     <input type="file" accept="application/pdf" className="hidden" onChange={handleApoliceUpload} disabled={uploadingApolice} />
-                                    {uploadingApolice ? <Loader2 size={16} className="animate-spin text-slate-400" /> : <FileText size={16} className="text-[#C69C6D]" />}
+                                    {uploadingApolice ? <Loader2 size={16} className="animate-spin text-slate-400" /> : <FileText size={16} className="text-gold" />}
                                     <span className="text-sm font-bold text-slate-600">{uploadingApolice ? 'Enviando PDF...' : 'Clique para anexar PDF da apólice'}</span>
                                     {formData.parceiro_nome && <span className="text-xs text-emerald-600 font-bold ml-auto">↗ Sincroniza com portal da imobiliária</span>}
                                   </label>
@@ -1128,14 +1128,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     >
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-4 mb-4">
-                            <Home size={18} className="text-[#C69C6D]" />
+                            <Home size={18} className="text-gold" />
                             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Tem Garantia Locatícia?</p>
                             <div className="flex gap-3 ml-auto">
                                 {['Sim', 'Não'].map(v => (
                                     <button
                                         key={v} type="button"
                                         onClick={() => { setFormData(prev => ({ ...prev, tem_garantia: v })); }}
-                                        className={`px-5 py-2 rounded-xl font-black text-sm transition-all ${formData.tem_garantia === v ? 'bg-[#C69C6D] text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'}`}
+                                        className={`px-5 py-2 rounded-xl font-black text-sm transition-all ${formData.tem_garantia === v ? 'bg-gold text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'}`}
                                     >{v}</button>
                                 ))}
                             </div>
@@ -1203,13 +1203,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     {/* Block 4: Obs */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Observações</label>
-                        <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Anotações internas opcionais — dados do site ficam nos campos acima." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                        <textarea id="obs" value={formData.obs || ''} onChange={handleInputChange} rows={3} placeholder="Anotações internas opcionais — dados do site ficam nos campos acima." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all" />
                     </div>
 
                     {/* Parcelas / Boletos */}
                     {editingId && (
                         <div className="border-t border-slate-100 pt-6">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-4 flex items-center gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
                                 <FileText size={12} /> Parcelas / Boletos
                                 {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
                             </p>
@@ -1233,7 +1233,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                                     <Download size={12} /> PDF
                                                 </a>
                                                 {!b.pago && (
-                                                    <button onClick={() => handleSendResBoletoEmail(b)} disabled={sendingResBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${resBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}>
+                                                    <button onClick={() => handleSendResBoletoEmail(b)} disabled={sendingResBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${resBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                                                         {sendingResBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                                                         {resBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                     </button>
@@ -1251,22 +1251,22 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
-                                        <input type="number" min="1" value={resBoletoForm.parcela} onChange={e => setResBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                        <input type="number" min="1" value={resBoletoForm.parcela} onChange={e => setResBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
-                                        <input type="date" value={resBoletoForm.vencimento} onChange={e => setResBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                        <input type="date" value={resBoletoForm.vencimento} onChange={e => setResBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
-                                        <input type="text" value={resBoletoForm.valor} onChange={e => setResBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                        <input type="text" value={resBoletoForm.valor} onChange={e => setResBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
-                                    <input type="file" accept="application/pdf" onChange={e => setResBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[#1B263B] file:text-[#C69C6D] hover:file:bg-[#243447] cursor-pointer" />
+                                    <input type="file" accept="application/pdf" onChange={e => setResBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-navy file:text-gold hover:file:bg-navy-light cursor-pointer" />
                                 </div>
-                                <button onClick={handleAddResBoleto} disabled={resBoletoAdding || !resBoletoForm.parcela || !resBoletoForm.file} className="flex items-center gap-2 bg-[#1B263B] text-[#C69C6D] px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] disabled:opacity-50 transition-all">
+                                <button onClick={handleAddResBoleto} disabled={resBoletoAdding || !resBoletoForm.parcela || !resBoletoForm.file} className="flex items-center gap-2 bg-navy text-gold px-5 py-2.5 rounded-xl font-black text-sm hover:bg-navy-light disabled:opacity-50 transition-all">
                                     {resBoletoAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                                     {resBoletoAdding ? 'Salvando...' : 'Adicionar Boleto'}
                                 </button>
@@ -1288,7 +1288,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     Fechar
                                 </button>
                             ) : (
-                                <button type="submit" disabled={saving} className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                                <button type="submit" disabled={saving} className="bg-gold text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-gold-hover transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                                     Adicionar Cliente
                                 </button>
@@ -1321,7 +1321,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                 }}
                                 className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
                                     sortBy === opt
-                                        ? 'bg-[#1B263B] text-white shadow'
+                                        ? 'bg-navy text-white shadow'
                                         : 'text-slate-400 hover:text-slate-600'
                                 }`}
                             >
@@ -1339,7 +1339,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     {/* Batch mode toggle */}
                     <button
                         onClick={() => { setBatchMode(b => !b); clearSelection(); }}
-                        className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all shrink-0 ${batchMode ? 'bg-[#1B263B] text-white border-[#1B263B]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#C69C6D]'}`}
+                        className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all shrink-0 ${batchMode ? 'bg-navy text-white border-navy' : 'bg-white text-slate-600 border-slate-200 hover:border-gold'}`}
                     >
                         {batchMode ? `✓ ${selectedIds.size} selecionados` : '☰ Selecionar'}
                     </button>
@@ -1352,7 +1352,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                             placeholder="Buscar nome, CPF, apólice..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]"
+                            className="pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-gold/20 focus:border-gold"
                         />
                         {search && (
                             <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
@@ -1362,13 +1362,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     </div>
                 </div>
                 {batchMode && selectedIds.size > 0 && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-[#1B263B]/5 border-b border-[#C69C6D]/20">
-                        <span className="text-sm font-black text-[#1B263B]">{selectedIds.size} selecionado(s)</span>
+                    <div className="flex items-center gap-3 px-4 py-3 bg-navy/5 border-b border-gold/20">
+                        <span className="text-sm font-black text-navy">{selectedIds.size} selecionado(s)</span>
                         <div className="flex gap-2 ml-auto flex-wrap">
                             <select
                                 value=""
                                 onChange={e => { const v = e.target.value; if (v) batchChangeSituacao(v); }}
-                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-[#C69C6D]"
+                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-gold"
                             >
                                 <option value="">Mudar situação...</option>
                                 {SITUACOES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1411,7 +1411,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                 <div><span className="text-slate-400">Parceiro:</span> <span className="font-bold">{c.parceiro_nome?.replace('Imobiliária ', '') || '—'}</span></div>
                             </div>
                             <div className="flex gap-2 mt-3">
-                                <button onClick={() => handleEdit(c)} className="flex-1 py-2 bg-[#1B263B] text-white text-xs font-black rounded-xl">Editar</button>
+                                <button onClick={() => handleEdit(c)} className="flex-1 py-2 bg-navy text-white text-xs font-black rounded-xl">Editar</button>
                                 <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-red-50 text-red-500 text-xs font-black rounded-xl border border-red-100">✕</button>
                             </div>
                         </div>
@@ -1523,7 +1523,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                 const dias = fim ? Math.ceil((fim.getTime() - hoje.getTime()) / 86400000) : null;
                                 const nearExpiry = dias !== null && dias <= 30 && dias >= 0 && c.situacao === 'Ativo';
                                 return (
-                                    <tr key={c.id} onClick={() => !batchMode && handleEdit(c)} className={`group transition-all ${editingId === c.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : nearExpiry ? 'bg-amber-50/40 hover:bg-amber-50' : ''} ${batchMode ? '' : 'cursor-pointer hover:bg-[#C69C6D]/5'}`}>
+                                    <tr key={c.id} onClick={() => !batchMode && handleEdit(c)} className={`group transition-all ${editingId === c.id ? 'bg-gold/10 border-l-2 border-l-gold' : nearExpiry ? 'bg-amber-50/40 hover:bg-amber-50' : ''} ${batchMode ? '' : 'cursor-pointer hover:bg-gold/5'}`}>
                                         {batchMode && (
                                             <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
                                                 <input
@@ -1538,7 +1538,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-black text-slate-800 text-sm truncate">{c.nome}</span>
                                                 {isPublicLead(c) && (
-                                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-[#1B263B] text-[#C69C6D] px-2 py-0.5 rounded-md">
+                                                    <span className="shrink-0 text-[9px] font-black uppercase tracking-wider bg-navy text-gold px-2 py-0.5 rounded-md">
                                                         Site
                                                     </span>
                                                 )}
@@ -1593,7 +1593,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                         <td className="px-6 py-5 text-sm font-bold text-slate-700 whitespace-nowrap">{c.produto || '-'}</td>
                                         <td className="px-6 py-5 text-sm text-slate-600 whitespace-nowrap">{c.apolice || '-'}</td>
                                         <td className="px-6 py-5 text-sm font-black text-slate-800 whitespace-nowrap">{c.premio_total ? (c.premio_total.includes('R$') ? c.premio_total : formatCurrency(c.premio_total)) : '-'}</td>
-                                        <td className="px-6 py-5 text-sm font-black text-[#C69C6D] whitespace-nowrap">{c.comissao ? (c.comissao.includes('R$') ? c.comissao : formatCurrency(c.comissao)) : '-'}</td>
+                                        <td className="px-6 py-5 text-sm font-black text-gold whitespace-nowrap">{c.comissao ? (c.comissao.includes('R$') ? c.comissao : formatCurrency(c.comissao)) : '-'}</td>
                                         <td className="px-6 py-5 text-sm">
                                             <span className={nearExpiry ? 'text-amber-600 font-black' : 'text-slate-600'}>
                                                 {c.fim_vigencia ? new Date(c.fim_vigencia).toLocaleDateString('pt-BR') : '-'}

@@ -147,7 +147,7 @@ function CarteiraEmptyLimitsForm({
                 </div>
             )}
             <p className="text-[10px] font-bold text-slate-500 leading-snug">
-                Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-[#C69C6D] font-black">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
+                Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-gold font-black">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
             </p>
             <div className="space-y-2">
                 {tempLimits.map((l, i) => (
@@ -174,7 +174,7 @@ function CarteiraEmptyLimitsForm({
                         setNewTemp(prev => ({ ...prev, seguradora: v }));
                         setOutroNome('');
                     }}
-                    className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                    className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                 >
                     <option value="">Seguradora...</option>
                     {insurers.map(ins => (
@@ -188,8 +188,8 @@ function CarteiraEmptyLimitsForm({
                     }}
                     className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
                         newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR
-                            ? 'border-[#1B263B] bg-[#1B263B] text-white shadow-sm'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-[#C69C6D]/50 hover:text-[#C69C6D]'
+                            ? 'border-navy bg-navy text-white shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
                     }`}
                 >
                     Outro corretor
@@ -200,7 +200,7 @@ function CarteiraEmptyLimitsForm({
                         placeholder="Nome do corretor ou seguradora"
                         value={outroNome}
                         onChange={e => setOutroNome(e.target.value)}
-                        className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                        className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
                     />
                 )}
                 <input
@@ -212,7 +212,7 @@ function CarteiraEmptyLimitsForm({
                         const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
                         setNewTemp(prev => ({ ...prev, valor: val }));
                     }}
-                    className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                    className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                 />
                 <button
                     type="button"
@@ -231,7 +231,7 @@ function CarteiraEmptyLimitsForm({
                         setNewTemp({ seguradora: '', valor: '' });
                         setOutroNome('');
                     }}
-                    className="bg-[#C69C6D] text-white p-2 rounded-lg shrink-0"
+                    className="bg-gold text-white p-2 rounded-lg shrink-0"
                 >
                     <Plus size={12} />
                 </button>
@@ -325,13 +325,13 @@ const CopyButton = ({ text, label }: { text: string; label?: string }) => {
     return (
         <button
             onClick={handleCopy}
-            className="group/copy flex items-center gap-1.5 hover:text-[#C69C6D] transition-colors focus:outline-none"
+            className="group/copy flex items-center gap-1.5 hover:text-gold transition-colors focus:outline-none"
             title={`Copiar ${label || ''}`}
         >
             {copied ? (
                 <Check size={10} className="text-green-500 animate-in zoom-in duration-200" />
             ) : (
-                <Copy size={10} className="text-slate-300 group-hover/copy:text-[#C69C6D] transition-all" />
+                <Copy size={10} className="text-slate-300 group-hover/copy:text-gold transition-all" />
             )}
             {copied && <span className="text-[8px] font-black text-green-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
         </button>
@@ -2075,7 +2075,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                <Loader2 size={40} className="animate-spin mb-4 text-[#C69C6D]" />
+                <Loader2 size={40} className="animate-spin mb-4 text-gold" />
                 <p className="font-bold uppercase tracking-widest text-xs">Carregando Dashboard...</p>
             </div>
         );
@@ -2102,13 +2102,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 )}
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
-            {!hideTabs && <div className="bg-[#1B263B] p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
+            {!hideTabs && <div className="bg-navy p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
                 {(['sales', 'pendencias'] as Section[]).map((section) => (
                     <button
                         key={section}
                         onClick={() => setActiveSection(section)}
                         className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeSection === section
-                            ? 'bg-[#C69C6D] text-white shadow-lg'
+                            ? 'bg-gold text-white shadow-lg'
                             : 'text-slate-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
@@ -2193,7 +2193,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <input
                                         type="text" placeholder="Buscar lead, origem, seguro..."
                                         value={salesSearch} onChange={e => setSalesSearch(e.target.value)}
-                                        className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                                        className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full md:w-64 focus:ring-2 focus:ring-gold/20 shadow-sm"
                                     />
                                 </div>
                                 {(salesMonthFilter ||
@@ -2219,7 +2219,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 )}
                             </div>
                             <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                                <Calendar size={18} className="text-[#C69C6D]" />
+                                <Calendar size={18} className="text-gold" />
                                 <select
                                     value={salesMonthFilter}
                                     onChange={(e) => setSalesMonthFilter(e.target.value)}
@@ -2243,7 +2243,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </button>
                             <button
                                 onClick={() => navigator.clipboard.writeText('https://hub.fegsegurogarantia.com/apolices.html')}
-                                className="bg-white text-[#C69C6D] px-5 py-2.5 rounded-xl font-bold text-sm border border-[#C69C6D]/30 shadow-sm hover:bg-[#C69C6D]/5 transition-all flex items-center gap-2"
+                                className="bg-white text-gold px-5 py-2.5 rounded-xl font-bold text-sm border border-gold/30 shadow-sm hover:bg-gold/5 transition-all flex items-center gap-2"
                                 title="Copiar link do portal de apólices"
                             >
                                 <Copy size={18} />
@@ -2255,7 +2255,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     {/* Form Card */}
                     <div ref={saleFormRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
                         <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+                            <div className="w-1.5 h-6 bg-gold rounded-full"></div>
                             {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}
                             {editingId && (
                                 <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarVendaAgora} className="ml-2" />
@@ -2368,14 +2368,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <form onSubmit={handleSaleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Data</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Data</label>
                                     <div className="relative">
                                         <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input type="date" id="data" value={formData.data} onChange={handleInputChange} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all" />
+                                        <input type="date" id="data" value={formData.data} onChange={handleInputChange} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all" />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Nome do Cliente / Tomador</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Nome do Cliente / Tomador</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="nome" value={formData.nome || ''}
@@ -2385,7 +2385,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             required placeholder="Ex: Empresa XYZ"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('nome')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
-                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-gold/20 focus:border-gold'
                                                 }`}
                                         />
                                         {showNameSuggestions && nameSuggestions.length > 0 && (
@@ -2395,7 +2395,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         key={i}
                                                         type="button"
                                                         onMouseDown={() => handleNameSuggestionSelect(s)}
-                                                        className="w-full text-left px-4 py-3 hover:bg-[#C69C6D]/10 transition-colors border-b border-slate-50 last:border-0"
+                                                        className="w-full text-left px-4 py-3 hover:bg-gold/10 transition-colors border-b border-slate-50 last:border-0"
                                                     >
                                                         <div className="font-black text-sm text-slate-800">{s.nome}</div>
                                                         {s.cnpj && <div className="text-[11px] text-slate-400 font-medium">{s.cnpj}</div>}
@@ -2406,18 +2406,18 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">CNPJ / CPF</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">CNPJ / CPF</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="cnpj" value={formData.cnpj || ''}
                                             onChange={handleCnpjChange}
                                             placeholder="00.000.000/0000-00"
-                                            className="w-full px-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all"
+                                            className="w-full px-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all"
                                         />
                                         {/* CNPJ lookup status icon */}
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                                             {cnpjLookupStatus === 'searching' && (
-                                                <Loader2 size={16} className="animate-spin text-[#C69C6D]" />
+                                                <Loader2 size={16} className="animate-spin text-gold" />
                                             )}
                                             {cnpjLookupStatus === 'found' && (
                                                 <span title="Cliente encontrado na base!">
@@ -2439,7 +2439,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )}
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Telefone</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Telefone</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="telefone" value={formData.telefone || ''}
@@ -2450,13 +2450,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             placeholder="(00) 00000-0000"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('telefone')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
-                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-gold/20 focus:border-gold'
                                                 }`}
                                         />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Decisor / Responsável</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Decisor / Responsável</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="decisor" value={formData.decisor || ''}
@@ -2464,13 +2464,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             placeholder="Nome do responsável"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('decisor')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
-                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-gold/20 focus:border-gold'
                                                 }`}
                                         />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">E-mail</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">E-mail</label>
                                     <div className="relative">
                                         <input
                                             type="email" id="email" value={formData.email || ''}
@@ -2478,14 +2478,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             placeholder="email@empresa.com"
                                             className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 transition-all ${autoFilledFields.has('email')
                                                 ? 'bg-emerald-50 border-emerald-300 focus:ring-emerald-200 focus:border-emerald-400'
-                                                : 'bg-slate-50 border-slate-200 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D]'
+                                                : 'bg-slate-50 border-slate-200 focus:ring-gold/20 focus:border-gold'
                                                 }`}
                                         />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-[#C69C6D]">Origem</label>
-                                    <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Origem</label>
+                                    <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all">
                                         <option value="">Selecione...</option>
                                         {LIST_DATA.origem.map(o => <option key={o} value={o}>{o}</option>)}
                                     </select>
@@ -2565,7 +2565,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return { ...prev, vigencia_inicio: inicio, vigencia_fim: fim };
                                                     });
                                                 }}
-                                                className="w-full bg-[#C69C6D]/5 border border-[#C69C6D]/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none"
+                                                className="w-full bg-gold/5 border border-gold/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all outline-none"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -2587,7 +2587,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return { ...prev, _vigencia_dias: e.target.value, vigencia_fim: fim } as any;
                                                     });
                                                 }}
-                                                className="w-full bg-[#1B263B]/5 border border-[#1B263B]/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none font-bold text-[#1B263B]"
+                                                className="w-full bg-navy/5 border border-navy/20 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all outline-none font-bold text-navy"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -2597,7 +2597,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 id="vigencia_fim"
                                                 value={formData.vigencia_fim || ''}
                                                 onChange={handleInputChange}
-                                                className="w-full bg-[#C69C6D]/5 border border-[#C69C6D]/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] transition-all outline-none"
+                                                className="w-full bg-gold/5 border border-gold/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all outline-none"
                                             />
                                         </div>
                                     </>
@@ -2850,7 +2850,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             ? () => { enviarAoClienteRef.current = true; }
                                             : handleSendDraft}
                                         disabled={saving || !formData.email}
-                                        className={`${formData.vendeu === 'Sim' ? 'bg-[#1B263B] hover:bg-[#2c3e5a]' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
+                                        className={`${formData.vendeu === 'Sim' ? 'bg-navy hover:bg-[#2c3e5a]' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
                                     >
                                         <Mail size={18} /> 
                                         {formData.vendeu === 'Sim' ? 'Enviar Apólice' : 'Enviar Minuta'}
@@ -2864,7 +2864,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         onClick={() => { enviarAoClienteRef.current = false; }}
                                         disabled={saving}
                                         title="Registra a venda sem enviar e-mail ao cliente"
-                                        className="bg-[#C69C6D] text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                                        className="bg-gold text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-gold-hover transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
                                     >
                                         {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                                         Adicionar Venda
@@ -2978,7 +2978,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             salesLeadNomeFilter ? (s.nome ?? '').trim() === salesLeadNomeFilter : true
                                         )
                                         .map((sale) => (
-                                            <tr key={sale.id} onClick={() => handleEdit(sale)} className={`group transition-all cursor-pointer ${editingId === sale.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : 'hover:bg-[#C69C6D]/5'}`}>
+                                            <tr key={sale.id} onClick={() => handleEdit(sale)} className={`group transition-all cursor-pointer ${editingId === sale.id ? 'bg-gold/10 border-l-2 border-l-gold' : 'hover:bg-gold/5'}`}>
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center gap-2">
@@ -3003,7 +3003,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-slate-700 font-bold">{sale.tipo}</td>
                                                 <td className="px-6 py-5 text-sm text-slate-800 font-black">{sale.premio || '-'}</td>
-                                                <td className="px-6 py-5 text-sm text-[#C69C6D] font-black">{sale.comissao || '-'}</td>
+                                                <td className="px-6 py-5 text-sm text-gold font-black">{sale.comissao || '-'}</td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.vendedor}</td>
                                                 <td className="px-6 py-5 text-center">
                                                     {(sale as any).apolice_url ? (
@@ -3093,7 +3093,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             onChange={e => setEmailTemplate(e.target.value)}
                             rows={10}
                             placeholder="Cole seu código HTML aqui..."
-                            className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] resize-y transition-all"
+                            className="w-full font-mono text-xs bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold resize-y transition-all"
                         />
                         <button
                             onClick={handleDispatchEmails}
@@ -3122,7 +3122,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {boletoModalEmail
-                                        ? <>📧 Para <span className="font-bold text-[#C69C6D]">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
+                                        ? <>📧 Para <span className="font-bold text-gold">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
                                         : <span className="text-amber-500">⚠ Sem e-mail cadastrado neste registro</span>
                                     }
                                 </p>
@@ -3158,7 +3158,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <button
                                                     onClick={() => handleSendBoletoEmail(b)}
                                                     disabled={sendingBoletoEmail === b.id}
-                                                    className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}
+                                                    className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}
                                                     title={boletoModalEmail ? `Enviar para ${boletoModalEmail}` : 'Sem e-mail cadastrado'}
                                                 >
                                                     {sendingBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
@@ -3192,7 +3192,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         value={carneQtd}
                                         onChange={e => setCarneQtd(e.target.value)}
                                         placeholder="6"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                     />
                                 </div>
                                 <div>
@@ -3201,7 +3201,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         type="date"
                                         value={carnePrimeiroVenc}
                                         onChange={e => setCarnePrimeiroVenc(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                     />
                                 </div>
                                 <div>
@@ -3212,20 +3212,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         value={carneValor}
                                         onChange={e => setCarneValor(e.target.value)}
                                         placeholder="2.083,53"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                     />
                                 </div>
                             </div>
                             <button
                                 onClick={handleGerarParcelas}
-                                className="w-full py-2.5 bg-white border border-[#C69C6D] text-[#b8895a] hover:bg-[#C69C6D]/10 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-white border border-gold text-gold-hover hover:bg-gold/10 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 <Plus size={14} /> Gerar parcelas
                             </button>
 
                             {carneParcelas.length > 0 && (
                                 <div className="space-y-2 rounded-xl bg-[#f8f5f0] border border-[#e8e4dc] p-3">
-                                    <p className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <p className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Confira antes de cadastrar — {carneParcelas.length} parcela(s)
                                     </p>
                                     {carneParcelas.map((p, i) => {
@@ -3237,7 +3237,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="date"
                                                     value={p.vencimento}
                                                     onChange={e => setCarneParcelas(prev => prev.map((x, j) => j === i ? { ...x, vencimento: e.target.value } : x))}
-                                                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#C69C6D]"
+                                                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-gold"
                                                 />
                                                 <input
                                                     type="text"
@@ -3245,7 +3245,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     value={p.valor}
                                                     onChange={e => setCarneParcelas(prev => prev.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))}
                                                     placeholder="2.083,53"
-                                                    className="w-24 shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#C69C6D]"
+                                                    className="w-24 shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-gold"
                                                 />
                                                 <button
                                                     onClick={() => setCarneParcelas(prev => prev.filter((_, j) => j !== i))}
@@ -3269,7 +3269,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )}
 
                                     {/* PDF do carnê: opcional, e o mesmo arquivo vale para todas as parcelas. */}
-                                    <label className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-dashed border-slate-300 bg-white text-[11px] font-bold text-slate-500 hover:border-[#C69C6D] hover:text-[#b8895a] cursor-pointer transition-all">
+                                    <label className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-dashed border-slate-300 bg-white text-[11px] font-bold text-slate-500 hover:border-gold hover:text-gold-hover cursor-pointer transition-all">
                                         <FileText size={13} />
                                         {carneFile ? carneFile.name.substring(0, 30) : 'Anexar PDF do carnê (opcional)'}
                                         <input
@@ -3283,7 +3283,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <button
                                         onClick={handleSalvarCarne}
                                         disabled={salvandoCarne || carneParcelas.some(p => !p.vencimento)}
-                                        className="w-full py-2.5 bg-[#C69C6D] hover:bg-[#b58a5b] disabled:opacity-50 text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2.5 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                                     >
                                         {salvandoCarne ? <><Loader2 size={14} className="animate-spin" /> Cadastrando...</> : <><Plus size={14} /> Cadastrar todas as parcelas</>}
                                     </button>
@@ -3303,7 +3303,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         value={boletoForm.parcela}
                                         onChange={e => setBoletoForm(f => ({ ...f, parcela: e.target.value }))}
                                         placeholder="1"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                     />
                                 </div>
                                 <div>
@@ -3312,7 +3312,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         type="date"
                                         value={boletoForm.vencimento}
                                         onChange={e => setBoletoForm(f => ({ ...f, vencimento: e.target.value }))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                     />
                                 </div>
                             </div>
@@ -3324,7 +3324,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     value={boletoForm.valor}
                                     onChange={e => setBoletoForm(f => ({ ...f, valor: e.target.value }))}
                                     placeholder="2.083,53"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
                                 />
                                 <p className="text-[10px] text-slate-400 mt-1">
                                     Opcional, mas é o que permite mostrar ao parceiro quanto ele recebe em cada parcela.
@@ -3341,7 +3341,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <button
                                 onClick={handleAddBoleto}
                                 disabled={uploadingBoleto || !boletoForm.file || !boletoForm.parcela}
-                                className="w-full py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 {uploadingBoleto ? <><Loader2 size={16} className="animate-spin" /> Enviando...</> : <><Plus size={16} /> Adicionar Parcela</>}
                             </button>
@@ -3365,7 +3365,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     setSaveError(null);
                                     setIsAddClientModalOpen(true);
                                 }}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm shadow-md shadow-[#C69C6D]/25 border border-[#b8895a]/60 hover:bg-[#b8895a] hover:border-[#a87d50] transition-all order-2 sm:order-1 whitespace-nowrap"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm shadow-md shadow-gold/25 border border-gold-hover/60 hover:bg-gold-hover hover:border-[#a87d50] transition-all order-2 sm:order-1 whitespace-nowrap"
                             >
                                 <Plus size={18} strokeWidth={2.5} className="shrink-0" aria-hidden />
                                 Novo cliente
@@ -3377,7 +3377,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     placeholder="Buscar cliente..."
                                     value={salesSearch}
                                     onChange={e => setSalesSearch(e.target.value)}
-                                    className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-[#C69C6D]/20 shadow-sm"
+                                    className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none w-full focus:ring-2 focus:ring-gold/20 shadow-sm"
                                 />
                             </div>
                         </div>
@@ -3525,12 +3525,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                             return clients.map((client: ClientPortfolioItem, idx: number) => (
                                 <div key={idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#C69C6D]/5 rounded-bl-full -z-0"></div>
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-bl-full -z-0"></div>
 
                                     <div className="relative z-10 flex-1">
                                         <div className="flex items-start gap-4 mb-6">
                                             <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                                                <Briefcase size={20} className="text-[#C69C6D]" />
+                                                <Briefcase size={20} className="text-gold" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
@@ -3559,7 +3559,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 decisor: client.decisor,
                                                             });
                                                         }}
-                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                                                         title="Editar dados do cliente"
                                                     >
                                                         <Edit2 size={14} />
@@ -3592,7 +3592,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     type={type}
                                                                     value={(clientEditForm as any)[key]}
                                                                     onChange={e => setClientEditForm(prev => ({ ...prev, [key]: e.target.value }))}
-                                                                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] transition-all"
+                                                                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
                                                                 />
                                                             </div>
                                                         ))}
@@ -3606,7 +3606,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             <button
                                                                 onClick={() => handleSaveClientInfo(client.salesIds)}
                                                                 disabled={saving}
-                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-[#C69C6D] hover:bg-[#b58a5b] py-2 rounded-lg transition-all disabled:opacity-50"
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-gold hover:bg-gold-hover py-2 rounded-lg transition-all disabled:opacity-50"
                                                             >
                                                                 {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                                 SALVAR
@@ -3623,7 +3623,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         )}
                                                         {client.cnpj && (
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-[10px] font-black text-[#C69C6D]">CNPJ: {client.cnpj}</p>
+                                                                <p className="text-[10px] font-black text-gold">CNPJ: {client.cnpj}</p>
                                                                 <CopyButton text={client.cnpj} label="CNPJ" />
                                                             </div>
                                                         )}
@@ -3658,7 +3658,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <div className="flex items-center justify-between gap-2">
                                                                     <span className="text-[10px] font-black text-slate-700 uppercase">{sv.tipo || 'Seguro'}</span>
                                                                     {sv.seguradora && (
-                                                                        <span className="text-[9px] font-bold text-[#C69C6D] bg-[#C69C6D]/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
+                                                                        <span className="text-[9px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
                                                                     )}
                                                                 </div>
                                                                 <div className="flex justify-between items-center text-[9px] font-bold">
@@ -3684,14 +3684,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             setNewTempLimit({ seguradora: '', valor: '' });
                                                             setNewLimitSeguradoraOutro('');
                                                         }}
-                                                        className="text-[#C69C6D] hover:text-[#b58a5b] transition-colors p-1"
+                                                        className="text-gold hover:text-gold-hover transition-colors p-1"
                                                     >
                                                         <Plus size={12} strokeWidth={3} />
                                                     </button>
                                                 </p>
 
                                                 {editingClientLimits === client.nome ? (
-                                                    <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-[#C69C6D]/20 animate-in fade-in zoom-in-95 duration-200">
+                                                    <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-gold/20 animate-in fade-in zoom-in-95 duration-200">
                                                         <div className="space-y-2">
                                                             {tempClientLimits.map((l, i) => (
                                                                 <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
@@ -3716,7 +3716,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     setNewTempLimit(prev => ({ ...prev, seguradora: v }));
                                                                     setNewLimitSeguradoraOutro('');
                                                                 }}
-                                                                className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-white"
+                                                                className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                                                             >
                                                                 <option value="">Seguradora...</option>
                                                                 {insurers.map(ins => (
@@ -3733,8 +3733,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 }}
                                                                 className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
                                                                     newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
-                                                                        ? 'border-[#1B263B] bg-[#1B263B] text-white shadow-sm'
-                                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#C69C6D]/50 hover:text-[#C69C6D]'
+                                                                        ? 'border-navy bg-navy text-white shadow-sm'
+                                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
                                                                 }`}
                                                             >
                                                                 Outro corretor
@@ -3745,7 +3745,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     placeholder="Nome do corretor ou seguradora"
                                                                     value={newLimitSeguradoraOutro}
                                                                     onChange={e => setNewLimitSeguradoraOutro(e.target.value)}
-                                                                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D] bg-slate-50"
+                                                                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
                                                                 />
                                                             )}
                                                             <input
@@ -3756,7 +3756,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
                                                                     setNewTempLimit(prev => ({ ...prev, valor: val }));
                                                                 }}
-                                                                className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-[#C69C6D]"
+                                                                className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold"
                                                             />
                                                             <button
                                                                 type="button"
@@ -3775,7 +3775,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                         setNewLimitSeguradoraOutro('');
                                                                     }
                                                                 }}
-                                                                className="bg-[#C69C6D] text-white p-2 rounded-lg shrink-0"
+                                                                className="bg-gold text-white p-2 rounded-lg shrink-0"
                                                             >
                                                                 <Plus size={12} />
                                                             </button>
@@ -3819,7 +3819,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <button
                                                                     onClick={() => handleSendLimits(client)}
                                                                     disabled={!!sendingLimitsTo}
-                                                                    className="mt-2 w-full py-3 bg-[#1B263B] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2c3e50] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                                    className="mt-2 w-full py-3 bg-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2c3e50] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                                 >
                                                                     {sendingLimitsTo === client.nome ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                                                     Enviar p/ Cliente
@@ -3853,7 +3853,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         setEditingClientObs(client.nome);
                                                         setTempClientObs(client.obs || '');
                                                     }}
-                                                    className="p-1 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                    className="p-1 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                                                     title="Editar observações"
                                                     aria-label="Editar observações"
                                                 >
@@ -3866,7 +3866,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         value={tempClientObs}
                                                         onChange={e => setTempClientObs(e.target.value)}
                                                         rows={3}
-                                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] resize-y min-h-[72px]"
+                                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold resize-y min-h-[72px]"
                                                     />
                                                     <div className="flex gap-2">
                                                         <button
@@ -3880,7 +3880,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             type="button"
                                                             onClick={() => handleSaveClientObs(client.salesIds)}
                                                             disabled={saving}
-                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-[#1B263B] hover:bg-[#243347] py-2 rounded-lg transition-all disabled:opacity-50"
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-navy hover:bg-navy-light py-2 rounded-lg transition-all disabled:opacity-50"
                                                         >
                                                             {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                             Salvar
@@ -3912,19 +3912,19 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <p className="text-slate-500 font-medium">Acompanhe a performance proporcional por vendedor.</p>
                         </div>
                         <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                            <Calendar size={18} className="text-[#C69C6D]" />
+                            <Calendar size={18} className="text-gold" />
                             <input type="month" value={goalsMonthSelector} onChange={(e) => setGoalsMonthSelector(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none" />
                         </div>
                     </div>
 
-                    <div className="bg-[#1B263B] rounded-2xl p-6 md:p-8 border border-white/10 text-white shadow-xl">
+                    <div className="bg-navy rounded-2xl p-6 md:p-8 border border-white/10 text-white shadow-xl">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[#C69C6D]/20 flex items-center justify-center">
-                                    <Users size={20} className="text-[#C69C6D]" />
+                                <div className="w-10 h-10 rounded-xl bg-gold/20 flex items-center justify-center">
+                                    <Users size={20} className="text-gold" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-black uppercase tracking-widest text-[#C69C6D]">Gestão de Vendedores</h3>
+                                    <h3 className="text-lg font-black uppercase tracking-widest text-gold">Gestão de Vendedores</h3>
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cadastro e participação nas metas</p>
                                 </div>
                             </div>
@@ -3936,7 +3936,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     setShowNewSellerForm((v) => !v);
                                     setEditingSellerId(null);
                                 }}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm uppercase tracking-wider border border-[#b8895a] hover:bg-[#b8895a] transition-all disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm uppercase tracking-wider border border-gold-hover hover:bg-gold-hover transition-all disabled:opacity-50"
                             >
                                 <Plus size={18} strokeWidth={2.5} /> Novo Vendedor
                             </button>
@@ -3956,26 +3956,26 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         placeholder="Nome"
                                         value={newSellerDraft.name}
                                         onChange={(e) => setNewSellerDraft((p) => ({ ...p, name: e.target.value }))}
-                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-gold/40"
                                     />
                                     <input
                                         placeholder="Email"
                                         type="email"
                                         value={newSellerDraft.email}
                                         onChange={(e) => setNewSellerDraft((p) => ({ ...p, email: e.target.value }))}
-                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-gold/40"
                                     />
                                     <input
                                         placeholder="Share (%)"
                                         value={newSellerDraft.sharePercent}
                                         onChange={(e) => setNewSellerDraft((p) => ({ ...p, sharePercent: e.target.value }))}
-                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-gold/40"
                                     />
                                     <input
                                         placeholder="Dias por semana"
                                         value={newSellerDraft.daysPerWeek}
                                         onChange={(e) => setNewSellerDraft((p) => ({ ...p, daysPerWeek: e.target.value }))}
-                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#C69C6D]/40"
+                                        className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-gold/40"
                                     />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -3983,7 +3983,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         type="button"
                                         disabled={sellerCrudBusy}
                                         onClick={() => void handleInsertSeller()}
-                                        className="px-5 py-2.5 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-xs uppercase tracking-widest disabled:opacity-50"
+                                        className="px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-xs uppercase tracking-widest disabled:opacity-50"
                                     >
                                         Salvar
                                     </button>
@@ -4036,7 +4036,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="button"
                                                     disabled={sellerCrudBusy}
                                                     onClick={() => void handleUpdateSeller(seller.id)}
-                                                    className="px-4 py-2 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-xs uppercase"
+                                                    className="px-4 py-2 rounded-xl bg-gold text-navy font-black text-xs uppercase"
                                                 >
                                                     Salvar
                                                 </button>
@@ -4055,7 +4055,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-black text-white text-lg truncate">{seller.name}</p>
                                                 <p className="text-xs text-slate-400 font-bold truncate">{seller.email || '—'}</p>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mt-2">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-gold mt-2">
                                                     {Number(seller.share) * 100}% share · {seller.days_per_week} dias/semana
                                                     {!seller.active && <span className="ml-2 text-slate-500">(inativo)</span>}
                                                 </p>
@@ -4075,7 +4075,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             daysPerWeek: String(seller.days_per_week)
                                                         });
                                                     }}
-                                                    className="px-4 py-2 rounded-xl border border-[#C69C6D]/50 text-[#C69C6D] font-black text-xs uppercase tracking-wider hover:bg-[#C69C6D]/10"
+                                                    className="px-4 py-2 rounded-xl border border-gold/50 text-gold font-black text-xs uppercase tracking-wider hover:bg-gold/10"
                                                 >
                                                     Editar
                                                 </button>
@@ -4118,13 +4118,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div className="relative z-10 flex flex-col h-full">
                                             <div className="flex justify-between items-start mb-12">
                                                 <div>
-                                                    <h3 className="text-4xl font-black tracking-tighter text-[#C69C6D]">{seller.name}</h3>
+                                                    <h3 className="text-4xl font-black tracking-tighter text-gold">{seller.name}</h3>
                                                     <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">
                                                         {Number(seller.share) * 100}% da meta empresa (fallback proporcional)
                                                     </p>
                                                 </div>
-                                                <div className="bg-[#C69C6D]/20 p-4 rounded-3xl">
-                                                    <Target size={32} className="text-[#C69C6D]" />
+                                                <div className="bg-gold/20 p-4 rounded-3xl">
+                                                    <Target size={32} className="text-gold" />
                                                 </div>
                                             </div>
 
@@ -4145,7 +4145,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             }}
                                                             disabled={goalTargetSaving}
                                                             autoFocus
-                                                            className="mt-1 w-full max-w-[11rem] bg-white/10 border border-[#C69C6D]/40 rounded-xl px-3 py-2 text-xl font-black text-white outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
+                                                            className="mt-1 w-full max-w-[11rem] bg-white/10 border border-gold/40 rounded-xl px-3 py-2 text-xl font-black text-white outline-none focus:ring-2 focus:ring-gold/30"
                                                         />
                                                     ) : (
                                                         <button
@@ -4157,7 +4157,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     String(getSellerMonthlyTarget(seller, year, monthNum))
                                                                 );
                                                             }}
-                                                            className="text-left text-2xl font-black hover:text-[#C69C6D] transition-colors"
+                                                            className="text-left text-2xl font-black hover:text-gold transition-colors"
                                                         >
                                                             {formatCurrency(sellerTarget)}
                                                         </button>
@@ -4174,7 +4174,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <div className="flex justify-between items-end mb-4">
                                                     <div>
                                                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
-                                                        <p className="text-5xl font-black text-[#C69C6D] tracking-tighter">{formatCurrency(totalAchieved)}</p>
+                                                        <p className="text-5xl font-black text-gold tracking-tighter">{formatCurrency(totalAchieved)}</p>
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-3xl font-black text-white">{percent.toFixed(1)}%</p>
@@ -4183,13 +4183,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                                                 <div className="h-4 bg-white/5 rounded-full overflow-hidden">
                                                     <div
-                                                        className="h-full bg-gradient-to-r from-[#C69C6D] to-white rounded-full transition-all duration-1000"
+                                                        className="h-full bg-gradient-to-r from-gold to-white rounded-full transition-all duration-1000"
                                                         style={{ width: `${percent}%` }}
                                                     />
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#C69C6D] opacity-[0.03] rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-gold opacity-[0.03] rounded-full blur-[80px] -mr-32 -mt-32"></div>
                                     </div>
                                 );
                             })}
@@ -4219,11 +4219,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             const isCurrent = key === String(new Date().getMonth() + 1).padStart(2, '0');
 
                             return (
-                                <div key={key} className={`p-8 rounded-[2rem] border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-[#1B263B] text-white border-[#C69C6D] shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
+                                <div key={key} className={`p-8 rounded-[2rem] border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-navy text-white border-gold shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
                                     }`}>
                                     <div className="flex justify-between items-start mb-6">
                                         <h3 className="text-2xl font-black tracking-tight">{monthLabel}</h3>
-                                        <div className={`w-3 h-3 rounded-full ${isCurrent ? 'bg-[#C69C6D] animate-pulse' : 'bg-slate-200'}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${isCurrent ? 'bg-gold animate-pulse' : 'bg-slate-200'}`}></div>
                                     </div>
 
                                     <div className="space-y-4 mb-8">
@@ -4232,8 +4232,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <p className="text-lg font-bold">{formatCurrency(metaTotal)}</p>
                                         </div>
                                         <div>
-                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-[#C69C6D]' : 'text-slate-400'}`}>Atingido</p>
-                                            <p className={`text-2xl font-black ${isCurrent ? 'text-[#C69C6D]' : 'text-slate-800'}`}>{formatCurrency(achieved)}</p>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-gold' : 'text-slate-400'}`}>Atingido</p>
+                                            <p className={`text-2xl font-black ${isCurrent ? 'text-gold' : 'text-slate-800'}`}>{formatCurrency(achieved)}</p>
                                         </div>
                                     </div>
 
@@ -4244,7 +4244,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                         <div className={`h-2 rounded-full overflow-hidden ${isCurrent ? 'bg-white/5' : 'bg-slate-50'}`}>
                                             <div
-                                                className={`h-full transition-all duration-1000 ${isCurrent ? 'bg-[#C69C6D]' : 'bg-slate-200'}`}
+                                                className={`h-full transition-all duration-1000 ${isCurrent ? 'bg-gold' : 'bg-slate-200'}`}
                                                 style={{ width: `${percent}%` }}
                                             />
                                         </div>
@@ -4267,7 +4267,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             href="https://yellowgreen-cormorant-961745.hostingersite.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all shadow shrink-0"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all shadow shrink-0"
                         >
                             Abrir em nova aba ↗
                         </a>
@@ -4302,7 +4302,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <p className="text-slate-500 font-medium">Métricas de investimento e eficiência de conversão.</p>
                         </div>
                         <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                            <Calendar size={18} className="text-[#C69C6D]" />
+                            <Calendar size={18} className="text-gold" />
                             <input type="month" value={leadsMonthSelector} onChange={(e) => setLeadsMonthSelector(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 outline-none" />
                         </div>
                     </div>
@@ -4369,7 +4369,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                                         return rows.map((row) => (
                                             <tr key={row.label} className={row.isKPI ? 'bg-slate-50/30' : ''}>
-                                                <td className={`px-6 py-4 font-bold ${row.isKPI ? 'text-[#C69C6D]' : 'text-slate-700'}`}>{row.label}</td>
+                                                <td className={`px-6 py-4 font-bold ${row.isKPI ? 'text-gold' : 'text-slate-700'}`}>{row.label}</td>
                                                 {row.data.map((val, i) => (
                                                     <td key={i} className="px-4 py-4">
                                                         {row.isManual ? (
@@ -4377,7 +4377,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 type="number"
                                                                 value={val}
                                                                 onChange={(e) => updateManualCost(`${leadsMonthSelector}_w${i + 1}`, parseFloat(e.target.value) || 0)}
-                                                                className="w-24 bg-slate-50 border-slate-200 rounded-lg px-2 py-1 outline-none text-xs focus:ring-1 focus:ring-[#C69C6D]"
+                                                                className="w-24 bg-slate-50 border-slate-200 rounded-lg px-2 py-1 outline-none text-xs focus:ring-1 focus:ring-gold"
                                                             />
                                                         ) : (
                                                             <span className="font-medium text-slate-600">
@@ -4419,7 +4419,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <span className="text-slate-400">{item.count} leads ({p.toFixed(1)}%)</span>
                                                 </div>
                                                 <div className="h-2 bg-slate-50 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-[#1B263B] rounded-full" style={{ width: `${p}%` }} />
+                                                    <div className="h-full bg-navy rounded-full" style={{ width: `${p}%` }} />
                                                 </div>
                                             </div>
                                         )
@@ -4428,8 +4428,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </div>
                         </div>
 
-                        <div className="bg-[#1B263B] p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden">
-                            <h4 className="text-lg font-black text-[#C69C6D] mb-6">Eficiência de Vendas</h4>
+                        <div className="bg-navy p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden">
+                            <h4 className="text-lg font-black text-gold mb-6">Eficiência de Vendas</h4>
                             <div className="flex items-center justify-center p-8">
                                 {(() => {
                                     const monthlySales = sales.filter(s => s.data.startsWith(leadsMonthSelector));
@@ -4440,7 +4440,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div className="relative w-48 h-48">
                                             <svg className="w-full h-full transform -rotate-90">
                                                 <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
-                                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={2 * Math.PI * 80} strokeDashoffset={2 * Math.PI * 80 * (1 - p / 100)} className="text-[#C69C6D] transition-all duration-1000" />
+                                                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={2 * Math.PI * 80} strokeDashoffset={2 * Math.PI * 80 * (1 - p / 100)} className="text-gold transition-all duration-1000" />
                                             </svg>
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                 <span className="text-4xl font-black">{p.toFixed(0)}%</span>
@@ -4450,7 +4450,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )
                                 })()}
                             </div>
-                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-[#C69C6D]/10 rounded-full blur-3xl"></div>
+                            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gold/10 rounded-full blur-3xl"></div>
                         </div>
                     </div>
                 </section>
@@ -4523,12 +4523,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="add-client-modal-title"
-                        className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[#C69C6D]/25 animate-in zoom-in-95 duration-200"
+                        className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gold/25 animate-in zoom-in-95 duration-200"
                     >
-                        <div className="flex items-start justify-between gap-3 p-6 border-b border-[#C69C6D]/20 bg-[#1B263B] text-white rounded-t-[2rem]">
+                        <div className="flex items-start justify-between gap-3 p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
                             <div>
                                 <h3 id="add-client-modal-title" className="text-lg font-black tracking-tight flex items-center gap-2">
-                                    <Briefcase size={22} className="text-[#C69C6D] shrink-0" aria-hidden />
+                                    <Briefcase size={22} className="text-gold shrink-0" aria-hidden />
                                     Novo cliente na carteira
                                 </h3>
                                 <p className="text-xs text-white/70 font-medium mt-1">
@@ -4572,7 +4572,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         onChange={(e) =>
                                             setNewManualClientForm((prev) => ({ ...prev, [field.key]: e.target.value }))
                                         }
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] transition-all"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
                                     />
                                 </div>
                             ))}
@@ -4588,7 +4588,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <button
                                     type="submit"
                                     disabled={addingManualClient}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#C69C6D] text-[#1B263B] font-black text-sm hover:bg-[#b8895a] transition-colors disabled:opacity-50 shadow-md"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gold text-navy font-black text-sm hover:bg-gold-hover transition-colors disabled:opacity-50 shadow-md"
                                 >
                                     {addingManualClient ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                     Salvar cliente

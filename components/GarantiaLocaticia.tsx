@@ -164,7 +164,7 @@ const GarantiaLocaticia: React.FC = () => {
 
   const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-3">
-      <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+      <div className="w-1.5 h-6 bg-gold rounded-full"></div>
       {children}
     </h3>
   );
@@ -175,15 +175,15 @@ const GarantiaLocaticia: React.FC = () => {
     </label>
   );
 
-  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all";
+  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all";
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-[#1B263B] rounded-[2rem] p-8 text-white relative overflow-hidden shadow-lg">
+      <div className="bg-navy rounded-[2rem] p-8 text-white relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex items-center gap-4">
-          <div className="w-14 h-14 bg-[#C69C6D]/20 rounded-2xl flex items-center justify-center border border-[#C69C6D]/30">
-            <Calculator size={28} className="text-[#C69C6D]" />
+          <div className="w-14 h-14 bg-gold/20 rounded-2xl flex items-center justify-center border border-gold/30">
+            <Calculator size={28} className="text-gold" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Garantia Locatícia</h1>
@@ -192,7 +192,7 @@ const GarantiaLocaticia: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[60px] pointer-events-none"></div>
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-gold opacity-[0.05] rounded-full blur-[60px] pointer-events-none"></div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -230,8 +230,8 @@ const GarantiaLocaticia: React.FC = () => {
                       onClick={() => setTipoImovel(t)}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all ${
                         tipoImovel === t
-                          ? 'bg-[#1B263B] text-white shadow-md'
-                          : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'
+                          ? 'bg-navy text-white shadow-md'
+                          : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
                       }`}
                     >
                       {t === 'residencial' ? 'Residencial' : 'Comercial'}
@@ -292,8 +292,8 @@ const GarantiaLocaticia: React.FC = () => {
                     onClick={() => setForma(f)}
                     className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${
                       forma === f
-                        ? 'bg-[#1B263B] text-white shadow-md'
-                        : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'
+                        ? 'bg-navy text-white shadow-md'
+                        : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
                     }`}
                   >
                     {f === 'cartao' ? 'Cartão (sem juros)' : 'Boleto (com juros)'}
@@ -369,7 +369,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     onClick={handleSalvarParams}
                     disabled={savingParams}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all disabled:opacity-50"
                   >
                     {savingParams ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Salvar Parâmetros
@@ -393,11 +393,11 @@ const GarantiaLocaticia: React.FC = () => {
           ) : (
             <>
               {/* Desembolso mensal — destaque */}
-              <div className="bg-[#1B263B] rounded-2xl p-6 text-center">
-                <p className="text-[#C69C6D]/70 text-xs font-black uppercase tracking-widest mb-2">
+              <div className="bg-navy rounded-2xl p-6 text-center">
+                <p className="text-gold/70 text-xs font-black uppercase tracking-widest mb-2">
                   {forma === 'boleto' ? '1º MÊS' : 'DESEMBOLSO MENSAL'}
                 </p>
-                <p className="text-[#C69C6D] text-4xl font-black">
+                <p className="text-gold text-4xl font-black">
                   {result.forma === 'boleto' ? fmtBRL(result.desembolso_mes1) : fmtBRL(result.desembolso_mensal)}
                 </p>
                 <p className="text-white/50 text-xs mt-1">aluguel + parcela da garantia</p>
@@ -483,7 +483,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={handleCopiarMensagem}
-                    className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all"
                   >
                     {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
                     {copied ? 'Copiado!' : 'Copiar Mensagem'}
@@ -542,7 +542,7 @@ const GarantiaLocaticia: React.FC = () => {
                     <div className="text-right">
                       <p className="text-xs text-slate-400">Aluguel</p>
                       <p className="text-sm font-black text-slate-700">{fmtBRL(sim.aluguel_centavos)}</p>
-                      <p className="text-xs text-[#C69C6D] font-black">Total: {fmtBRL(sim.total_forma_centavos)}</p>
+                      <p className="text-xs text-gold font-black">Total: {fmtBRL(sim.total_forma_centavos)}</p>
                     </div>
                   </div>
                 ))}

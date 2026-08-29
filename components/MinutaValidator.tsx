@@ -339,8 +339,8 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[#1B263B] flex items-center justify-center shrink-0">
-          <ClipboardCheck size={16} className="text-[#C69C6D]" />
+        <div className="w-9 h-9 rounded-xl bg-navy flex items-center justify-center shrink-0">
+          <ClipboardCheck size={16} className="text-gold" />
         </div>
         <div>
           <h3 className="font-black text-slate-800 text-lg">Double Check — Minuta do Seguro</h3>
@@ -355,14 +355,14 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           onDragOver={e => e.preventDefault()}
           onClick={() => !file && inputRef.current?.click()}
           className={`border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center gap-4 transition-all cursor-pointer
-            ${file ? 'border-[#C69C6D] bg-amber-50/30 cursor-default' : 'border-slate-200 bg-slate-50/50 hover:border-[#C69C6D] hover:bg-amber-50/10'}`}
+            ${file ? 'border-gold bg-amber-50/30 cursor-default' : 'border-slate-200 bg-slate-50/50 hover:border-gold hover:bg-amber-50/10'}`}
         >
           <input ref={inputRef} type="file" accept="application/pdf" className="hidden"
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
           {file ? (
             <>
-              <div className="w-12 h-12 rounded-xl bg-[#C69C6D]/10 flex items-center justify-center">
-                <FileText size={22} className="text-[#C69C6D]" />
+              <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center">
+                <FileText size={22} className="text-gold" />
               </div>
               <div className="text-center">
                 <p className="font-black text-slate-800">{file.name}</p>
@@ -370,7 +370,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
               </div>
               <div className="flex gap-3">
                 <button onClick={e => { e.stopPropagation(); validate(); }} disabled={loading}
-                  className="bg-[#1B263B] text-white px-7 py-3 rounded-xl font-black hover:bg-[#243447] transition-all shadow flex items-center gap-2 disabled:opacity-60 text-sm">
+                  className="bg-navy text-white px-7 py-3 rounded-xl font-black hover:bg-navy-light transition-all shadow flex items-center gap-2 disabled:opacity-60 text-sm">
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <ClipboardCheck size={16} />}
                   {loading ? 'Validando...' : 'Validar Minuta'}
                 </button>
@@ -396,7 +396,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
       {loading && (
         <div className="bg-white rounded-2xl border border-slate-100 p-8 flex flex-col items-center gap-3">
-          <Loader2 size={28} className="text-[#C69C6D] animate-spin" />
+          <Loader2 size={28} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800">Comparando dados...</p>
             <p className="text-slate-400 text-sm mt-0.5">A IA está conferindo campo a campo</p>
@@ -497,9 +497,9 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           {mensagem && (
             <div className="border-t border-slate-100 pt-4 space-y-3">
               <button onClick={() => setShowMsg(!showMsg)}
-                className="w-full flex items-center justify-between px-5 py-3.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-2xl transition-all font-black text-sm shadow">
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-navy hover:bg-navy-light text-white rounded-2xl transition-all font-black text-sm shadow">
                 <div className="flex items-center gap-2">
-                  <MessageSquare size={16} className="text-[#C69C6D]" />
+                  <MessageSquare size={16} className="text-gold" />
                   <span>Gerar Mensagem para o Cliente</span>
                 </div>
                 {showMsg ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -588,7 +588,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                           type="date"
                           value={vendaForm.data}
                           onChange={e => setVendaForm(f => ({ ...f, data: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D]"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                         />
                       </div>
 
@@ -597,7 +597,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                         <select
                           value={vendaForm.vendedor}
                           onChange={e => setVendaForm(f => ({ ...f, vendedor: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] bg-white"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-white"
                         >
                           <option value="">Selecionar...</option>
                           {sellers.map(s => (
@@ -613,7 +613,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                           placeholder="Ex: R$ 500,00"
                           value={vendaForm.comissao}
                           onChange={e => setVendaForm(f => ({ ...f, comissao: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D]"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                         />
                       </div>
                     </div>

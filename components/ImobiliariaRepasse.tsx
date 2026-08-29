@@ -173,7 +173,7 @@ function LinhaPendencia({
           <span className="text-[10px] font-black px-2 py-0.5 rounded-lg" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
             {etiqueta.texto}
           </span>
-          <p className="font-black text-[13px] text-[#1B263B]">{cliente.inquilino_nome}</p>
+          <p className="font-black text-[13px] text-navy">{cliente.inquilino_nome}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-1.5">
           {detalhe && (
@@ -210,7 +210,7 @@ function LinhaPendencia({
         {onGoToSale && (
           <button
             onClick={() => onGoToSale({ nome: cliente.inquilino_nome, telefone: cliente.telefone || '' })}
-            className="text-[11px] font-black bg-white border border-slate-200 hover:border-[#C69C6D] text-slate-600 px-3 py-2 rounded-xl transition-colors"
+            className="text-[11px] font-black bg-white border border-slate-200 hover:border-gold text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             → Registro de Venda
           </button>
@@ -225,7 +225,7 @@ function LinhaPendencia({
         )}
         <button
           onClick={acao.onClick}
-          className="flex items-center gap-1.5 text-[11px] font-black bg-[#1B263B] hover:bg-[#2a3a56] text-[#C69C6D] px-3 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-black bg-navy hover:bg-[#2a3a56] text-gold px-3 py-2 rounded-xl transition-colors"
         >
           <CheckCircle2 size={13} /> {acao.label}
         </button>
@@ -287,9 +287,9 @@ function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; fi
     finally { setUploading(false); e.target.value = ''; }
   };
   return (
-    <label className={`flex items-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-slate-200 bg-slate-50' : 'border-[#C69C6D]/40 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5'}`}>
+    <label className={`flex items-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-slate-200 bg-slate-50' : 'border-gold/40 hover:border-gold hover:bg-gold/5'}`}>
       <input type="file" accept="application/pdf" className="hidden" onChange={handleFile} disabled={uploading} />
-      {uploading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-[#C69C6D]" />}
+      {uploading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-gold" />}
       <span className="text-sm font-bold text-slate-600">{uploading ? 'Enviando...' : 'Clique para anexar PDF da apólice'}</span>
     </label>
   );
@@ -880,14 +880,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <h2 className="text-xl lg:text-3xl font-black text-slate-800 tracking-tight">
             Repasse Imobiliárias
             {filterParceiro && parceiros.find(p => p.id === filterParceiro) && (
-              <span className="text-lg text-[#C69C6D] ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
+              <span className="text-lg text-gold ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
             )}
           </h2>
           <p className="text-slate-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
             Gestão de clientes residenciais por imobiliária parceira
             <button
               onClick={() => setGuiaAberto(true)}
-              className="flex items-center gap-1.5 text-[11px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 border border-[#C69C6D]/40 px-2.5 py-1 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-black text-navy bg-gold/15 hover:bg-gold/30 border border-gold/40 px-2.5 py-1 rounded-lg transition-colors"
               title="Como operar esta tela, passo a passo"
             >
               <Info size={12} /> Como funciona
@@ -900,7 +900,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <select
               value={filterParceiro ?? ''}
               onChange={e => setFilterParceiro(e.target.value ? parseInt(e.target.value) : null)}
-              className="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D] cursor-pointer"
+              className="text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:border-gold cursor-pointer"
             >
               <option value="">Todas as imobiliárias</option>
               {parceiros.map(p => <option key={p.id} value={p.id}>{p.name.replace('Imobiliária ', '')}</option>)}
@@ -936,14 +936,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <button
             onClick={enviarRelatorio}
             disabled={sending || ativos.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50"
           >
             {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {sending ? 'Enviando...' : 'Enviar Relatório'}
           </button>
           <button
             onClick={() => setShowForm(f => !f)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#C69C6D] hover:bg-[#b8895a] text-white font-bold text-sm rounded-xl transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all"
           >
             <Plus size={15} /> Novo Cliente
           </button>
@@ -988,8 +988,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               onClick={() => openEditStatus(c)}
               className="w-full flex items-center gap-3 px-6 py-3.5 border-b border-slate-50 last:border-0 hover:bg-[#fff7ed] transition-colors text-left"
             >
-              <div className="w-8 h-8 rounded-xl bg-[#1B263B] flex items-center justify-center shrink-0">
-                <User size={14} className="text-[#C69C6D]" />
+              <div className="w-8 h-8 rounded-xl bg-navy flex items-center justify-center shrink-0">
+                <User size={14} className="text-gold" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-black text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
@@ -1004,7 +1004,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   )}
                 </div>
               </div>
-              <span className="flex items-center gap-1.5 text-[#C69C6D] font-black text-xs shrink-0">
+              <span className="flex items-center gap-1.5 text-gold font-black text-xs shrink-0">
                 <Pencil size={13} /> Corrigir
               </span>
             </button>
@@ -1015,8 +1015,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {/* Pendências do portal — tudo que a imobiliária pediu e ainda está em aberto */}
       {totalPendenciasPortal > 0 && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-          <div className="bg-[#1B263B] px-6 py-4 flex items-center gap-3">
-            <RefreshCw size={17} className="text-[#C69C6D]" />
+          <div className="bg-navy px-6 py-4 flex items-center gap-3">
+            <RefreshCw size={17} className="text-gold" />
             <div>
               <p className="text-white font-black text-sm">Pendências do portal ({totalPendenciasPortal})</p>
               <p className="text-white/50 text-[11px] font-semibold mt-0.5">
@@ -1102,9 +1102,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#1B263B] rounded-2xl p-5 text-white">
+        <div className="bg-navy rounded-2xl p-5 text-white">
           <p className="text-white/50 text-xs font-black uppercase tracking-widest mb-1">Total Mensal</p>
-          <p className="text-2xl font-black text-[#C69C6D]">{fmtBRL(totalMensal)}</p>
+          <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Clientes Ativos</p>
@@ -1127,48 +1127,48 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <div className="sm:col-span-2">
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
               <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Ex: Maria da Silva" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Maria da Silva" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
               <input value={form.seguradora} onChange={e => setForm(f => ({ ...f, seguradora: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Ex: Porto Seguro" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Porto Seguro" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
               <input value={form.numero_apolice} onChange={e => setForm(f => ({ ...f, numero_apolice: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Ex: APL-2024-001" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: APL-2024-001" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
               <input value={form.valor_seguro} onChange={e => setForm(f => ({ ...f, valor_seguro: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Ex: 150,00" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: 150,00" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
               <input type="number" min="1" max="12" value={form.parcela_atual} onChange={e => setForm(f => ({ ...f, parcela_atual: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
               <input type="number" min="1" value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
               <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
               <input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" placeholder="Opcional" />
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Opcional" />
             </div>
           </div>
           <div className="flex gap-3 mt-6 justify-end">
             <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
             <button onClick={handleSave} disabled={saving || !form.inquilino_nome || !form.seguradora || !form.numero_apolice || !form.valor_seguro}
-              className="px-6 py-2.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50">
+              className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50">
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
               {saving ? 'Salvando...' : 'Salvar Cliente'}
             </button>
@@ -1180,7 +1180,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {(() => {
         const KANBAN_COLS = [
           { key: 'solicitado',           label: 'Solicitado',           accent: '#94a3b8', labelColor: '#64748b' },
-          { key: 'atendimento_iniciado', label: 'F&G em Atendimento',   accent: '#C69C6D', labelColor: '#b8895a' },
+          { key: 'atendimento_iniciado', label: 'F&G em Atendimento',   accent: '#C69C6D', labelColor: '#B58A5B' },
           { key: 'aguardando_seguradora',label: 'Aguardando Seguradora',accent: '#1B263B', labelColor: '#1B263B' },
           { key: 'aguardando_cliente',   label: 'Aguardando o Cliente', accent: '#7c3aed', labelColor: '#7c3aed' },
           { key: 'aprovado',             label: 'Aprovado',             accent: '#2d6a4f', labelColor: '#2d6a4f' },
@@ -1280,7 +1280,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 <span style={{ fontSize: '9px', fontWeight: 900, background: '#f5f7fa', color: '#1B263B', border: '1px solid #dde3ec', padding: '2px 7px', borderRadius: '20px' }}>📎 Docs</span>
                               )}
                               {(c as any).apolice_residencial_url && (
-                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#fdf6ee', color: '#b8895a', border: '1px solid #e8d5bc', padding: '2px 7px', borderRadius: '20px' }}>📄 Apólice</span>
+                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#fdf6ee', color: '#B58A5B', border: '1px solid #e8d5bc', padding: '2px 7px', borderRadius: '20px' }}>📄 Apólice</span>
                               )}
                             </div>
                             {/* Disponível em todas as etapas: o registro de venda pode ser aberto
@@ -1288,7 +1288,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             {onGoToSale && (
                               <button
                                 onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
-                                className="mt-2 w-full text-[10px] font-black bg-[#C69C6D] hover:bg-[#b8895a] text-white py-1.5 rounded-lg transition-colors"
+                                className="mt-2 w-full text-[10px] font-black bg-gold hover:bg-gold-hover text-white py-1.5 rounded-lg transition-colors"
                               >
                                 → Registro de Venda
                               </button>
@@ -1360,8 +1360,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 onClick={() => openEditStatus(c)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-full bg-[#1B263B] flex items-center justify-center shrink-0">
-                  <User size={13} className="text-[#C69C6D]" />
+                <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center shrink-0">
+                  <User size={13} className="text-gold" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
@@ -1384,7 +1384,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Active clients table */}
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 size={24} className="text-[#C69C6D] animate-spin" /></div>
+        <div className="flex justify-center py-12"><Loader2 size={24} className="text-gold animate-spin" /></div>
       ) : ativos.length === 0 ? (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 text-center">
           <User size={32} className="text-slate-300 mx-auto mb-3" />
@@ -1426,10 +1426,10 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                         className="group flex items-center gap-2 text-left"
                         title="Clique para editar este cliente"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[#1B263B] flex items-center justify-center shrink-0">
-                          <User size={13} className="text-[#C69C6D]" />
+                        <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center shrink-0">
+                          <User size={13} className="text-gold" />
                         </div>
-                        <span className="font-bold text-slate-800 text-sm group-hover:text-[#C69C6D] transition-colors">
+                        <span className="font-bold text-slate-800 text-sm group-hover:text-gold transition-colors">
                           {c.inquilino_nome}
                         </span>
                         <Pencil size={12} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -1497,7 +1497,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                         {(c as any).is_repasse && (
                           <button
                             onClick={() => avancarParcela(c)}
-                            className="px-3 py-1.5 bg-[#C69C6D]/15 hover:bg-[#C69C6D]/30 text-[#C69C6D] text-xs font-black rounded-lg transition-colors"
+                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-black rounded-lg transition-colors"
                             title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
                           >
                             {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
@@ -1519,9 +1519,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-[#1B263B]">
+                <tr className="bg-navy">
                   <td colSpan={3} className="px-5 py-3 text-white font-black text-sm">TOTAL MENSAL</td>
-                  <td className="px-5 py-3 text-[#C69C6D] font-black text-sm">{fmtBRL(totalMensal)}</td>
+                  <td className="px-5 py-3 text-gold font-black text-sm">{fmtBRL(totalMensal)}</td>
                   <td colSpan={2}></td>
                 </tr>
               </tfoot>
@@ -1560,7 +1560,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
-          <div className="bg-[#1B263B] px-7 py-5 flex items-start justify-between gap-4 sticky top-0">
+          <div className="bg-navy px-7 py-5 flex items-start justify-between gap-4 sticky top-0">
             <div>
               <h3 className="text-white font-black text-lg">Como funciona esta tela</h3>
               <p className="text-white/50 text-[12px] font-semibold mt-1">
@@ -1576,13 +1576,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {GUIA_PASSOS.map((p, i) => (
               <div key={p.titulo} className="flex gap-4">
                 <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-8 h-8 rounded-xl bg-[#1B263B] text-[#C69C6D] font-black text-[13px] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-navy text-gold font-black text-[13px] flex items-center justify-center">
                     {i + 1}
                   </div>
                   {i < GUIA_PASSOS.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
                 </div>
                 <div className="pb-1">
-                  <p className="font-black text-[14px] text-[#1B263B]">{p.titulo}</p>
+                  <p className="font-black text-[14px] text-navy">{p.titulo}</p>
                   <p className="text-[13px] text-slate-600 font-semibold leading-relaxed mt-1">{p.texto}</p>
                   {p.atencao && (
                     <div className="flex items-start gap-2 mt-2 bg-[#fff7ed] border border-[#fdba74] rounded-xl px-3 py-2">
@@ -1599,7 +1599,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <ul className="space-y-1.5">
                 {GUIA_LEMBRETES.map(l => (
                   <li key={l} className="flex items-start gap-2 text-[12.5px] text-slate-600 font-semibold leading-relaxed">
-                    <span className="text-[#C69C6D] font-black flex-shrink-0">•</span> {l}
+                    <span className="text-gold font-black flex-shrink-0">•</span> {l}
                   </li>
                 ))}
               </ul>
@@ -1609,7 +1609,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="px-7 py-4 bg-[#f8f5f0] border-t border-[#e8e4dc] flex justify-end">
             <button
               onClick={() => setGuiaAberto(false)}
-              className="px-5 py-2.5 bg-[#1B263B] hover:bg-[#2a3a56] text-[#C69C6D] font-black text-sm rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-navy hover:bg-[#2a3a56] text-gold font-black text-sm rounded-xl transition-colors"
             >
               Entendi
             </button>
@@ -1633,7 +1633,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             </button>
           </div>
 
-          <div className="bg-[#1B263B]/5 rounded-xl px-4 py-3 border border-[#C69C6D]/20">
+          <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
             <p className="font-black text-slate-800">{encerramentoModal.cliente.inquilino_nome}</p>
           </div>
@@ -1668,7 +1668,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               value={encerramentoModal.observacao}
               onChange={e => setEncerramentoModal(m => m ? { ...m, observacao: e.target.value } : m)}
               placeholder="Ex: avisou por telefone que entrega as chaves dia 30."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#C69C6D] resize-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-gold resize-none"
             />
             <p className="text-[11px] text-slate-400">Se preencher, vai junto no e-mail da imobiliária.</p>
           </div>
@@ -1676,14 +1676,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <button
             type="button"
             onClick={() => setEncerramentoModal(m => m ? { ...m, avisar: !m.avisar } : m)}
-            className={`w-full flex items-start gap-3 text-left px-4 py-3 rounded-xl border-2 transition-all ${encerramentoModal.avisar ? 'border-[#C69C6D] bg-[#C69C6D]/5' : 'border-slate-200 bg-white'}`}
+            className={`w-full flex items-start gap-3 text-left px-4 py-3 rounded-xl border-2 transition-all ${encerramentoModal.avisar ? 'border-gold bg-gold/5' : 'border-slate-200 bg-white'}`}
           >
-            <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${encerramentoModal.avisar ? 'bg-[#C69C6D]' : 'bg-slate-200'}`}>
+            <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${encerramentoModal.avisar ? 'bg-gold' : 'bg-slate-200'}`}>
               {encerramentoModal.avisar && <CheckCircle2 size={13} className="text-white" />}
             </div>
             <div>
               <p className="font-black text-[12px] text-slate-700 flex items-center gap-1.5">
-                <Mail size={12} className="text-[#C69C6D]" /> Avisar a imobiliária por e-mail
+                <Mail size={12} className="text-gold" /> Avisar a imobiliária por e-mail
               </p>
               <p className="text-[11px] font-semibold text-slate-400 leading-tight mt-0.5">
                 {parceiros.find(p => p.id === encerramentoModal.cliente.partner_id)?.name.replace('Imobiliária ', '')
@@ -1702,7 +1702,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <button
               onClick={confirmarEncerramento}
               disabled={encerrando}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#1B263B] hover:bg-[#2a3a56] disabled:opacity-50 text-[#C69C6D] font-black text-sm rounded-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy hover:bg-[#2a3a56] disabled:opacity-50 text-gold font-black text-sm rounded-xl transition-all"
             >
               {encerrando ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {encerrando ? 'Encerrando...' : 'Encerrar'}
@@ -1729,7 +1729,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <h3 className="font-black text-slate-800 text-lg">Configurar Repasse</h3>
             <p className="text-slate-500 text-sm mt-1">Cliente novo do portal — configure o repasse antes de aprovar.</p>
           </div>
-          <div className="bg-[#1B263B]/5 rounded-xl px-4 py-3 border border-[#C69C6D]/20">
+          <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
             <p className="font-black text-slate-800">{repasseSetupModal.nome}</p>
           </div>
@@ -1740,7 +1740,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 type="text" placeholder="Ex: 182,49"
                 value={repasseSetupForm.valor_seguro}
                 onChange={e => setRepasseSetupForm(f => ({ ...f, valor_seguro: e.target.value }))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#C69C6D]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-gold"
               />
               <p className="text-xs text-slate-400">Este valor será cobrado mensalmente no repasse da imobiliária.</p>
             </div>
@@ -1751,7 +1751,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   type="number" min="1" max="28" placeholder="Ex: 20"
                   value={repasseSetupForm.dia_vencimento_aluguel}
                   onChange={e => setRepasseSetupForm(f => ({ ...f, dia_vencimento_aluguel: e.target.value }))}
-                  className="w-28 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#C69C6D]"
+                  className="w-28 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-gold"
                 />
                 <p className="text-xs text-slate-400 flex-1">O aviso de repasse será enviado automaticamente 10 dias antes deste dia.</p>
               </div>
@@ -1762,7 +1762,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 {[6, 12, 24].map(n => (
                   <button key={n} type="button"
                     onClick={() => setRepasseSetupForm(f => ({ ...f, total_parcelas: n }))}
-                    className={`py-3 rounded-xl font-black text-sm transition-all ${repasseSetupForm.total_parcelas === n ? 'bg-[#1B263B] text-[#C69C6D]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    className={`py-3 rounded-xl font-black text-sm transition-all ${repasseSetupForm.total_parcelas === n ? 'bg-navy text-gold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                     {n}x
                   </button>
                 ))}
@@ -1773,7 +1773,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="flex gap-3 pt-2">
             <button onClick={confirmarRepasseSetup}
               disabled={!((lerValorBRL(repasseSetupForm.valor_seguro) ?? 0) > 0)}
-              className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
+              className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
               ✅ Aprovar e configurar repasse
             </button>
             <button onClick={() => setRepasseSetupModal(null)}
@@ -1797,7 +1797,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mês</label>
               <select value={repasseForm.mes} onChange={e => setRepasseForm(f => ({...f, mes: parseInt(e.target.value)}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                 {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i) =>
                   <option key={i+1} value={i+1}>{m}</option>)}
               </select>
@@ -1805,13 +1805,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ano</label>
               <input type="number" value={repasseForm.ano} onChange={e => setRepasseForm(f => ({...f, ano: parseInt(e.target.value)}))}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
           </div>
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Data do Pagamento</label>
             <input type="date" value={repasseForm.data_pagamento} onChange={e => setRepasseForm(f => ({...f, data_pagamento: e.target.value}))}
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
@@ -1821,7 +1821,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
             <input value={repasseForm.observacoes} onChange={e => setRepasseForm(f => ({...f, observacoes: e.target.value}))}
-              placeholder="Opcional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+              placeholder="Opcional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
           <div className="flex gap-3 pt-1">
             <button onClick={() => setRepasseModal(false)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm">Cancelar</button>
@@ -1858,12 +1858,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   value={editStatusForm.inquilino_nome}
                   onChange={e => setEditStatusForm(f => ({...f, inquilino_nome: e.target.value}))}
                   placeholder="Nome do inquilino"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]" />
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
               </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
                 <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                   <option value="solicitado">📬 Solicitado</option>
                   <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
                   <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
@@ -1875,7 +1875,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Situação</label>
                 <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]">
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                   <option value="ativo">🟢 Ativo</option>
                   <option value="pagamento_atrasado">🟡 Pgto. atrasado</option>
                   <option value="em_renovacao">🔵 Em renovação</option>
@@ -1885,7 +1885,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vencimento</label>
                 <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
               </div>
             </div>
 
@@ -1901,12 +1901,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
                 <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
-                  placeholder="Ex: Porto Seguro" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D]" />
+                  placeholder="Ex: Porto Seguro" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nº Apólice</label>
                 <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
-                  placeholder="Ex: APL-2026-001" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-[#C69C6D]" />
+                  placeholder="Ex: APL-2026-001" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
               </div>
             </div>
 
@@ -1921,7 +1921,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   type="checkbox"
                   checked={editStatusForm.is_repasse}
                   onChange={e => setEditStatusForm(f => ({...f, is_repasse: e.target.checked}))}
-                  className="mt-0.5 w-4 h-4 accent-[#C69C6D] cursor-pointer"
+                  className="mt-0.5 w-4 h-4 accent-gold cursor-pointer"
                 />
                 <span className="text-xs font-bold text-slate-700 leading-tight">
                   Este seguro é cobrado por repasse da imobiliária
@@ -1938,7 +1938,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     type="text" placeholder="Ex: 182,49"
                     value={editStatusForm.valor_seguro}
                     onChange={e => setEditStatusForm(f => ({...f, valor_seguro: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]"
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
                   />
                 </div>
                 <div>
@@ -1947,7 +1947,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     type="number" min="1" max="28" placeholder="Ex: 20"
                     value={editStatusForm.dia_vencimento_aluguel}
                     onChange={e => setEditStatusForm(f => ({...f, dia_vencimento_aluguel: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-[#C69C6D]"
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
                   />
                 </div>
               </div>
@@ -1962,7 +1962,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 value={editStatusForm.observacao_imobiliaria}
                 onChange={e => setEditStatusForm(f => ({...f, observacao_imobiliaria: e.target.value}))}
                 placeholder="Ex: Aguardando o cliente enviar o comprovante de renda para seguir com a cotação."
-                className="w-full px-3 py-2.5 border border-blue-200 bg-white rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] resize-y"
+                className="w-full px-3 py-2.5 border border-blue-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold resize-y"
               />
               <p className="text-[10px] text-blue-600">👁️ A imobiliária vê este texto no portal. Para anotação interna, use o campo de observações do cadastro.</p>
 
@@ -1996,7 +1996,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
                 <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#C69C6D]">
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                   {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
@@ -2024,7 +2024,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
                   <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#C69C6D]">
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                     {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
@@ -2059,7 +2059,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   setEditingStatus(null);
                   onGoToSale({ nome, telefone });
                 }}
-                className="w-full py-2.5 bg-[#C69C6D] hover:bg-[#b8895a] text-white rounded-xl font-bold text-sm transition-colors"
+                className="w-full py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
               >
                 → Registro de Venda
               </button>
@@ -2071,7 +2071,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
           <div className="flex gap-3 px-7 pb-7 pt-2">
             <button onClick={() => setEditingStatus(null)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
-            <button onClick={saveStatus} className="flex-1 py-2.5 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm transition-colors">Salvar</button>
+            <button onClick={saveStatus} className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors">Salvar</button>
           </div>
         </div>
         </div>

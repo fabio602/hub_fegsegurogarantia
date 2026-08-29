@@ -50,7 +50,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
           <div
             key={s.id}
             className={`group relative rounded-2xl border bg-white transition-all
-              ${selected ? 'border-[#C69C6D] ring-2 ring-[#C69C6D]/25' : 'border-slate-200 hover:border-[#C69C6D]/40'}
+              ${selected ? 'border-gold ring-2 ring-gold/25' : 'border-slate-200 hover:border-gold/40'}
             `}
           >
             <button
@@ -85,7 +85,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
                 </div>
 
                 <div className="min-w-0 flex-1 pr-12">
-                  <div className="font-black text-sm text-[#1B263B] truncate">{s.nome}</div>
+                  <div className="font-black text-sm text-navy truncate">{s.nome}</div>
                   <div className="text-xs text-slate-500 font-bold mt-1 truncate">{s.cargo}</div>
                 </div>
               </div>
@@ -110,7 +110,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
               <button
                 type="button"
                 onClick={() => inputByIdRef.current[s.id]?.click()}
-                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#1B263B] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
+                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-navy hover:border-gold/40 hover:bg-gold/10 transition-colors"
                 aria-label={`Enviar foto de ${s.nome}`}
                 title="Enviar foto"
               >
@@ -119,7 +119,7 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
               <button
                 type="button"
                 onClick={() => onEdit(s.id)}
-                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#C69C6D] hover:border-[#C69C6D]/40 hover:bg-[#C69C6D]/10 transition-colors"
+                className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-gold hover:border-gold/40 hover:bg-gold/10 transition-colors"
                 aria-label={`Editar ${s.nome}`}
               >
                 <Edit2 size={16} />

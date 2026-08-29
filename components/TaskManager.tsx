@@ -19,7 +19,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
     const [newTask, setNewTask] = useState({ title: '', due_date: '', type: 'task' as any, assigned_staff_id: '' as string });
 
     const TASK_TYPES: { value: string; label: string; icon: any; color: string }[] = [
-        { value: 'task', label: 'Tarefa', icon: <BookText size={14} />, color: 'bg-[#C69C6D]/15 text-[#1B263B] border-[#C69C6D]/35' },
+        { value: 'task', label: 'Tarefa', icon: <BookText size={14} />, color: 'bg-gold/15 text-navy border-gold/35' },
         { value: 'call', label: 'Ligação', icon: <Phone size={14} />, color: 'bg-blue-50 text-blue-700 border-blue-200' },
         { value: 'email', label: 'E-mail', icon: <Mail size={14} />, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
         { value: 'meeting', label: 'Reunião', icon: <Users size={14} />, color: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -114,7 +114,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                 <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Tarefas & Lembretes</h4>
                 <button 
                     onClick={() => setIsAdding(!isAdding)} 
-                    className="text-xs font-bold text-[#1B263B] flex items-center gap-1 hover:bg-[#C69C6D]/12 px-2 py-1 rounded-lg transition-colors"
+                    className="text-xs font-bold text-navy flex items-center gap-1 hover:bg-gold/12 px-2 py-1 rounded-lg transition-colors"
                 >
                     {isAdding ? <X size={14} /> : <Plus size={14} />}
                     {isAdding ? 'Cancelar' : 'Nova Tarefa'}
@@ -126,13 +126,13 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                     <div className="space-y-3">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">O que fazer?</label>
-                            <input autoFocus type="text" placeholder="Ex: Ligar para confirmar proposta" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/25" />
+                            <input autoFocus type="text" placeholder="Ex: Ligar para confirmar proposta" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/25" />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quando?</label>
-                                <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#C69C6D]/25" />
+                                <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold/25" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo</label>
@@ -147,7 +147,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                             <select
                                 value={newTask.assigned_staff_id || ''}
                                 onChange={(e) => setNewTask(prev => ({ ...prev, assigned_staff_id: e.target.value }))}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[#C69C6D]/25"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold/25"
                             >
                                 <option value="">Sem responsável</option>
                                 {staffOptions.map(s => (
@@ -164,7 +164,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                                         type="button"
                                         onClick={() => setNewTask({...newTask, type: type.value})}
                                         className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all gap-1 ${newTask.type === type.value 
-                                            ? `${type.color} ring-2 ring-offset-1 ring-[#C69C6D]/30 scale-105` 
+                                            ? `${type.color} ring-2 ring-offset-1 ring-gold/30 scale-105` 
                                             : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
                                     >
                                         {type.icon}
@@ -177,7 +177,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                         <button 
                             type="submit" 
                             disabled={saving || !newTask.title || !newTask.due_date}
-                            className="w-full bg-[#1B263B] text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#1B263B]/25 hover:bg-[#243347] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full bg-navy text-white py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-navy/25 hover:bg-navy-light transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                             {saving ? 'Salvando...' : 'Salvar Lembrete'}
@@ -193,14 +193,14 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                         <div key={task.id} className={`flex items-start gap-3 p-3 rounded-2xl border transition-all ${task.status === 'completed' ? 'bg-slate-50 border-transparent opacity-60' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
                             <button 
                                 onClick={() => toggleStatus(task)} 
-                                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'completed' ? 'bg-[#C69C6D] border-[#C69C6D] text-white' : 'border-slate-200 hover:border-[#C69C6D]'}`}
+                                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'completed' ? 'bg-gold border-gold text-white' : 'border-slate-200 hover:border-gold'}`}
                             >
                                 {task.status === 'completed' && <CheckCircle2 size={12} />}
                             </button>
                             <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-bold ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700'}`}>{task.title}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${task.status === 'completed' ? 'bg-slate-100 text-slate-400' : 'bg-[#C69C6D]/12 text-[#1B263B]'}`}>
+                                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${task.status === 'completed' ? 'bg-slate-100 text-slate-400' : 'bg-gold/12 text-navy'}`}>
                                         {task.type}
                                     </span>
                                     <span className={`text-[10px] font-bold flex items-center gap-1 ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`}>
@@ -210,7 +210,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
 
                                 {task.assigned_staff_id && (
                                     <div className="mt-2">
-                                        <span className="text-[10px] font-bold text-[#1B263B] bg-[#C69C6D]/15 border border-[#C69C6D]/25 px-2 py-0.5 rounded-full">
+                                        <span className="text-[10px] font-bold text-navy bg-gold/15 border border-gold/25 px-2 py-0.5 rounded-full">
                                             Resp.: {staffOptions.find(s => s.id === task.assigned_staff_id)?.name || '—'}
                                         </span>
                                     </div>

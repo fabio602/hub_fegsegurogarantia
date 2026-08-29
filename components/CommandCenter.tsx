@@ -128,7 +128,7 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
           </p>
         </div>
         <button onClick={load} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:border-[#C69C6D] transition-all disabled:opacity-50">
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:border-gold transition-all disabled:opacity-50">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Atualizar
         </button>
       </div>
@@ -142,7 +142,7 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
           { label: 'Leads WhatsApp', value: stats.leads.toString(), color: '#C69C6D', onClick: () => onNavigate('whatsapp') },
         ].map(s => (
           <div key={s.label} onClick={s.onClick}
-            className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md hover:border-[#C69C6D]/30 transition-all">
+            className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md hover:border-gold/30 transition-all">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
             <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
           </div>
@@ -181,8 +181,8 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
                     <p className="text-xs text-slate-500 mt-0.5">{item.subtitle}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-bold text-[#C69C6D] opacity-0 group-hover:opacity-100 transition-opacity">{item.action}</span>
-                    <ChevronRight size={16} className="text-slate-300 group-hover:text-[#C69C6D] transition-colors" />
+                    <span className="text-xs font-bold text-gold opacity-0 group-hover:opacity-100 transition-opacity">{item.action}</span>
+                    <ChevronRight size={16} className="text-slate-300 group-hover:text-gold transition-colors" />
                   </div>
                 </div>
               );
@@ -200,7 +200,7 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
           { label: 'WhatsApp', icon: '💬', view: 'whatsapp' },
         ].map(a => (
           <button key={a.label} onClick={() => onNavigate(a.view)}
-            className="bg-white border border-slate-200 rounded-2xl p-4 text-center hover:border-[#C69C6D] hover:shadow-sm transition-all cursor-pointer">
+            className="bg-white border border-slate-200 rounded-2xl p-4 text-center hover:border-gold hover:shadow-sm transition-all cursor-pointer">
             <div className="text-2xl mb-2">{a.icon}</div>
             <div className="text-xs font-black text-slate-700">{a.label}</div>
           </button>

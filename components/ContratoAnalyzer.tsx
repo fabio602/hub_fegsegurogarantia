@@ -81,10 +81,10 @@ function Card({ icon, label, value, sub, highlight, copyValue, editing, editValu
   editing?: boolean; editValue?: string; onEditChange?: (v: string) => void; editType?: 'text' | 'number' | 'textarea';
 }) {
   return (
-    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-[#1B263B] border-[#1B263B]' : 'bg-white border-slate-100'}`}>
+    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
-          <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
+          <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
           <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
         </div>
         {!editing && copyValue && <CopyBtn text={copyValue} light={highlight} />}
@@ -92,10 +92,10 @@ function Card({ icon, label, value, sub, highlight, copyValue, editing, editValu
       {editing && onEditChange ? (
         editType === 'textarea'
           ? <textarea value={editValue ?? ''} onChange={e => onEditChange(e.target.value)} rows={3}
-              className="w-full text-sm font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#C69C6D] text-slate-800 placeholder-slate-400"
+              className="w-full text-sm font-bold bg-white/10 border border-white/20 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-gold text-slate-800 placeholder-slate-400"
               style={{ background: highlight ? 'rgba(255,255,255,0.1)' : undefined, color: highlight ? 'white' : undefined }} />
           : <input type={editType} value={editValue ?? ''} onChange={e => onEditChange(e.target.value)}
-              className={`w-full text-xl font-black rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#C69C6D] border ${highlight ? 'bg-white/10 border-white/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+              className={`w-full text-xl font-black rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold border ${highlight ? 'bg-white/10 border-white/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
       ) : (
         <div className={`text-xl font-black leading-tight ${highlight ? 'text-white' : 'text-slate-800'}`}>{value}</div>
       )}
@@ -253,14 +253,14 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                   {new Date(entry.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </p>
                 {entry.data.valor_is_calculado && (
-                  <p className="text-xs font-black text-[#C69C6D] mt-0.5">
+                  <p className="text-xs font-black text-gold mt-0.5">
                     IS: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.data.valor_is_calculado)}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => { setResult(entry.data); setShowHistory(false); }}
-                className="shrink-0 px-3 py-1.5 rounded-xl bg-[#1B263B] text-white text-xs font-bold hover:bg-[#243447] transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors"
               >
                 Restaurar
               </button>
@@ -276,7 +276,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-[#C69C6D] hover:bg-amber-50/10"
+            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
           >
             <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
@@ -292,8 +292,8 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
           {files.length > 0 && (
             <div className="space-y-2">
               {files.map((f, i) => (
-                <div key={i} className="flex items-center gap-3 bg-amber-50 border border-[#C69C6D]/30 rounded-2xl px-5 py-3.5">
-                  <FileText size={18} className="text-[#C69C6D] shrink-0" />
+                <div key={i} className="flex items-center gap-3 bg-amber-50 border border-gold/30 rounded-2xl px-5 py-3.5">
+                  <FileText size={18} className="text-gold shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-slate-800 text-sm truncate">{f.name}</p>
                     <p className="text-xs text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -312,13 +312,13 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                   onChange={e => setAdditionalInstructions(e.target.value)}
                   placeholder="Ex: Foque na cláusula de garantia adicional. O contrato é de obras civis. Considere que o prazo adicional é 90 dias..."
                   rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-[#C69C6D]"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-gold"
                 />
               </div>
 
               <div className="flex gap-3">
                 <button onClick={analyze} disabled={loading}
-                  className="flex-1 bg-[#1B263B] text-white px-8 py-3.5 rounded-2xl font-black hover:bg-[#243447] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                  className="flex-1 bg-navy text-white px-8 py-3.5 rounded-2xl font-black hover:bg-navy-light transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
                   {loading ? 'Analisando...' : `Analisar ${files.length > 1 ? `${files.length} arquivos` : 'Contrato'} com IA`}
                 </button>
@@ -334,7 +334,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
       {loading && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
-          <Loader2 size={36} className="text-[#C69C6D] animate-spin" />
+          <Loader2 size={36} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800 text-lg">Lendo o contrato...</p>
             <p className="text-slate-400 text-sm mt-1">A IA está analisando o PDF e extraindo os dados do seguro garantia</p>
@@ -357,16 +357,16 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
 
           {/* Cabeçalho do contrato */}
-          <div className="bg-[#1B263B] rounded-[2rem] p-7 text-white">
+          <div className="bg-navy rounded-[2rem] p-7 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2">
                   {editing
                     ? <input value={result.numero_contrato ?? ''} onChange={e => updField('numero_contrato', e.target.value)}
                         placeholder="Número do contrato"
-                        className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D] bg-white/10 border border-white/20 rounded-lg px-2 py-1 focus:outline-none w-full" />
+                        className="text-[10px] font-black uppercase tracking-[3px] text-gold bg-white/10 border border-white/20 rounded-lg px-2 py-1 focus:outline-none w-full" />
                     : result.numero_contrato
-                      ? <><p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">Contrato {result.numero_contrato}</p><CopyBtn text={result.numero_contrato} light /></>
+                      ? <><p className="text-[10px] font-black uppercase tracking-[3px] text-gold">Contrato {result.numero_contrato}</p><CopyBtn text={result.numero_contrato} light /></>
                       : <p className="text-[10px] font-black uppercase tracking-[3px] text-white/30">Sem número</p>
                   }
                 </div>
@@ -383,7 +383,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setEditing(e => !e)}
-                  className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${editing ? 'bg-[#C69C6D] text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                  className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${editing ? 'bg-gold text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                 >
                   <Pencil size={13} /> {editing ? 'Salvar' : 'Editar'}
                 </button>
@@ -403,11 +403,11 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Tomador (Contratada)</span>
               </div>
               {editing
-                ? <input value={result.tomador_nome ?? ''} onChange={e => updField('tomador_nome', e.target.value)} placeholder="Razão social do tomador" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D] mb-2" />
+                ? <input value={result.tomador_nome ?? ''} onChange={e => updField('tomador_nome', e.target.value)} placeholder="Razão social do tomador" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold mb-2" />
                 : <div className="flex items-center gap-2 mb-1"><p className="text-lg font-black text-slate-800 flex-1">{result.tomador_nome || '—'}</p>{result.tomador_nome && <CopyBtn text={result.tomador_nome} />}</div>
               }
               {editing
-                ? <input value={result.tomador_cnpj ?? ''} onChange={e => updField('tomador_cnpj', e.target.value)} placeholder="CNPJ do tomador" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                ? <input value={result.tomador_cnpj ?? ''} onChange={e => updField('tomador_cnpj', e.target.value)} placeholder="CNPJ do tomador" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold" />
                 : result.tomador_cnpj && <div className="flex items-center gap-2 mt-1"><p className="text-xs text-slate-400 font-mono">{result.tomador_cnpj}</p><CopyBtn text={result.tomador_cnpj} /></div>
               }
             </div>
@@ -417,11 +417,11 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Segurado (Órgão Público)</span>
               </div>
               {editing
-                ? <input value={result.segurado_nome ?? ''} onChange={e => updField('segurado_nome', e.target.value)} placeholder="Nome do segurado" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D] mb-2" />
+                ? <input value={result.segurado_nome ?? ''} onChange={e => updField('segurado_nome', e.target.value)} placeholder="Nome do segurado" className="w-full text-lg font-black text-slate-800 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold mb-2" />
                 : <div className="flex items-center gap-2 mb-1"><p className="text-lg font-black text-slate-800 flex-1">{result.segurado_nome || '—'}</p>{result.segurado_nome && <CopyBtn text={result.segurado_nome} />}</div>
               }
               {editing
-                ? <input value={result.segurado_cnpj ?? ''} onChange={e => updField('segurado_cnpj', e.target.value)} placeholder="CNPJ do segurado" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                ? <input value={result.segurado_cnpj ?? ''} onChange={e => updField('segurado_cnpj', e.target.value)} placeholder="CNPJ do segurado" className="w-full text-xs font-mono text-slate-400 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold" />
                 : result.segurado_cnpj && <div className="flex items-center gap-2 mt-1"><p className="text-xs text-slate-400 font-mono">{result.segurado_cnpj}</p><CopyBtn text={result.segurado_cnpj} /></div>
               }
             </div>
@@ -465,9 +465,9 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
               </div>
               {editing ? (
                 <div className="flex items-center gap-2">
-                  <input value={result.vigencia_contrato_inicio ?? ''} onChange={e => updField('vigencia_contrato_inicio', e.target.value)} placeholder="Início DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                  <input value={result.vigencia_contrato_inicio ?? ''} onChange={e => updField('vigencia_contrato_inicio', e.target.value)} placeholder="Início DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold" />
                   <span className="text-slate-400">→</span>
-                  <input value={result.vigencia_contrato_fim ?? ''} onChange={e => updField('vigencia_contrato_fim', e.target.value)} placeholder="Fim DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]" />
+                  <input value={result.vigencia_contrato_fim ?? ''} onChange={e => updField('vigencia_contrato_fim', e.target.value)} placeholder="Fim DD/MM/YYYY" className="flex-1 text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold" />
                 </div>
               ) : result.vigencia_contrato_inicio || result.vigencia_contrato_fim ? (
                 <p className="text-xl font-black text-slate-800">
@@ -483,7 +483,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência da Garantia</span>
               </div>
               {editing ? (
-                <textarea value={result.vigencia_garantia ?? ''} onChange={e => updField('vigencia_garantia', e.target.value)} rows={3} placeholder="Descrição da vigência da garantia" className="w-full text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-[#C69C6D]" />
+                <textarea value={result.vigencia_garantia ?? ''} onChange={e => updField('vigencia_garantia', e.target.value)} rows={3} placeholder="Descrição da vigência da garantia" className="w-full text-sm font-bold border border-slate-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:border-gold" />
               ) : result.vigencia_garantia ? (
                 <p className="text-xl font-black text-slate-800">{result.vigencia_garantia}</p>
               ) : result.exige_dias_adicionais && result.dias_adicionais ? (

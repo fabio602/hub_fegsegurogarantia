@@ -168,7 +168,7 @@ const UserManager: React.FC = () => {
                 </div>
                 <button
                     onClick={() => { setShowForm(true); setForm(emptyForm); setError(null); }}
-                    className="flex items-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all shadow"
+                    className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all shadow"
                 >
                     <Plus size={16} /> Novo Usuário
                 </button>
@@ -178,7 +178,7 @@ const UserManager: React.FC = () => {
             {showForm && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                     <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <ShieldCheck size={18} className="text-[#C69C6D]" /> Novo Acesso ao Hub
+                        <ShieldCheck size={18} className="text-gold" /> Novo Acesso ao Hub
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
@@ -188,7 +188,7 @@ const UserManager: React.FC = () => {
                                 value={form.email}
                                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                 placeholder="email@exemplo.com"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all"
                             />
                         </div>
                         <div className="space-y-1">
@@ -198,7 +198,7 @@ const UserManager: React.FC = () => {
                                 value={form.password}
                                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                                 placeholder="Senha de acesso"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all font-mono"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
                             />
                         </div>
                     </div>
@@ -207,7 +207,7 @@ const UserManager: React.FC = () => {
                         <button
                             onClick={handleCreate}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                            className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
                         >
                             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                             {saving ? 'Criando...' : 'Criar Acesso'}
@@ -224,7 +224,7 @@ const UserManager: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-5">
                         <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                            <Key size={18} className="text-[#C69C6D]" /> Alterar Senha
+                            <Key size={18} className="text-gold" /> Alterar Senha
                         </h3>
                         <p className="text-sm text-slate-500 font-medium">{pwForm.email}</p>
                         <div className="space-y-1">
@@ -234,7 +234,7 @@ const UserManager: React.FC = () => {
                                 value={pwForm.password}
                                 onChange={e => setPwForm(f => f ? { ...f, password: e.target.value } : f)}
                                 placeholder="Nova senha"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all font-mono"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
                             />
                         </div>
                         {pwError && <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">{pwError}</p>}
@@ -242,7 +242,7 @@ const UserManager: React.FC = () => {
                             <button
                                 onClick={handleUpdatePassword}
                                 disabled={pwSaving}
-                                className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                                className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
                             >
                                 {pwSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                                 {pwSaving ? 'Salvando...' : 'Salvar'}
@@ -266,7 +266,7 @@ const UserManager: React.FC = () => {
                         <div className="shrink-0 p-8 pb-4 space-y-4 border-b border-slate-100">
                             <div>
                                 <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                                    <Lock size={18} className="text-[#C69C6D]" /> O que este usuário vê
+                                    <Lock size={18} className="text-gold" /> O que este usuário vê
                                 </h3>
                                 <p className="text-sm text-slate-500 font-medium mt-1">{permForm.email}</p>
                             </div>
@@ -294,7 +294,7 @@ const UserManager: React.FC = () => {
                                     <label
                                         key={m.key}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border transition-all ${
-                                            marcado ? 'bg-[#C69C6D]/10 border-[#C69C6D]/40' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                            marcado ? 'bg-gold/10 border-gold/40' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                                         }`}
                                     >
                                         <input
@@ -304,7 +304,7 @@ const UserManager: React.FC = () => {
                                                 ...f,
                                                 modulos: marcado ? f.modulos.filter(k => k !== m.key) : [...f.modulos, m.key],
                                             } : f)}
-                                            className="w-4 h-4 accent-[#C69C6D]"
+                                            className="w-4 h-4 accent-gold"
                                         />
                                         <div className="min-w-0">
                                             <p className="font-black text-slate-800 text-sm">{m.label}</p>
@@ -327,7 +327,7 @@ const UserManager: React.FC = () => {
                                 <button
                                     onClick={salvarPermissoes}
                                     disabled={permSaving}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
                                 >
                                     {permSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                                     {permSaving ? 'Salvando...' : 'Salvar'}
@@ -366,7 +366,7 @@ const UserManager: React.FC = () => {
                                     <td className="px-6 py-4 font-black text-slate-800">{u.email}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${
-                                            u.email === ADMIN_EMAIL ? 'bg-[#1B263B] text-[#C69C6D]'
+                                            u.email === ADMIN_EMAIL ? 'bg-navy text-gold'
                                             : permMap[u.email] ? 'bg-amber-50 text-amber-700'
                                             : 'bg-slate-100 text-slate-500'
                                         }`}>
@@ -381,7 +381,7 @@ const UserManager: React.FC = () => {
                                             {u.email !== ADMIN_EMAIL && (
                                                 <button
                                                     onClick={() => abrirPermissoes(u.email)}
-                                                    className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                                                     title="Definir o que este usuário vê"
                                                 >
                                                     <Lock size={15} />
@@ -389,7 +389,7 @@ const UserManager: React.FC = () => {
                                             )}
                                             <button
                                                 onClick={() => setPwForm({ userId: u.id, email: u.email, password: '' })}
-                                                className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                                                className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                                                 title="Alterar senha"
                                             >
                                                 <Key size={15} />

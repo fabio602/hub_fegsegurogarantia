@@ -27,7 +27,7 @@ const WhatsAppPhoneLink: React.FC<Props> = ({ phone, display, className = '' }) 
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir WhatsApp"
-            className={`font-medium text-[#1B263B] hover:text-[#C69C6D] underline decoration-[#C69C6D]/40 hover:decoration-[#C69C6D] underline-offset-2 break-all ${className}`}
+            className={`font-medium text-navy hover:text-gold underline decoration-gold/40 hover:decoration-gold underline-offset-2 break-all ${className}`}
         >
             {shown}
         </a>

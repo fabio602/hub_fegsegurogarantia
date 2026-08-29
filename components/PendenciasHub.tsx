@@ -142,8 +142,8 @@ const PendenciasHub: React.FC = () => {
     const chipClass = (ativo: boolean) =>
         `px-4 py-2 rounded-xl font-bold text-xs transition-all border ${
             ativo
-                ? 'bg-[#C69C6D] text-white border-[#C69C6D] shadow-md'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-[#C69C6D]/40'
+                ? 'bg-gold text-white border-gold shadow-md'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-gold/40'
         }`;
 
     const fecharModal = (force = false) => {
@@ -280,7 +280,7 @@ const PendenciasHub: React.FC = () => {
                 <button
                     type="button"
                     onClick={abrirNova}
-                    className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-5 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-[#243347] transition-all shrink-0"
+                    className="inline-flex items-center gap-2 bg-navy text-white px-5 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-navy-light transition-all shrink-0"
                 >
                     <Plus size={18} /> Nova pendência
                 </button>
@@ -297,7 +297,7 @@ const PendenciasHub: React.FC = () => {
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                    <Loader2 size={36} className="animate-spin mb-3 text-[#C69C6D]" />
+                    <Loader2 size={36} className="animate-spin mb-3 text-gold" />
                     <p className="font-bold uppercase tracking-widest text-xs">Carregando pendências…</p>
                 </div>
             ) : lista.length === 0 ? (
@@ -319,7 +319,7 @@ const PendenciasHub: React.FC = () => {
                                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                                     <div className="min-w-0 flex-1 space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-lg font-black text-[#1B263B] leading-tight">{p.titulo}</h3>
+                                            <h3 className="text-lg font-black text-navy leading-tight">{p.titulo}</h3>
                                             <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                                 {labelPrioridade(p.prioridade)}
                                             </span>
@@ -335,13 +335,13 @@ const PendenciasHub: React.FC = () => {
                                         <div className="flex flex-wrap gap-4 text-xs text-slate-500 font-bold">
                                             {p.responsavel ? (
                                                 <span className="inline-flex items-center gap-1.5">
-                                                    <User size={14} className="text-[#C69C6D]" />
+                                                    <User size={14} className="text-gold" />
                                                     {p.responsavel}
                                                 </span>
                                             ) : null}
                                             {p.prazo ? (
                                                 <span className="inline-flex items-center gap-1.5">
-                                                    <Calendar size={14} className="text-[#C69C6D]" />
+                                                    <Calendar size={14} className="text-gold" />
                                                     {new Date(p.prazo.includes('T') ? p.prazo : `${p.prazo}T12:00:00`).toLocaleDateString(
                                                         'pt-BR'
                                                     )}
@@ -403,11 +403,11 @@ const PendenciasHub: React.FC = () => {
             )}
 
             {modalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1B263B]/55 backdrop-blur-sm">
-                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-[#C69C6D]/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/55 backdrop-blur-sm">
+                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex items-center gap-3 flex-wrap">
-                                <h4 className="text-xl font-black text-[#1B263B]">
+                                <h4 className="text-xl font-black text-navy">
                                     {editingId ? 'Editar pendência' : 'Nova pendência'}
                                 </h4>
                                 <SaveIndicator
@@ -426,7 +426,7 @@ const PendenciasHub: React.FC = () => {
                         </div>
                         <div className="space-y-4">
                             {rascunhoRestaurado && !editingId && (
-                                <div className="flex items-center justify-between gap-3 rounded-xl bg-white/70 border border-[#C69C6D]/30 px-4 py-2.5 text-xs text-slate-600">
+                                <div className="flex items-center justify-between gap-3 rounded-xl bg-white/70 border border-gold/30 px-4 py-2.5 text-xs text-slate-600">
                                     <span>Recuperamos o que você tinha começado a preencher aqui.</span>
                                     <button
                                         type="button"
@@ -435,7 +435,7 @@ const PendenciasHub: React.FC = () => {
                                             setForm(emptyForm);
                                             setRascunhoRestaurado(false);
                                         }}
-                                        className="font-bold text-[#C69C6D] underline underline-offset-2 whitespace-nowrap"
+                                        className="font-bold text-gold underline underline-offset-2 whitespace-nowrap"
                                     >
                                         limpar
                                     </button>
@@ -448,7 +448,7 @@ const PendenciasHub: React.FC = () => {
                                 <input
                                     value={form.titulo}
                                     onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 bg-white"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
                                     placeholder="Resumo da pendência"
                                 />
                             </div>
@@ -460,7 +460,7 @@ const PendenciasHub: React.FC = () => {
                                     value={form.descricao}
                                     onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
                                     rows={3}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 bg-white resize-y"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white resize-y"
                                     placeholder="Detalhes opcionais"
                                 />
                             </div>
@@ -471,7 +471,7 @@ const PendenciasHub: React.FC = () => {
                                 <select
                                     value={form.responsavel}
                                     onChange={(e) => setForm((f) => ({ ...f, responsavel: e.target.value }))}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 bg-white"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
                                 >
                                     <option value="">— Selecione —</option>
                                     {RESPONSAVEIS.map((r) => (
@@ -490,7 +490,7 @@ const PendenciasHub: React.FC = () => {
                                         type="date"
                                         value={form.prazo}
                                         onChange={(e) => setForm((f) => ({ ...f, prazo: e.target.value }))}
-                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 bg-white"
+                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
                                     />
                                 </div>
                                 <div>
@@ -505,7 +505,7 @@ const PendenciasHub: React.FC = () => {
                                                 prioridade: e.target.value as Pendencia['prioridade'],
                                             }))
                                         }
-                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30 bg-white"
+                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
                                     >
                                         <option value="alta">Alta</option>
                                         <option value="media">Média</option>
@@ -518,7 +518,7 @@ const PendenciasHub: React.FC = () => {
                             type="button"
                             disabled={saving}
                             onClick={handleSalvar}
-                            className="mt-8 w-full flex items-center justify-center gap-2 bg-[#C69C6D] text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
+                            className="mt-8 w-full flex items-center justify-center gap-2 bg-gold text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
                         >
                             {saving ? (
                                 <Loader2 size={18} className="animate-spin" />

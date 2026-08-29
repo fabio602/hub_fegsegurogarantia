@@ -142,32 +142,32 @@ const ResidentialPublicForm: React.FC = () => {
 
     return (
         <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-[#F5F1EA] text-slate-800 custom-scroll">
-            <header className="bg-[#1B263B] text-white border-b-4 border-[#C69C6D]">
+            <header className="bg-navy text-white border-b-4 border-gold">
                 <div className="max-w-3xl mx-auto px-5 py-8 flex flex-col sm:flex-row sm:items-center gap-6">
                     <img src="/logo.svg" alt="F&G Corretora" className="h-16 w-auto object-contain" />
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#F5F1EA]">
                             Seguro Residencial / Locatícia
                         </h1>
-                        <p className="text-sm text-[#C69C6D] font-bold mt-1">Solicitação de cotação — F&G Corretora</p>
+                        <p className="text-sm text-gold font-bold mt-1">Solicitação de cotação — F&G Corretora</p>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-3xl mx-auto px-5 py-10 pb-16">
                 {done ? (
-                    <div className="bg-white rounded-2xl border-2 border-[#C69C6D]/40 shadow-xl p-8 text-center space-y-4">
+                    <div className="bg-white rounded-2xl border-2 border-gold/40 shadow-xl p-8 text-center space-y-4">
                         <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
                             <CheckCircle2 size={36} />
                         </div>
-                        <h2 className="text-2xl font-black text-[#1B263B]">Recebemos sua solicitação</h2>
+                        <h2 className="text-2xl font-black text-navy">Recebemos sua solicitação</h2>
                         <p className="text-slate-600 font-medium">
                             Em breve nossa equipe entra em contato pelo telefone ou e-mail informados.
                         </p>
                         <button
                             type="button"
                             onClick={() => setDone(false)}
-                            className="mt-4 bg-[#1B263B] text-[#F5F1EA] px-6 py-3 rounded-xl font-bold text-sm border border-[#C69C6D]/40 hover:bg-[#243347] transition-colors"
+                            className="mt-4 bg-navy text-[#F5F1EA] px-6 py-3 rounded-xl font-bold text-sm border border-gold/40 hover:bg-navy-light transition-colors"
                         >
                             Enviar outra solicitação
                         </button>
@@ -177,14 +177,14 @@ const ResidentialPublicForm: React.FC = () => {
                         onSubmit={handleSubmit}
                         className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden"
                     >
-                        <div className="h-1.5 bg-gradient-to-r from-[#1B263B] via-[#243347] to-[#C69C6D]" />
+                        <div className="h-1.5 bg-gradient-to-r from-navy via-navy-light to-gold" />
                         <div className="p-6 sm:p-10 space-y-8">
                             <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[#1B263B] flex items-center justify-center shrink-0">
-                                    <Home className="text-[#C69C6D]" size={20} />
+                                <div className="w-10 h-10 rounded-xl bg-navy flex items-center justify-center shrink-0">
+                                    <Home className="text-gold" size={20} />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-black text-[#1B263B]">Dados para contato e imóvel</h2>
+                                    <h2 className="text-lg font-black text-navy">Dados para contato e imóvel</h2>
                                     <p className="text-xs text-slate-500 font-medium mt-1">
                                         Preencha com atenção. Campos com * são obrigatórios.
                                     </p>
@@ -199,14 +199,14 @@ const ResidentialPublicForm: React.FC = () => {
                             )}
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                     Tipo de seguro *
                                 </label>
                                 <select
                                     value={tipoSeguro}
                                     onChange={(e) => setTipoSeguro(e.target.value)}
                                     required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                 >
                                     {TIPO_SEGURO.map((t) => (
                                         <option key={t} value={t}>
@@ -218,7 +218,7 @@ const ResidentialPublicForm: React.FC = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Nome completo do inquilino *
                                     </label>
                                     <input
@@ -226,12 +226,12 @@ const ResidentialPublicForm: React.FC = () => {
                                         value={nomeCompleto}
                                         onChange={(e) => setNomeCompleto(e.target.value)}
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="Nome completo"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         CPF / CNPJ *
                                     </label>
                                     <input
@@ -239,12 +239,12 @@ const ResidentialPublicForm: React.FC = () => {
                                         value={cpfCnpj}
                                         onChange={(e) => setCpfCnpj(formatCpfCnpj(e.target.value))}
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="CPF ou CNPJ"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         E-mail *
                                     </label>
                                     <input
@@ -252,12 +252,12 @@ const ResidentialPublicForm: React.FC = () => {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="seu@email.com"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Telefone / Celular 1 *
                                     </label>
                                     <input
@@ -265,30 +265,30 @@ const ResidentialPublicForm: React.FC = () => {
                                         value={telefone1}
                                         onChange={(e) => setTelefone1(formatPhone(e.target.value))}
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="(00) 00000-0000"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Telefone / Celular 2
                                     </label>
                                     <input
                                         type="text"
                                         value={telefone2}
                                         onChange={(e) => setTelefone2(formatPhone(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="Opcional"
                                     />
                                 </div>
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Estado civil
                                     </label>
                                     <select
                                         value={estadoCivil}
                                         onChange={(e) => setEstadoCivil(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                     >
                                         {ESTADO_CIVIL.map((ec) => (
                                             <option key={ec} value={ec}>
@@ -298,37 +298,37 @@ const ResidentialPublicForm: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         CEP do imóvel
                                     </label>
                                     <input
                                         type="text"
                                         value={cep}
                                         onChange={(e) => setCep(formatCEP(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="00000-000"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Número do imóvel
                                     </label>
                                     <input
                                         type="text"
                                         value={numeroImovel}
                                         onChange={(e) => setNumeroImovel(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="Nº"
                                     />
                                 </div>
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Tipo de imóvel
                                     </label>
                                     <select
                                         value={tipoImovel}
                                         onChange={(e) => setTipoImovel(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                     >
                                         {TIPO_IMOVEL.map((t) => (
                                             <option key={t} value={t}>
@@ -338,7 +338,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Valor do imóvel
                                     </label>
                                     <input
@@ -346,12 +346,12 @@ const ResidentialPublicForm: React.FC = () => {
                                         inputMode="numeric"
                                         value={valorImovel}
                                         onChange={(e) => setValorImovel(formatCurrency(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="R$ 0,00"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Valor do aluguel
                                     </label>
                                     <input
@@ -359,23 +359,23 @@ const ResidentialPublicForm: React.FC = () => {
                                         inputMode="numeric"
                                         value={valorAluguel}
                                         onChange={(e) => setValorAluguel(formatCurrency(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="R$ 0,00"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Data do primeiro pagamento do aluguel
                                     </label>
                                     <input
                                         type="date"
                                         value={dataPrimeiroPagamento}
                                         onChange={(e) => setDataPrimeiroPagamento(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">
+                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Valor IPTU e/ou condomínio
                                     </label>
                                     <input
@@ -383,7 +383,7 @@ const ResidentialPublicForm: React.FC = () => {
                                         inputMode="numeric"
                                         value={valorIptuCondominio}
                                         onChange={(e) => setValorIptuCondominio(formatCurrency(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#C69C6D]/30 focus:border-[#C69C6D] outline-none"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/30 focus:border-gold outline-none"
                                         placeholder="R$ 0,00"
                                     />
                                 </div>
@@ -393,7 +393,7 @@ const ResidentialPublicForm: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full sm:w-auto bg-[#C69C6D] hover:bg-[#b58a5b] text-[#1B263B] font-black text-sm px-8 py-4 rounded-xl shadow-lg border border-[#1B263B]/10 flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
+                                    className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-navy font-black text-sm px-8 py-4 rounded-xl shadow-lg border border-navy/10 flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
                                 >
                                     {submitting ? (
                                         <>

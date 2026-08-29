@@ -63,7 +63,7 @@ const Calculator: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-8">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-             <div className="bg-[#1B263B] p-2 rounded-xl text-[#C69C6D]">
+             <div className="bg-navy p-2 rounded-xl text-gold">
                 <CalcIcon size={24} />
              </div>
              Calculadora de Seguro
@@ -75,9 +75,9 @@ const Calculator: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Seção 1: Seguro Garantia */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-[#1B263B] p-8 text-white">
+          <div className="bg-navy p-8 text-white">
             <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
-               <Scale size={20} className="text-[#C69C6D]" />
+               <Scale size={20} className="text-gold" />
                Seguro Garantia
             </h3>
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Parâmetros Principais do Contrato</p>
@@ -94,7 +94,7 @@ const Calculator: React.FC = () => {
                       type="text" 
                       value={valorContrato}
                       onChange={(e) => handleInputChange(e.target.value, setValorContrato)}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700 transition-all"
+                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700 transition-all"
                     />
                   </div>
                 </div>
@@ -107,16 +107,16 @@ const Calculator: React.FC = () => {
                       type="text" 
                       value={percentualGarantia}
                       onChange={(e) => handleInputChange(e.target.value, setPercentualGarantia)}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 bg-[#C69C6D]/5 border border-[#C69C6D]/20 rounded-2xl">
+              <div className="p-6 bg-gold/5 border border-gold/20 rounded-2xl">
                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black text-[#C69C6D] uppercase tracking-widest">Importância Segurada</label>
-                    <span className="text-lg font-black text-[#1B263B]">{formatCurrency(importanciaSegurada)}</span>
+                    <label className="text-[10px] font-black text-gold uppercase tracking-widest">Importância Segurada</label>
+                    <span className="text-lg font-black text-navy">{formatCurrency(importanciaSegurada)}</span>
                  </div>
               </div>
 
@@ -127,7 +127,7 @@ const Calculator: React.FC = () => {
                     type="text" 
                     value={taxaTomador}
                     onChange={(e) => handleInputChange(e.target.value, setTaxaTomador)}
-                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -138,7 +138,7 @@ const Calculator: React.FC = () => {
                       type="text" 
                       value={vigenciaDias}
                       onChange={(e) => handleInputChange(e.target.value, setVigenciaDias, true)}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700"
                     />
                   </div>
                 </div>
@@ -156,12 +156,12 @@ const Calculator: React.FC = () => {
 
         {/* Seção 2: Seguro Adicional */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-[#C69C6D] p-8 text-[#1B263B]">
+          <div className="bg-gold p-8 text-navy">
             <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                <FileText size={20} />
                Seguro Adicional
             </h3>
-            <p className="text-[#1B263B]/60 text-xs font-bold uppercase tracking-widest mt-1">Cálculos de Pregão & Edital</p>
+            <p className="text-navy/60 text-xs font-bold uppercase tracking-widest mt-1">Cálculos de Pregão & Edital</p>
           </div>
 
           <div className="p-8 space-y-6 flex-1">
@@ -174,7 +174,7 @@ const Calculator: React.FC = () => {
                     type="text" 
                     value={edital}
                     onChange={(e) => handleInputChange(e.target.value, setEdital)}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#1B263B]/10 outline-none font-bold text-slate-700"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-navy/10 outline-none font-bold text-slate-700"
                   />
                 </div>
               </div>
@@ -187,7 +187,7 @@ const Calculator: React.FC = () => {
                     type="text" 
                     value={lancePregao}
                     onChange={(e) => handleInputChange(e.target.value, setLancePregao)}
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#1B263B]/10 outline-none font-bold text-slate-700"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-navy/10 outline-none font-bold text-slate-700"
                   />
                 </div>
               </div>
@@ -228,7 +228,7 @@ const Calculator: React.FC = () => {
                     type="text" 
                     value={taxaTomadorAdicional}
                     onChange={(e) => handleInputChange(e.target.value, setTaxaTomadorAdicional)}
-                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -239,7 +239,7 @@ const Calculator: React.FC = () => {
                       type="text" 
                       value={vigenciaDiasAdicional}
                       onChange={(e) => handleInputChange(e.target.value, setVigenciaDiasAdicional, true)}
-                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-[#C69C6D]/20 outline-none font-bold text-slate-700"
+                      className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-gold/20 outline-none font-bold text-slate-700"
                     />
                   </div>
                 </div>
@@ -259,31 +259,31 @@ const Calculator: React.FC = () => {
       {/* Resultados Finais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Resultado Final: Seguro Garantia */}
-        <div className="bg-[#1B263B] p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+        <div className="bg-navy p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-             <CalcIcon size={80} className="text-[#C69C6D]" />
+             <CalcIcon size={80} className="text-gold" />
           </div>
-          <p className="text-[#C69C6D] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
+          <p className="text-gold text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotal)}</h4>
 
         </div>
 
         {/* Resultado Final: Seguro Adicional */}
-        <div className="bg-[#C69C6D] p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:-translate-x-4 transition-transform text-[#1B263B]">
+        <div className="bg-gold p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:-translate-x-4 transition-transform text-navy">
              <FileText size={80} />
           </div>
-          <p className="text-[#1B263B] text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Adicional)</p>
+          <p className="text-navy text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Adicional)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotalAdicional)}</h4>
           <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center bg-[#1B263B]/10 rounded-xl px-4 py-2 border border-[#1B263B]/5">
-              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Total Garantia Base</span>
+            <div className="flex justify-between items-center bg-navy/10 rounded-xl px-4 py-2 border border-navy/5">
+              <span className="text-[10px] font-black text-navy uppercase tracking-widest">Total Garantia Base</span>
               <span className="text-sm font-black text-white">{formatCurrency(totalGarantia)}</span>
             </div>
           </div>
-          <div className="mt-8 p-4 bg-[#1B263B]/5 border border-[#1B263B]/10 rounded-2xl flex items-start gap-3">
-             <Info size={18} className="text-[#1B263B] shrink-0 mt-0.5" />
-             <p className="text-[10px] text-[#1B263B] font-bold leading-relaxed uppercase">
+          <div className="mt-8 p-4 bg-navy/5 border border-navy/10 rounded-2xl flex items-start gap-3">
+             <Info size={18} className="text-navy shrink-0 mt-0.5" />
+             <p className="text-[10px] text-navy font-bold leading-relaxed uppercase">
                 Calculado sobre o Total da Garantia Adicional de forma independente.
              </p>
           </div>

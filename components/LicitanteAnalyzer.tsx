@@ -54,10 +54,10 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
 
 function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactNode; label: string; value: React.ReactNode; highlight?: boolean; copyValue?: string }) {
   return (
-    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-[#1B263B] border-[#1B263B]' : 'bg-white border-slate-100'}`}>
+    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
-          <span className={highlight ? 'text-[#C69C6D]' : 'text-slate-400'}>{icon}</span>
+          <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
           <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
         </div>
         {copyValue && <CopyBtn text={copyValue} light={highlight} />}
@@ -179,14 +179,14 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   {new Date(entry.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </p>
                 {entry.data.valor_garantia_proposta_calculado && (
-                  <p className="text-xs font-black text-[#C69C6D] mt-0.5">
+                  <p className="text-xs font-black text-gold mt-0.5">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.data.valor_garantia_proposta_calculado)}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => { setResult(entry.data); setShowHistory(false); }}
-                className="shrink-0 px-3 py-1.5 rounded-xl bg-[#1B263B] text-white text-xs font-bold hover:bg-[#243447] transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors"
               >
                 Restaurar
               </button>
@@ -203,7 +203,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-[#C69C6D] hover:bg-amber-50/10"
+            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
           >
             <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
@@ -220,8 +220,8 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
           {files.length > 0 && (
             <div className="space-y-2">
               {files.map((f, i) => (
-                <div key={i} className="flex items-center gap-3 bg-amber-50 border border-[#C69C6D]/30 rounded-2xl px-5 py-3.5">
-                  <FileText size={18} className="text-[#C69C6D] shrink-0" />
+                <div key={i} className="flex items-center gap-3 bg-amber-50 border border-gold/30 rounded-2xl px-5 py-3.5">
+                  <FileText size={18} className="text-gold shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-slate-800 text-sm truncate">{f.name}</p>
                     <p className="text-xs text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -240,13 +240,13 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   onChange={e => setAdditionalInstructions(e.target.value)}
                   placeholder="Ex: O edital é para obras de engenharia. Considere que a sessão pública é presencial. Foque no item 10 sobre garantias..."
                   rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-[#C69C6D]"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-gold"
                 />
               </div>
 
               <div className="flex gap-3">
                 <button onClick={analyze} disabled={loading}
-                  className="flex-1 bg-[#1B263B] text-white px-8 py-3.5 rounded-2xl font-black hover:bg-[#243447] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                  className="flex-1 bg-navy text-white px-8 py-3.5 rounded-2xl font-black hover:bg-navy-light transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
                   {loading ? 'Analisando...' : `Analisar ${files.length > 1 ? `${files.length} arquivos` : 'Edital'} com IA`}
                 </button>
@@ -262,7 +262,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
       {loading && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
-          <Loader2 size={36} className="text-[#C69C6D] animate-spin" />
+          <Loader2 size={36} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800 text-lg">Lendo o edital...</p>
             <p className="text-slate-400 text-sm mt-1">O Claude está analisando o PDF e extraindo os dados do seguro</p>
@@ -285,12 +285,12 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
 
           {/* Cabeçalho do órgão */}
-          <div className="bg-[#1B263B] rounded-[2rem] p-7 text-white">
+          <div className="bg-navy rounded-[2rem] p-7 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
                 {/* Modalidade + Edital */}
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[3px] text-[#C69C6D]">
+                  <p className="text-[10px] font-black uppercase tracking-[3px] text-gold">
                     {result.modalidade || 'Licitação Pública'}{result.numero_edital ? ` · ${result.numero_edital}` : ''}
                   </p>
                   {result.numero_edital && <CopyBtn text={result.numero_edital} light />}

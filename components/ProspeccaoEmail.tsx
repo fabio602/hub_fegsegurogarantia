@@ -226,7 +226,7 @@ export default function ProspeccaoEmail() {
           </label>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#C69C6D] hover:bg-[#b8895a] text-white font-bold text-sm rounded-xl transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all"
           >
             <Plus size={15} /> Adicionar Contato
           </button>
@@ -236,7 +236,7 @@ export default function ProspeccaoEmail() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total', value: contatos.length, color: 'bg-[#1B263B] text-white', val: 'text-[#C69C6D]' },
+          { label: 'Total', value: contatos.length, color: 'bg-navy text-white', val: 'text-gold' },
           { label: 'Ativos', value: contatos.filter(c => c.ativo).length, color: 'bg-white border border-slate-100', val: 'text-emerald-600' },
           { label: 'Concluídos', value: contatos.filter(c => progress(c) === 5).length, color: 'bg-white border border-slate-100', val: 'text-slate-800' },
           { label: 'Pausados', value: contatos.filter(c => !c.ativo).length, color: 'bg-white border border-slate-100', val: 'text-amber-600' },
@@ -255,12 +255,12 @@ export default function ProspeccaoEmail() {
           placeholder="Buscar por nome, empresa ou email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-white"
+          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold bg-white"
         />
         <select
           value={filtroTrilha}
           onChange={e => setFiltroTrilha(e.target.value)}
-          className="sm:w-64 px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 focus:outline-none focus:border-[#C69C6D] bg-white"
+          className="sm:w-64 px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 focus:outline-none focus:border-gold bg-white"
         >
           <option value="">Todas as trilhas</option>
           {trilhas.map(t => (
@@ -283,7 +283,7 @@ export default function ProspeccaoEmail() {
                 <select
                   value={importTrilha}
                   onChange={e => setImportTrilha(e.target.value)}
-                  className="px-3 py-2 border border-amber-200 rounded-xl text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:border-[#C69C6D]"
+                  className="px-3 py-2 border border-amber-200 rounded-xl text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:border-gold"
                 >
                   {trilhas.map(t => (
                     <option key={t.slug} value={t.slug}>{t.nome}</option>
@@ -292,7 +292,7 @@ export default function ProspeccaoEmail() {
               </div>
               <button onClick={() => setImportPreview(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm">Cancelar</button>
               <button onClick={confirmImport} disabled={importSaving || !importTrilha}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm disabled:opacity-50">
+                className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm disabled:opacity-50">
                 {importSaving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                 {importSaving ? 'Importando...' : 'Confirmar Importação'}
               </button>
@@ -324,7 +324,7 @@ export default function ProspeccaoEmail() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 size={24} className="text-[#C69C6D] animate-spin" /></div>
+        <div className="flex justify-center py-12"><Loader2 size={24} className="text-gold animate-spin" /></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <Mail size={32} className="text-slate-300 mx-auto mb-3" />
@@ -364,7 +364,7 @@ export default function ProspeccaoEmail() {
                       </td>
                       <td className="px-5 py-4 text-sm font-medium text-slate-600">{c.nome_empresa}</td>
                       <td className="px-5 py-4">
-                        <span className="inline-block text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <span className="inline-block text-[10px] font-black text-navy bg-gold/15 px-2.5 py-1 rounded-full whitespace-nowrap">
                           {nomeTrilha(c.trilha)}
                         </span>
                       </td>
@@ -421,7 +421,7 @@ export default function ProspeccaoEmail() {
                 <select
                   value={form.trilha}
                   onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-[#C69C6D] bg-slate-50"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-gold bg-slate-50"
                 >
                   {trilhas.map(t => (
                     <option key={t.slug} value={t.slug}>{t.nome}</option>
@@ -446,14 +446,14 @@ export default function ProspeccaoEmail() {
                     placeholder={f.placeholder}
                     value={(form as any)[f.key]}
                     onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-slate-50"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold bg-slate-50"
                   />
                 </div>
               ))}
             </div>
             <div className="flex gap-3 pt-2">
               <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email || !form.trilha}
-                className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2">
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                 {saving ? 'Salvando...' : 'Adicionar à Cadência'}
               </button>

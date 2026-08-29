@@ -87,7 +87,7 @@ const isExpired = (date: string) => {
   return new Date(date).getTime() < Date.now();
 };
 
-const INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all";
+const INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all";
 const LABEL_CLS = "block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5";
 
 type FieldonChange = React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
@@ -452,21 +452,21 @@ const AutoInsurance: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-[#1B263B] tracking-tight flex items-center gap-2">
-            <Car size={22} className="text-[#C69C6D]" /> Seguro AUTO
+          <h2 className="text-2xl font-black text-navy tracking-tight flex items-center gap-2">
+            <Car size={22} className="text-gold" /> Seguro AUTO
           </h2>
           <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gestão de apólices e clientes</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Importar Apólice com IA — no cabeçalho */}
-          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${autoExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`} title="Importar apólice com IA">
+          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${autoExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/10 text-gold-hover border-gold/30 hover:bg-gold/20'}`} title="Importar apólice com IA">
             <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
             <FileText size={15} />
             {autoExtracting ? 'Lendo...' : 'Importar Apólice'}
           </label>
           <button
             onClick={() => { setShowForm(true); setEditingId(null); setFormData(EMPTY_FORM); }}
-            className="flex items-center gap-2 bg-[#1B263B] text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] transition-all shadow-lg"
+            className="flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-navy-light transition-all shadow-lg"
           >
             <Plus size={15} /> Novo Cliente
           </button>
@@ -502,8 +502,8 @@ const AutoInsurance: React.FC = () => {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-3xl border border-[#C69C6D]/30 shadow-xl overflow-hidden">
-          <div className="bg-[#1B263B] px-6 py-4 flex items-center justify-between">
+        <div className="bg-white rounded-3xl border border-gold/30 shadow-xl overflow-hidden">
+          <div className="bg-navy px-6 py-4 flex items-center justify-between">
             <h3 className="text-white font-black text-sm flex items-center gap-2">
               <Car size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Seguro AUTO'}
             </h3>
@@ -518,13 +518,13 @@ const AutoInsurance: React.FC = () => {
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
             {/* Importar Apólice com IA */}
-            <div className="bg-amber-50 border border-[#C69C6D]/30 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="bg-amber-50 border border-gold/30 rounded-2xl p-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-black text-slate-700">📄 Importar Apólice com IA</p>
                 <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
                 {autoExtractMsg && <p className="text-xs font-bold mt-1" style={{ color: autoExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{autoExtractMsg}</p>}
               </div>
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${autoExtracting ? 'bg-slate-100 text-slate-400' : 'bg-[#1B263B] text-[#C69C6D] hover:bg-[#243447]'}`}>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${autoExtracting ? 'bg-slate-100 text-slate-400' : 'bg-navy text-gold hover:bg-navy-light'}`}>
                 <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
                 {autoExtracting ? '⏳ Processando...' : '📤 Anexar PDF'}
               </label>
@@ -532,7 +532,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados do Cliente */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados do Cliente</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados do Cliente</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="nome" label="Nome Completo" required colSpan="sm:col-span-2 lg:col-span-2" />
                 <InputField formData={fd} onChange={oc}id="cpf" label="CPF" placeholder="000.000.000-00" />
@@ -544,7 +544,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados do Veículo */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados do Veículo</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados do Veículo</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="marca_modelo" label="Marca / Modelo" placeholder="Ex: Fiat Pulse" colSpan="lg:col-span-2" />
                 <InputField formData={fd} onChange={oc}id="ano_fabricacao" label="Ano Fabricação" placeholder="2023" />
@@ -558,7 +558,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados da Apólice */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-3">Dados da Apólice</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados da Apólice</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="seguradora" label="Seguradora" />
                 <InputField formData={fd} onChange={oc}id="apolice" label="Nº Apólice" />
@@ -582,14 +582,14 @@ const AutoInsurance: React.FC = () => {
                 rows={3}
                 value={formData.obs ?? ''}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all resize-none"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all resize-none"
               />
             </div>
 
             {/* Parcelas / Boletos */}
             {editingId && (
               <div className="border-t border-slate-100 pt-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#C69C6D] mb-4 flex items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
                   <FileText size={12} /> Parcelas / Boletos
                   {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
                 </p>
@@ -613,7 +613,7 @@ const AutoInsurance: React.FC = () => {
                             <Download size={12} /> PDF
                           </a>
                           {!b.pago && (
-                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#C69C6D]/10 text-[#b8895a] hover:bg-[#C69C6D]/20'}`}>
+                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                               {sendingAutoBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                               {autoBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
@@ -631,22 +631,22 @@ const AutoInsurance: React.FC = () => {
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
-                      <input type="number" min="1" value={autoBoletoForm.parcela} onChange={e => setAutoBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                      <input type="number" min="1" value={autoBoletoForm.parcela} onChange={e => setAutoBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
-                      <input type="date" value={autoBoletoForm.vencimento} onChange={e => setAutoBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                      <input type="date" value={autoBoletoForm.vencimento} onChange={e => setAutoBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
-                      <input type="text" value={autoBoletoForm.valor} onChange={e => setAutoBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                      <input type="text" value={autoBoletoForm.valor} onChange={e => setAutoBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
-                    <input type="file" accept="application/pdf" onChange={e => setAutoBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[#1B263B] file:text-[#C69C6D] hover:file:bg-[#243447] cursor-pointer" />
+                    <input type="file" accept="application/pdf" onChange={e => setAutoBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-navy file:text-gold hover:file:bg-navy-light cursor-pointer" />
                   </div>
-                  <button onClick={handleAddAutoBoleto} disabled={autoBoletoAdding || !autoBoletoForm.parcela || !autoBoletoForm.file} className="flex items-center gap-2 bg-[#1B263B] text-[#C69C6D] px-5 py-2.5 rounded-xl font-black text-sm hover:bg-[#243447] disabled:opacity-50 transition-all">
+                  <button onClick={handleAddAutoBoleto} disabled={autoBoletoAdding || !autoBoletoForm.parcela || !autoBoletoForm.file} className="flex items-center gap-2 bg-navy text-gold px-5 py-2.5 rounded-xl font-black text-sm hover:bg-navy-light disabled:opacity-50 transition-all">
                     {autoBoletoAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                     {autoBoletoAdding ? 'Salvando...' : 'Adicionar Boleto'}
                   </button>
@@ -671,7 +671,7 @@ const AutoInsurance: React.FC = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 bg-[#C69C6D] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-[#b58a5b] disabled:opacity-50 transition-all shadow-lg"
+                    className="flex items-center gap-2 bg-gold text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-gold-hover disabled:opacity-50 transition-all shadow-lg"
                   >
                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     {saving ? 'Salvando...' : 'Salvar'}
@@ -692,13 +692,13 @@ const AutoInsurance: React.FC = () => {
             placeholder="Buscar por nome, placa, apólice, CPF..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all"
           />
         </div>
         <select
           value={filterSituacao}
           onChange={e => setFilterSituacao(e.target.value)}
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all"
         >
           <option value="">Todas situações</option>
           {SITUACOES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -706,7 +706,7 @@ const AutoInsurance: React.FC = () => {
         <select
           value={filterCobertura}
           onChange={e => setFilterCobertura(e.target.value)}
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C69C6D]/40 focus:border-[#C69C6D] transition-all"
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all"
         >
           <option value="">Todas coberturas</option>
           {COBERTURAS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -748,9 +748,9 @@ const AutoInsurance: React.FC = () => {
                     <tr
                       key={c.id}
                       onClick={() => handleEdit(c)}
-                      className={`border-b border-slate-50 transition-all cursor-pointer ${editingId === c.id ? 'bg-[#C69C6D]/10 border-l-2 border-l-[#C69C6D]' : i % 2 === 0 ? 'bg-white hover:bg-[#C69C6D]/5' : 'bg-slate-50/30 hover:bg-[#C69C6D]/5'}`}
+                      className={`border-b border-slate-50 transition-all cursor-pointer ${editingId === c.id ? 'bg-gold/10 border-l-2 border-l-gold' : i % 2 === 0 ? 'bg-white hover:bg-gold/5' : 'bg-slate-50/30 hover:bg-gold/5'}`}
                     >
-                      <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap hover:text-[#C69C6D] transition-colors">{c.nome || '—'}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap hover:text-gold transition-colors">{c.nome || '—'}</td>
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{c.cpf || '—'}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {c.telefone ? <WhatsAppPhoneLink phone={c.telefone} name={c.nome} /> : '—'}
@@ -775,7 +775,7 @@ const AutoInsurance: React.FC = () => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEdit(c)}
-                            className="p-1.5 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"
+                            className="p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                             title="Editar"
                           >
                             <Edit2 size={13} />

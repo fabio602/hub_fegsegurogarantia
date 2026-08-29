@@ -213,8 +213,8 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#1B263B] flex items-center justify-center">
-                  <MessageCircle size={15} className="text-[#C69C6D]" />
+                <div className="w-8 h-8 rounded-xl bg-navy flex items-center justify-center">
+                  <MessageCircle size={15} className="text-gold" />
                 </div>
                 <div>
                   <p className="font-black text-slate-800 text-sm leading-none">Assistente FEG</p>
@@ -233,8 +233,8 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
               {messages.length === 0 && (
                 <div className="space-y-4">
                   <div className="text-center pt-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[#1B263B] flex items-center justify-center mx-auto mb-3">
-                      <MessageCircle size={20} className="text-[#C69C6D]" />
+                    <div className="w-12 h-12 rounded-2xl bg-navy flex items-center justify-center mx-auto mb-3">
+                      <MessageCircle size={20} className="text-gold" />
                     </div>
                     <p className="font-black text-slate-800 text-sm">Olá! Como posso ajudar?</p>
                     <p className="text-slate-400 text-xs mt-1">
@@ -246,7 +246,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                       <button
                         key={chip}
                         onClick={() => send(chip)}
-                        className="w-full text-left text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-amber-50 hover:text-[#8B6C3E] border border-slate-200 hover:border-[#C69C6D]/40 px-4 py-2.5 rounded-xl transition-all"
+                        className="w-full text-left text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-amber-50 hover:text-[#8B6C3E] border border-slate-200 hover:border-gold/40 px-4 py-2.5 rounded-xl transition-all"
                       >
                         {chip}
                       </button>
@@ -260,8 +260,8 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                   <div className={`max-w-[82%] flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                     {/* File badge */}
                     {msg.fileName && (
-                      <div className="flex items-center gap-1.5 bg-[#1B263B]/10 border border-[#1B263B]/15 px-3 py-1.5 rounded-xl">
-                        <FileText size={12} className="text-[#C69C6D] shrink-0" />
+                      <div className="flex items-center gap-1.5 bg-navy/10 border border-navy/15 px-3 py-1.5 rounded-xl">
+                        <FileText size={12} className="text-gold shrink-0" />
                         <span className="text-[11px] font-bold text-slate-700 truncate max-w-[180px]">{msg.fileName}</span>
                       </div>
                     )}
@@ -270,7 +270,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                       <div
                         className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                           msg.role === 'user'
-                            ? 'bg-[#1B263B] text-white rounded-br-md'
+                            ? 'bg-navy text-white rounded-br-md'
                             : 'bg-slate-100 text-slate-800 rounded-bl-md'
                         }`}
                         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
@@ -299,8 +299,8 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
             <div className="px-4 pb-4 pt-2 shrink-0 border-t border-slate-100 space-y-2">
               {/* File preview */}
               {attachedFile && (
-                <div className="flex items-center gap-2 bg-amber-50 border border-[#C69C6D]/30 rounded-xl px-3 py-2">
-                  <FileText size={14} className="text-[#C69C6D] shrink-0" />
+                <div className="flex items-center gap-2 bg-amber-50 border border-gold/30 rounded-xl px-3 py-2">
+                  <FileText size={14} className="text-gold shrink-0" />
                   <span className="flex-1 text-xs font-bold text-slate-700 truncate">{attachedFile.name}</span>
                   <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-red-500 transition-colors">
                     <X size={13} />
@@ -309,11 +309,11 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
               )}
 
               {/* Textarea + buttons */}
-              <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-3 py-2.5 focus-within:border-[#C69C6D]/50 focus-within:bg-white transition-all">
+              <div className="flex items-end gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-3 py-2.5 focus-within:border-gold/50 focus-within:bg-white transition-all">
                 {/* Attach button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#C69C6D] hover:bg-slate-100 transition-all"
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-gold hover:bg-slate-100 transition-all"
                   title="Anexar PDF"
                 >
                   <Paperclip size={15} />
@@ -340,7 +340,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                 <button
                   onClick={() => send(input)}
                   disabled={!canSend}
-                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-[#1B263B] text-[#C69C6D] disabled:opacity-30 hover:bg-[#243447] transition-all"
+                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-navy text-gold disabled:opacity-30 hover:bg-navy-light transition-all"
                 >
                   {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </button>
@@ -362,14 +362,14 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
       {/* FAB button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl bg-[#1B263B] shadow-xl flex items-center justify-center hover:bg-[#243447] transition-all active:scale-95"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl bg-navy shadow-xl flex items-center justify-center hover:bg-navy-light transition-all active:scale-95"
         title="Chat com IA"
       >
         {open ? (
-          <X size={22} className="text-[#C69C6D]" />
+          <X size={22} className="text-gold" />
         ) : (
           <>
-            <MessageCircle size={22} className="text-[#C69C6D]" />
+            <MessageCircle size={22} className="text-gold" />
             {unread && (
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
             )}

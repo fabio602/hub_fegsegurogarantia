@@ -411,7 +411,7 @@ const PncpProspection: React.FC = () => {
                         type="button"
                         onClick={exportCsv}
                         disabled={filtered.length === 0}
-                        className="bg-white text-[#1B263B] px-5 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 disabled:opacity-40 flex items-center gap-2"
+                        className="bg-white text-navy px-5 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 disabled:opacity-40 flex items-center gap-2"
                     >
                         <Download size={18} />
                         Exportar CSV
@@ -428,7 +428,7 @@ const PncpProspection: React.FC = () => {
                         <select
                             value={ufFilter}
                             onChange={(e) => setUfFilter(e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30"
                         >
                             <option value="">Todas</option>
                             {BRAZIL_UFS.filter(Boolean).map((u) => (
@@ -448,7 +448,7 @@ const PncpProspection: React.FC = () => {
                             step={1000}
                             value={minValor}
                             onChange={(e) => setMinValor(Number(e.target.value) || 0)}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30"
                         />
                     </div>
                     <div>
@@ -458,7 +458,7 @@ const PncpProspection: React.FC = () => {
                         <select
                             value={periodDays}
                             onChange={(e) => setPeriodDays(Number(e.target.value) as 15 | 30 | 60)}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#C69C6D]/30"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30"
                         >
                             <option value={15}>Últimos 15 dias</option>
                             <option value={30}>Últimos 30 dias</option>
@@ -471,7 +471,7 @@ const PncpProspection: React.FC = () => {
                                 type="checkbox"
                                 checked={hideContador}
                                 onChange={(e) => setHideContador(e.target.checked)}
-                                className="rounded border-slate-300 text-[#C69C6D] focus:ring-[#C69C6D]"
+                                className="rounded border-slate-300 text-gold focus:ring-gold"
                             />
                             Ocultar contador / contábil
                         </label>
@@ -483,7 +483,7 @@ const PncpProspection: React.FC = () => {
                         type="button"
                         onClick={runSearch}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 bg-[#1B263B] text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-[#243347] disabled:opacity-60 transition-all"
+                        className="inline-flex items-center gap-2 bg-navy text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-navy-light disabled:opacity-60 transition-all"
                     >
                         {loading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
                         Buscar contratos PNCP
@@ -518,8 +518,8 @@ const PncpProspection: React.FC = () => {
                             <div className="flex flex-wrap justify-between gap-3 items-start">
                                 <div className="space-y-1 min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <Building2 size={18} className="text-[#C69C6D] shrink-0" />
-                                        <h3 className="text-lg font-black text-[#1B263B] leading-tight break-words">
+                                        <Building2 size={18} className="text-gold shrink-0" />
+                                        <h3 className="text-lg font-black text-navy leading-tight break-words">
                                             {c.nomeRazaoSocialFornecedor}
                                         </h3>
                                     </div>
@@ -540,21 +540,21 @@ const PncpProspection: React.FC = () => {
 
                             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                                 <div className="flex items-start gap-2">
-                                    <DollarSign size={16} className="text-[#C69C6D] mt-0.5 shrink-0" />
+                                    <DollarSign size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400">Valor global</p>
                                         <p className="font-bold text-slate-800">{formatCurrency(c.valorGlobal)}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
-                                    <Briefcase size={16} className="text-[#C69C6D] mt-0.5 shrink-0" />
+                                    <Briefcase size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400">Órgão</p>
                                         <p className="font-bold text-slate-800 leading-snug">{c.orgaoRazaoSocial || '—'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
-                                    <MapPin size={16} className="text-[#C69C6D] mt-0.5 shrink-0" />
+                                    <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400">Local</p>
                                         <p className="font-bold text-slate-800">
@@ -563,7 +563,7 @@ const PncpProspection: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2 sm:col-span-2 lg:col-span-1">
-                                    <Calendar size={16} className="text-[#C69C6D] mt-0.5 shrink-0" />
+                                    <Calendar size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-[10px] font-black uppercase text-slate-400">Assinatura</p>
                                         <p className="font-bold text-slate-800">{formatAssinatura(c.dataAssinatura)}</p>
@@ -578,7 +578,7 @@ const PncpProspection: React.FC = () => {
                                     </p>
                                     <div className="grid sm:grid-cols-2 gap-3 text-sm">
                                         <div className="flex items-center gap-2">
-                                            <Phone size={14} className="text-[#C69C6D] shrink-0" />
+                                            <Phone size={14} className="text-gold shrink-0" />
                                             {contact.telefone ? (
                                                 <WhatsAppPhoneLink phone={contact.telefone} className="font-medium text-slate-800" />
                                             ) : (
@@ -586,25 +586,25 @@ const PncpProspection: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Mail size={14} className="text-[#C69C6D]" />
+                                            <Mail size={14} className="text-gold" />
                                             <span className="font-medium text-slate-800 break-all">{contact.email || '—'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <User size={14} className="text-[#C69C6D]" />
+                                            <User size={14} className="text-gold" />
                                             <span className="font-medium text-slate-800">{contact.socioResponsavel || '—'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Factory size={14} className="text-[#C69C6D] shrink-0" />
+                                            <Factory size={14} className="text-gold shrink-0" />
                                             <span className="text-slate-700 leading-snug">
                                                 CNAE: {contact.cnaeDescricao || '—'}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Briefcase size={14} className="text-[#C69C6D]" />
+                                            <Briefcase size={14} className="text-gold" />
                                             <span className="text-slate-700">Porte: {contact.porte || '—'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <DollarSign size={14} className="text-[#C69C6D]" />
+                                            <DollarSign size={14} className="text-gold" />
                                             <span className="text-slate-700">Capital social: {contact.capitalSocial || '—'}</span>
                                         </div>
                                     </div>
@@ -633,7 +633,7 @@ const PncpProspection: React.FC = () => {
                                     type="button"
                                     onClick={() => fetchContact(c)}
                                     disabled={loadingC}
-                                    className="inline-flex items-center gap-2 bg-[#C69C6D]/15 text-[#1B263B] border border-[#C69C6D]/40 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-[#C69C6D]/25 disabled:opacity-50"
+                                    className="inline-flex items-center gap-2 bg-gold/15 text-navy border border-gold/40 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-gold/25 disabled:opacity-50"
                                 >
                                     {loadingC ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                                     Buscar contatos
@@ -648,7 +648,7 @@ const PncpProspection: React.FC = () => {
                                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all ${
                                         sentCnpjs.has(cnpjK)
                                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                            : 'bg-[#1B263B] text-white border-[#1B263B] hover:bg-[#243347]'
+                                            : 'bg-navy text-white border-navy hover:bg-navy-light'
                                     }`}
                                 >
                                     {sentCnpjs.has(cnpjK) ? '✓ Enviado' : 'Enviar para LEADS'}
@@ -660,10 +660,10 @@ const PncpProspection: React.FC = () => {
             </div>
 
             {leadModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1B263B]/60 backdrop-blur-sm">
-                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-md w-full p-8 border border-[#C69C6D]/30 animate-in zoom-in-95">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm">
+                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
                         <div className="flex justify-between items-start mb-4">
-                            <h4 className="text-xl font-black text-[#1B263B]">Enviar para LEADS</h4>
+                            <h4 className="text-xl font-black text-navy">Enviar para LEADS</h4>
                             <button
                                 type="button"
                                 onClick={() => !sendingLead && setLeadModal(null)}
@@ -682,7 +682,7 @@ const PncpProspection: React.FC = () => {
                                     key={t}
                                     className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all ${
                                         leadTipo === t
-                                            ? 'border-[#C69C6D] bg-white'
+                                            ? 'border-gold bg-white'
                                             : 'border-transparent bg-white/50 hover:bg-white'
                                     }`}
                                 >
@@ -691,7 +691,7 @@ const PncpProspection: React.FC = () => {
                                         name="tipoLead"
                                         checked={leadTipo === t}
                                         onChange={() => setLeadTipo(t)}
-                                        className="text-[#C69C6D]"
+                                        className="text-gold"
                                     />
                                     <span className="font-bold text-slate-800">{t}</span>
                                 </label>
@@ -701,7 +701,7 @@ const PncpProspection: React.FC = () => {
                             type="button"
                             onClick={confirmSendLead}
                             disabled={sendingLead}
-                            className="w-full flex items-center justify-center gap-2 bg-[#C69C6D] text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60"
+                            className="w-full flex items-center justify-center gap-2 bg-gold text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60"
                         >
                             {sendingLead ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                             Confirmar envio

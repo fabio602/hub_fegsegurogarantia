@@ -286,7 +286,7 @@ const ParceiroManager: React.FC = () => {
                 </div>
                 <button
                     onClick={handleNew}
-                    className="flex items-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all shadow"
+                    className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all shadow"
                 >
                     <Plus size={16} /> Novo Parceiro
                 </button>
@@ -296,7 +296,7 @@ const ParceiroManager: React.FC = () => {
             {showForm && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                     <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                        <Users size={18} className="text-[#C69C6D]" />
+                        <Users size={18} className="text-gold" />
                         {editingId ? 'Editar Parceiro' : 'Novo Parceiro'}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -307,7 +307,7 @@ const ParceiroManager: React.FC = () => {
                                 value={form.name}
                                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                                 placeholder="Ex: Raphael Icaro Licitações"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all"
                             />
                         </div>
                         <div className="space-y-1">
@@ -317,7 +317,7 @@ const ParceiroManager: React.FC = () => {
                                 value={form.username}
                                 onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                                 placeholder="Ex: raphael2024"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all"
                             />
                         </div>
                         <div className="space-y-1">
@@ -327,13 +327,13 @@ const ParceiroManager: React.FC = () => {
                                 value={form.password}
                                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                                 placeholder="Senha de acesso"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all font-mono"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
                             />
                         </div>
                         <div className="space-y-1 col-span-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Parceiro</label>
                             <select value={form.partner_type} onChange={e => setForm(f => ({ ...f, partner_type: e.target.value }))}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all">
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all">
                                 <option value="seguro_garantia">🏢 Seguro Garantia — Parceiro comercial (comissões)</option>
                                 <option value="imobiliaria">🏠 Imobiliária — Repasse mensal de seguros residenciais</option>
                             </select>
@@ -342,12 +342,12 @@ const ParceiroManager: React.FC = () => {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comissão (%)</label>
                             <input type="number" min="0" max="100" step="0.5" value={form.commission_pct}
                                 onChange={e => setForm(f => ({ ...f, commission_pct: parseFloat(e.target.value) }))}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de comissão</label>
                             <select value={form.commission_type} onChange={e => setForm(f => ({ ...f, commission_type: e.target.value }))}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all">
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all">
                                 <option value="escalonado">Escalonado (contrato)</option>
                                 <option value="fixo">Percentual fixo</option>
                             </select>
@@ -362,43 +362,43 @@ const ParceiroManager: React.FC = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CNPJ</label>
                                 <input value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))}
                                     placeholder="Ex: 58.546.651/0001-61"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail 1</label>
                                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                                     placeholder="Ex: gestao@parceiro.com.br"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail 2 <span className="font-normal text-slate-300">(opcional)</span></label>
                                 <input type="email" value={(form as any).email_2 || ''} onChange={e => setForm(f => ({ ...f, email_2: e.target.value }))}
                                     placeholder="Ex: financeiro@parceiro.com.br"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banco</label>
                                 <input value={form.banco_nome} onChange={e => setForm(f => ({ ...f, banco_nome: e.target.value }))}
                                     placeholder="Ex: BTG Pactual"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chave PIX</label>
                                 <input value={form.pix_key} onChange={e => setForm(f => ({ ...f, pix_key: e.target.value }))}
                                     placeholder="Ex: 58.546.651/0001-61"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta Corrente</label>
                                 <input value={form.conta_corrente} onChange={e => setForm(f => ({ ...f, conta_corrente: e.target.value }))}
                                     placeholder="Ex: 851629-5"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agência</label>
                                 <input value={form.agencia} onChange={e => setForm(f => ({ ...f, agencia: e.target.value }))}
                                     placeholder="Ex: 0050"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all" />
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
                             </div>
                         </div>
                     </div>
@@ -407,7 +407,7 @@ const ParceiroManager: React.FC = () => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                            className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
                         >
                             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                             {saving ? 'Salvando...' : 'Salvar'}
@@ -460,7 +460,7 @@ const ParceiroManager: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
                                           {p.partner_type !== 'imobiliaria' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-[#C69C6D]/10 text-[#C69C6D] rounded-lg text-xs font-black w-fit">
+                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold rounded-lg text-xs font-black w-fit">
                                                 {p.commission_pct}%
                                             </span>
                                           )}
@@ -481,7 +481,7 @@ const ParceiroManager: React.FC = () => {
                                             ) : (
                                                 <button onClick={() => sendTestReport(p)} disabled={testSendingId === p.id}
                                                     title="Enviar relatório de teste para mim"
-                                                    className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all disabled:opacity-40">
+                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all disabled:opacity-40">
                                                     {testSendingId === p.id ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                                                 </button>
                                             )}
@@ -489,7 +489,7 @@ const ParceiroManager: React.FC = () => {
                                                 className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><DollarSign size={15} /></button>
                                             <button onClick={() => setWelcomeModal(p)} title="Enviar e-mail de boas-vindas"
                                                 className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Mail size={15} /></button>
-                                            <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-[#C69C6D] hover:bg-[#C69C6D]/10 rounded-lg transition-all"><Edit2 size={15} /></button>
+                                            <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"><Edit2 size={15} /></button>
                                             <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={15} /></button>
                                         </div>
                                     </td>
@@ -506,9 +506,9 @@ const ParceiroManager: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setRepasseModal(null)}>
                     <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-4" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="bg-[#1B263B] rounded-t-2xl px-6 py-5 flex items-center justify-between">
+                        <div className="bg-navy rounded-t-2xl px-6 py-5 flex items-center justify-between">
                             <div>
-                                <p className="text-[#C69C6D] text-xs font-black uppercase tracking-widest mb-1">Fechar Repasse</p>
+                                <p className="text-gold text-xs font-black uppercase tracking-widest mb-1">Fechar Repasse</p>
                                 <h3 className="text-white font-black text-lg">{repasseModal.name}</h3>
                             </div>
                             <button onClick={() => setRepasseModal(null)} className="p-2 text-white/50 hover:text-white"><X size={20}/></button>
@@ -520,21 +520,21 @@ const ParceiroManager: React.FC = () => {
                                 <div className="flex-1 space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mês</label>
                                     <select value={repasseMes} onChange={e => { setRepasseMes(+e.target.value); carregarRepasseData(repasseModal, +e.target.value, repasseAno); }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-[#C69C6D]">
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
                                         {MESES.slice(1).map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
                                     </select>
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano</label>
                                     <select value={repasseAno} onChange={e => { setRepasseAno(+e.target.value); carregarRepasseData(repasseModal, repasseMes, +e.target.value); }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-[#C69C6D]">
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
                                         {[2024,2025,2026,2027].map(a => <option key={a} value={a}>{a}</option>)}
                                     </select>
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do pagamento</label>
                                     <input type="date" value={repasseDataPag} onChange={e => setRepasseDataPag(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#C69C6D]"/>
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
                                 </div>
                             </div>
 
@@ -571,13 +571,13 @@ const ParceiroManager: React.FC = () => {
                                                     <td className="px-4 py-3 font-bold text-slate-800">{v.nome}</td>
                                                     <td className="px-4 py-3 text-slate-500 text-xs">{v.product_type || v.tipo || '—'}</td>
                                                     <td className="px-4 py-3 text-right text-slate-600">{fmt(c)}</td>
-                                                    <td className="px-4 py-3 text-right font-black text-[#C69C6D]">{fmt(r)}</td>
+                                                    <td className="px-4 py-3 text-right font-black text-gold">{fmt(r)}</td>
                                                 </tr>;
                                             })}
                                         </tbody>
-                                        <tfoot><tr className="bg-[#1B263B]">
+                                        <tfoot><tr className="bg-navy">
                                             <td colSpan={3} className="px-4 py-3 text-white font-black text-sm">Total a repassar</td>
-                                            <td className="px-4 py-3 text-right text-[#C69C6D] font-black text-base">{fmt(totalComissaoRepasse())}</td>
+                                            <td className="px-4 py-3 text-right text-gold font-black text-base">{fmt(totalComissaoRepasse())}</td>
                                         </tr></tfoot>
                                     </table>
                                 </div>
@@ -587,7 +587,7 @@ const ParceiroManager: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comprovante PDF</label>
-                                    <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold cursor-pointer transition-all ${repasseComprovante ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#C69C6D]'}`}>
+                                    <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold cursor-pointer transition-all ${repasseComprovante ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-gold'}`}>
                                         <input type="file" accept=".pdf" className="hidden" onChange={e => setRepasseComprovante(e.target.files?.[0] || null)}/>
                                         <Upload size={14}/> {repasseComprovante ? repasseComprovante.name.substring(0,20) : 'Anexar comprovante'}
                                     </label>
@@ -595,7 +595,7 @@ const ParceiroManager: React.FC = () => {
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observação</label>
                                     <input value={repasseObs} onChange={e => setRepasseObs(e.target.value)} placeholder="Ex: PIX realizado às 14h"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#C69C6D]"/>
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
                                 </div>
                             </div>
 
@@ -629,7 +629,7 @@ const ParceiroManager: React.FC = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-black text-[#C69C6D]">{fmt(r.valor_total)}</span>
+                                                    <span className="font-black text-gold">{fmt(r.valor_total)}</span>
                                                     {r.comprovante_url && <a href={r.comprovante_url} target="_blank" className="p-1.5 text-slate-400 hover:text-slate-600"><FileText size={14}/></a>}
                                                 </div>
                                             </div>
@@ -680,7 +680,7 @@ const ParceiroManager: React.FC = () => {
                                     </div>
                                 ) : (
                                     <button onClick={() => enviarBoasVindas(welcomeModal)} disabled={sendingWelcome}
-                                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
+                                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
                                         {sendingWelcome ? <Loader2 size={15} className="animate-spin"/> : <Mail size={15}/>}
                                         {sendingWelcome ? 'Enviando...' : 'Enviar e-mail de boas-vindas'}
                                     </button>
@@ -695,14 +695,14 @@ const ParceiroManager: React.FC = () => {
             )}
 
             {/* Link do portal */}
-            <div className="bg-[#1B263B]/5 rounded-2xl px-6 py-4 border border-[#C69C6D]/20 flex items-center justify-between gap-4 flex-wrap">
+            <div className="bg-navy/5 rounded-2xl px-6 py-4 border border-gold/20 flex items-center justify-between gap-4 flex-wrap">
                 <div>
                     <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">Link do portal do parceiro</p>
-                    <p className="text-sm font-bold text-[#1B263B]">hub.fegsegurogarantia.com/parceiros-login.html</p>
+                    <p className="text-sm font-bold text-navy">hub.fegsegurogarantia.com/parceiros-login.html</p>
                 </div>
                 <button
                     onClick={() => navigator.clipboard.writeText('https://hub.fegsegurogarantia.com/parceiros-login.html')}
-                    className="text-xs font-black px-4 py-2 bg-[#C69C6D]/20 text-[#C69C6D] rounded-xl hover:bg-[#C69C6D]/30 transition-all"
+                    className="text-xs font-black px-4 py-2 bg-gold/20 text-gold rounded-xl hover:bg-gold/30 transition-all"
                 >
                     Copiar link
                 </button>

@@ -83,7 +83,7 @@ const Field: React.FC<{
       onChange={e => onChange(id, e.target.value)}
       placeholder={placeholder}
       readOnly={readOnly}
-      className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] focus:bg-white transition-all ${readOnly ? 'text-slate-400 cursor-default' : ''}`}
+      className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold focus:bg-white transition-all ${readOnly ? 'text-slate-400 cursor-default' : ''}`}
     />
   </div>
 );
@@ -237,7 +237,7 @@ const EndossoAllseg: React.FC = () => {
           };
           return (
             <div className="flex flex-col items-end gap-1">
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`}>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/10 text-gold-hover border-gold/30 hover:bg-gold/20'}`}>
                 <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
                 📄 {extracting ? 'Lendo apólice...' : 'Importar Apólice'}
               </label>
@@ -334,7 +334,7 @@ const EndossoAllseg: React.FC = () => {
           type="date"
           value={form.local_data}
           onChange={e => set('local_data', e.target.value)}
-          className="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+          className="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
         />
         {form.local_data && (
           <p className="text-xs text-slate-500 mt-1">Será exibido como: <strong>Boituva, {fmtDate(form.local_data)}</strong></p>

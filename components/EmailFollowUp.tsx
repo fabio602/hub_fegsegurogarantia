@@ -78,7 +78,7 @@ const BAND = {
 };
 
 const SOURCE_BADGE: Record<string, string> = {
-  'Seguro Garantia': 'bg-[#1B263B]/10 text-[#1B263B]',
+  'Seguro Garantia': 'bg-navy/10 text-navy',
   'Residencial': 'bg-emerald-100 text-emerald-700',
   'Auto': 'bg-sky-100 text-sky-700',
 };
@@ -298,7 +298,7 @@ export default function EmailFollowUp() {
       <button
         onClick={onClick}
         disabled={disabled || state === 'sending'}
-        className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg bg-[#1B263B] text-[#C69C6D] disabled:opacity-40 hover:bg-[#243447] transition-all"
+        className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg bg-navy text-gold disabled:opacity-40 hover:bg-navy-light transition-all"
       >
         {state === 'sending' ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         {state === 'sending' ? 'Enviando…' : 'Enviar'}
@@ -406,15 +406,15 @@ export default function EmailFollowUp() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#1B263B] flex items-center justify-center">
-            <Mail size={15} className="text-[#C69C6D]" />
+          <div className="w-8 h-8 rounded-xl bg-navy flex items-center justify-center">
+            <Mail size={15} className="text-gold" />
           </div>
           <div>
             <h2 className="font-black text-slate-800 text-base leading-none">Follow-up de Email</h2>
             <p className="text-slate-400 text-[11px] mt-0.5">Vencimentos, prospectos e envio avulso</p>
           </div>
         </div>
-        <button onClick={loadData} className="text-slate-400 hover:text-[#C69C6D] transition-colors" title="Atualizar">
+        <button onClick={loadData} className="text-slate-400 hover:text-gold transition-colors" title="Atualizar">
           <RefreshCw size={14} />
         </button>
       </div>
@@ -426,7 +426,7 @@ export default function EmailFollowUp() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-lg text-xs font-black capitalize transition-all ${
-              tab === t ? 'bg-white text-[#1B263B] shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              tab === t ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {t === 'vencimentos' ? `Vencimentos${expiring.length > 0 ? ` (${expiring.length})` : ''}` :
@@ -438,7 +438,7 @@ export default function EmailFollowUp() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 size={22} className="text-[#C69C6D] animate-spin" />
+          <Loader2 size={22} className="text-gold animate-spin" />
         </div>
       ) : (
         <>
@@ -516,7 +516,7 @@ export default function EmailFollowUp() {
                           <select
                             value={template}
                             onChange={e => setProspectTemplate(prev => ({ ...prev, [p.id]: e.target.value as 'intro' | 'followup' }))}
-                            className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-white focus:outline-none focus:border-[#C69C6D]/50 cursor-pointer"
+                            className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-white focus:outline-none focus:border-gold/50 cursor-pointer"
                           >
                             <option value="intro">Apresentação</option>
                             <option value="followup">Follow-up</option>
@@ -542,7 +542,7 @@ export default function EmailFollowUp() {
                   <button
                     key={t.label}
                     onClick={() => setAvulso(prev => ({ ...prev, subject: t.subject, message: t.message }))}
-                    className="text-[10px] font-black px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-[#C69C6D]/50 hover:text-[#1B263B] transition-all"
+                    className="text-[10px] font-black px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-gold/50 hover:text-navy transition-all"
                   >
                     {t.label}
                   </button>
@@ -557,7 +557,7 @@ export default function EmailFollowUp() {
                       value={avulso.toName}
                       onChange={e => setAvulso(p => ({ ...p, toName: e.target.value }))}
                       placeholder="Ex: João Silva"
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]/50 text-slate-800 placeholder-slate-300"
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold/50 text-slate-800 placeholder-slate-300"
                     />
                   </div>
                   <div>
@@ -567,7 +567,7 @@ export default function EmailFollowUp() {
                       value={avulso.toEmail}
                       onChange={e => setAvulso(p => ({ ...p, toEmail: e.target.value }))}
                       placeholder="email@empresa.com"
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]/50 text-slate-800 placeholder-slate-300"
+                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold/50 text-slate-800 placeholder-slate-300"
                     />
                   </div>
                 </div>
@@ -578,7 +578,7 @@ export default function EmailFollowUp() {
                     value={avulso.subject}
                     onChange={e => setAvulso(p => ({ ...p, subject: e.target.value }))}
                     placeholder="Assunto do email"
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#C69C6D]/50 text-slate-800 placeholder-slate-300"
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-gold/50 text-slate-800 placeholder-slate-300"
                   />
                 </div>
 
@@ -589,7 +589,7 @@ export default function EmailFollowUp() {
                     onChange={e => setAvulso(p => ({ ...p, message: e.target.value }))}
                     placeholder="Corpo do email…"
                     rows={6}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#C69C6D]/50 text-slate-800 placeholder-slate-300 resize-none leading-relaxed"
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold/50 text-slate-800 placeholder-slate-300 resize-none leading-relaxed"
                   />
                 </div>
 
@@ -607,7 +607,7 @@ export default function EmailFollowUp() {
                   <button
                     onClick={sendAvulso}
                     disabled={!avulso.toEmail || !avulso.subject || !avulso.message || sends['avulso'] === 'sending'}
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1B263B] text-[#C69C6D] font-black text-xs disabled:opacity-40 hover:bg-[#243447] transition-all"
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-navy text-gold font-black text-xs disabled:opacity-40 hover:bg-navy-light transition-all"
                   >
                     {sends['avulso'] === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                     {sends['avulso'] === 'sending' ? 'Enviando…' : 'Enviar email'}
