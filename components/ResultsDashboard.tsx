@@ -59,6 +59,36 @@ function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
 /** Valor do `<select>` quando o usuário informa corretor/seguradora manualmente. */
 const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
 
+/** Caixa baixa e sem acento: "CONSTRUÇÃO" e "construcao" viram a mesma coisa. */
+const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Dá para transformar `a` em `b` com no máximo um erro (uma letra trocada,
+ *  faltando ou sobrando)? É o que separa "cont" de "cons" — quem digita rápido
+ *  erra uma letra e não quer ver a busca voltar vazia. */
+function pertoDe(a: string, b: string): boolean {
+    if (a === b) return true;
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, erros = 0;
+    while (i < a.length && j < b.length) {
+        if (a[i] === b[j]) { i++; j++; continue; }
+        if (++erros > 1) return false;
+        if (a.length > b.length) i++;
+        else if (b.length > a.length) j++;
+        else { i++; j++; }
+    }
+    return erros + (a.length - i) + (b.length - j) <= 1;
+}
+
+/** Uma palavra digitada bate com o texto?
+ *  Vale como pedaço ("cons" dentro de "construtora") e também como começo de
+ *  qualquer palavra com um erro de digitação ("cont" → "cons|trutora"). */
+function bateTermo(texto: string, termo: string): boolean {
+    const t = semAcento(texto);
+    if (t.includes(termo)) return true;
+    if (termo.length < 4) return false;
+    return t.split(/[^a-z0-9]+/).some(p => p.length >= termo.length && pertoDe(termo, p.slice(0, termo.length)));
+}
+
 /** Formulário de limites quando a carteira ainda não tem nenhum — estado local por card (evita conflito entre clientes). */
 function CarteiraEmptyLimitsForm({
     salesIds,
@@ -3454,15 +3484,23 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                             const clients = (Object.values(portfolio) as ClientPortfolioItem[])
                                 .filter(c => {
-                                    const term = salesSearch.toLowerCase();
-                                    if (!term) return true;
-                                    
-                                    const termDigits = salesSearch.replace(/\D/g, '');
-                                    const matchNome = c.nome.toLowerCase().includes(term);
-                                    const matchDecisor = c.decisor ? c.decisor.toLowerCase().includes(term) : false;
-                                    const matchCnpj = termDigits.length > 0 && c.cnpj ? c.cnpj.replace(/\D/g, '').includes(termDigits) : false;
-                                    
-                                    return matchNome || matchDecisor || matchCnpj;
+                                    const termo = semAcento(salesSearch.trim());
+                                    if (!termo) return true;
+
+                                    // Só procura por CNPJ quando o que foi digitado é de fato um
+                                    // número. Antes bastava um dígito solto no meio do texto
+                                    // ("g2 cont" vira "2") para casar com quase todo CNPJ da
+                                    // carteira — e a busca devolvia tudo, como se ignorasse o campo.
+                                    const digitos = termo.replace(/\D/g, '');
+                                    if (digitos.length >= 3 && !/[a-z]/.test(termo)) {
+                                        return !!c.cnpj && c.cnpj.replace(/\D/g, '').includes(digitos);
+                                    }
+
+                                    // Cada palavra digitada precisa aparecer no nome ou no
+                                    // responsável — em qualquer ordem, e tolerando um erro de
+                                    // digitação por palavra.
+                                    const alvo = `${c.nome} ${c.decisor || ''}`;
+                                    return termo.split(/\s+/).every(p => bateTermo(alvo, p));
                                 })
                                 .sort((a, b) => a.nome.localeCompare(b.nome));
 
