@@ -246,7 +246,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                       <button
                         key={chip}
                         onClick={() => send(chip)}
-                        className="w-full text-left text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-amber-50 hover:text-[#8B6C3E] border border-slate-200 hover:border-gold/40 px-4 py-2.5 rounded-xl transition-all"
+                        className="w-full text-left text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-amber-50 hover:text-gold-dark border border-slate-200 hover:border-gold/40 px-4 py-2.5 rounded-xl transition-all"
                       >
                         {chip}
                       </button>

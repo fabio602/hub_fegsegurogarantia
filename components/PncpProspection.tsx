@@ -661,7 +661,7 @@ const PncpProspection: React.FC = () => {
 
             {leadModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm">
-                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
+                    <div className="bg-areia-clara rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
                         <div className="flex justify-between items-start mb-4">
                             <h4 className="text-xl font-black text-navy">Enviar para LEADS</h4>
                             <button

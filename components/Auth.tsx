@@ -33,7 +33,7 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-gold opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-navy opacity-[0.2] rounded-full blur-[100px] pointer-events-none"></div>

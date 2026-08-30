@@ -404,7 +404,7 @@ const PendenciasHub: React.FC = () => {
 
             {modalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/55 backdrop-blur-sm">
-                    <div className="bg-[#F8F4ED] rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-areia-clara rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h4 className="text-xl font-black text-navy">

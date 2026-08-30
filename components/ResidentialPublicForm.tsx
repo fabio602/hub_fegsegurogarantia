@@ -141,12 +141,12 @@ const ResidentialPublicForm: React.FC = () => {
     };
 
     return (
-        <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-[#F5F1EA] text-slate-800 custom-scroll">
+        <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-areia text-slate-800 custom-scroll">
             <header className="bg-navy text-white border-b-4 border-gold">
                 <div className="max-w-3xl mx-auto px-5 py-8 flex flex-col sm:flex-row sm:items-center gap-6">
                     <img src="/logo.svg" alt="F&G Corretora" className="h-16 w-auto object-contain" />
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#F5F1EA]">
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-areia">
                             Seguro Residencial / Locatícia
                         </h1>
                         <p className="text-sm text-gold font-bold mt-1">Solicitação de cotação — F&G Corretora</p>
@@ -167,7 +167,7 @@ const ResidentialPublicForm: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => setDone(false)}
-                            className="mt-4 bg-navy text-[#F5F1EA] px-6 py-3 rounded-xl font-bold text-sm border border-gold/40 hover:bg-navy-light transition-colors"
+                            className="mt-4 bg-navy text-areia px-6 py-3 rounded-xl font-bold text-sm border border-gold/40 hover:bg-navy-light transition-colors"
                         >
                             Enviar outra solicitação
                         </button>

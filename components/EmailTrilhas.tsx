@@ -632,7 +632,7 @@ export default function EmailTrilhas() {
               title="Pré-visualização do e-mail"
               srcDoc={preview.html}
               sandbox=""
-              className="flex-1 w-full border-0 bg-[#EDEAE4]"
+              className="flex-1 w-full border-0 bg-linha"
             />
           </div>
         </div>

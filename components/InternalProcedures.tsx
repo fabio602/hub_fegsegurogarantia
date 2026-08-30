@@ -810,7 +810,7 @@ Recepcionamos os documentos cadastrais da sua empresa, no entanto, para dar cont
 - 15° alteração contratual, pois a enviada está elegível.
 
 Caso haja alguma dúvida, estamos à disposição. Abraços,`)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gold text-white rounded-xl hover:bg-[#B08A5D] transition-colors text-sm font-bold"
+                                    className="flex items-center gap-2 px-4 py-2 bg-gold text-white rounded-xl hover:bg-gold-hover transition-colors text-sm font-bold"
                                 >
                                     <Copy size={16} />
                                     Copiar
@@ -1201,8 +1201,8 @@ Atenciosamente,`)}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* WhatsApp */}
-                                <div className="bg-[#25D366]/5 rounded-[2.5rem] border border-[#25D366]/20 overflow-hidden">
-                                    <div className="bg-[#25D366] px-8 py-5 flex justify-between items-center text-white">
+                                <div className="bg-whatsapp/5 rounded-[2.5rem] border border-whatsapp/20 overflow-hidden">
+                                    <div className="bg-whatsapp px-8 py-5 flex justify-between items-center text-white">
                                         <h5 className="font-black flex items-center gap-2 mt-0 mb-0">
                                             <MessageSquare size={18} /> WhatsApp
                                         </h5>

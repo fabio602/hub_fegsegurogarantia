@@ -984,7 +984,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     </div>
 
                     {/* Block 1b: Lead site / imóvel (preenchido pelo formulário público ou manualmente) */}
-                    <div className="p-6 bg-[#F5F1EA]/80 rounded-2xl border border-gold/20">
+                    <div className="p-6 bg-areia/80 rounded-2xl border border-gold/20">
                         <p className="text-[10px] font-black text-gold uppercase tracking-widest mb-4">Cotação e imóvel (formulário do site)</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                             <div className="space-y-2">

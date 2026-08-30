@@ -25,19 +25,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Navy institucional. `light` é o tom usado em hover dentro do sidebar.
+        // Navy institucional. `light` é o tom usado em hover dentro do sidebar;
+        // `dark` é o rodapé do sidebar (mais fechado que o DEFAULT).
         navy: {
           DEFAULT: '#1B263B',
           light: '#243447',
+          dark: '#162033',
         },
-        // Dourado da marca. `hover` é o tom mais fechado usado em botões.
+        // Dourado da marca. `hover` é o tom mais fechado usado em botões;
+        // `dark` é o dourado legível como TEXTO sobre fundo claro (contraste).
         gold: {
           DEFAULT: '#C69C6D',
           hover: '#B58A5B',
+          dark: '#8B6C3E',
         },
-        // Fundo quente do hub e linha de borda padrão.
-        areia: '#F5F1EA',
+        // Família de fundos quentes do hub. `clara` é o header e superfícies
+        // elevadas; `escura` é o tom de pill/realce sobre a areia padrão.
+        areia: {
+          DEFAULT: '#F5F1EA',
+          clara: '#F8F4ED',
+          escura: '#EFE7DB',
+        },
+        // Linha de borda padrão.
         linha: '#E8E4DC',
+        // Verde oficial do WhatsApp: usar SOMENTE em UI que representa o
+        // WhatsApp de verdade (hub de conversas, links wa.me, bolha de chat).
+        whatsapp: {
+          DEFAULT: '#25D366',
+          hover: '#1ebe5d',
+          bolha: '#DCF8C6',
+        },
       },
       transitionDuration: {
         // Já usado em 4 telas; sem registro aqui a classe não gerava nada.

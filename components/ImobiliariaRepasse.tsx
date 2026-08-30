@@ -183,7 +183,7 @@ function LinhaPendencia({
           )}
           <span className="text-[10px] font-bold text-slate-400">{rotuloTipoSeguro(cliente)}</span>
           {parceiro && (
-            <span className="text-[10px] font-black text-[#78716c] bg-[#f4f1ec] px-2 py-0.5 rounded-lg">
+            <span className="text-[10px] font-black text-stone-500 bg-areia px-2 py-0.5 rounded-lg">
               {parceiro.name.replace('Imobiliária ', '')}
             </span>
           )}
@@ -193,10 +193,10 @@ function LinhaPendencia({
             {documentos.map(d => d.url ? (
               <a
                 key={d.label} href={d.url} target="_blank" rel="noreferrer"
-                className="text-[10px] font-black text-[#16a34a] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-0.5 rounded-lg hover:underline"
+                className="text-[10px] font-black text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-lg hover:underline"
               >{d.label}</a>
             ) : (
-              <span key={d.label} className="text-[10px] font-black text-[#c2410c] bg-[#fff7ed] border border-[#fdba74] px-2 py-0.5 rounded-lg">
+              <span key={d.label} className="text-[10px] font-black text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-lg">
                 {d.label}
               </span>
             ))}
@@ -218,14 +218,14 @@ function LinhaPendencia({
         {acaoSecundaria && (
           <button
             onClick={acaoSecundaria.onClick}
-            className="flex items-center gap-1.5 text-[11px] font-black bg-white border border-slate-200 hover:border-[#dc2626] hover:text-[#dc2626] text-slate-600 px-3 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-black bg-white border border-slate-200 hover:border-red-600 hover:text-red-600 text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             <XCircle size={13} /> {acaoSecundaria.label}
           </button>
         )}
         <button
           onClick={acao.onClick}
-          className="flex items-center gap-1.5 text-[11px] font-black bg-navy hover:bg-[#2a3a56] text-gold px-3 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-black bg-navy hover:bg-navy-light text-gold px-3 py-2 rounded-xl transition-colors"
         >
           <CheckCircle2 size={13} /> {acao.label}
         </button>
@@ -972,9 +972,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           O alerta antigo só olhava a lista de ativos, então justamente quem
           havia sumido da tela não era apontado em lugar nenhum. */}
       {precisamAtencao.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-[#fdba74] shadow-sm overflow-hidden">
-          <div className="bg-[#7c2d12] px-6 py-4 flex items-center gap-3">
-            <AlertTriangle size={17} className="text-[#fdba74]" />
+        <div className="bg-white rounded-[2rem] border border-orange-300 shadow-sm overflow-hidden">
+          <div className="bg-orange-900 px-6 py-4 flex items-center gap-3">
+            <AlertTriangle size={17} className="text-orange-300" />
             <div>
               <p className="text-white font-black text-sm">Precisa de atenção ({precisamAtencao.length})</p>
               <p className="text-white/60 text-[11px] font-semibold mt-0.5">
@@ -986,7 +986,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <button
               key={c.id}
               onClick={() => openEditStatus(c)}
-              className="w-full flex items-center gap-3 px-6 py-3.5 border-b border-slate-50 last:border-0 hover:bg-[#fff7ed] transition-colors text-left"
+              className="w-full flex items-center gap-3 px-6 py-3.5 border-b border-slate-50 last:border-0 hover:bg-orange-50 transition-colors text-left"
             >
               <div className="w-8 h-8 rounded-xl bg-navy flex items-center justify-center shrink-0">
                 <User size={14} className="text-gold" />
@@ -995,7 +995,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <p className="font-black text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
                   {problemas.map(p => (
-                    <span key={p} className="px-2 py-0.5 rounded-lg bg-[#fff7ed] border border-[#fdba74] text-[#c2410c] text-[10px] font-black">
+                    <span key={p} className="px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-700 text-[10px] font-black">
                       {p}
                     </span>
                   ))}
@@ -1585,17 +1585,17 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   <p className="font-black text-[14px] text-navy">{p.titulo}</p>
                   <p className="text-[13px] text-slate-600 font-semibold leading-relaxed mt-1">{p.texto}</p>
                   {p.atencao && (
-                    <div className="flex items-start gap-2 mt-2 bg-[#fff7ed] border border-[#fdba74] rounded-xl px-3 py-2">
-                      <AlertTriangle size={13} className="text-[#c2410c] flex-shrink-0 mt-0.5" />
-                      <p className="text-[12px] font-bold text-[#9a3412] leading-relaxed">{p.atencao}</p>
+                    <div className="flex items-start gap-2 mt-2 bg-orange-50 border border-orange-300 rounded-xl px-3 py-2">
+                      <AlertTriangle size={13} className="text-orange-700 flex-shrink-0 mt-0.5" />
+                      <p className="text-[12px] font-bold text-orange-800 leading-relaxed">{p.atencao}</p>
                     </div>
                   )}
                 </div>
               </div>
             ))}
 
-            <div className="bg-[#f8f5f0] border border-[#e8e4dc] rounded-2xl px-5 py-4">
-              <p className="text-[10px] font-black text-[#78716c] uppercase tracking-widest mb-2">Para lembrar</p>
+            <div className="bg-areia-clara border border-linha rounded-2xl px-5 py-4">
+              <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest mb-2">Para lembrar</p>
               <ul className="space-y-1.5">
                 {GUIA_LEMBRETES.map(l => (
                   <li key={l} className="flex items-start gap-2 text-[12.5px] text-slate-600 font-semibold leading-relaxed">
@@ -1606,10 +1606,10 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             </div>
           </div>
 
-          <div className="px-7 py-4 bg-[#f8f5f0] border-t border-[#e8e4dc] flex justify-end">
+          <div className="px-7 py-4 bg-areia-clara border-t border-linha flex justify-end">
             <button
               onClick={() => setGuiaAberto(false)}
-              className="px-5 py-2.5 bg-navy hover:bg-[#2a3a56] text-gold font-black text-sm rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-navy hover:bg-navy-light text-gold font-black text-sm rounded-xl transition-colors"
             >
               Entendi
             </button>
@@ -1702,7 +1702,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <button
               onClick={confirmarEncerramento}
               disabled={encerrando}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy hover:bg-[#2a3a56] disabled:opacity-50 text-gold font-black text-sm rounded-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-gold font-black text-sm rounded-xl transition-all"
             >
               {encerrando ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {encerrando ? 'Encerrando...' : 'Encerrar'}

@@ -2850,7 +2850,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             ? () => { enviarAoClienteRef.current = true; }
                                             : handleSendDraft}
                                         disabled={saving || !formData.email}
-                                        className={`${formData.vendeu === 'Sim' ? 'bg-navy hover:bg-[#2c3e5a]' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
+                                        className={`${formData.vendeu === 'Sim' ? 'bg-navy hover:bg-navy-light' : 'bg-slate-800 hover:bg-slate-900'} text-white px-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50`}
                                     >
                                         <Mail size={18} /> 
                                         {formData.vendeu === 'Sim' ? 'Enviar Apólice' : 'Enviar Minuta'}
@@ -3068,7 +3068,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         </div>
                         <button
                             onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
-                            className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-black text-sm rounded-xl shadow transition-all shrink-0"
+                            className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl shadow transition-all shrink-0"
                         >
                             🚀 Disparador de Emails
                         </button>
@@ -3098,7 +3098,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <button
                             onClick={handleDispatchEmails}
                             disabled={emailDispatchStatus === 'sending'}
-                            className="w-full py-3 bg-[#25D366] hover:bg-[#1ebe5d] disabled:opacity-60 text-white font-black text-sm rounded-xl transition-all"
+                            className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-60 text-white font-black text-sm rounded-xl transition-all"
                         >
                             {emailDispatchStatus === 'sending' ? '⏳ Enviando...' : '🚀 Salvar Template e Iniciar Envios'}
                         </button>
@@ -3224,7 +3224,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </button>
 
                             {carneParcelas.length > 0 && (
-                                <div className="space-y-2 rounded-xl bg-[#f8f5f0] border border-[#e8e4dc] p-3">
+                                <div className="space-y-2 rounded-xl bg-areia-clara border border-linha p-3">
                                     <p className="text-[10px] font-black text-navy uppercase tracking-widest">
                                         Confira antes de cadastrar — {carneParcelas.length} parcela(s)
                                     </p>
@@ -3365,7 +3365,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     setSaveError(null);
                                     setIsAddClientModalOpen(true);
                                 }}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm shadow-md shadow-gold/25 border border-gold-hover/60 hover:bg-gold-hover hover:border-[#a87d50] transition-all order-2 sm:order-1 whitespace-nowrap"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm shadow-md shadow-gold/25 border border-gold-hover/60 hover:bg-gold-hover hover:border-gold-hover transition-all order-2 sm:order-1 whitespace-nowrap"
                             >
                                 <Plus size={18} strokeWidth={2.5} className="shrink-0" aria-hidden />
                                 Novo cliente
@@ -3819,7 +3819,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <button
                                                                     onClick={() => handleSendLimits(client)}
                                                                     disabled={!!sendingLimitsTo}
-                                                                    className="mt-2 w-full py-3 bg-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2c3e50] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                                    className="mt-2 w-full py-3 bg-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-navy-light transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                                 >
                                                                     {sendingLimitsTo === client.nome ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                                                     Enviar p/ Cliente

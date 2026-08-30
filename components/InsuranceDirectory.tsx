@@ -7,7 +7,7 @@ import { useAutoSave } from '../hooks/useAutoSave.ts';
 import { SaveIndicator } from './SaveIndicator.tsx';
 
 const PRESET_COLORS: { id: string; label: string; bg: string; text: string; badge: string; style: string }[] = [
-  { id: 'navy',        label: 'Azul Marinho',   bg: 'from-[#1B3A5C] to-[#0F2440]',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#1B3A5C,#0F2440)' },
+  { id: 'navy',        label: 'Azul Marinho',   bg: 'from-navy to-navy-dark',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#1B3A5C,#0F2440)' },
   { id: 'charcoal',   label: 'Grafite',         bg: 'from-[#2D3748] to-[#1A202C]',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#2D3748,#1A202C)' },
   { id: 'forest',     label: 'Verde Floresta',  bg: 'from-[#1B4332] to-[#081C15]',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#1B4332,#081C15)' },
   { id: 'burgundy',   label: 'Vinho',           bg: 'from-[#6B1E2A] to-[#3D0D15]',   text: 'text-white',           badge: 'bg-white/20 text-white border-white/30',         style: 'linear-gradient(135deg,#6B1E2A,#3D0D15)' },
@@ -215,7 +215,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
       {rankedInsurers.length > 0 && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-8 py-5 border-b border-slate-50">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1B3A5C] to-[#0F2440] flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-navy to-navy-dark flex items-center justify-center shadow-lg">
               <Star size={18} className="text-gold fill-gold" />
             </div>
             <div>

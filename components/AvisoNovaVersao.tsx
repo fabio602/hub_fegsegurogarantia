@@ -99,7 +99,7 @@ export const AvisoNovaVersao: React.FC = () => {
           <button
             onClick={atualizar}
             disabled={recarregando}
-            className="mt-3 inline-flex items-center gap-2 bg-gold hover:bg-[#b58a5c] disabled:opacity-60 text-navy text-xs font-black px-4 py-2 rounded-xl transition-all"
+            className="mt-3 inline-flex items-center gap-2 bg-gold hover:bg-gold-hover disabled:opacity-60 text-navy text-xs font-black px-4 py-2 rounded-xl transition-all"
           >
             <RefreshCw size={13} className={recarregando ? 'animate-spin' : ''} />
             {recarregando ? 'Atualizando…' : 'Atualizar agora'}

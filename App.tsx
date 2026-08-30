@@ -341,7 +341,7 @@ const App: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="relative">
           <div className="w-24 h-24 border-4 border-gold/20 border-t-gold rounded-full animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center text-gold font-black text-xl">FG</div>
@@ -367,7 +367,7 @@ const App: React.FC = () => {
       className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
         activeView === view
           ? 'bg-gold text-navy shadow-2xl shadow-gold/25'
-          : 'text-slate-300 hover:bg-navy-light hover:text-[#F5F1EA]'
+          : 'text-slate-300 hover:bg-navy-light hover:text-areia'
       }`}
     >
       <div className="flex items-center gap-3">
@@ -401,7 +401,7 @@ const App: React.FC = () => {
           className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
             isGroupActive
               ? 'bg-navy-light text-white'
-              : 'text-slate-300 hover:bg-navy-light hover:text-[#F5F1EA]'
+              : 'text-slate-300 hover:bg-navy-light hover:text-areia'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -429,7 +429,7 @@ const App: React.FC = () => {
       className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
         activeView === view
           ? 'bg-gold text-navy shadow-md shadow-gold/20'
-          : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-navy-light'
+          : 'text-slate-400 hover:text-areia hover:bg-navy-light'
       }`}
     >
       <span>{label}</span>
@@ -451,8 +451,8 @@ const App: React.FC = () => {
           onClick={() => toggleGroup(groupKey)}
           className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
             isGroupActive
-              ? 'text-gold bg-[#1a2d45]'
-              : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-navy-light'
+              ? 'text-gold bg-navy-light'
+              : 'text-slate-400 hover:text-areia hover:bg-navy-light'
           }`}
         >
           <span>{label}</span>
@@ -471,7 +471,7 @@ const App: React.FC = () => {
     <ToastProvider>
     {/* Passa por navigate() para a busca global respeitar a permissão. */}
     <GlobalSearch onNavigate={(view) => navigate(view as View)} />
-    <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-gold/30">
+    <div className="min-h-screen flex bg-areia font-sans selection:bg-gold/30">
       {/* Overlay mobile — fecha sidebar ao clicar fora */}
       {isSidebarOpen && (
         <div
@@ -637,7 +637,7 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="shrink-0 mt-auto p-6 bg-[#162033] space-y-3">
+          <div className="shrink-0 mt-auto p-6 bg-navy-dark space-y-3">
             {/* Indicador de versão do build — confirma qual deploy está rodando */}
             {(() => {
               const buildTime: string | null = typeof __BUILD_TIME__ === 'string' ? __BUILD_TIME__ : null;
@@ -668,7 +668,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="bg-[#F8F4ED]/95 backdrop-blur-md border-b border-gold/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}>
+        <header className="bg-areia-clara/95 backdrop-blur-md border-b border-gold/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}>
           <div className="flex items-center gap-2 lg:gap-4 min-w-0">
             <button
               className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-all shrink-0"
@@ -680,25 +680,25 @@ const App: React.FC = () => {
               <h2 className="text-navy font-black text-base lg:text-xl tracking-tight truncate">
                 {VIEW_TITLES[activeView]}
               </h2>
-              <p className="hidden sm:block text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5 truncate">
+              <p className="hidden sm:block text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate">
                 Sessão Ativa: {session?.user?.email?.split('@')[0]}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
-            <div className="hidden md:flex items-center gap-2 bg-[#EFE7DB] px-3 py-1.5 rounded-xl border border-gold/25">
+            <div className="hidden md:flex items-center gap-2 bg-areia-escura px-3 py-1.5 rounded-xl border border-gold/25">
               <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></div>
               <span className="text-[10px] font-black text-navy uppercase tracking-widest">Online</span>
             </div>
             {/* Busca: ícone no mobile, botão completo no desktop */}
             <button
               onMouseDown={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-              className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-[#f4f1ec] border border-[#e8e4dc] rounded-xl cursor-pointer text-[#78716c] hover:bg-[#ede9e1] transition-all"
+              className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-areia border border-linha rounded-xl cursor-pointer text-stone-500 hover:bg-areia-escura transition-all"
             >
               <Search size={15} />
               <span className="hidden sm:inline text-sm font-semibold">Buscar</span>
-              <kbd className="hidden sm:inline text-[10px] bg-[#e8e4dc] rounded px-1 text-[#94a3b8]">⌘K</kbd>
+              <kbd className="hidden sm:inline text-[10px] bg-linha rounded px-1 text-slate-400">⌘K</kbd>
             </button>
             <button className="p-2 text-slate-400 hover:text-gold transition-all relative">
               <Bell size={16} />
@@ -713,7 +713,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-areia/80">
           {/* Limite largo para aproveitar monitores grandes, sem esticar ao infinito em ultrawide */}
           <div className="max-w-[1800px] mx-auto pb-20 lg:pb-16">
 

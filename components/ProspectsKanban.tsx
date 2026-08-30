@@ -1145,11 +1145,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                     </select>
                     <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
-                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-[#F5F1EA] border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
+                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
                         <Plus size={18} /> Novo Lead
                     </button>
                     <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-[#F5F1EA] border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
+                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
                         {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         {importing ? 'Importando...' : 'Importar Leads (CSV)'}
                     </button>
@@ -1816,7 +1816,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <button onClick={() => setIsImportModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                         </div>
                         <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                            <div className="bg-[#F5F1EA] border border-gold/25 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="bg-areia border border-gold/25 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-gold shadow-lg"><ArrowRight size={20} /></div>
                                     <div>

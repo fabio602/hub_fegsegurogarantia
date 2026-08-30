@@ -418,7 +418,7 @@ export default function WhatsAppBlast() {
             {showPreview && (
               <div className="px-5 pb-5">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Preview — como vai aparecer</p>
-                <div className="bg-[#DCF8C6] rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <div className="bg-whatsapp-bolha rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {previewMessage(firstContactName)}
                 </div>
               </div>
