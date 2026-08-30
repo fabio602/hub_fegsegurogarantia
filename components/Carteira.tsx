@@ -374,6 +374,20 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onCadastro
         </div>
       )}
 
+      {/* Checklist fixa de fim de ligação, igual para todos os gatilhos. */}
+      {!semContato && (
+        <div className="mt-3 p-4 bg-areia/60 rounded-[10px]">
+          <div className="text-[10px] font-black tracking-widest uppercase text-navy/40 mb-2">Antes de encerrar</div>
+          <ul className="list-disc pl-4 space-y-1.5 text-[13px] leading-relaxed text-navy/70">
+            <li className={s.email ? '' : 'text-amber-700 font-semibold'}>
+              {s.email ? 'Confirmar o email do cliente' : 'Pedir o email do cliente, que não temos cadastrado'}
+            </li>
+            <li>Informar os limites disponíveis nas seguradoras</li>
+            <li>Perguntar se tem alguma demanda em que a gente possa ajudar</li>
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-x-7 gap-y-2.5 mt-6 pt-5 border-t border-navy/10">
         {campos.map(c => (
           <div key={c.k} className="group -mx-2 px-2 py-1 rounded-md hover:bg-areia cursor-pointer"
