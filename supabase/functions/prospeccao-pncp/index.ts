@@ -530,6 +530,20 @@ async function enviarRelatorio(o: {
   }
 }
 
+// O PostgREST limita cada resposta a 1.000 linhas: varreduras inteiras paginam.
+// deno-lint-ignore no-explicit-any
+async function selectTudo(consulta: (de: number, ate: number) => any): Promise<Record<string, unknown>[]> {
+  const tudo: Record<string, unknown>[] = [];
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await consulta(de, de + 999);
+    if (error) { console.error('[selectTudo]', error.message); break; }
+    const lote = (data ?? []) as Record<string, unknown>[];
+    tudo.push(...lote);
+    if (lote.length < 1000) break;
+  }
+  return tudo;
+}
+
 // ─── Fase 1: coleta e enfileiramento ─────────────────────────────────────────
 
 async function criarExecucao(
@@ -580,12 +594,13 @@ async function criarExecucao(
   }
 
   // Deduplicacao: quem ja esta no Hub ou ja foi descartado por perfil.
-  const [pRes, sRes, lRes, fRes] = await Promise.all([
-    supabase.from('prospects').select('cnpj').not('cnpj', 'is', null),
-    supabase.from('sales').select('cnpj').not('cnpj', 'is', null),
-    supabase.from('leads_seguro_garantia').select('cnpj').not('cnpj', 'is', null),
-    supabase.from('prospeccao_pncp_leads').select('cnpj').eq('resultado', 'fora_do_perfil'),
+  const [pData, sData, lData, fData] = await Promise.all([
+    selectTudo((de, ate) => supabase.from('prospects').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
+    selectTudo((de, ate) => supabase.from('sales').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
+    selectTudo((de, ate) => supabase.from('leads_seguro_garantia').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
+    selectTudo((de, ate) => supabase.from('prospeccao_pncp_leads').select('cnpj').eq('resultado', 'fora_do_perfil').range(de, ate)),
   ]);
+  const pRes = { data: pData }, sRes = { data: sData }, lRes = { data: lData }, fRes = { data: fData };
   const conhecidos = new Set<string>();
   for (const r of [...(pRes.data ?? []), ...(sRes.data ?? []), ...(lRes.data ?? [])]) {
     const d = cleanCnpj(String((r as { cnpj: string }).cnpj));
@@ -703,7 +718,7 @@ async function processarFila(
     .in('resultado', ['enviado', 'dry_run']);
   let enviados = Number(enviadosCount ?? 0);
 
-  const { data: bloq } = await supabase.from('email_blocklist').select('email');
+  const bloq = await selectTudo((de, ate) => supabase.from('email_blocklist').select('email').range(de, ate));
   const emailsBloqueados = new Set((bloq ?? []).map((r) => String((r as { email: string }).email).toLowerCase()));
 
   let consultasBrasilRun = 0;

@@ -373,6 +373,23 @@ async function consultarCnpj(supabase: SupabaseClient, cnpj: string): Promise<{
   }
 }
 
+// ─── Leitura paginada ────────────────────────────────────────────────────────
+//
+// O PostgREST limita cada resposta a 1.000 linhas. Toda varredura de tabela
+// inteira (dedup, status) precisa paginar, senao trunca em silencio.
+// deno-lint-ignore no-explicit-any
+async function selectTudo(consulta: (de: number, ate: number) => any): Promise<Record<string, unknown>[]> {
+  const tudo: Record<string, unknown>[] = [];
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await consulta(de, de + 999);
+    if (error) { console.error('[selectTudo]', error.message); break; }
+    const lote = (data ?? []) as Record<string, unknown>[];
+    tudo.push(...lote);
+    if (lote.length < 1000) break;
+  }
+  return tudo;
+}
+
 // ─── Reputacao global ────────────────────────────────────────────────────────
 
 async function reputacaoPausada(supabase: SupabaseClient): Promise<boolean> {
@@ -478,7 +495,8 @@ async function colherApify(supabase: SupabaseClient, c: Campanha, execId: string
 
     // Dedup contra todo o estoque (todas as campanhas), por telefone e e-mail
     // normalizados; o place_id e travado pela unique da tabela.
-    const { data: existentes } = await supabase.from('garimpo_estoque').select('telefone, email, place_id');
+    const existentes = await selectTudo((de, ate) =>
+      supabase.from('garimpo_estoque').select('telefone, email, place_id').range(de, ate));
     const fones = new Set<string>();
     const emails = new Set<string>();
     const places = new Set<string>();
@@ -833,8 +851,8 @@ async function colherCcee(supabase: SupabaseClient, c: Campanha, execId: string)
     const primeiraCarga = (c.fonte_config ?? {}).diff_inicial_feito !== true;
 
     // Dedup: CNPJs ja no estoque desta campanha e ja conhecidos do Hub.
-    const { data: estoqueAtual } = await supabase.from('garimpo_estoque')
-      .select('cnpj').eq('campanha_id', c.id).not('cnpj', 'is', null);
+    const estoqueAtual = await selectTudo((de, ate) => supabase.from('garimpo_estoque')
+      .select('cnpj').eq('campanha_id', c.id).not('cnpj', 'is', null).range(de, ate));
     const noEstoque = new Set((estoqueAtual ?? []).map((r) => cleanCnpj(String(r.cnpj))));
     const dedup = await conjuntosDedup(supabase);
 
@@ -858,10 +876,30 @@ async function colherCcee(supabase: SupabaseClient, c: Campanha, execId: string)
         estado: 'novo',
       });
     }
+    let insertErro = '';
     for (let i = 0; i < filaInsert.length; i += 500) {
       const { error } = await supabase.from('garimpo_estoque').insert(filaInsert.slice(i, i + 500));
-      if (error) console.error('[ccee/estoque]', error.message);
+      if (error) { if (!insertErro) insertErro = error.message; console.error('[ccee/estoque]', error.message); }
       else inseridos += Math.min(500, filaInsert.length - i);
+    }
+    // Diagnostico persistido: e o unico canal legivel quando log e tooling falham.
+    {
+      const { data: exd } = await supabase.from('garimpo_execucoes').select('detalhes').eq('id', execId).single();
+      await supabase.from('garimpo_execucoes').update({
+        detalhes: {
+          ...(exd?.detalhes ?? {}),
+          ccee_debug: {
+            dataset_id: c.apify_dataset_id,
+            itens_dataset: brutos.length,
+            atuais: atuais.length,
+            anteriores: anteriores.size,
+            fila_insert: filaInsert.length,
+            ja_no_estoque_ou_hub: atuais.length - filaInsert.length,
+            inseridos,
+            insert_erro: insertErro || null,
+          },
+        },
+      }).eq('id', execId);
     }
 
     // Marca o diff inicial como feito: das proximas vezes, todo CNPJ inedito e novo.
@@ -1073,13 +1111,14 @@ async function enriquecerCcee(
 // ─── Fase 4: envio diario ────────────────────────────────────────────────────
 
 async function conjuntosDedup(supabase: SupabaseClient) {
-  const [pRes, cRes, parRes, bRes, sRes] = await Promise.all([
-    supabase.from('prospects').select('email, phonenumber, cnpj'),
-    supabase.from('email_cadencia').select('email'),
-    supabase.from('partners').select('email, email_2, cnpj'),
-    supabase.from('email_blocklist').select('email'),
-    supabase.from('sales').select('cnpj, email').not('cnpj', 'is', null),
+  const [pData, cData, parData, bData, sData] = await Promise.all([
+    selectTudo((de, ate) => supabase.from('prospects').select('email, phonenumber, cnpj').range(de, ate)),
+    selectTudo((de, ate) => supabase.from('email_cadencia').select('email').range(de, ate)),
+    selectTudo((de, ate) => supabase.from('partners').select('email, email_2, cnpj').range(de, ate)),
+    selectTudo((de, ate) => supabase.from('email_blocklist').select('email').range(de, ate)),
+    selectTudo((de, ate) => supabase.from('sales').select('cnpj, email').not('cnpj', 'is', null).range(de, ate)),
   ]);
+  const pRes = { data: pData }, cRes = { data: cData }, parRes = { data: parData }, bRes = { data: bData }, sRes = { data: sData };
   const emails = new Set<string>();
   const fones = new Set<string>();
   const cnpjs = new Set<string>();
@@ -1586,20 +1625,26 @@ Deno.serve(async (req) => {
       .select('slug, fonte, apify_run_id, apify_cidade, garimpo_cursor, fonte_config');
     const resumo: Record<string, unknown>[] = [];
     for (const c of (camps ?? [])) {
-      const { data: est } = await supabase.from('garimpo_estoque')
-        .select('estado, cidade, lote_diff')
-        .eq('campanha_id', (await supabase.from('campanhas_garimpo').select('id').eq('slug', c.slug).single()).data?.id ?? '');
+      const campId = (await supabase.from('campanhas_garimpo').select('id').eq('slug', c.slug).single()).data?.id ?? '';
+      const est = await selectTudo((de, ate) => supabase.from('garimpo_estoque')
+        .select('estado, cidade, lote_diff').eq('campanha_id', campId).range(de, ate));
       const porEstado: Record<string, number> = {};
       const porCidade: Record<string, number> = {};
       let novosDiff = 0;
       for (const r of (est ?? [])) {
-        porEstado[r.estado] = (porEstado[r.estado] ?? 0) + 1;
+        const est2 = String(r.estado);
+        porEstado[est2] = (porEstado[est2] ?? 0) + 1;
         const cid = String(r.cidade ?? '?');
         porCidade[cid] = (porCidade[cid] ?? 0) + 1;
         if (r.lote_diff === 'novo') novosDiff++;
       }
+      const { data: ultimaExec } = await supabase.from('garimpo_execucoes')
+        .select('data_referencia, fase, detalhes')
+        .eq('campanha_id', campId)
+        .order('executado_em', { ascending: false }).limit(1).maybeSingle();
       resumo.push({
         slug: c.slug, fonte: c.fonte,
+        ultima_execucao: ultimaExec ?? null,
         run_ativo: c.apify_run_id ? `${c.apify_run_id} (${c.apify_cidade})` : null,
         cursor: c.garimpo_cursor,
         diff_inicial_feito: (c.fonte_config as Record<string, unknown>)?.diff_inicial_feito ?? null,
