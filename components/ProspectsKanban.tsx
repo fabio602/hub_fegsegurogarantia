@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Building, Phone, Mail, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 
@@ -1184,7 +1184,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             </div>
 
             {/* Kanban Board */}
-            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-stretch min-h-[600px]">
+            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start">
                 {columns.map(column => {
                     const columnProspects = filteredProspects.filter(p => {
                         if (column.id === 'Novos Leads') {
@@ -1214,7 +1214,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 handleColDragStart(e, column.id);
                             }}
                             onDragEnd={handleColDragEnd}
-                            className={`flex-shrink-0 w-80 flex flex-col gap-4 h-[calc(100vh-180px)] min-h-[400px] max-h-[calc(100vh-180px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 max-h-[calc(100dvh-230px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
                             onDragOver={handleDragOver} 
                             onDrop={(e) => handleDrop(e, column.id)}
                         >
@@ -1276,170 +1276,91 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
                                 {columnProspects.map(prospect => {
                                     const isSelected = selectedLeadIds.has(prospect.id);
+                                    const enteredAtMs = getLeadEnteredAtMs(prospect);
+                                    const ageLabel = formatLeadAge(enteredAtMs);
                                     return (
                                     <div
                                         key={prospect.id}
                                         draggable={!selectionMode}
                                         onDragStart={(e) => { if (!selectionMode) handleDragStart(e, prospect.id); }}
                                         onDragEnd={handleDragEnd}
-                                        onClick={() => { if (selectionMode) toggleLeadSelection(prospect.id); }}
-                                        className={`rounded-xl p-2.5 shadow-sm border transition-all flex flex-col gap-1 ${selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} ${isSelected ? 'bg-rose-50 border-rose-400 shadow-md ring-2 ring-rose-300' : 'bg-white border-slate-200 hover:shadow-md hover:border-[#C69C6D]/30'}`}
+                                        onClick={() => { if (selectionMode) toggleLeadSelection(prospect.id); else handleOpenEdit(prospect); }}
+                                        title={selectionMode ? undefined : 'Clique para editar o lead'}
+                                        className={`rounded-xl p-3 shadow-sm border transition-all flex flex-col gap-2 cursor-pointer active:cursor-grabbing ${isSelected ? 'bg-rose-50 border-rose-400 shadow-md ring-2 ring-rose-300' : 'bg-white border-slate-200 hover:shadow-md hover:border-gold/40'}`}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-2 min-w-0 group/header">
-                                            {selectionMode && (
-                                                <div className={`w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-600 border-rose-600' : 'border-slate-300 bg-white'}`}>
-                                                    {isSelected && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                                </div>
-                                            )}
-                                                <div
-                                                    onClick={(e) => { if (selectionMode) { e.stopPropagation(); toggleLeadSelection(prospect.id); } else handleOpenEdit(prospect); }}
-                                                    className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 cursor-pointer hover:bg-white hover:border-[#C69C6D]/40 hover:shadow-sm transition-all"
-                                                >
-                                                    <Building size={14} className="text-slate-500 group-hover/header:text-[#C69C6D] transition-colors" />
-                                                </div>
+                                        {/* Grupo 1: empresa, ramo e produto */}
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex items-start gap-2 min-w-0">
+                                                {selectionMode && (
+                                                    <div className={`w-5 h-5 rounded-md border-2 shrink-0 mt-0.5 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-600 border-rose-600' : 'border-slate-300 bg-white'}`}>
+                                                        {isSelected && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                    </div>
+                                                )}
                                                 <div className="min-w-0">
-                                                    <h4
-                                                        onClick={(e) => { if (!selectionMode) { e.stopPropagation(); handleOpenEdit(prospect); } }}
-                                                        className="font-black text-slate-800 text-sm truncate cursor-pointer hover:text-[#1B263B] transition-colors" 
-                                                        title={prospect.company || prospect.name}
-                                                    >
+                                                    <h4 className="font-bold text-slate-800 text-sm truncate" title={prospect.company || prospect.name}>
                                                         {prospect.company || prospect.name || 'Nova Empresa'}
                                                     </h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 truncate">
-                                                        {(prospect.ramo && prospect.ramo !== 'nan') ? prospect.ramo : (prospect.position && prospect.position !== 'nan' ? prospect.position : 'Sem Categoria')}
-                                                    </p>
-                                                {prospect.segmento && prospect.segmento !== 'nan' ? (
-                                                    <span className="mt-1 inline-flex text-[9px] font-black bg-[#C69C6D]/12 text-[#1B263B] px-2 py-0.5 rounded-md border border-[#C69C6D]/25 truncate max-w-[140px]">
-                                                        {prospect.segmento}
-                                                    </span>
-                                                ) : null}
-                                                {prospect.product_type ? (
-                                                    <span className={`mt-0.5 inline-flex text-[9px] font-black px-2 py-0.5 rounded-md border truncate max-w-[140px] ${PRODUCT_BADGE[prospect.product_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                                                        {prospect.product_type}
-                                                    </span>
-                                                ) : null}
-                                                    {(() => {
-                                                        const enteredAtMs = getLeadEnteredAtMs(prospect);
-                                                        const ageLabel = formatLeadAge(enteredAtMs);
-                                                        if (!ageLabel) return null;
-                                                        return (
-                                                            <p className="text-[10px] font-black text-[#C69C6D] truncate mt-1">
-                                                                {ageLabel}
-                                                            </p>
-                                                        );
-                                                    })()}
+                                                    {prospect.ramo && prospect.ramo !== 'nan' && (
+                                                        <p className="text-[12px] text-slate-500 truncate">{prospect.ramo}</p>
+                                                    )}
+                                                    {prospect.product_type && (
+                                                        <span className={`mt-1 inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border truncate max-w-[180px] ${PRODUCT_BADGE[prospect.product_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                                            {prospect.product_type}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
-
-                                            {/* Context Menu */}
-                                            {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
-                                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
-                                                    <MoreVertical size={16} />
-                                                </button>
-                                                {openMenuId === prospect.id && (
-                                                    <div className="absolute right-0 top-8 z-50 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                        <button onClick={() => handleOpenEdit(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-[#C69C6D]/10 hover:text-[#1B263B] transition-colors">
-                                                            <Edit2 size={15} className="text-[#C69C6D]" /> Editar Lead
-                                                        </button>
-                                                        <div className="border-t border-slate-100">
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
+                                                    <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
+                                                        <MoreVertical size={16} />
+                                                    </button>
+                                                    {openMenuId === prospect.id && (
+                                                        <div className="absolute right-0 top-8 z-50 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
                                                             <p className="px-4 pt-2 pb-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mover para</p>
                                                             {columns.filter(col => col.id !== prospect.status).map(col => (
                                                                 <button key={col.id} onClick={() => handleMoveToColumn(prospect.id, col.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                                                                     <MoveRight size={14} className="text-slate-400" /> {col.title}
                                                                 </button>
                                                             ))}
-                                                        </div>
-                                                        {onConvertToSale && (
+                                                            {onConvertToSale && (
+                                                                <div className="border-t border-slate-100">
+                                                                    <button onClick={() => handleConvertToSale(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-navy hover:bg-gold/10 transition-colors">
+                                                                        <TrendingUp size={15} className="text-gold" /> Converter em Venda
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                             <div className="border-t border-slate-100">
-                                                                <button onClick={() => handleConvertToSale(prospect)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#1B263B] hover:bg-[#C69C6D]/12 transition-colors">
-                                                                    <TrendingUp size={15} className="text-[#C69C6D]" /> Converter em Venda
+                                                                <button onClick={() => handleDeleteLead(prospect.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors">
+                                                                    <Trash2 size={15} className="text-rose-400" /> Excluir Lead
                                                                 </button>
                                                             </div>
-                                                        )}
-                                                        <div className="border-t border-slate-100">
-                                                            <button onClick={() => handleDeleteLead(prospect.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors">
-                                                                <Trash2 size={15} className="text-rose-400" /> Excluir Lead
-                                                            </button>
                                                         </div>
+                                                    )}
+                                                </div>}
+                                            </div>
+                                        </div>
+
+                                        {/* Grupo 2: contato principal */}
+                                        {((prospect.decisor && prospect.decisor !== 'nan') || (prospect.phonenumber && prospect.phonenumber !== 'nan')) && (
+                                            <div className="flex flex-col gap-1">
+                                                {prospect.decisor && prospect.decisor !== 'nan' && (
+                                                    <p className="text-[12px] text-slate-600 truncate">{prospect.decisor}</p>
+                                                )}
+                                                {prospect.phonenumber && prospect.phonenumber !== 'nan' && (
+                                                    <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                                        <Phone size={12} className="text-slate-400 shrink-0" />
+                                                        <WhatsAppPhoneLink phone={prospect.phonenumber} className="truncate min-w-0 text-[12px] text-slate-600" />
                                                     </div>
                                                 )}
-                                            </div>}
-                                        </div>
-
-                                        <div className="flex flex-col gap-1.5 mt-1">
-                                            {prospect.decisor && prospect.decisor !== 'nan' && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                                    <span className="font-bold text-slate-400 text-[10px] uppercase w-12 shrink-0">Decisor:</span>
-                                                    <span className="truncate">{prospect.decisor}</span>
-                                                </div>
-                                            )}
-                                            {prospect.phonenumber && prospect.phonenumber !== 'nan' && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-600 min-w-0">
-                                                    <Phone size={12} className="text-slate-400 shrink-0" />
-                                                    <WhatsAppPhoneLink phone={prospect.phonenumber} className="truncate min-w-0 text-slate-600" />
-                                                </div>
-                                            )}
-                                            {prospect.email && prospect.email !== 'nan' && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                                    <Mail size={12} className="text-slate-400 shrink-0" />
-                                                    <span className="truncate">{prospect.email}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Limits display on card */}
-                                        {prospect.limites_seguradoras && (() => {
-                                            try {
-                                                const lims = JSON.parse(prospect.limites_seguradoras);
-                                                if (!Array.isArray(lims) || lims.length === 0) return null;
-                                                return (
-                                                    <div className="mt-2 pt-2 border-t border-slate-100">
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Limites</p>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {lims.map((l: any, i: number) => (
-                                                                <span key={i} className="text-[9px] font-black bg-[#C69C6D]/12 text-[#1B263B] px-2 py-0.5 rounded-md border border-[#C69C6D]/25 truncate max-w-[120px]">
-                                                                    {l.seguradora}: {l.valor}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            } catch { return null; }
-                                        })()}
-
-                                        <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100">
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Valor Estimado</span>
-                                                <span className="text-xs font-black text-[#1B263B]">{formatCurrency(prospect.lead_value || 0)}</span>
                                             </div>
-                                            {prospect.source && <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-md max-w-[80px] truncate">{prospect.source}</span>}
-                                            
-                                            {/* Task Indicator */}
-                                            {(() => {
-                                                const leadTasks = tasks.filter(t => t.prospect_id === prospect.id);
-                                                if (leadTasks.length === 0) return null;
-                                                
-                                                const hasOverdue = leadTasks.some(t => new Date(t.due_date) < new Date());
-                                                return (
-                                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${leadTasks.length} tarefa(s) pendente(s)`}>
-                                                        <Clock size={10} className={hasOverdue ? 'animate-pulse' : ''} />
-                                                        <span className="text-[9px] font-black">{leadTasks.length}</span>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
+                                        )}
 
-                                        {!selectionMode && <div className="flex gap-2 pt-1">
-                                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/12 hover:bg-[#C69C6D]/22 rounded-lg py-1.5 transition-colors">
-                                                <Edit2 size={11} /> Editar
-                                            </button>
-                                            {onConvertToSale && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleConvertToSale(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black text-[#1B263B] bg-[#C69C6D]/15 hover:bg-[#C69C6D]/25 rounded-lg py-1.5 transition-colors">
-                                                    <TrendingUp size={11} /> Venda
-                                                </button>
-                                            )}
-                                        </div>}
+                                        {/* Grupo 3: valor estimado e idade do lead */}
+                                        <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+                                            <span className="text-[12px] font-bold text-navy">{formatCurrency(prospect.lead_value || 0)}</span>
+                                            {ageLabel && <span className="text-[10px] font-bold text-gold">{ageLabel}</span>}
+                                        </div>
                                     </div>
                                     );
                                 })}
