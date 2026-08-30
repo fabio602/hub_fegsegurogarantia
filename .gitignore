@@ -30,3 +30,6 @@ dist-ssr
 regressao/pdfs/
 regressao/resultados/
 regressao/minutas/
+
+# Prévias estáticas de conferência (trilhas de e-mail, portais)
+previas/
