@@ -501,9 +501,6 @@ const App: React.FC = () => {
                 label="Seguro Garantia"
                 isGroupActive={GARANTIA_VIEWS.includes(activeView) || FINANCEIRO_VIEWS.includes(activeView)}
               >
-                {/* Cotações (Seguro Licitante / Seguro de Contrato) — fora do menu por enquanto.
-                    Só o acesso pelo sidebar saiu: as views, os analisadores e o roteamento
-                    continuam de pé. Para trazer de volta, basta descomentar este bloco.
                 <NavSubGroup
                   groupKey="cotacoes"
                   label="Cotações"
@@ -512,7 +509,6 @@ const App: React.FC = () => {
                   <NavSubItem view="seg-licitante" label="Seguro Licitante" />
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                 </NavSubGroup>
-                */}
                 <NavSubItem view="goals" label="Registro de Vendas" />
                 <NavSubItem view="carteira" label="Carteira de Clientes" />
                 <NavSubGroup
