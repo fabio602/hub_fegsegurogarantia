@@ -56,6 +56,13 @@ function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
     };
 }
 
+/** Diferença em dias entre duas datas ISO (yyyy-mm-dd); null se alguma faltar ou for inválida. */
+function diffDias(inicio?: string, fim?: string): number | null {
+    if (!inicio || !fim) return null;
+    const dias = Math.round((+new Date(fim) - +new Date(inicio)) / 86400000);
+    return Number.isFinite(dias) ? dias : null;
+}
+
 /** Valor do `<select>` quando o usuário informa corretor/seguradora manualmente. */
 const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
 
@@ -571,6 +578,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         catalogo: 'Não',
         vigencia_inicio: '',
         vigencia_fim: '',
+        vigencia_contrato_inicio: '',
+        vigencia_contrato_fim: '',
         telefone: '',
         email: '',
         cnpj: '',
@@ -1068,6 +1077,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             return;
         }
 
+        // Validação: fim da vigência da apólice não pode ser anterior ao início
+        if (formData.vigencia_inicio && formData.vigencia_fim && formData.vigencia_fim < formData.vigencia_inicio) {
+            setSaveError('O fim da vigência da apólice é anterior ao início. Corrija as datas antes de salvar.');
+            setSaving(false);
+            document.getElementById('vigencia_fim')?.focus();
+            return;
+        }
+
         // Sanitize: only send columns that exist in the Supabase table
         const payload = {
             data: formData.data || null,
@@ -1086,6 +1103,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             vigencia_inicio: formData.vigencia_inicio || null,
             // Coluna na tabela `sales`: `vigencia_fim` (UI: Fim Vigência)
             vigencia_fim: formData.vigencia_fim || null,
+            // Prazo do contrato garantido — informativo, não gera lembrete
+            vigencia_contrato_inicio: formData.vigencia_contrato_inicio || null,
+            vigencia_contrato_fim: formData.vigencia_contrato_fim || null,
             telefone: formData.telefone || null,
             email: formData.email || null,
             cnpj: formData.cnpj || null,
@@ -1323,6 +1343,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             catalogo: 'Não',
             vigencia_inicio: '',
             vigencia_fim: '',
+            vigencia_contrato_inicio: '',
+            vigencia_contrato_fim: '',
             telefone: '',
             email: '',
             cnpj: '',
@@ -1355,6 +1377,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
     const gravarVendaEmEdicao = React.useCallback(async (dados: typeof dadosAutoSave) => {
         if (!editingId) return;
+        // Mesma validação do botão de salvar: com o fim anterior ao início a gravação
+        // fica retida (o hook marca erro e tenta de novo; grava quando corrigir).
+        if (dados.vigencia_inicio && dados.vigencia_fim && dados.vigencia_fim < dados.vigencia_inicio) {
+            throw new Error('Vigência da apólice com fim anterior ao início — salvamento retido até a correção.');
+        }
         const limites = dados._limitesArray || [];
         const payload = {
             data: dados.data || null, nome: dados.nome || null, origem: dados.origem || null,
@@ -1363,6 +1390,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             vendedor: dados.vendedor || null, indicacao: dados.indicacao || null, limites: dados.limites || null,
             catalogo: dados.catalogo || null, vigencia_inicio: dados.vigencia_inicio || null,
             vigencia_fim: dados.vigencia_fim || null, telefone: dados.telefone || null,
+            vigencia_contrato_inicio: dados.vigencia_contrato_inicio || null,
+            vigencia_contrato_fim: dados.vigencia_contrato_fim || null,
             email: dados.email || null, cnpj: dados.cnpj || null, decisor: dados.decisor || null,
             product_type: dados.product_type || 'Seguro Garantia', process_number: dados.process_number || null,
             court: dados.court || null, valorLote: dados.valorLote || null, orgaoLicitante: dados.orgaoLicitante || null,
@@ -2546,6 +2575,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 )}
                                 {(formData.vendeu === 'Sim' || (formData.vendeu === 'Em andamento' && formData.tipo === 'Licitante')) && (
                                     <>
+                                        {/* ── Vigência da APÓLICE (gera lembretes de renovação) ── */}
+                                        <div className="md:col-span-2 lg:col-span-4 -mb-3 px-1">
+                                            <span className="text-[10px] font-bold text-gold-dark uppercase tracking-widest">
+                                                {formData.tipo === 'Licitante' ? 'Vigência da garantia de proposta' : 'Vigência da garantia de execução'}
+                                            </span>
+                                        </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
                                             <input
@@ -2598,6 +2633,55 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={formData.vigencia_fim || ''}
                                                 onChange={handleInputChange}
                                                 className="w-full bg-gold/5 border border-gold/30 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all outline-none"
+                                            />
+                                        </div>
+                                        {/* Duração calculada + avisos (não bloqueia digitação; datas invertidas bloqueiam só o salvar) */}
+                                        {(() => {
+                                            const dias = diffDias(formData.vigencia_inicio, formData.vigencia_fim);
+                                            if (dias === null) return null;
+                                            if (dias < 0) return (
+                                                <div className="md:col-span-2 lg:col-span-4 -mt-3 flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-[11px] font-semibold text-rose-700 leading-relaxed">
+                                                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                                    <span>O fim da vigência é anterior ao início. Corrija as datas para conseguir salvar.</span>
+                                                </div>
+                                            );
+                                            return (
+                                                <div className="md:col-span-2 lg:col-span-4 -mt-3 space-y-2">
+                                                    <p className="text-[11px] font-semibold text-slate-500 px-1">
+                                                        Duração da apólice: <strong className="text-navy">{dias} {dias === 1 ? 'dia' : 'dias'}</strong>
+                                                    </p>
+                                                    {formData.tipo === 'Licitante' && dias > 180 && (
+                                                        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-[11px] font-semibold text-amber-800 leading-relaxed">
+                                                            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                                            <span>Garantia de proposta raramente passa de 180 dias. Confira se você não preencheu a vigência do contrato aqui.</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                        {/* ── Prazo do contrato garantido (informativo, não gera lembrete) ── */}
+                                        <div className="md:col-span-2 lg:col-span-4 -mb-3 flex items-baseline gap-2 px-1">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prazo do contrato garantido</span>
+                                            <span className="text-[10px] font-semibold text-slate-400">Opcional · informativo, não gera lembrete</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Início do Contrato</label>
+                                            <input
+                                                type="date"
+                                                id="vigencia_contrato_inicio"
+                                                value={formData.vigencia_contrato_inicio || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Fim do Contrato</label>
+                                            <input
+                                                type="date"
+                                                id="vigencia_contrato_fim"
+                                                value={formData.vigencia_contrato_fim || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none"
                                             />
                                         </div>
                                     </>

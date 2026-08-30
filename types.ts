@@ -76,6 +76,9 @@ export interface Sale {
   vigencia_fim?: string;
   /** Legado / outras tabelas — não confundir com `sales.vigencia_fim` */
   fim_vigencia?: string;
+  /** Prazo do contrato garantido — informativo, não gera lembrete */
+  vigencia_contrato_inicio?: string;
+  vigencia_contrato_fim?: string;
   telefone?: string;
   email?: string;
   cnpj?: string;
