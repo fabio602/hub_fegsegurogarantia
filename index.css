@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /*
  * Escala global da interface para equivaler ao visual de 80% de zoom.
  *

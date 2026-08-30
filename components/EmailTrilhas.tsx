@@ -46,14 +46,14 @@ const WHATSAPP_PADRAO = 'https://wa.me/5515998618659';
 const DIAS_SUGERIDOS = [1, 3, 7, 14, 21, 30, 45, 60];
 
 /** Transforma "Risco de Engenharia" em "risco-de-engenharia". */
-const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#C69C6D] bg-slate-50';
+const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold bg-slate-50';
 
 // Fica FORA do componente de propósito: se for declarado dentro, o React cria um
 // tipo novo a cada render, desmonta o input e o campo perde o foco a cada tecla
 // (dava a impressão de estar "digitando letra por letra").
 const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
     {children}
     {dica && <p className="text-[11px] text-slate-400 mt-1 leading-snug">{dica}</p>}
   </div>
@@ -132,7 +132,7 @@ export default function EmailTrilhas() {
   const criarTrilha = async () => {
     if (!novaTrilha?.nome.trim()) return;
     const slug = gerarSlug(novaTrilha.nome);
-    if (!slug) return notificar('erro', 'Nome inválido — use letras e números.');
+    if (!slug) return notificar('erro', 'Nome inválido. Use letras e números.');
     if (trilhas.some(t => t.slug === slug)) return notificar('erro', `Já existe uma trilha com o código "${slug}".`);
 
     setSalvando(true);
@@ -150,7 +150,7 @@ export default function EmailTrilhas() {
     setNovaTrilha(null);
     setSlugAtual(slug);
     await load();
-    notificar('ok', 'Trilha criada — desligada até você escrever as etapas.');
+    notificar('ok', 'Trilha criada. Fica desligada até você escrever as etapas.');
   };
 
   const excluirTrilha = async () => {
@@ -318,7 +318,7 @@ export default function EmailTrilhas() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <div className="flex justify-center py-16"><Loader2 size={24} className="text-[#C69C6D] animate-spin" /></div>;
+    return <div className="flex justify-center py-16"><Loader2 size={24} className="text-gold animate-spin" /></div>;
   }
 
   return (
@@ -333,7 +333,7 @@ export default function EmailTrilhas() {
         </div>
         <button
           onClick={() => setNovaTrilha({ nome: '', descricao: '', eyebrow: 'Corretora Especializada', rodape: 'Você recebe este e-mail por ter demonstrado interesse em nossos seguros' })}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#C69C6D] hover:bg-[#b8895a] text-white font-bold text-sm rounded-xl transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all"
         >
           <Plus size={15} /> Nova Trilha
         </button>
@@ -342,7 +342,7 @@ export default function EmailTrilhas() {
       {/* Aviso */}
       {aviso && (
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold ${
-          aviso.tipo === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+          aviso.tipo === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
         }`}>
           {aviso.tipo === 'ok' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           {aviso.texto}
@@ -351,9 +351,9 @@ export default function EmailTrilhas() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
         {/* Lista de trilhas */}
-        <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trilhas</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilhas</p>
           </div>
           <div className="divide-y divide-slate-50">
             {trilhas.map(t => {
@@ -363,10 +363,10 @@ export default function EmailTrilhas() {
                 <button
                   key={t.slug}
                   onClick={() => setSlugAtual(t.slug)}
-                  className={`w-full text-left px-4 py-3 transition-colors ${sel ? 'bg-[#1B263B]' : 'hover:bg-slate-50'}`}
+                  className={`w-full text-left px-4 py-3 transition-colors ${sel ? 'bg-navy' : 'hover:bg-slate-50'}`}
                 >
-                  <p className={`font-black text-sm leading-tight ${sel ? 'text-white' : 'text-slate-800'}`}>{t.nome}</p>
-                  <p className={`text-[11px] mt-0.5 font-semibold ${sel ? 'text-[#C69C6D]' : 'text-slate-400'}`}>
+                  <p className={`font-bold text-sm leading-tight ${sel ? 'text-white' : 'text-slate-800'}`}>{t.nome}</p>
+                  <p className={`text-[11px] mt-0.5 font-semibold ${sel ? 'text-gold' : 'text-slate-400'}`}>
                     {qtd} e-mail{qtd === 1 ? '' : 's'}{!t.ativo && ' · desativada'}
                   </p>
                 </button>
@@ -380,30 +380,30 @@ export default function EmailTrilhas() {
 
         {/* Editor */}
         {!trilha ? (
-          <div className="bg-white rounded-[2rem] border border-slate-100 p-12 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
             <Mail size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="font-black text-slate-400 text-sm">Escolha uma trilha à esquerda</p>
+            <p className="font-bold text-slate-400 text-sm">Escolha uma trilha à esquerda</p>
           </div>
         ) : (
           <div className="space-y-5">
             {/* Dados da trilha */}
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="font-black text-slate-800">Identificação</h3>
+                  <h3 className="font-bold text-slate-800">Identificação</h3>
                   <p className="text-xs text-slate-400 font-mono mt-0.5">código: {trilha.slug}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={trilha.ativo} onChange={e => alterarTrilha('ativo', e.target.checked)} className="w-4 h-4 accent-[#C69C6D]" />
+                    <input type="checkbox" checked={trilha.ativo} onChange={e => alterarTrilha('ativo', e.target.checked)} className="w-4 h-4 accent-gold" />
                     Ativa
                   </label>
                   <button onClick={salvarTrilha} disabled={salvando}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm disabled:opacity-50">
+                    className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm disabled:opacity-50">
                     <Save size={14} /> Salvar
                   </button>
                   <button onClick={excluirTrilha} disabled={salvando}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl" title="Excluir trilha">
+                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl" title="Excluir trilha">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -426,12 +426,12 @@ export default function EmailTrilhas() {
             </div>
 
             {/* Etapas */}
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="font-black text-slate-800">Sequência de e-mails</h3>
+                  <h3 className="font-bold text-slate-800">Sequência de e-mails</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Use <code className="font-mono text-[#C69C6D]">[NOME_CONTATO]</code> e <code className="font-mono text-[#C69C6D]">[NOME_EMPRESA]</code> em qualquer campo.
+                    Use <code className="font-mono text-gold">[NOME_CONTATO]</code> e <code className="font-mono text-gold">[NOME_EMPRESA]</code> em qualquer campo.
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     Arraste pela alça <GripVertical size={12} className="inline text-slate-300 -mt-0.5" /> para mudar a posição. Os dias ficam presos às posições, então a cadência continua crescente.
@@ -444,7 +444,7 @@ export default function EmailTrilhas() {
                     Enviar teste para mim
                   </button>
                   <button onClick={criarEtapa} disabled={salvando}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#C69C6D] hover:bg-[#b8895a] text-white rounded-xl font-bold text-sm disabled:opacity-50">
+                    className="flex items-center gap-2 px-4 py-2 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm disabled:opacity-50">
                     <Plus size={14} /> Novo e-mail
                   </button>
                 </div>
@@ -463,26 +463,26 @@ export default function EmailTrilhas() {
                       onDragOver={ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; setSobreId(etapa.id); }}
                       onDragLeave={() => setSobreId(prev => prev === etapa.id ? null : prev)}
                       onDrop={ev => { ev.preventDefault(); soltarEm(etapa.id); }}
-                      className={`transition-all ${arrastando ? 'opacity-40' : ''} ${alvo ? 'ring-2 ring-[#C69C6D]/40 ring-inset bg-[#C69C6D]/5' : ''}`}
+                      className={`transition-all ${arrastando ? 'opacity-40' : ''} ${alvo ? 'ring-2 ring-gold/40 ring-inset bg-gold/5' : ''}`}
                     >
                       <div className="w-full flex items-center gap-2 px-4 py-4 hover:bg-slate-50/60">
                         <GripVertical
                           size={16}
-                          className="text-slate-300 hover:text-[#C69C6D] shrink-0 cursor-grab active:cursor-grabbing"
+                          className="text-slate-300 hover:text-gold shrink-0 cursor-grab active:cursor-grabbing"
                         />
                         <button
                           onClick={() => setAbertas(prev => ({ ...prev, [etapa.id]: !aberta }))}
                           className="flex items-center gap-3 text-left flex-1 min-w-0"
                         >
                           {aberta ? <ChevronDown size={16} className="text-slate-400 shrink-0" /> : <ChevronRight size={16} className="text-slate-400 shrink-0" />}
-                          <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-xl shrink-0">
                             {etapa.ordem}º
                           </span>
-                          <span className="text-[10px] font-black text-[#C69C6D] bg-[#C69C6D]/10 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-xl shrink-0">
                             D+{etapa.dia}
                           </span>
                           <span className="font-bold text-slate-700 text-sm truncate flex-1">{etapa.assunto}</span>
-                          {!etapa.ativo && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
+                          {!etapa.ativo && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-xl shrink-0">Desativado</span>}
                         </button>
                       </div>
 
@@ -499,7 +499,7 @@ export default function EmailTrilhas() {
                             </Campo>
                             <div className="col-span-2 flex items-end pb-1">
                               <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer">
-                                <input type="checkbox" checked={etapa.ativo} className="w-4 h-4 accent-[#C69C6D]"
+                                <input type="checkbox" checked={etapa.ativo} className="w-4 h-4 accent-gold"
                                   onChange={e => alterarEtapa(etapa.id, 'ativo', e.target.checked)} />
                                 E-mail ativo na cadência
                               </label>
@@ -524,7 +524,7 @@ export default function EmailTrilhas() {
 
                           <Campo
                             label="Corpo"
-                            dica='Escreva cada parágrafo assim: <p style="{{P}}">texto do parágrafo</p> — e troque {{P}} por {{PF}} no último, que tem espaço maior antes do botão.'
+                            dica='Escreva cada parágrafo assim: <p style="{{P}}">texto do parágrafo</p>. Troque {{P}} por {{PF}} no último, que tem espaço maior antes do botão.'
                           >
                             <textarea rows={10} className={`${inputCls} font-mono text-xs leading-relaxed`}
                               value={etapa.corpo_html ?? ''}
@@ -544,7 +544,7 @@ export default function EmailTrilhas() {
 
                           <div className="flex gap-2 flex-wrap pt-1">
                             <button onClick={() => salvarEtapa(etapa)} disabled={salvando}
-                              className="flex items-center gap-2 px-4 py-2 bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl font-bold text-sm disabled:opacity-50">
+                              className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm disabled:opacity-50">
                               <Save size={14} /> Salvar
                             </button>
                             <button onClick={() => visualizar(etapa)} disabled={carregandoPreview === etapa.id}
@@ -553,7 +553,7 @@ export default function EmailTrilhas() {
                               Salvar e visualizar
                             </button>
                             <button onClick={() => excluirEtapa(etapa)} disabled={salvando}
-                              className="ml-auto p-2 text-red-500 hover:bg-red-50 rounded-xl" title="Excluir e-mail">
+                              className="ml-auto p-2 text-rose-500 hover:bg-rose-50 rounded-xl" title="Excluir e-mail">
                               <Trash2 size={16} />
                             </button>
                           </div>
@@ -576,11 +576,11 @@ export default function EmailTrilhas() {
       {/* Modal nova trilha */}
       {novaTrilha && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-800 text-lg">Nova Trilha</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada — ligue quando os e-mails estiverem prontos.</p>
+                <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada. Ligue quando os e-mails estiverem prontos.</p>
               </div>
               <button onClick={() => setNovaTrilha(null)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
             </div>
@@ -604,10 +604,10 @@ export default function EmailTrilhas() {
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={criarTrilha} disabled={salvando || !novaTrilha.nome.trim()}
-                className="flex-1 py-3 bg-[#C69C6D] hover:bg-[#b8895a] disabled:opacity-50 text-white font-black text-sm rounded-xl flex items-center justify-center gap-2">
+                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2">
                 {salvando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Criar
               </button>
-              <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl">
+              <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
                 Cancelar
               </button>
             </div>
@@ -618,10 +618,10 @@ export default function EmailTrilhas() {
       {/* Preview */}
       {preview && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assunto</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>
                 <p className="font-bold text-slate-800 text-sm truncate">{preview.assunto}</p>
               </div>
               <button onClick={() => setPreview(null)} className="p-2 hover:bg-slate-100 rounded-xl shrink-0">
@@ -632,7 +632,7 @@ export default function EmailTrilhas() {
               title="Pré-visualização do e-mail"
               srcDoc={preview.html}
               sandbox=""
-              className="flex-1 w-full border-0 bg-[#EDEAE4]"
+              className="flex-1 w-full border-0 bg-linha"
             />
           </div>
         </div>

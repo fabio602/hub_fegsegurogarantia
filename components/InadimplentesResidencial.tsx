@@ -24,7 +24,7 @@ interface Inadimplente {
 }
 
 const STATUS_CONFIG = {
-  inadimplente:     { label: 'Inadimplente',       bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',     dot: 'bg-red-500' },
+  inadimplente:     { label: 'Inadimplente',       bg: 'bg-rose-50',     text: 'text-rose-700',     border: 'border-rose-200',     dot: 'bg-rose-500' },
   contatado:        { label: 'Contatado',           bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500' },
   boleto_solicitado:{ label: 'Boleto Solicitado',   bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-500' },
   aguardando:       { label: 'Aguardando Pgto.',    bg: 'bg-yellow-50',  text: 'text-yellow-700',  border: 'border-yellow-200',  dot: 'bg-yellow-500' },
@@ -259,13 +259,13 @@ export default function InadimplentesResidencial() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl lg:text-3xl font-black text-slate-800">Inadimplentes</h2>
-          <p className="text-slate-500 font-medium mt-1">Relatório Tokio Marine — cobrança via WhatsApp</p>
+          <p className="text-slate-500 font-medium mt-1">Relatório Tokio Marine · cobrança via WhatsApp</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={fetchItems} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:border-[#C69C6D] transition-all">
+          <button onClick={fetchItems} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:border-gold transition-all">
             <RefreshCw size={16} />
           </button>
-          <label className="flex items-center gap-2 px-5 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all cursor-pointer">
+          <label className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all cursor-pointer">
             {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
             {uploading ? 'Processando...' : 'Importar Relatório Tokio'}
             <input type="file" accept=".pdf,.xls,.xlsx" className="hidden" onChange={handleFileUpload} disabled={uploading} />
@@ -275,16 +275,16 @@ export default function InadimplentesResidencial() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#1B263B] rounded-2xl p-5">
-          <p className="text-white/50 text-xs font-black uppercase tracking-widest mb-1">Total Pendente</p>
-          <p className="text-[#C69C6D] text-2xl font-black">{fmtBRL(totalPendente)}</p>
+        <div className="bg-navy rounded-2xl p-5">
+          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Pendente</p>
+          <p className="text-gold text-2xl font-black">{fmtBRL(totalPendente)}</p>
         </div>
         {(['inadimplente', 'contatado', 'boleto_solicitado', 'pago'] as const).map(s => {
           const cfg = STATUS_CONFIG[s];
           return (
             <div key={s} onClick={() => setFilterStatus(filterStatus === s ? '' : s)}
-              className={`bg-white rounded-2xl p-5 border cursor-pointer transition-all hover:shadow-md ${filterStatus === s ? 'border-[#1B263B]' : 'border-slate-100'}`}>
-              <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">{cfg.label}</p>
+              className={`bg-white rounded-2xl p-5 border cursor-pointer transition-all hover:shadow-md ${filterStatus === s ? 'border-navy' : 'border-slate-100'}`}>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{cfg.label}</p>
               <p className="text-2xl font-black text-slate-800">{counts[s] || 0}</p>
             </div>
           );
@@ -293,11 +293,11 @@ export default function InadimplentesResidencial() {
 
       {/* Preview after PDF parse */}
       {preview && (
-        <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-slate-800 flex items-center gap-2">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <FileText size={18} className="text-amber-600" />
-              {preview.length} inadimplente(s) extraído(s) — confirme antes de importar
+              {preview.length} inadimplente(s) extraído(s). Confirme antes de importar
             </h3>
             <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600"><X size={18}/></button>
           </div>
@@ -308,11 +308,11 @@ export default function InadimplentesResidencial() {
                   <input type="checkbox"
                     checked={selectedPreview.size === preview.length}
                     onChange={e => setSelectedPreview(e.target.checked ? new Set(preview.map((_, i) => i)) : new Set())}
-                    className="w-4 h-4 accent-[#1B263B] cursor-pointer"
+                    className="w-4 h-4 accent-navy cursor-pointer"
                   />
                 </th>
                 {['CPF','Nome','Apólice','Parcela','Vencimento','Valor','Tel. PDF','Tel. Base'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left text-[10px] font-black uppercase tracking-widest text-amber-800">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-amber-800">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
@@ -322,7 +322,7 @@ export default function InadimplentesResidencial() {
                     <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedPreview.has(i)}
                         onChange={() => setSelectedPreview(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
-                        className="w-4 h-4 accent-[#1B263B] cursor-pointer"
+                        className="w-4 h-4 accent-navy cursor-pointer"
                       />
                     </td>
                     <td className="px-3 py-2 font-mono text-xs text-slate-500">{p.cpf}</td>
@@ -330,7 +330,7 @@ export default function InadimplentesResidencial() {
                     <td className="px-3 py-2 font-mono text-xs">{p.apolice || '—'}</td>
                     <td className="px-3 py-2 text-center">{p.parcela || '—'}</td>
                     <td className="px-3 py-2">{fmtData(p.vencimento)}</td>
-                    <td className="px-3 py-2 font-bold text-red-700">{fmtBRL(p.valor)}</td>
+                    <td className="px-3 py-2 font-bold text-rose-700">{fmtBRL(p.valor)}</td>
                     <td className="px-3 py-2 text-xs">{p.telefone_pdf || '—'}</td>
                     <td className="px-3 py-2">
                       <input
@@ -348,11 +348,11 @@ export default function InadimplentesResidencial() {
           </div>
           <div className="flex gap-3">
             <button onClick={handleImport} disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] text-white font-black text-sm rounded-xl disabled:opacity-50">
+              className="flex items-center gap-2 px-6 py-3 bg-navy text-white font-bold text-sm rounded-xl disabled:opacity-50">
               {saving ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
               {saving ? 'Importando...' : `Confirmar e importar ${selectedPreview.size} de ${preview.length} registros`}
             </button>
-            <button onClick={() => setPreview(null)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-black text-sm rounded-xl">
+            <button onClick={() => setPreview(null)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold text-sm rounded-xl">
               Cancelar
             </button>
           </div>
@@ -360,11 +360,11 @@ export default function InadimplentesResidencial() {
       )}
 
       {/* List */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <p className="font-black text-slate-800">{filtered.length} registro(s)</p>
+          <p className="font-bold text-slate-800">{filtered.length} registro(s)</p>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-[#C69C6D]">
+            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-gold">
             <option value="ativos">Ativos (sem pagos)</option>
             <option value="">Todos os status</option>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
@@ -374,11 +374,11 @@ export default function InadimplentesResidencial() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 size={24} className="text-[#C69C6D] animate-spin"/></div>
+          <div className="flex justify-center py-12"><Loader2 size={24} className="text-gold animate-spin"/></div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <AlertCircle size={32} className="text-slate-300 mx-auto mb-3"/>
-            <p className="font-black text-slate-400">Nenhum inadimplente{filterStatus ? ' com este status' : ''}</p>
+            <p className="font-bold text-slate-400">Nenhum inadimplente{filterStatus ? ' com este status' : ''}</p>
             <p className="text-sm text-slate-300 mt-1">Importe o relatório PDF da Tokio Marine</p>
           </div>
         ) : (
@@ -392,8 +392,8 @@ export default function InadimplentesResidencial() {
                   <div className="flex items-start gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap mb-1">
-                        <p className="font-black text-slate-800">{item.nome}</p>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                        <p className="font-bold text-slate-800">{item.nome}</p>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}/>
                           {cfg.label}
                         </span>
@@ -402,7 +402,7 @@ export default function InadimplentesResidencial() {
                         <span>Apólice {item.apolice || '—'}</span>
                         <span>Parcela {item.parcela || '—'}</span>
                         <span>Vence {fmtData(item.vencimento)}</span>
-                        <span className="font-black text-red-700">{fmtBRL(item.valor)}</span>
+                        <span className="font-bold text-rose-700">{fmtBRL(item.valor)}</span>
                         {phone && <span className="flex items-center gap-1"><Phone size={11}/>{item.telefone_pdf || item.telefone_base}</span>}
                         {!phone && <span className="text-slate-300">Sem telefone</span>}
                       </div>
@@ -421,17 +421,17 @@ export default function InadimplentesResidencial() {
                             </span>
                           ) : (
                             <button onClick={() => sendWhatsApp(item, 'boleto')} disabled={!phone || isSending}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs rounded-xl transition-all disabled:opacity-40 border border-slate-200">
+                              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all disabled:opacity-40 border border-slate-200">
                               📄 Enviar Boleto
                             </button>
                           )}
                           <button onClick={() => sendWhatsApp(item, 'cobranca')} disabled={!phone || isSending}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-xs rounded-xl transition-all disabled:opacity-40">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-navy hover:bg-navy-light text-white font-bold text-xs rounded-xl transition-all disabled:opacity-40">
                             {isSending ? <Loader2 size={12} className="animate-spin"/> : <MessageCircle size={12}/>}
                             {item.status === 'inadimplente' ? 'Contatar' : 'Recontatar'}
                           </button>
                           <button onClick={() => marcarPago(item)}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all">
                             <CheckCircle2 size={12}/> Pago
                           </button>
                         </>

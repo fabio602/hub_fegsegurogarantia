@@ -70,3 +70,35 @@ Ao mexer em código de IA, confira qual das duas camadas você está editando e 
 - Alias `@` → raiz do projeto (`vite.config.ts` e `tsconfig.json`). Importações usam extensão `.ts`/`.tsx` explícita (`allowImportingTsExtensions`).
 - `tsconfig` tem `noEmit` — o TypeScript só faz type-check; o Vite faz o build. Não há step de `tsc` separado.
 - `.env.local` (git-ignorado) traz também tokens de proxies PNCP / Empresas Aqui (`VITE_PROXY_PNCP_URL`, `VITE_PROXY_EQ_URL`, `VITE_EMPRESAQUI_TOKEN`) usados na prospecção. Reinicie o Vite após alterar o `.env`.
+
+### Tailwind e tokens de design
+
+O Tailwind é compilado no build (`tailwind.config.js` + `postcss.config.js`), entrando pelo `index.css`, que é importado no `index.tsx`. Antes era carregado pelo CDN e compilado no navegador; se aparecer `<script src="https://cdn.tailwindcss.com">` em algum HTML do app, é resíduo.
+
+**Diferença que importa:** o CDN lia as classes da tela em tempo de execução, então classe montada dinamicamente funcionava. O build lê do código-fonte, então **nunca monte nome de classe por interpolação** (`bg-[${cor}]`, `text-${status}-500`). Escreva a classe inteira nos dois ramos do ternário. Hoje o projeto não tem nenhum caso desses e vale manter assim.
+
+Cor, sombra e duração ficam em `tailwind.config.js`, que é o lugar único desses tokens:
+
+- `navy` (`#1B263B`), `navy-light` (`#243447`) e `navy-dark` (`#162033`)
+- `gold` (`#C69C6D`), `gold-hover` (`#B58A5B`) e `gold-dark` (`#8B6C3E`, dourado legível como texto em fundo claro)
+- `areia` (`#F5F1EA`), `areia-clara` (`#F8F4ED`), `areia-escura` (`#EFE7DB`) e `linha` (`#E8E4DC`)
+- `whatsapp` (`#25D366`), `whatsapp-hover` e `whatsapp-bolha`
+
+Use `bg-navy`, `text-gold`, `hover:bg-gold-hover` em vez de repetir o hexadecimal. Hexadecimal solto só é aceitável fora de classe do Tailwind, como em `style` inline, SVG e cor de gráfico.
+
+**Semântica de cor (regra fixa, não misturar):**
+
+- **gold é identidade, nunca estado** — não usar para sucesso, alerta ou erro;
+- **amber é alerta, nunca decoração**;
+- **rose é erro/destrutivo** — não existe `red-*` no app; se aparecer, é regressão;
+- **emerald é sucesso** — não usar `green-*`;
+- **blue é informação/condicional**;
+- **whatsapp só para UI que representa o WhatsApp de fato** (hub de conversas, links wa.me, bolha de chat) — botão de e-mail nunca é verde.
+
+Cores categóricas de dados (badges de tipo de produto, etiquetas de urgência do Repasse, paletas escolhíveis de cartão/coluna) ficam fora dessa regra por serem legenda, não estado.
+
+O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in-*` e `fade-in-*`.
+
+**Atenção à escala global:** o `index.css` define `html { font-size: 80% }` para o hub ficar equivalente a um zoom de 80%. Isso significa que **1rem vale 12,8px e não 16px**, e que todo espaçamento em `rem` (`p-4`, `gap-6`, `w-80`, `text-xl`) já vem reduzido. Os tamanhos em px arbitrário (`text-[10px]` e irmãos) têm override explícito com `!important` no mesmo arquivo para acompanhar a escala. Ao criar componente novo, lembre que o espaçamento vai parecer menor do que o número sugere. É intencional e foi mantido de propósito; se um dia for removido, o hub inteiro precisa ser reescalado junto.
+
+Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS puro, com os tokens declarados em `:root` dentro de cada arquivo.

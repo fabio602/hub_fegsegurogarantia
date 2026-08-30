@@ -76,21 +76,21 @@ const Field: React.FC<{
   readOnly?: boolean;
 }> = ({ label, id, value, onChange, placeholder, type = 'text', half, readOnly }) => (
   <div className={half ? 'col-span-1' : ''}>
-    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</label>
+    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</label>
     <input
       type={type}
       value={value}
       onChange={e => onChange(id, e.target.value)}
       placeholder={placeholder}
       readOnly={readOnly}
-      className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] focus:bg-white transition-all ${readOnly ? 'text-slate-400 cursor-default' : ''}`}
+      className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold focus:bg-white transition-all ${readOnly ? 'text-slate-400 cursor-default' : ''}`}
     />
   </div>
 );
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="px-6 py-3 bg-red-600 text-white font-black text-sm tracking-widest uppercase">
+    <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
       {title}
     </div>
     <div className="p-5 grid grid-cols-2 gap-4">
@@ -191,7 +191,7 @@ const EndossoAllseg: React.FC = () => {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso — Allseg</h2>
+          <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso · Allseg</h2>
           <p className="text-slate-500 font-medium mt-1">Preencha os campos e gere o documento Word no formato exato exigido pela Allseg.</p>
         </div>
         {/* Importar apólice para preencher Tomador/Segurado */}
@@ -226,7 +226,7 @@ const EndossoAllseg: React.FC = () => {
                 ...(d.segurado_cpf_cnpj ? { seg_cnpj: d.segurado_cpf_cnpj } : {}),
                 ...(d.numero_apolice ? { risco_num_apolice: d.numero_apolice } : {}),
               }));
-              setMsg(`✅ Tomador: ${d.tomador_razao_social || '—'} | Segurado: ${d.segurado_razao_social || '—'}`);
+              setMsg(`Tomador: ${d.tomador_razao_social || '—'} | Segurado: ${d.segurado_razao_social || '—'}`);
               // msg já setado acima
             } catch (err: any) {
               setMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));
@@ -237,7 +237,7 @@ const EndossoAllseg: React.FC = () => {
           };
           return (
             <div className="flex flex-col items-end gap-1">
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-[#C69C6D]/10 text-[#b8895a] border-[#C69C6D]/30 hover:bg-[#C69C6D]/20'}`}>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer border transition-all ${extracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/10 text-gold-hover border-gold/30 hover:bg-gold/20'}`}>
                 <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={handleExtract} disabled={extracting} />
                 📄 {extracting ? 'Lendo apólice...' : 'Importar Apólice'}
               </label>
@@ -294,7 +294,7 @@ const EndossoAllseg: React.FC = () => {
 
       {/* OBJETO */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 bg-red-600 text-white font-black text-sm tracking-widest uppercase">
+        <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
           Objeto do Seguro
         </div>
         <div className="p-5 space-y-4">
@@ -329,12 +329,12 @@ const EndossoAllseg: React.FC = () => {
 
       {/* DATA */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Data do Documento</label>
+        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data do Documento</label>
         <input
           type="date"
           value={form.local_data}
           onChange={e => set('local_data', e.target.value)}
-          className="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#C69C6D] transition-all"
+          className="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all"
         />
         {form.local_data && (
           <p className="text-xs text-slate-500 mt-1">Será exibido como: <strong>Boituva, {fmtDate(form.local_data)}</strong></p>
@@ -346,14 +346,14 @@ const EndossoAllseg: React.FC = () => {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="flex items-center gap-2 px-8 py-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition-all shadow-lg shadow-red-600/20"
+          className="flex items-center gap-2 px-8 py-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl transition-all shadow-lg shadow-rose-600/20"
         >
           {generating ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
           {generating ? 'Gerando documento...' : 'Gerar Pedido de Endosso (.docx)'}
         </button>
         <button
           onClick={() => { setForm(empty); setSuccess(false); }}
-          className="flex items-center gap-2 px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-2xl transition-all"
+          className="flex items-center gap-2 px-5 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-2xl transition-all"
         >
           <RefreshCw size={15} /> Limpar
         </button>

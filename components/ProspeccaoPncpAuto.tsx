@@ -139,7 +139,7 @@ export default function ProspeccaoPncpAuto() {
     };
 
     if (loading) {
-        return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-[#C69C6D]" size={32} /></div>;
+        return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-gold" size={32} /></div>;
     }
     if (!config) {
         return (
@@ -149,7 +149,7 @@ export default function ProspeccaoPncpAuto() {
         );
     }
 
-    const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all';
+    const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
     const rotulo = 'block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5';
 
     return (
@@ -157,7 +157,7 @@ export default function ProspeccaoPncpAuto() {
             <div className="flex flex-col lg:flex-row justify-between gap-4 items-start">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                        <Bot className="text-[#C69C6D]" size={30} /> Prospecção Automática PNCP
+                        <Bot className="text-gold" size={30} /> Prospecção Automática PNCP
                     </h2>
                     <p className="text-slate-500 font-medium">
                         Todo dia às 07h: vencedores de licitação do dia anterior entram na trilha de e-mail.
@@ -165,31 +165,31 @@ export default function ProspeccaoPncpAuto() {
                 </div>
                 <div className="flex items-center gap-2">
                     {config.dry_run && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-xl text-xs font-bold">
                             <FlaskConical size={14} /> Dry run: nenhum e-mail sai para leads
                         </span>
                     )}
                     {config.pausado && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-700 rounded-xl text-xs font-bold">
                             <PauseCircle size={14} /> Pausada por bounce
                         </span>
                     )}
                     {!config.ativo && (
-                        <span className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">Desligada</span>
+                        <span className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold">Desligada</span>
                     )}
                 </div>
             </div>
 
             {config.pausado && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start justify-between gap-4">
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                        <AlertTriangle className="text-rose-500 shrink-0 mt-0.5" size={20} />
                         <div>
-                            <p className="font-bold text-red-800 text-sm">Automação pausada pela proteção de reputação</p>
-                            <p className="text-red-700 text-sm mt-1">{config.pausado_motivo}</p>
+                            <p className="font-bold text-rose-800 text-sm">Automação pausada pela proteção de reputação</p>
+                            <p className="text-rose-700 text-sm mt-1">{config.pausado_motivo}</p>
                         </div>
                     </div>
-                    <button onClick={despausar} className="shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-all">
+                    <button onClick={despausar} className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-all">
                         Despausar
                     </button>
                 </div>
@@ -199,7 +199,7 @@ export default function ProspeccaoPncpAuto() {
                 <div className={`rounded-2xl p-4 flex items-center gap-3 text-sm font-medium border ${
                     feedback.tipo === 'ok'
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : 'bg-red-50 border-red-200 text-red-800'}`}>
+                        : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
                     {feedback.tipo === 'ok' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
                     {feedback.texto}
                 </div>
@@ -210,13 +210,13 @@ export default function ProspeccaoPncpAuto() {
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={config.ativo}
                             onChange={e => setConfig({ ...config, ativo: e.target.checked })}
-                            className="w-4 h-4 accent-[#1B263B]" />
+                            className="w-4 h-4 accent-navy" />
                         <span className="text-sm font-bold text-slate-700">Automação ligada</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={config.dry_run}
                             onChange={e => setConfig({ ...config, dry_run: e.target.checked })}
-                            className="w-4 h-4 accent-[#1B263B]" />
+                            className="w-4 h-4 accent-navy" />
                         <span className="text-sm font-bold text-slate-700">Modo de teste (dry run)</span>
                     </label>
                     <span className="text-xs text-slate-400">
@@ -301,11 +301,11 @@ export default function ProspeccaoPncpAuto() {
 
                 <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-100">
                     <button onClick={salvar} disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#1B263B] hover:bg-[#243347] text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50">
+                        className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50">
                         {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Salvar configuração
                     </button>
                     <button onClick={rodarDryRun} disabled={running}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#C69C6D] text-slate-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50">
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-gold text-slate-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50">
                         {running ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
                         {running ? 'Rodando (pode levar minutos)...' : 'Rodar agora em dry run'}
                     </button>
@@ -314,7 +314,7 @@ export default function ProspeccaoPncpAuto() {
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100">
-                    <h3 className="font-black text-slate-800">Execuções</h3>
+                    <h3 className="font-bold text-slate-800">Execuções</h3>
                 </div>
                 {execucoes.length === 0 ? (
                     <p className="px-6 py-8 text-sm text-slate-400 font-medium">Nenhuma execução ainda. A primeira roda no próximo ciclo das 07h, ou use o dry run acima.</p>
@@ -344,11 +344,11 @@ export default function ProspeccaoPncpAuto() {
                                         </td>
                                         <td className="px-3 py-3 text-slate-500">{ex.data_referencia.split('-').reverse().join('/')}</td>
                                         <td className="px-3 py-3">
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${ex.dry_run ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            <span className={`px-2 py-0.5 rounded-xl text-xs font-bold ${ex.dry_run ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                 {ex.dry_run ? 'dry run' : 'real'}
                                             </span>
                                             {ex.fase !== 'finalizada' && (
-                                                <span className="ml-1.5 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">em andamento</span>
+                                                <span className="ml-1.5 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-bold">em andamento</span>
                                             )}
                                         </td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.coletados}</td>
@@ -356,12 +356,12 @@ export default function ProspeccaoPncpAuto() {
                                         <td className="px-3 py-3 text-right font-bold text-slate-800">{ex.enviados}</td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.sem_email}</td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.fora_do_perfil}</td>
-                                        <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-red-600' : 'text-slate-600'}`}>{ex.bounces}</td>
+                                        <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}`}>{ex.bounces}</td>
                                         <td className={`px-3 py-3 text-right ${ex.erros > 0 ? 'font-bold text-amber-600' : 'text-slate-600'}`}>{ex.erros}</td>
                                         <td className="px-6 py-3 text-right">
                                             {ex.arquivo_relatorio && (
                                                 <button onClick={() => baixarRelatorio(ex.arquivo_relatorio!)}
-                                                    className="inline-flex items-center gap-1.5 text-[#1B263B] hover:text-[#C69C6D] font-bold text-xs transition-colors">
+                                                    className="inline-flex items-center gap-1.5 text-navy hover:text-gold font-bold text-xs transition-colors">
                                                     <Download size={14} /> XLSX
                                                 </button>
                                             )}

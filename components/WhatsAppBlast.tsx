@@ -52,7 +52,7 @@ const STATUS_CONFIG: Record<Status, { icon: React.ReactNode; label: string; colo
   pending: { icon: <Clock size={14} />, label: 'Aguardando', color: 'text-slate-400' },
   sending: { icon: <Loader2 size={14} className="animate-spin" />, label: 'Enviando...', color: 'text-blue-500' },
   sent: { icon: <CheckCircle2 size={14} />, label: 'Enviado', color: 'text-emerald-500' },
-  failed: { icon: <XCircle size={14} />, label: 'Falhou', color: 'text-red-500' },
+  failed: { icon: <XCircle size={14} />, label: 'Falhou', color: 'text-rose-500' },
 };
 
 export default function WhatsAppBlast() {
@@ -246,19 +246,19 @@ export default function WhatsAppBlast() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* ── Left: contact list ───────────────────────── */}
-        <div className="bg-white rounded-[1.75rem] border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <p className="font-black text-slate-800 text-sm">Lista de Contatos</p>
+              <p className="font-bold text-slate-800 text-sm">Lista de Contatos</p>
               <p className="text-slate-400 text-[11px] mt-0.5">Um por linha: <span className="font-mono">5511999999999,Nome</span></p>
             </div>
             <div className="flex items-center gap-2">
               {contacts.length > 0 && (
-                <span className="text-xs font-black text-[#C69C6D] bg-amber-50 px-2.5 py-1 rounded-lg border border-[#C69C6D]/20">
+                <span className="text-xs font-bold text-gold bg-amber-50 px-2.5 py-1 rounded-xl border border-gold/20">
                   {contacts.length} contato{contacts.length !== 1 ? 's' : ''}
                 </span>
               )}
-              <label className="cursor-pointer flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#C69C6D] transition-colors border border-slate-200 hover:border-[#C69C6D]/40 px-3 py-1.5 rounded-xl">
+              <label className="cursor-pointer flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-gold transition-colors border border-slate-200 hover:border-gold/40 px-3 py-1.5 rounded-xl">
                 <Upload size={12} />
                 CSV
                 <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
@@ -291,7 +291,7 @@ export default function WhatsAppBlast() {
                         )}
                       </div>
                       {st === 'failed' && errors[c.phone] && (
-                        <p className="text-[10px] text-red-400 mt-0.5 max-w-[160px] truncate" title={errors[c.phone]}>
+                        <p className="text-[10px] text-rose-400 mt-0.5 max-w-[160px] truncate" title={errors[c.phone]}>
                           {errors[c.phone]}
                         </p>
                       )}
@@ -306,22 +306,22 @@ export default function WhatsAppBlast() {
         {/* ── Right: message + config ──────────────────── */}
         <div className="space-y-4">
           {/* Message template */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div>
-                <p className="font-black text-slate-800 text-sm">Mensagem</p>
-                <p className="text-slate-400 text-[11px] mt-0.5">Use <span className="font-mono bg-slate-100 px-1 rounded">{'{{nome}}'}</span> para personalizar</p>
+                <p className="font-bold text-slate-800 text-sm">Mensagem</p>
+                <p className="text-slate-400 text-[11px] mt-0.5">Use <span className="font-mono bg-slate-100 px-1 rounded-xl">{'{{nome}}'}</span> para personalizar</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowTemplates(p => !p)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#C69C6D] transition-colors border border-slate-200 rounded-xl px-3 py-1.5"
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-gold transition-colors border border-slate-200 rounded-xl px-3 py-1.5"
                 >
                   <FileText size={12} /> Modelos {showTemplates ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                 </button>
                 <button
                   onClick={() => setShowPreview(p => !p)}
-                  className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-[#C69C6D] transition-colors"
+                  className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-gold transition-colors"
                 >
                   Preview {showPreview ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
@@ -331,30 +331,30 @@ export default function WhatsAppBlast() {
             {/* Template picker */}
             {showTemplates && (
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelos salvos</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modelos salvos</p>
                 {loadingTemplates && <div className="flex justify-center py-3"><Loader2 size={16} className="animate-spin text-slate-400" /></div>}
                 <div className="space-y-2">
                   {savedTemplates.map(tpl => (
                     <div key={tpl.id}>
                       {editingTemplate?.id === tpl.id ? (
                         /* ── Edit mode ── */
-                        <div className="bg-white border border-[#C69C6D]/40 rounded-xl p-3 space-y-2">
+                        <div className="bg-white border border-gold/40 rounded-xl p-3 space-y-2">
                           <input
                             autoFocus
                             value={editingTemplate.name}
                             onChange={e => setEditingTemplate(et => et ? { ...et, name: e.target.value } : et)}
-                            className="w-full text-sm font-bold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-[#C69C6D]"
+                            className="w-full text-sm font-bold px-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:border-gold"
                             placeholder="Nome do modelo"
                           />
                           <textarea
                             value={editingTemplate.body}
                             onChange={e => setEditingTemplate(et => et ? { ...et, body: e.target.value } : et)}
                             rows={5}
-                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-[#C69C6D] resize-none"
+                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-gold resize-none"
                           />
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => setEditingTemplate(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                            <button onClick={updateTemplate} className="px-3 py-1.5 text-xs font-bold bg-[#1B263B] text-white rounded-lg hover:bg-[#243447] flex items-center gap-1.5 transition-colors">
+                            <button onClick={() => setEditingTemplate(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
+                            <button onClick={updateTemplate} className="px-3 py-1.5 text-xs font-bold bg-navy text-white rounded-xl hover:bg-navy-light flex items-center gap-1.5 transition-colors">
                               <Save size={12} /> Salvar alterações
                             </button>
                           </div>
@@ -364,15 +364,15 @@ export default function WhatsAppBlast() {
                         <div className="flex items-center gap-2 group">
                           <button
                             onClick={() => applyTemplate(tpl)}
-                            className="flex-1 text-left px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#C69C6D] hover:bg-[#C69C6D]/5 transition-all"
+                            className="flex-1 text-left px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-gold hover:bg-gold/5 transition-all"
                           >
                             <p className="text-sm font-bold text-slate-700">{tpl.name}</p>
                             <p className="text-[11px] text-slate-400 truncate mt-0.5">{tpl.body.slice(0, 60)}...</p>
                           </button>
-                          <button onClick={() => setEditingTemplate({ ...tpl })} className="shrink-0 p-1.5 text-slate-300 hover:text-[#C69C6D] transition-colors opacity-0 group-hover:opacity-100" title="Editar">
+                          <button onClick={() => setEditingTemplate({ ...tpl })} className="shrink-0 p-1.5 text-slate-300 hover:text-gold transition-colors opacity-0 group-hover:opacity-100" title="Editar">
                             <Pencil size={13} />
                           </button>
-                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
+                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-400 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -389,9 +389,9 @@ export default function WhatsAppBlast() {
                       onChange={e => setNewTemplateName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveCurrentAsTemplate(); if (e.key === 'Escape') setSavingTemplate(false); }}
                       placeholder="Nome do modelo..."
-                      className="flex-1 text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#C69C6D]"
+                      className="flex-1 text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-gold"
                     />
-                    <button onClick={saveCurrentAsTemplate} className="px-3 py-2 bg-[#1B263B] text-white text-xs font-bold rounded-xl hover:bg-[#243447]">
+                    <button onClick={saveCurrentAsTemplate} className="px-3 py-2 bg-navy text-white text-xs font-bold rounded-xl hover:bg-navy-light">
                       <Save size={13} />
                     </button>
                     <button onClick={() => setSavingTemplate(false)} className="p-2 text-slate-400 hover:text-slate-600">
@@ -401,7 +401,7 @@ export default function WhatsAppBlast() {
                 ) : (
                   <button
                     onClick={() => setSavingTemplate(true)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-[#C69C6D] hover:text-[#b8895a] transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-bold text-gold hover:text-gold-hover transition-colors"
                   >
                     <Plus size={12} /> Salvar mensagem atual como modelo
                   </button>
@@ -417,8 +417,8 @@ export default function WhatsAppBlast() {
             />
             {showPreview && (
               <div className="px-5 pb-5">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Preview — como vai aparecer</p>
-                <div className="bg-[#DCF8C6] rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Preview: como vai aparecer</p>
+                <div className="bg-whatsapp-bolha rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {previewMessage(firstContactName)}
                 </div>
               </div>
@@ -426,15 +426,15 @@ export default function WhatsAppBlast() {
           </div>
 
           {/* Delay config */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 px-6 py-5">
-            <p className="font-black text-slate-800 text-sm mb-4">Intervalo entre mensagens</p>
+          <div className="bg-white rounded-2xl border border-slate-100 px-6 py-5">
+            <p className="font-bold text-slate-800 text-sm mb-4">Intervalo entre mensagens</p>
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: 'Mínimo', value: minDelay, set: setMinDelay },
                 { label: 'Máximo', value: maxDelay, set: setMaxDelay },
               ].map(({ label, value, set }) => (
                 <div key={label}>
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest block mb-2">{label}</label>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">{label}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -442,7 +442,7 @@ export default function WhatsAppBlast() {
                       max={120}
                       value={value}
                       onChange={e => set(Number(e.target.value))}
-                      className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:border-[#C69C6D]/50"
+                      className="w-20 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:border-gold/50"
                     />
                     <span className="text-slate-400 text-sm font-bold">seg</span>
                   </div>
@@ -455,18 +455,18 @@ export default function WhatsAppBlast() {
           </div>
 
           {/* Progress / action */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 px-6 py-5">
+          <div className="bg-white rounded-2xl border border-slate-100 px-6 py-5">
             {/* Stats */}
             {(running || done) && (
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { label: 'Enviados', value: sentCount, color: 'text-emerald-600 bg-emerald-50' },
-                  { label: 'Falharam', value: failedCount, color: 'text-red-600 bg-red-50' },
+                  { label: 'Falharam', value: failedCount, color: 'text-rose-600 bg-rose-50' },
                   { label: 'Total', value: totalCount, color: 'text-slate-700 bg-slate-50' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className={`${color} rounded-2xl px-3 py-3 text-center`}>
                     <p className="text-xl font-black">{value}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{label}</p>
                   </div>
                 ))}
               </div>
@@ -477,13 +477,13 @@ export default function WhatsAppBlast() {
               <div className="mb-4">
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#C69C6D] rounded-full transition-all duration-500"
+                    className="h-full bg-gold rounded-full transition-all duration-500"
                     style={{ width: `${((sentCount + failedCount) / totalCount) * 100}%` }}
                   />
                 </div>
                 {countdown != null && (
                   <p className="text-slate-400 text-[11px] mt-2 text-center">
-                    Próximo envio em <span className="font-black text-slate-600">{countdown}s</span>
+                    Próximo envio em <span className="font-bold text-slate-600">{countdown}s</span>
                   </p>
                 )}
               </div>
@@ -492,7 +492,7 @@ export default function WhatsAppBlast() {
             {done && (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 mb-4">
                 <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                <p className="text-emerald-700 font-bold text-xs">Disparo concluído — {sentCount} de {totalCount} enviados com sucesso.</p>
+                <p className="text-emerald-700 font-bold text-xs">Disparo concluído: {sentCount} de {totalCount} enviados.</p>
               </div>
             )}
 
@@ -502,7 +502,7 @@ export default function WhatsAppBlast() {
                 <button
                   onClick={startBlast}
                   disabled={!contacts.length || !template.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm py-3.5 rounded-2xl disabled:opacity-30 transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 bg-navy hover:bg-navy-light text-white font-bold text-sm py-3.5 rounded-2xl disabled:opacity-30 transition-all active:scale-95"
                 >
                   <Send size={14} />
                   {done ? 'Reenviar' : `Disparar para ${contacts.length} contato${contacts.length !== 1 ? 's' : ''}`}
@@ -510,7 +510,7 @@ export default function WhatsAppBlast() {
               ) : (
                 <button
                   onClick={stopBlast}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black text-sm py-3.5 rounded-2xl transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm py-3.5 rounded-2xl transition-all active:scale-95"
                 >
                   <Square size={14} fill="currentColor" />
                   Parar disparo
@@ -519,7 +519,7 @@ export default function WhatsAppBlast() {
               {(Object.keys(statuses).length > 0 && !running) && (
                 <button
                   onClick={reset}
-                  className="w-12 h-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-all"
+                  className="w-12 h-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all"
                   title="Limpar progresso"
                 >
                   <Trash2 size={14} />

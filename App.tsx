@@ -13,9 +13,7 @@ import {
   ChevronRight,
   ChevronDown,
   User,
-  Bell,
   Loader2,
-  Zap,
   Home,
   Landmark,
   Scale,
@@ -26,6 +24,7 @@ import {
   MessageSquare,
   Mail,
   Search,
+  Handshake,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
@@ -86,12 +85,12 @@ const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
-  goals: 'Gestão Comercial — Vendas',
-  directory: 'Seguradoras — Garantia',
+  goals: 'Gestão Comercial · Vendas',
+  directory: 'Seguradoras · Garantia',
   banks: 'Bancos Garantidores',
   letter: 'Gerador de Nomeação',
   calculator: 'Calculadora de Seguros',
-  'endosso-allseg': 'Pedido de Endosso — Allseg',
+  'endosso-allseg': 'Pedido de Endosso · Allseg',
   carteira: 'Carteira de Clientes',
   prospeccao: 'Prospecção',
   'prospeccao-email': 'Prospecção Email',
@@ -108,7 +107,7 @@ const VIEW_TITLES: Record<View, string> = {
   'residencial-seguradoras': 'Seguradoras Residencial',
   'residencial-garantidoras': 'Garantidoras',
   rc: 'Responsabilidade Civil',
-  'rc-seguradoras': 'Seguradoras — RC',
+  'rc-seguradoras': 'Seguradoras · RC',
   'metas-mensais': 'Metas Mensais',
   'metas-anuais': 'Metas Anuais',
   manual: 'Manual de Procedimentos Internos',
@@ -116,12 +115,12 @@ const VIEW_TITLES: Record<View, string> = {
   parceiros: 'Gestão de Parceiros',
   usuarios: 'Usuários do Hub',
   sureties: 'Afiançadoras',
-  whatsapp: 'WhatsApp — Inbox',
-  'whatsapp-blast': 'WhatsApp — Prospecção',
+  whatsapp: 'WhatsApp · Inbox',
+  'whatsapp-blast': 'WhatsApp · Prospecção',
   'email-followup': 'Follow-up de Email',
   'imobiliaria-repasse': 'Repasse Imobiliárias',
   'garantia-locaticia': 'Garantia Locatícia',
-  'inadimplentes': 'Inadimplentes — Residencial',
+  'inadimplentes': 'Inadimplentes · Residencial',
 };
 
 const BadgeDot = ({ count }: { count: number }) => {
@@ -286,7 +285,7 @@ const App: React.FC = () => {
           if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
             const msg = payload.new?.message ?? 'Nova mensagem recebida';
             const name = payload.new?.name ?? payload.new?.phone ?? 'Contato';
-            new Notification(`WhatsApp — ${name}`, {
+            new Notification(`WhatsApp · ${name}`, {
               body: msg.length > 80 ? msg.substring(0, 80) + '…' : msg,
               icon: '/logo.svg',
             });
@@ -341,10 +340,10 @@ const App: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="relative">
-          <div className="w-24 h-24 border-4 border-[#C69C6D]/20 border-t-[#C69C6D] rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center text-[#C69C6D] font-black text-xl">FG</div>
+          <div className="w-24 h-24 border-4 border-gold/20 border-t-gold rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center text-gold font-black text-xl">FG</div>
         </div>
       </div>
     );
@@ -366,17 +365,17 @@ const App: React.FC = () => {
       onClick={() => navigate(view)}
       className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
         activeView === view
-          ? 'bg-[#C69C6D] text-[#1B263B] shadow-2xl shadow-[#C69C6D]/25'
-          : 'text-slate-300 hover:bg-[#243347] hover:text-[#F5F1EA]'
+          ? 'bg-gold text-navy shadow-2xl shadow-gold/25'
+          : 'text-slate-300 hover:bg-navy-light hover:text-areia'
       }`}
     >
       <div className="flex items-center gap-3">
-        <span className={`${activeView === view ? 'text-[#1B263B]' : 'text-slate-400 group-hover:text-[#C69C6D]'} transition-colors`}>{icon}</span>
+        <span className={`${activeView === view ? 'text-navy' : 'text-slate-400 group-hover:text-gold'} transition-colors`}>{icon}</span>
         <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
       </div>
       <div className="flex items-center gap-1.5">
         {badge != null && badge > 0 && (
-          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-xl flex items-center justify-center">
             {badge > 99 ? '99+' : badge}
           </span>
         )}
@@ -400,12 +399,12 @@ const App: React.FC = () => {
           onClick={() => toggleGroup(groupKey)}
           className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
             isGroupActive
-              ? 'bg-[#243347] text-white'
-              : 'text-slate-300 hover:bg-[#243347] hover:text-[#F5F1EA]'
+              ? 'bg-navy-light text-white'
+              : 'text-slate-300 hover:bg-navy-light hover:text-areia'
           }`}
         >
           <div className="flex items-center gap-3">
-            <span className={`${isGroupActive ? 'text-[#C69C6D]' : 'text-slate-400 group-hover:text-[#C69C6D]'} transition-colors`}>{icon}</span>
+            <span className={`${isGroupActive ? 'text-gold' : 'text-slate-400 group-hover:text-gold'} transition-colors`}>{icon}</span>
             <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
           </div>
           <ChevronDown
@@ -414,7 +413,7 @@ const App: React.FC = () => {
           />
         </button>
         {isOpen && (
-          <div className="mt-1 ml-3 pl-3 border-l-2 border-[#C69C6D]/20 space-y-0.5 py-1">
+          <div className="mt-1 ml-3 pl-3 border-l-2 border-gold/20 space-y-0.5 py-1">
             {children}
           </div>
         )}
@@ -428,8 +427,8 @@ const App: React.FC = () => {
       onClick={() => navigate(view)}
       className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
         activeView === view
-          ? 'bg-[#C69C6D] text-[#1B263B] shadow-md shadow-[#C69C6D]/20'
-          : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-[#243347]'
+          ? 'bg-gold text-navy shadow-md shadow-gold/20'
+          : 'text-slate-400 hover:text-areia hover:bg-navy-light'
       }`}
     >
       <span>{label}</span>
@@ -451,15 +450,15 @@ const App: React.FC = () => {
           onClick={() => toggleGroup(groupKey)}
           className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
             isGroupActive
-              ? 'text-[#C69C6D] bg-[#1a2d45]'
-              : 'text-slate-400 hover:text-[#F5F1EA] hover:bg-[#243347]'
+              ? 'text-gold bg-navy-light'
+              : 'text-slate-400 hover:text-areia hover:bg-navy-light'
           }`}
         >
           <span>{label}</span>
           <ChevronDown size={10} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {isOpen && (
-          <div className="mt-0.5 ml-3 pl-3 border-l border-[#C69C6D]/15 space-y-0.5 py-0.5">
+          <div className="mt-0.5 ml-3 pl-3 border-l border-gold/15 space-y-0.5 py-0.5">
             {children}
           </div>
         )}
@@ -471,7 +470,7 @@ const App: React.FC = () => {
     <ToastProvider>
     {/* Passa por navigate() para a busca global respeitar a permissão. */}
     <GlobalSearch onNavigate={(view) => navigate(view as View)} />
-    <div className="min-h-screen flex bg-[#F5F1EA] font-sans selection:bg-[#C69C6D]/30">
+    <div className="min-h-screen flex bg-areia font-sans selection:bg-gold/30">
       {/* Overlay mobile — fecha sidebar ao clicar fora */}
       {isSidebarOpen && (
         <div
@@ -481,9 +480,9 @@ const App: React.FC = () => {
       )}
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#1B263B] transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-navy transform transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } no-print shadow-2xl border-r border-[#C69C6D]/20 h-screen`}
+        } no-print shadow-2xl border-r border-gold/20 h-screen`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 custom-scroll">
@@ -637,7 +636,7 @@ const App: React.FC = () => {
             </nav>
           </div>
 
-          <div className="shrink-0 mt-auto p-6 bg-[#162033] space-y-3">
+          <div className="shrink-0 mt-auto p-6 bg-navy-dark space-y-3">
             {/* Indicador de versão do build — confirma qual deploy está rodando */}
             {(() => {
               const buildTime: string | null = typeof __BUILD_TIME__ === 'string' ? __BUILD_TIME__ : null;
@@ -649,15 +648,14 @@ const App: React.FC = () => {
                 hour: '2-digit', minute: '2-digit',
               });
               return (
-                <div className="flex items-center gap-2 px-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <div className="px-2">
                   <span className="text-[10px] text-slate-500 font-mono">build {fmt}</span>
                 </div>
               );
             })()}
             <button
               onClick={handleLogout}
-              className="group flex items-center gap-3 text-slate-300 hover:text-[#C69C6D] transition-all text-sm font-bold w-full px-5 py-3 rounded-2xl hover:bg-[#243347]"
+              className="group flex items-center gap-3 text-slate-300 hover:text-gold transition-all text-sm font-bold w-full px-5 py-3 rounded-2xl hover:bg-navy-light"
             >
               <LogOut size={14} className="group-hover:rotate-12 transition-transform" />
               <span>Encerrar Acesso</span>
@@ -668,7 +666,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="bg-[#F8F4ED]/95 backdrop-blur-md border-b border-[#C69C6D]/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}>
+        <header className="bg-areia-clara/95 backdrop-blur-md border-b border-gold/25 flex items-center justify-between px-3 lg:px-8 no-print shrink-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}>
           <div className="flex items-center gap-2 lg:gap-4 min-w-0">
             <button
               className="lg:hidden p-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-all shrink-0"
@@ -677,85 +675,74 @@ const App: React.FC = () => {
               {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
             <div className="min-w-0">
-              <h2 className="text-[#1B263B] font-black text-base lg:text-xl tracking-tight truncate">
+              <h2 className="text-navy font-black text-base lg:text-xl tracking-tight truncate">
                 {VIEW_TITLES[activeView]}
               </h2>
-              <p className="hidden sm:block text-[10px] text-[#6E7785] font-bold uppercase tracking-widest mt-0.5 truncate">
+              <p className="hidden sm:block text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate">
                 Sessão Ativa: {session?.user?.email?.split('@')[0]}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
-            <div className="hidden md:flex items-center gap-2 bg-[#EFE7DB] px-3 py-1.5 rounded-xl border border-[#C69C6D]/25">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#C69C6D] animate-pulse"></div>
-              <span className="text-[10px] font-black text-[#1B263B] uppercase tracking-widest">Online</span>
-            </div>
             {/* Busca: ícone no mobile, botão completo no desktop */}
             <button
               onMouseDown={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-              className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-[#f4f1ec] border border-[#e8e4dc] rounded-xl cursor-pointer text-[#78716c] hover:bg-[#ede9e1] transition-all"
+              className="flex items-center gap-2 p-2 sm:px-4 sm:py-2 bg-areia border border-linha rounded-xl cursor-pointer text-stone-500 hover:bg-areia-escura transition-all"
             >
               <Search size={15} />
               <span className="hidden sm:inline text-sm font-semibold">Buscar</span>
-              <kbd className="hidden sm:inline text-[10px] bg-[#e8e4dc] rounded px-1 text-[#94a3b8]">⌘K</kbd>
+              <kbd className="hidden sm:inline text-[10px] bg-linha rounded-xl px-1 text-slate-400">⌘K</kbd>
             </button>
-            <button className="p-2 text-slate-400 hover:text-[#C69C6D] transition-all relative">
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
-            </button>
-            <div className="hidden sm:block h-8 w-[1px] bg-[#C69C6D]/30"></div>
+            <div className="hidden sm:block h-8 w-[1px] bg-gold/30"></div>
             <div className="hidden sm:flex items-center gap-3 group cursor-pointer">
-              <div className="w-9 h-9 rounded-xl bg-[#1B263B] flex items-center justify-center text-[#C69C6D] shadow-md group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-navy flex items-center justify-center text-gold shadow-md group-hover:scale-105 transition-transform">
                 <User size={18} />
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-[#F5F1EA]/80">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 custom-scroll bg-areia/80">
           {/* Limite largo para aproveitar monitores grandes, sem esticar ao infinito em ultrawide */}
           <div className="max-w-[1800px] mx-auto pb-20 lg:pb-16">
 
             {/* ── Visão Geral ──────────────────────────────────── */}
             {activeView === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
-                <div className="bg-[#1B263B] rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
+                {/* Exceção da regra de raio: só o hero do dashboard mantém raio maior */}
+                <div className="bg-navy rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
                   <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
                     <div>
-                      <div className="inline-flex items-center gap-2 bg-[#C69C6D]/20 text-[#C69C6D] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 lg:mb-6 border border-[#C69C6D]/20">
-                        <Zap size={11} fill="currentColor" />
-                        Hub F&G v2.7
-                      </div>
                       <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black mb-3 lg:mb-6 tracking-tighter leading-tight">
-                        Eficiência em <br /><span className="text-[#C69C6D]">Seguros Corporativos.</span>
+                        Eficiência em <br /><span className="text-gold">Seguros Corporativos.</span>
                       </h1>
                       <p className="text-slate-400 max-w-lg text-sm lg:text-base leading-relaxed font-medium hidden sm:block">
                         O Hub centralizado da F&G Corretora permite que você gerencie cálculos, documentos e metas com precisão absoluta.
                       </p>
                       <div className="mt-5 lg:mt-8 flex flex-wrap gap-3">
-                        <button onClick={() => navigate('goals')} className="bg-[#C69C6D] text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-[#b58a5b] transition-all shadow-xl shadow-[#C69C6D]/20 active:scale-95 flex items-center gap-2 text-sm">
+                        <button onClick={() => navigate('goals')} className="bg-gold text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 active:scale-95 flex items-center gap-2 text-sm">
                           Registro de Vendas <ChevronRight size={14} />
                         </button>
-                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-white/10 transition-all text-sm">Performance</button>
+                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-white/10 transition-all text-sm">Performance</button>
                       </div>
                     </div>
                     <div className="hidden lg:flex justify-end">
                       <div className="relative">
-                        <div className="w-64 h-64 bg-gradient-to-br from-[#C69C6D] to-[#1B263B] rounded-[4rem] flex items-center justify-center shadow-2xl p-0.5 rotate-3">
-                          <div className="bg-[#1B263B] w-full h-full rounded-[3.8rem] flex items-center justify-center -rotate-3 overflow-hidden">
-                            <ShieldCheck size={112} className="text-[#C69C6D] opacity-40" />
+                        <div className="w-64 h-64 bg-gradient-to-br from-gold to-navy rounded-[4rem] flex items-center justify-center shadow-2xl p-0.5 rotate-3">
+                          <div className="bg-navy w-full h-full rounded-[3.8rem] flex items-center justify-center -rotate-3 overflow-hidden">
+                            <ShieldCheck size={112} className="text-gold opacity-40" />
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
                           </div>
                         </div>
-                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl animate-bounce duration-[3000ms]">
-                          <Target size={26} className="text-[#C69C6D]" />
+                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl">
+                          <Target size={26} className="text-gold" />
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
-                  <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
+                  <div className="absolute -right-20 -top-20 w-96 h-96 bg-gold opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
+                  <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-gold opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
                 </div>
 
                 <div>
@@ -767,22 +754,18 @@ const App: React.FC = () => {
                       { title: 'Garantia', desc: 'Registro de Vendas', icon: <FileText size={22} />, view: 'goals' as View, color: 'bg-indigo-50 text-indigo-600' },
                       { title: 'Residencial', desc: 'Registro de Clientes', icon: <Home size={22} />, view: 'residential' as View, color: 'bg-emerald-50 text-emerald-600' },
                       { title: 'WhatsApp', desc: 'Central de Mensagens', icon: <Users size={22} />, view: 'whatsapp' as View, color: 'bg-amber-50 text-amber-600' },
-                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros' as View, color: 'bg-slate-100 text-[#1B263B]' },
+                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros' as View, color: 'bg-slate-100 text-navy' },
                     ] as { title: string; desc: string; icon: React.ReactNode; view: View; color: string }[])
                       // Atalho para tela sem permissão vira botão morto — some.
                       .filter(item => podeVer(item.view))
                       .map((item, idx) => (
                       <button key={idx} onClick={() => navigate(item.view)}
-                        className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-[#C69C6D] hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
+                        className="bg-white p-8 rounded-2xl border border-slate-100 hover:border-gold hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
                         <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 shadow-sm`}>
                           {item.icon}
                         </div>
                         <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
-                        <p className="text-[11px] text-slate-400 uppercase font-black tracking-widest opacity-80">{item.desc}</p>
-                        <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
-                          <span className="text-xs font-black text-[#C69C6D] uppercase tracking-widest group-hover:translate-x-1 transition-transform">Abrir Módulo</span>
-                          <ChevronRight size={13} className="text-slate-300 group-hover:text-[#C69C6D] transition-colors" />
-                        </div>
+                        <p className="text-[11px] text-slate-400 uppercase font-bold tracking-widest opacity-80">{item.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -795,21 +778,21 @@ const App: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
-                      { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: '🤝' },
-                      { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: '🏠' },
+                      { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: <Handshake size={20} className="text-gold" /> },
+                      { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: <Home size={20} className="text-gold" /> },
                     ].map((portal, idx) => (
                       <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-4 lg:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="text-xl shrink-0">{portal.icon}</div>
                           <div className="min-w-0">
-                            <p className="font-black text-slate-800 text-sm">{portal.label}</p>
+                            <p className="font-bold text-slate-800 text-sm">{portal.label}</p>
                             <p className="text-xs text-slate-400 font-medium mt-0.5 hidden sm:block">{portal.desc}</p>
-                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#C69C6D] font-bold hover:underline mt-0.5 block truncate max-w-[220px]">
+                            <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold font-bold hover:underline mt-0.5 block truncate max-w-[220px]">
                               {portal.url.replace('https://', '')}
                             </a>
                           </div>
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-black px-4 py-2.5 min-h-[40px] bg-[#1B263B] hover:bg-[#243447] text-white rounded-xl transition-all">
+                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-bold px-4 py-2.5 min-h-[40px] bg-navy hover:bg-navy-light text-white rounded-xl transition-all">
                           Copiar
                         </button>
                       </div>
@@ -838,7 +821,7 @@ const App: React.FC = () => {
               {vista === 'directory' && (
                 <InsuranceDirectory
                   tableName="insurers"
-                  title="Seguradoras — Garantia"
+                  title="Seguradoras · Garantia"
                   subtitle="Gerenciamento centralizado de acessos e condições comerciais."
                   itemName="Seguradora"
                   emptyStateText="Adicionar Seguradora"
@@ -890,7 +873,7 @@ const App: React.FC = () => {
               {vista === 'rc-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_rc"
-                  title="Seguradoras — RC"
+                  title="Seguradoras · RC"
                   subtitle="Portais, acessos e condições para responsabilidade civil."
                   itemName="Seguradora"
                   emptyStateText="Adicionar Seguradora"

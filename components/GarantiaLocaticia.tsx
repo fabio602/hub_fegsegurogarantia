@@ -164,35 +164,35 @@ const GarantiaLocaticia: React.FC = () => {
 
   const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-3">
-      <div className="w-1.5 h-6 bg-[#C69C6D] rounded-full"></div>
+      <div className="w-1.5 h-6 bg-gold rounded-full"></div>
       {children}
     </h3>
   );
 
   const InputLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
       {children}
     </label>
   );
 
-  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#C69C6D] transition-all";
+  const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all";
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-[#1B263B] rounded-[2rem] p-8 text-white relative overflow-hidden shadow-lg">
+      <div className="bg-navy rounded-2xl p-8 text-white relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex items-center gap-4">
-          <div className="w-14 h-14 bg-[#C69C6D]/20 rounded-2xl flex items-center justify-center border border-[#C69C6D]/30">
-            <Calculator size={28} className="text-[#C69C6D]" />
+          <div className="w-14 h-14 bg-gold/20 rounded-2xl flex items-center justify-center border border-gold/30">
+            <Calculator size={28} className="text-gold" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight">Garantia Locatícia</h1>
             <p className="text-slate-400 text-sm font-medium mt-0.5">
-              Simulação e envio — {config.garantidora}
+              Simulação e envio · {config.garantidora}
             </p>
           </div>
         </div>
-        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[#C69C6D] opacity-[0.05] rounded-full blur-[60px] pointer-events-none"></div>
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-gold opacity-[0.05] rounded-full blur-[60px] pointer-events-none"></div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -200,7 +200,7 @@ const GarantiaLocaticia: React.FC = () => {
         <div className="xl:col-span-1 space-y-6">
 
           {/* Dados do imóvel */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Dados do Imóvel</SectionTitle>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -216,7 +216,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <InputLabel>Endereço do Imóvel (opcional)</InputLabel>
                 <input
                   className={inputCls}
-                  placeholder="Ex.: Rua das Flores, 123 — Apto 42"
+                  placeholder="Ex.: Rua das Flores, 123, Apto 42"
                   value={endereco}
                   onChange={e => setEndereco(e.target.value)}
                 />
@@ -228,10 +228,10 @@ const GarantiaLocaticia: React.FC = () => {
                     <button
                       key={t}
                       onClick={() => setTipoImovel(t)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all ${
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
                         tipoImovel === t
-                          ? 'bg-[#1B263B] text-white shadow-md'
-                          : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'
+                          ? 'bg-navy text-white shadow-md'
+                          : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
                       }`}
                     >
                       {t === 'residencial' ? 'Residencial' : 'Comercial'}
@@ -243,13 +243,13 @@ const GarantiaLocaticia: React.FC = () => {
           </div>
 
           {/* Valores */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Valores Mensais</SectionTitle>
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <InputLabel>Aluguel (R$) *</InputLabel>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                   <input
                     className={`${inputCls} pl-10`}
                     placeholder="0,00"
@@ -262,7 +262,7 @@ const GarantiaLocaticia: React.FC = () => {
               <div className="space-y-1.5">
                 <InputLabel>Outros Encargos (IPTU + Cond.) R$</InputLabel>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                   <input
                     className={`${inputCls} pl-10`}
                     placeholder="0,00"
@@ -274,15 +274,15 @@ const GarantiaLocaticia: React.FC = () => {
               </div>
               {(aluguel > 0 || outros > 0) && (
                 <div className="bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Base Mensal</span>
-                  <span className="text-sm font-black text-slate-800">{fmtBRL(aluguel + outros)}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Base Mensal</span>
+                  <span className="text-sm font-bold text-slate-800">{fmtBRL(aluguel + outros)}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Pagamento */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Forma de Pagamento</SectionTitle>
             <div className="space-y-4">
               <div className="flex gap-2">
@@ -290,10 +290,10 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     key={f}
                     onClick={() => setForma(f)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
                       forma === f
-                        ? 'bg-[#1B263B] text-white shadow-md'
-                        : 'bg-white text-slate-500 border border-slate-200 hover:border-[#C69C6D]'
+                        ? 'bg-navy text-white shadow-md'
+                        : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
                     }`}
                   >
                     {f === 'cartao' ? 'Cartão (sem juros)' : 'Boleto (com juros)'}
@@ -314,7 +314,7 @@ const GarantiaLocaticia: React.FC = () => {
 
           {/* Parâmetros (admin only) */}
           {isAdmin && (
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
               <button
                 onClick={() => setShowParams(p => !p)}
                 className="w-full flex items-center justify-between"
@@ -338,7 +338,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <div className="space-y-1.5">
                     <InputLabel>Setup (R$)</InputLabel>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                       <input
                         type="number"
                         step="0.01"
@@ -369,7 +369,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     onClick={handleSalvarParams}
                     disabled={savingParams}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50"
                   >
                     {savingParams ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Salvar Parâmetros
@@ -383,7 +383,7 @@ const GarantiaLocaticia: React.FC = () => {
         {/* RIGHT — Resultado */}
         <div className="xl:col-span-2 space-y-6">
           {!result ? (
-            <div className="bg-white rounded-[2rem] p-16 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+            <div className="bg-white rounded-2xl p-16 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
                 <Calculator size={36} className="text-slate-300" />
               </div>
@@ -393,17 +393,17 @@ const GarantiaLocaticia: React.FC = () => {
           ) : (
             <>
               {/* Desembolso mensal — destaque */}
-              <div className="bg-[#1B263B] rounded-2xl p-6 text-center">
-                <p className="text-[#C69C6D]/70 text-xs font-black uppercase tracking-widest mb-2">
+              <div className="bg-navy rounded-2xl p-6 text-center">
+                <p className="text-gold/70 text-xs font-bold uppercase tracking-widest mb-2">
                   {forma === 'boleto' ? '1º MÊS' : 'DESEMBOLSO MENSAL'}
                 </p>
-                <p className="text-[#C69C6D] text-4xl font-black">
+                <p className="text-gold text-4xl font-black">
                   {result.forma === 'boleto' ? fmtBRL(result.desembolso_mes1) : fmtBRL(result.desembolso_mensal)}
                 </p>
                 <p className="text-white/50 text-xs mt-1">aluguel + parcela da garantia</p>
                 {result.forma === 'boleto' && (
                   <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-white/60 text-xs font-black uppercase tracking-widest mb-1">DO 2º AO 12º MÊS</p>
+                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">DO 2º AO 12º MÊS</p>
                     <p className="text-white text-2xl font-black">{fmtBRL(result.desembolso_demais)}</p>
                   </div>
                 )}
@@ -429,7 +429,7 @@ const GarantiaLocaticia: React.FC = () => {
                         : 'bg-white border-slate-100'
                     }`}
                   >
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{card.label}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{card.label}</p>
                     <p className="text-lg font-black text-slate-800">{card.value}</p>
                   </div>
                 ))}
@@ -439,26 +439,26 @@ const GarantiaLocaticia: React.FC = () => {
               {result.forma === 'boleto' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Custo do Financiamento</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Custo do Financiamento</p>
                     <p className="text-lg font-black text-amber-600">{fmtBRL(result.custo_financiamento)}</p>
                   </div>
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Taxa Mensal Efetiva</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Taxa Mensal Efetiva</p>
                     <p className="text-lg font-black text-slate-800">{(result.taxa_mensal_efetiva * 100).toFixed(2).replace('.', ',')}% a.m.</p>
                   </div>
                 </div>
               )}
 
               {/* Tabela de parcelas */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <SectionTitle>Cronograma de Parcelas</SectionTitle>
                 <div className="overflow-x-auto rounded-xl border border-slate-100">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50">
-                        <th className="px-4 py-2 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Parcela</th>
-                        <th className="px-4 py-2 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Vencimento</th>
-                        <th className="px-4 py-2 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Parcela</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vencimento</th>
+                        <th className="px-4 py-2 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -466,7 +466,7 @@ const GarantiaLocaticia: React.FC = () => {
                         <tr key={p.numero} className="border-t border-slate-50 hover:bg-slate-50/50">
                           <td className="px-4 py-2 font-bold text-slate-700">{p.numero}ª</td>
                           <td className="px-4 py-2 text-slate-500">{fmtDate(p.data_vencimento)}</td>
-                          <td className="px-4 py-2 text-right font-black text-slate-800">{fmtBRL(p.valor_centavos)}</td>
+                          <td className="px-4 py-2 text-right font-bold text-slate-800">{fmtBRL(p.valor_centavos)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -475,7 +475,7 @@ const GarantiaLocaticia: React.FC = () => {
               </div>
 
               {/* Mensagem WhatsApp */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <SectionTitle>Mensagem para o Cliente</SectionTitle>
                 <div className="bg-slate-50 rounded-xl p-4 mb-4 font-mono text-xs text-slate-600 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto border border-slate-100">
                   {mensagem}
@@ -483,7 +483,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={handleCopiarMensagem}
-                    className="flex items-center gap-2 px-6 py-3 bg-[#1B263B] hover:bg-[#243447] text-white font-black text-sm rounded-xl transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all"
                   >
                     {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
                     {copied ? 'Copiado!' : 'Copiar Mensagem'}
@@ -492,7 +492,7 @@ const GarantiaLocaticia: React.FC = () => {
                     href={`https://wa.me/?text=${encodeURIComponent(mensagem)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl transition-all"
+                    className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-all"
                   >
                     <MessageCircle size={14} />
                     Abrir no WhatsApp
@@ -500,7 +500,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     onClick={handleSalvar}
                     disabled={saving}
-                    className={`flex items-center gap-2 px-6 py-3 font-black text-sm rounded-xl transition-all ${
+                    className={`flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-xl transition-all ${
                       savedOk
                         ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -522,7 +522,7 @@ const GarantiaLocaticia: React.FC = () => {
 
           {/* Histórico de simulações */}
           {simulacoes.length > 0 && (
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
               <SectionTitle>Últimas Simulações</SectionTitle>
               <div className="space-y-2">
                 {simulacoes.map(sim => (
@@ -531,18 +531,18 @@ const GarantiaLocaticia: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all"
                   >
                     <div>
-                      <p className="text-sm font-black text-slate-700">
+                      <p className="text-sm font-bold text-slate-700">
                         {sim.nome_cliente || 'Cliente não informado'}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {sim.forma_pagamento === 'cartao' ? 'Cartão' : 'Boleto'} —{' '}
+                        {sim.forma_pagamento === 'cartao' ? 'Cartão' : 'Boleto'} ·{' '}
                         {new Date(sim.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-slate-400">Aluguel</p>
-                      <p className="text-sm font-black text-slate-700">{fmtBRL(sim.aluguel_centavos)}</p>
-                      <p className="text-xs text-[#C69C6D] font-black">Total: {fmtBRL(sim.total_forma_centavos)}</p>
+                      <p className="text-sm font-bold text-slate-700">{fmtBRL(sim.aluguel_centavos)}</p>
+                      <p className="text-xs text-gold font-bold">Total: {fmtBRL(sim.total_forma_centavos)}</p>
                     </div>
                   </div>
                 ))}

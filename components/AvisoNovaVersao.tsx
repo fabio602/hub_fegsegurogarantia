@@ -85,21 +85,21 @@ export const AvisoNovaVersao: React.FC = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-[60] max-w-sm animate-fade-in">
-      <div className="bg-[#1B263B] text-white rounded-2xl shadow-2xl border border-[#C69C6D]/30 p-5 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[#C69C6D]/15 flex items-center justify-center shrink-0">
-          <RefreshCw size={18} className="text-[#C69C6D]" />
+      <div className="bg-navy text-white rounded-2xl shadow-2xl border border-gold/30 p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center shrink-0">
+          <RefreshCw size={18} className="text-gold" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black">Nova versão do hub disponível</p>
+          <p className="text-sm font-bold">Nova versão do hub disponível</p>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-            Atualize quando terminar o que está fazendo — a página recarrega e você
+            Atualize quando terminar o que está fazendo. A página recarrega e você
             não perde nada que já tenha salvo.
           </p>
           <button
             onClick={atualizar}
             disabled={recarregando}
-            className="mt-3 inline-flex items-center gap-2 bg-[#C69C6D] hover:bg-[#b58a5c] disabled:opacity-60 text-[#1B263B] text-xs font-black px-4 py-2 rounded-xl transition-all"
+            className="mt-3 inline-flex items-center gap-2 bg-gold hover:bg-gold-hover disabled:opacity-60 text-navy text-xs font-bold px-4 py-2 rounded-xl transition-all"
           >
             <RefreshCw size={13} className={recarregando ? 'animate-spin' : ''} />
             {recarregando ? 'Atualizando…' : 'Atualizar agora'}
