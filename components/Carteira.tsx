@@ -162,6 +162,28 @@ export default function Carteira() {
     notificar('Corrigido. Registrado no histórico.');
   }
 
+  /** Desfecho "Cadastro completo" do card sem contato: registra a edição,
+   *  conclui o toque e recria o mesmo gatilho para amanhã, para voltar a
+   *  falar com o cliente já com telefone/email preenchidos. */
+  async function concluirCadastroCompleto() {
+    if (!atual) return;
+    await supabase.from('apolice_contatos').insert({
+      sale_id: atual.sale_id, toque_id: atual.id, staff_id: staffId,
+      canal: 'whatsapp', tipo: 'edicao', observacao: 'Cadastro de contato completado na fila do pós-venda',
+    });
+    await supabase.from('posvenda_toques')
+      .update({ status: 'concluido', concluido_em: new Date().toISOString(), staff_id: staffId })
+      .eq('id', atual.id);
+    await supabase.from('posvenda_toques').insert({
+      sale_id: atual.sale_id, gatilho: atual.gatilho,
+      vence_em: new Date(Date.now() + 864e5).toISOString().slice(0, 10),
+    });
+    setFeitos(f => f + 1);
+    setToques(ts => ts.filter(x => x.id !== atual.id));
+    setI(0);
+    notificar('Cadastro completo. O contato volta para a fila amanhã.');
+  }
+
   async function fecharCadastro() {
     setCadastroAberto(false);
     if (!atual) return;
@@ -189,6 +211,8 @@ export default function Carteira() {
       if (/input|select|textarea/i.test((e.target as HTMLElement).tagName)) return;
       if (e.key.toLowerCase() === 'l') return setVista(v => (v === 'foco' ? 'lista' : 'foco'));
       if (vista !== 'foco' || !atual || painel) return;
+      // Card sem contato tem outros desfechos: os atalhos normais não valem.
+      if (!atual.sales?.telefone && !atual.sales?.email) return;
       const m: Record<string, Desfecho> = { '1': 'vai_renovar', '2': 'nao_renova', '3': 'sem_retorno', '4': 'reagendado' };
       if (m[e.key]) { e.preventDefault(); e.key === '2' ? setPainel('motivo') : concluir(m[e.key]); }
       if (e.key.toLowerCase() === 'w') registrarToque('whatsapp');
@@ -233,7 +257,9 @@ export default function Carteira() {
 
       {vista === 'foco' && (atual ? (
         <CardFoco t={atual} hist={hist} semStaff={!staffId} onAbrirCadastro={() => setCadastroAberto(true)}
-          onAbrirFicha={() => setFichaAberta(true)} editando={editando} setEditando={setEditando}
+          onAbrirFicha={() => setFichaAberta(true)} onCadastroCompleto={concluirCadastroCompleto}
+          onSemDados={() => concluir('sem_retorno', 'sem dados de contato')}
+          editando={editando} setEditando={setEditando}
           onSalvarCampo={salvarCampo} onToque={registrarToque} onDesfecho={d => d === 'nao_renova' ? setPainel('motivo') : concluir(d)}
           painel={painel} setPainel={setPainel} onEscolher={(m: string) =>
             painel === 'erro' ? concluir('encerrada', m) : concluir('nao_renova', m)} />
@@ -307,9 +333,10 @@ export default function Carteira() {
   );
 }
 
-function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
+function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onCadastroCompleto, onSemDados, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
   const s = t.sales, g = GATILHOS[t.gatilho];
   const atraso = diasDe(t.vence_em);
+  const semContato = !s.telefone && !s.email;
   const campos = [
     { k: 'decisor', rot: 'Falar com', tipo: 'text' },
     { k: 'tipo', rot: 'Modalidade', tipo: 'select' },
@@ -325,6 +352,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, editando, 
           ? <span className="bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-md">Atrasado há {atraso} {atraso === 1 ? 'dia' : 'dias'}</span>
           : <span className="bg-navy text-white px-2.5 py-1.5 rounded-md">Hoje</span>}
         <span className="bg-areia-escura text-navy/60 px-2.5 py-1.5 rounded-md">{g?.rot}</span>
+        {semContato && <span className="bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-md">Sem contato cadastrado</span>}
       </div>
 
       <h2 className="text-[27px] font-black tracking-tight leading-tight text-navy mb-3">
@@ -333,9 +361,13 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, editando, 
           {s.nome}
         </button>
       </h2>
-      <p className="text-[17px] leading-relaxed text-navy max-w-[60ch]">{g?.acao(s)}</p>
+      <p className="text-[17px] leading-relaxed text-navy max-w-[60ch]">
+        {semContato
+          ? 'Este cliente não tem telefone nem email cadastrado. Antes de conseguir falar com ele, é preciso completar o cadastro.'
+          : g?.acao(s)}
+      </p>
 
-      {g?.perguntar && (
+      {!semContato && g?.perguntar && (
         <div className="mt-5 p-5 bg-areia border-l-[3px] border-gold rounded-r-[10px]">
           <div className="text-[10px] font-black tracking-widest uppercase text-navy/60 mb-2">O que perguntar</div>
           <p className="text-[15px] leading-relaxed text-navy">{g.perguntar}</p>
@@ -370,30 +402,55 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, editando, 
         ))}
       </div>
 
-      <div className="flex gap-2.5 mt-6">
-        <button onClick={() => onToque('whatsapp')}
-          className="inline-flex items-center gap-2 border border-navy/15 rounded-[9px] px-4 py-2.5 text-[13px] font-bold text-navy hover:border-navy transition">
-          <span className="w-[7px] h-[7px] rounded-full bg-whatsapp" />
-          WhatsApp {s.telefone ? `· ${s.telefone}` : '· sem telefone'}
-        </button>
-        <button onClick={() => onToque('telefone')}
-          className="inline-flex items-center gap-2 border border-navy/15 rounded-[9px] px-4 py-2.5 text-[13px] font-bold text-navy hover:border-navy transition">
-          <span className="w-[7px] h-[7px] rounded-full bg-navy/60" />Ligar
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-6">
-        {([['1', 'Vai renovar', 'vai_renovar', 'emerald'], ['2', 'Não vai renovar', 'nao_renova', 'rose'],
-           ['3', 'Sem retorno', 'sem_retorno', ''], ['4', 'Reagendar', 'reagendado', '']] as const).map(([k, rot, d, cor]) => (
-          <button key={d} onClick={() => onDesfecho(d)}
-            className={`border border-navy/15 rounded-xl p-4 text-left hover:-translate-y-0.5 hover:shadow-md transition
-              ${cor === 'emerald' ? 'hover:border-emerald-600' : cor === 'rose' ? 'hover:border-rose-600' : ''}`}>
-            <span className={`inline-flex items-center justify-center w-[17px] h-[17px] rounded text-[10px] font-black mb-2
-              ${cor === 'emerald' ? 'bg-emerald-100 text-emerald-700' : cor === 'rose' ? 'bg-rose-100 text-rose-700' : 'bg-areia-escura text-navy/60'}`}>{k}</span>
-            <span className="block text-[13px] font-bold text-navy leading-tight">{rot}</span>
+      {semContato ? (
+        <div className="mt-6">
+          <button onClick={onAbrirCadastro}
+            className="bg-navy text-white rounded-[9px] px-6 py-3 text-[13px] font-bold hover:bg-navy-dark transition">
+            Completar cadastro
           </button>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="flex gap-2.5 mt-6">
+          <button onClick={() => onToque('whatsapp')}
+            className="inline-flex items-center gap-2 border border-navy/15 rounded-[9px] px-4 py-2.5 text-[13px] font-bold text-navy hover:border-navy transition">
+            <span className="w-[7px] h-[7px] rounded-full bg-whatsapp" />
+            WhatsApp {s.telefone ? `· ${s.telefone}` : '· sem telefone'}
+          </button>
+          <button onClick={() => onToque('telefone')}
+            className="inline-flex items-center gap-2 border border-navy/15 rounded-[9px] px-4 py-2.5 text-[13px] font-bold text-navy hover:border-navy transition">
+            <span className="w-[7px] h-[7px] rounded-full bg-navy/60" />Ligar
+          </button>
+        </div>
+      )}
+
+      {semContato ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-6">
+          <button onClick={onCadastroCompleto} disabled={!s.telefone && !s.email}
+            title={!s.telefone && !s.email ? 'Preencha telefone ou email pelo botão Completar cadastro antes de concluir.' : undefined}
+            className="border border-navy/15 rounded-xl p-4 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:hover:border-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span className="block text-[13px] font-bold text-navy leading-tight">Cadastro completo</span>
+            <span className="block text-[11px] text-navy/50 mt-1">Conclui e volta para a fila amanhã, já com contato.</span>
+          </button>
+          <button onClick={onSemDados}
+            className="border border-navy/15 rounded-xl p-4 text-left hover:-translate-y-0.5 hover:shadow-md transition">
+            <span className="block text-[13px] font-bold text-navy leading-tight">Não consegui achar o contato</span>
+            <span className="block text-[11px] text-navy/50 mt-1">Registra sem retorno, por falta de dados de contato.</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-6">
+          {([['1', 'Vai renovar', 'vai_renovar', 'emerald'], ['2', 'Não vai renovar', 'nao_renova', 'rose'],
+             ['3', 'Sem retorno', 'sem_retorno', ''], ['4', 'Reagendar', 'reagendado', '']] as const).map(([k, rot, d, cor]) => (
+            <button key={d} onClick={() => onDesfecho(d)}
+              className={`border border-navy/15 rounded-xl p-4 text-left hover:-translate-y-0.5 hover:shadow-md transition
+                ${cor === 'emerald' ? 'hover:border-emerald-600' : cor === 'rose' ? 'hover:border-rose-600' : ''}`}>
+              <span className={`inline-flex items-center justify-center w-[17px] h-[17px] rounded text-[10px] font-black mb-2
+                ${cor === 'emerald' ? 'bg-emerald-100 text-emerald-700' : cor === 'rose' ? 'bg-rose-100 text-rose-700' : 'bg-areia-escura text-navy/60'}`}>{k}</span>
+              <span className="block text-[13px] font-bold text-navy leading-tight">{rot}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {painel && (
         <div className="mt-6 p-5 bg-areia rounded-xl">
