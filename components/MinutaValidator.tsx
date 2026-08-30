@@ -365,12 +365,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                 <FileText size={22} className="text-gold" />
               </div>
               <div className="text-center">
-                <p className="font-black text-slate-800">{file.name}</p>
+                <p className="font-bold text-slate-800">{file.name}</p>
                 <p className="text-slate-400 text-sm mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={e => { e.stopPropagation(); validate(); }} disabled={loading}
-                  className="bg-navy text-white px-7 py-3 rounded-xl font-black hover:bg-navy-light transition-all shadow flex items-center gap-2 disabled:opacity-60 text-sm">
+                  className="bg-navy text-white px-7 py-3 rounded-xl font-bold hover:bg-navy-light transition-all shadow flex items-center gap-2 disabled:opacity-60 text-sm">
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <ClipboardCheck size={16} />}
                   {loading ? 'Validando...' : 'Validar Minuta'}
                 </button>
@@ -386,7 +386,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                 <Upload size={20} className="text-slate-400" />
               </div>
               <div className="text-center">
-                <p className="font-black text-slate-600">Arraste a minuta aqui</p>
+                <p className="font-bold text-slate-600">Arraste a minuta aqui</p>
                 <p className="text-slate-400 text-sm mt-0.5">ou clique para selecionar · PDF até 30MB</p>
               </div>
             </>
@@ -398,7 +398,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
         <div className="bg-white rounded-2xl border border-slate-100 p-8 flex flex-col items-center gap-3">
           <Loader2 size={28} className="text-gold animate-spin" />
           <div className="text-center">
-            <p className="font-black text-slate-800">Comparando dados...</p>
+            <p className="font-bold text-slate-800">Comparando dados...</p>
             <p className="text-slate-400 text-sm mt-0.5">A IA está conferindo campo a campo</p>
           </div>
         </div>
@@ -408,7 +408,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
         <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
           <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-black text-red-700 text-sm">Erro na validação</p>
+            <p className="font-bold text-red-700 text-sm">Erro na validação</p>
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         </div>
@@ -432,7 +432,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                   )}
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  <div className="flex gap-1.5 text-xs font-black flex-wrap justify-end">
+                  <div className="flex gap-1.5 text-xs font-bold flex-wrap justify-end">
                     {okCount - favCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">{okCount - favCount} OK</span>}
                     {divCount > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
                     {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">{naCount} ⚠</span>}
@@ -440,7 +440,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg">{naAplCount} N/A</span>}
                   </div>
                   {result.veredicto && (
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest ${
                       result.veredicto === 'PODE EMITIR' ? 'bg-emerald-700 text-white' :
                       result.veredicto === 'EMITIR COM RESSALVA' ? 'bg-amber-600 text-white' :
                       'bg-red-700 text-white'
@@ -461,8 +461,8 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     {cfg.icon}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-slate-700 text-sm">{item.campo}</span>
-                        <span className={`text-[10px] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+                        <span className="font-bold text-slate-700 text-sm">{item.campo}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
                       </div>
                       <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                         <div>
@@ -497,7 +497,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           {mensagem && (
             <div className="border-t border-slate-100 pt-4 space-y-3">
               <button onClick={() => setShowMsg(!showMsg)}
-                className="w-full flex items-center justify-between px-5 py-3.5 bg-navy hover:bg-navy-light text-white rounded-2xl transition-all font-black text-sm shadow">
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-navy hover:bg-navy-light text-white rounded-2xl transition-all font-bold text-sm shadow">
                 <div className="flex items-center gap-2">
                   <MessageSquare size={16} className="text-gold" />
                   <span>Gerar Mensagem para o Cliente</span>
@@ -508,9 +508,9 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
               {showMsg && (
                 <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-200">
                   <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-[2px]">Mensagem WhatsApp</span>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mensagem WhatsApp</span>
                     <button onClick={copyMsg}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                       {copied ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar</>}
                     </button>
                   </div>
@@ -529,12 +529,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-4">
                   <CheckCircle2 size={28} className="text-emerald-600 shrink-0" />
                   <div className="flex-1">
-                    <p className="font-black text-emerald-800">Venda registrada com sucesso!</p>
+                    <p className="font-bold text-emerald-800">Venda registrada com sucesso!</p>
                     <p className="text-emerald-700 text-sm mt-0.5">Os dados foram adicionados ao acompanhamento de vendas.</p>
                   </div>
                   {onVerVendas && (
                     <button onClick={onVerVendas}
-                      className="shrink-0 flex items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-900 transition-all border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100">
+                      className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-all border border-emerald-200 px-3 py-2 rounded-xl hover:bg-emerald-100">
                       <ExternalLink size={12} /> Ver em Vendas
                     </button>
                   )}
@@ -544,7 +544,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
               {/* Botão abrir formulário */}
               {!vendaSalva && (
                 <button onClick={showVenda ? () => setShowVenda(false) : openVenda}
-                  className="w-full flex items-center justify-between px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all font-black text-sm shadow">
+                  className="w-full flex items-center justify-between px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all font-bold text-sm shadow">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} />
                     <span>Fechar Venda — Registrar no Acompanhamento</span>
@@ -559,7 +559,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
                   {/* Preview dos dados pré-preenchidos */}
                   <div className="bg-slate-50 border-b border-slate-200 px-5 py-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] mb-3">Dados pré-preenchidos da minuta</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Dados pré-preenchidos da minuta</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
                       {[
                         ['Cliente', result.minuta_dados.tomador],
@@ -579,11 +579,11 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
                   {/* Campos a preencher */}
                   <div className="p-5 space-y-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Complete para registrar</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete para registrar</p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Data da Venda *</label>
+                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Data da Venda *</label>
                         <input
                           type="date"
                           value={vendaForm.data}
@@ -593,7 +593,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                       </div>
 
                       <div>
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Vendedor *</label>
+                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Vendedor *</label>
                         <select
                           value={vendaForm.vendedor}
                           onChange={e => setVendaForm(f => ({ ...f, vendedor: e.target.value }))}
@@ -607,7 +607,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                       </div>
 
                       <div>
-                        <label className="text-xs font-black text-slate-600 uppercase tracking-[1px] block mb-1.5">Comissão (R$)</label>
+                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Comissão (R$)</label>
                         <input
                           type="text"
                           placeholder="Ex: R$ 500,00"
@@ -629,7 +629,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                       <button
                         onClick={salvarVenda}
                         disabled={savingVenda || !vendaForm.vendedor || !vendaForm.data}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow">
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow">
                         {savingVenda ? <><Loader2 size={15} className="animate-spin" /> Registrando...</> : <><Check size={15} /> Confirmar e Registrar Venda</>}
                       </button>
                       <button onClick={() => setShowVenda(false)}
@@ -651,7 +651,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
           {result.parse_error && (
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-[2px] mb-2">Resposta bruta</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
           )}

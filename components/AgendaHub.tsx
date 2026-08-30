@@ -771,7 +771,7 @@ const AgendaHub: React.FC = () => {
       <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-col lg:flex-row">
           <div>
-            <div className="inline-flex items-center gap-2 bg-gold/15 text-gold px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-gold/25">
+            <div className="inline-flex items-center gap-2 bg-gold/15 text-gold px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-gold/25">
               <Calendar size={12} /> Agenda (Hub)
             </div>
             <h3 className="text-2xl font-black text-navy mt-3">Agenda Semanal</h3>
@@ -803,8 +803,8 @@ const AgendaHub: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-center hover:border-gold/50 hover:bg-gold/10 transition-all"
               aria-label="Ir para a semana atual"
             >
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Semana</div>
-              <div className="text-sm font-black text-navy">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Semana</div>
+              <div className="text-sm font-bold text-navy">
                 {weekDaysYmd[0].split('-').reverse().join('/') + ' - ' + weekDaysYmd[4].split('-').reverse().join('/')}
               </div>
             </button>
@@ -837,7 +837,7 @@ const AgendaHub: React.FC = () => {
                   setNewStaffName('');
                   setNewStaffCargo('Responsável');
                 }}
-                className="text-xs font-black text-gold hover:text-gold-hover transition-colors"
+                className="text-xs font-bold text-gold hover:text-gold-hover transition-colors"
               >
                 <Plus size={14} className="inline mr-1" />
                 Adicionar
@@ -891,7 +891,7 @@ const AgendaHub: React.FC = () => {
           <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div className="min-w-0">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Visão semanal</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Visão semanal</div>
                 <div className="text-lg font-black text-navy truncate">
                   {selectedStaff ? selectedStaff.name : 'Selecione um funcionário'}
                 </div>
@@ -933,7 +933,7 @@ const AgendaHub: React.FC = () => {
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50">
-                        <div className="text-xs font-black text-slate-500 uppercase tracking-widest">{title}</div>
+                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</div>
                       </div>
                       <button
                         type="button"
@@ -1004,12 +1004,12 @@ const AgendaHub: React.FC = () => {
                                 className="min-w-0 text-left"
                                 aria-label="Alternar status"
                               >
-                                <div className={`text-sm font-black truncate ${isDone ? 'text-slate-400 line-through' : 'text-navy'}`}>
+                                <div className={`text-sm font-bold truncate ${isDone ? 'text-slate-400 line-through' : 'text-navy'}`}>
                                   {t.title}
                                 </div>
                                 <div className="mt-2 flex items-center gap-2">
                                   <span
-                                    className={`text-[10px] font-black px-2 py-1 rounded-full border ${isDone ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/12 text-navy border-gold/25'}`}
+                                    className={`text-[10px] font-bold px-2 py-1 rounded-full border ${isDone ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/12 text-navy border-gold/25'}`}
                                   >
                                     {isDone ? 'Concluído' : 'Pendente'}
                                   </span>
@@ -1153,7 +1153,7 @@ const AgendaHub: React.FC = () => {
 
             <form onSubmit={handleCreateTask} className="p-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Título</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Título</label>
                 <input
                   value={createTitle}
                   onChange={(e) => setCreateTitle(e.target.value)}
@@ -1165,7 +1165,7 @@ const AgendaHub: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Checklist (bullets)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Checklist (bullets)</label>
                 <textarea
                   value={createChecklistRaw}
                   onChange={(e) => setCreateChecklistRaw(e.target.value)}
@@ -1186,7 +1186,7 @@ const AgendaHub: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-black hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-bold hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {creating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={16} />}
                   Criar
@@ -1222,7 +1222,7 @@ const AgendaHub: React.FC = () => {
               className="p-6 space-y-4"
             >
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Item</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Item</label>
                 <input
                   value={cardItemModal.text}
                   onChange={(e) => setCardItemModal(prev => ({ ...prev, text: e.target.value }))}
@@ -1243,7 +1243,7 @@ const AgendaHub: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-black hover:bg-gold-hover transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-bold hover:bg-gold-hover transition-colors flex items-center justify-center gap-2"
                 >
                   <Plus size={16} />
                   Adicionar
@@ -1277,7 +1277,7 @@ const AgendaHub: React.FC = () => {
               className="p-6 space-y-4"
             >
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome</label>
                 <input
                   value={editStaffModal.name}
                   onChange={(e) => setEditStaffModal(prev => ({ ...prev, name: e.target.value }))}
@@ -1287,7 +1287,7 @@ const AgendaHub: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargo/Função</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargo/Função</label>
                 <input
                   value={editStaffModal.cargo}
                   onChange={(e) => setEditStaffModal(prev => ({ ...prev, cargo: e.target.value }))}
@@ -1306,7 +1306,7 @@ const AgendaHub: React.FC = () => {
                 <button
                   type="submit"
                   disabled={editStaffModal.saving}
-                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-black hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-bold hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {editStaffModal.saving ? <Loader2 size={18} className="animate-spin" /> : null}
                   Salvar
@@ -1344,7 +1344,7 @@ const AgendaHub: React.FC = () => {
             </div>
             <div className="p-6 space-y-3">
               <p className="text-xs text-slate-600 font-medium line-clamp-3">
-                <span className="font-black text-navy">{dayPickerModal.task.title}</span>
+                <span className="font-bold text-navy">{dayPickerModal.task.title}</span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {weekDaysYmd.map(dayYmd => {
@@ -1375,7 +1375,7 @@ const AgendaHub: React.FC = () => {
                 })}
               </div>
               <div className="space-y-2 pt-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ou escolha qualquer data</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ou escolha qualquer data</label>
                 <input
                   type="date"
                   value={dayPickerModal.targetYmd}
@@ -1393,7 +1393,7 @@ const AgendaHub: React.FC = () => {
                     dayKeyForDueDate(dayPickerModal.task.due_date) === dayPickerModal.targetYmd)
                 }
                 onClick={() => void applyDayPickerChoice(dayPickerModal.targetYmd)}
-                className="w-full px-4 py-3 rounded-xl bg-gold text-navy font-black hover:bg-gold-hover transition-colors disabled:opacity-60"
+                className="w-full px-4 py-3 rounded-xl bg-gold text-navy font-bold hover:bg-gold-hover transition-colors disabled:opacity-60"
               >
                 {dayPickerModal.mode === 'copy' ? 'Copiar para data selecionada' : 'Mover para data selecionada'}
               </button>
@@ -1442,7 +1442,7 @@ const AgendaHub: React.FC = () => {
               className="p-6 space-y-4"
             >
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Título</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Título</label>
                 <input
                   value={editTaskModal.title}
                   onChange={(e) => setEditTaskModal(prev => ({ ...prev, title: e.target.value }))}
@@ -1452,7 +1452,7 @@ const AgendaHub: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dia</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dia</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {weekDaysYmd.map(dayYmd => {
                     const selected = editTaskModal.dayYmd === dayYmd;
@@ -1476,7 +1476,7 @@ const AgendaHub: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horário (24h)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Horário (24h)</label>
                 <input
                   type="time"
                   value={editTaskModal.timeStr}
@@ -1486,7 +1486,7 @@ const AgendaHub: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Checklist (1 item por linha)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Checklist (1 item por linha)</label>
                 <textarea
                   value={editTaskModal.checklistRaw}
                   onChange={(e) => setEditTaskModal(prev => ({ ...prev, checklistRaw: e.target.value }))}
@@ -1523,7 +1523,7 @@ const AgendaHub: React.FC = () => {
                 <button
                   type="submit"
                   disabled={editTaskModal.saving}
-                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-black hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 rounded-xl bg-gold text-navy font-bold hover:bg-gold-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {editTaskModal.saving ? <Loader2 size={18} className="animate-spin" /> : null}
                   Salvar

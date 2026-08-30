@@ -91,7 +91,7 @@ export const AvisoNovaVersao: React.FC = () => {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black">Nova versão do hub disponível</p>
+          <p className="text-sm font-bold">Nova versão do hub disponível</p>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed">
             Atualize quando terminar o que está fazendo — a página recarrega e você
             não perde nada que já tenha salvo.
@@ -99,7 +99,7 @@ export const AvisoNovaVersao: React.FC = () => {
           <button
             onClick={atualizar}
             disabled={recarregando}
-            className="mt-3 inline-flex items-center gap-2 bg-gold hover:bg-gold-hover disabled:opacity-60 text-navy text-xs font-black px-4 py-2 rounded-xl transition-all"
+            className="mt-3 inline-flex items-center gap-2 bg-gold hover:bg-gold-hover disabled:opacity-60 text-navy text-xs font-bold px-4 py-2 rounded-xl transition-all"
           >
             <RefreshCw size={13} className={recarregando ? 'animate-spin' : ''} />
             {recarregando ? 'Atualizando…' : 'Atualizar agora'}

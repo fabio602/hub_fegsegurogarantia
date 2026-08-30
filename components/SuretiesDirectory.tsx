@@ -203,7 +203,7 @@ const SuretiesDirectory: React.FC = () => {
                     </div>
                     <button
                         onClick={handleAdd}
-                        className="bg-gold text-white px-8 py-4 rounded-[1.5rem] hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-black"
+                        className="bg-gold text-white px-8 py-4 rounded-[1.5rem] hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
                     >
                         <Plus size={24} strokeWidth={3} />
                         <span className="hidden sm:inline">Novo</span>
@@ -259,7 +259,7 @@ const SuretiesDirectory: React.FC = () => {
 
                             <div className="p-8 space-y-8 flex-1 bg-slate-50/30">
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[2px] mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                                         <UserCircle size={16} className="text-gold" /> Gerente Comercial
                                     </h4>
                                     <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
@@ -273,7 +273,7 @@ const SuretiesDirectory: React.FC = () => {
                                             <>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Nome</span>
-                                                    <span className="font-black text-slate-800">{data.gerente.nome || 'Não informado'}</span>
+                                                    <span className="font-bold text-slate-800">{data.gerente.nome || 'Não informado'}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Telefone</span>
@@ -294,7 +294,7 @@ const SuretiesDirectory: React.FC = () => {
 
                                 {/* Documentos Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[2px] mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                                         <FileText size={16} className="text-gold" /> Documentos Necessários
                                     </h4>
                                     {isEditing ? (
@@ -326,7 +326,7 @@ const SuretiesDirectory: React.FC = () => {
 
                                 {/* Como Precificar Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[2px] mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                                         <Info size={16} className="text-gold" /> Como Precificar?
                                     </h4>
                                     {isEditing ? (
@@ -351,7 +351,7 @@ const SuretiesDirectory: React.FC = () => {
 
                                 {/* Pagamento Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-[2px] mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                                         <DollarSign size={16} className="text-gold" /> Pagamento
                                     </h4>
                                     <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
@@ -364,7 +364,7 @@ const SuretiesDirectory: React.FC = () => {
                                             <>
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">PIX</span>
-                                                    <span className="font-black text-slate-800">{data.pagamento.pix || 'Não informado'}</span>
+                                                    <span className="font-bold text-slate-800">{data.pagamento.pix || 'Não informado'}</span>
                                                 </div>
                                                 <div className="flex flex-col gap-1 mt-2">
                                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Favorecido</span>
@@ -388,7 +388,7 @@ const SuretiesDirectory: React.FC = () => {
                         <div className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl flex items-center justify-center text-slate-200 group-hover:text-gold group-hover:scale-110 transition-all mb-8 border border-slate-50">
                             <ShieldPlus size={48} />
                         </div>
-                        <span className="text-slate-400 font-black uppercase tracking-[4px] group-hover:text-navy">Adicionar Afiançadora</span>
+                        <span className="text-slate-400 font-bold uppercase tracking-[4px] group-hover:text-navy">Adicionar Afiançadora</span>
                     </button>
                 )}
             </div>

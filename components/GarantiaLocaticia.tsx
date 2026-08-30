@@ -170,7 +170,7 @@ const GarantiaLocaticia: React.FC = () => {
   );
 
   const InputLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
       {children}
     </label>
   );
@@ -228,7 +228,7 @@ const GarantiaLocaticia: React.FC = () => {
                     <button
                       key={t}
                       onClick={() => setTipoImovel(t)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all ${
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
                         tipoImovel === t
                           ? 'bg-navy text-white shadow-md'
                           : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
@@ -249,7 +249,7 @@ const GarantiaLocaticia: React.FC = () => {
               <div className="space-y-1.5">
                 <InputLabel>Aluguel (R$) *</InputLabel>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                   <input
                     className={`${inputCls} pl-10`}
                     placeholder="0,00"
@@ -262,7 +262,7 @@ const GarantiaLocaticia: React.FC = () => {
               <div className="space-y-1.5">
                 <InputLabel>Outros Encargos (IPTU + Cond.) R$</InputLabel>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                   <input
                     className={`${inputCls} pl-10`}
                     placeholder="0,00"
@@ -274,8 +274,8 @@ const GarantiaLocaticia: React.FC = () => {
               </div>
               {(aluguel > 0 || outros > 0) && (
                 <div className="bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Base Mensal</span>
-                  <span className="text-sm font-black text-slate-800">{fmtBRL(aluguel + outros)}</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Base Mensal</span>
+                  <span className="text-sm font-bold text-slate-800">{fmtBRL(aluguel + outros)}</span>
                 </div>
               )}
             </div>
@@ -290,7 +290,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     key={f}
                     onClick={() => setForma(f)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${
+                    className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
                       forma === f
                         ? 'bg-navy text-white shadow-md'
                         : 'bg-white text-slate-500 border border-slate-200 hover:border-gold'
@@ -338,7 +338,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <div className="space-y-1.5">
                     <InputLabel>Setup (R$)</InputLabel>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">R$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                       <input
                         type="number"
                         step="0.01"
@@ -369,7 +369,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     onClick={handleSalvarParams}
                     disabled={savingParams}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all disabled:opacity-50"
                   >
                     {savingParams ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Salvar Parâmetros
@@ -394,7 +394,7 @@ const GarantiaLocaticia: React.FC = () => {
             <>
               {/* Desembolso mensal — destaque */}
               <div className="bg-navy rounded-2xl p-6 text-center">
-                <p className="text-gold/70 text-xs font-black uppercase tracking-widest mb-2">
+                <p className="text-gold/70 text-xs font-bold uppercase tracking-widest mb-2">
                   {forma === 'boleto' ? '1º MÊS' : 'DESEMBOLSO MENSAL'}
                 </p>
                 <p className="text-gold text-4xl font-black">
@@ -403,7 +403,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <p className="text-white/50 text-xs mt-1">aluguel + parcela da garantia</p>
                 {result.forma === 'boleto' && (
                   <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-white/60 text-xs font-black uppercase tracking-widest mb-1">DO 2º AO 12º MÊS</p>
+                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">DO 2º AO 12º MÊS</p>
                     <p className="text-white text-2xl font-black">{fmtBRL(result.desembolso_demais)}</p>
                   </div>
                 )}
@@ -429,7 +429,7 @@ const GarantiaLocaticia: React.FC = () => {
                         : 'bg-white border-slate-100'
                     }`}
                   >
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{card.label}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{card.label}</p>
                     <p className="text-lg font-black text-slate-800">{card.value}</p>
                   </div>
                 ))}
@@ -439,11 +439,11 @@ const GarantiaLocaticia: React.FC = () => {
               {result.forma === 'boleto' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Custo do Financiamento</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Custo do Financiamento</p>
                     <p className="text-lg font-black text-amber-600">{fmtBRL(result.custo_financiamento)}</p>
                   </div>
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Taxa Mensal Efetiva</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Taxa Mensal Efetiva</p>
                     <p className="text-lg font-black text-slate-800">{(result.taxa_mensal_efetiva * 100).toFixed(2).replace('.', ',')}% a.m.</p>
                   </div>
                 </div>
@@ -456,9 +456,9 @@ const GarantiaLocaticia: React.FC = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50">
-                        <th className="px-4 py-2 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Parcela</th>
-                        <th className="px-4 py-2 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Vencimento</th>
-                        <th className="px-4 py-2 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Parcela</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vencimento</th>
+                        <th className="px-4 py-2 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -466,7 +466,7 @@ const GarantiaLocaticia: React.FC = () => {
                         <tr key={p.numero} className="border-t border-slate-50 hover:bg-slate-50/50">
                           <td className="px-4 py-2 font-bold text-slate-700">{p.numero}ª</td>
                           <td className="px-4 py-2 text-slate-500">{fmtDate(p.data_vencimento)}</td>
-                          <td className="px-4 py-2 text-right font-black text-slate-800">{fmtBRL(p.valor_centavos)}</td>
+                          <td className="px-4 py-2 text-right font-bold text-slate-800">{fmtBRL(p.valor_centavos)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -483,7 +483,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={handleCopiarMensagem}
-                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all"
                   >
                     {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
                     {copied ? 'Copiado!' : 'Copiar Mensagem'}
@@ -492,7 +492,7 @@ const GarantiaLocaticia: React.FC = () => {
                     href={`https://wa.me/?text=${encodeURIComponent(mensagem)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl transition-all"
+                    className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-all"
                   >
                     <MessageCircle size={14} />
                     Abrir no WhatsApp
@@ -500,7 +500,7 @@ const GarantiaLocaticia: React.FC = () => {
                   <button
                     onClick={handleSalvar}
                     disabled={saving}
-                    className={`flex items-center gap-2 px-6 py-3 font-black text-sm rounded-xl transition-all ${
+                    className={`flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-xl transition-all ${
                       savedOk
                         ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -531,7 +531,7 @@ const GarantiaLocaticia: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all"
                   >
                     <div>
-                      <p className="text-sm font-black text-slate-700">
+                      <p className="text-sm font-bold text-slate-700">
                         {sim.nome_cliente || 'Cliente não informado'}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
@@ -541,8 +541,8 @@ const GarantiaLocaticia: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-slate-400">Aluguel</p>
-                      <p className="text-sm font-black text-slate-700">{fmtBRL(sim.aluguel_centavos)}</p>
-                      <p className="text-xs text-gold font-black">Total: {fmtBRL(sim.total_forma_centavos)}</p>
+                      <p className="text-sm font-bold text-slate-700">{fmtBRL(sim.aluguel_centavos)}</p>
+                      <p className="text-xs text-gold font-bold">Total: {fmtBRL(sim.total_forma_centavos)}</p>
                     </div>
                   </div>
                 ))}

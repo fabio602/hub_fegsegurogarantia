@@ -199,7 +199,7 @@ const ResidentialPublicForm: React.FC = () => {
                             )}
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                     Tipo de seguro *
                                 </label>
                                 <select
@@ -218,7 +218,7 @@ const ResidentialPublicForm: React.FC = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Nome completo do inquilino *
                                     </label>
                                     <input
@@ -231,7 +231,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         CPF / CNPJ *
                                     </label>
                                     <input
@@ -244,7 +244,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         E-mail *
                                     </label>
                                     <input
@@ -257,7 +257,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Telefone / Celular 1 *
                                     </label>
                                     <input
@@ -270,7 +270,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Telefone / Celular 2
                                     </label>
                                     <input
@@ -282,7 +282,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Estado civil
                                     </label>
                                     <select
@@ -298,7 +298,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         CEP do imóvel
                                     </label>
                                     <input
@@ -310,7 +310,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Número do imóvel
                                     </label>
                                     <input
@@ -322,7 +322,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Tipo de imóvel
                                     </label>
                                     <select
@@ -338,7 +338,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Valor do imóvel
                                     </label>
                                     <input
@@ -351,7 +351,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Valor do aluguel
                                     </label>
                                     <input
@@ -364,7 +364,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Data do primeiro pagamento do aluguel
                                     </label>
                                     <input
@@ -375,7 +375,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <label className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Valor IPTU e/ou condomínio
                                     </label>
                                     <input
@@ -393,7 +393,7 @@ const ResidentialPublicForm: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-navy font-black text-sm px-8 py-4 rounded-xl shadow-lg border border-navy/10 flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
+                                    className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-navy font-bold text-sm px-8 py-4 rounded-xl shadow-lg border border-navy/10 flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
                                 >
                                     {submitting ? (
                                         <>

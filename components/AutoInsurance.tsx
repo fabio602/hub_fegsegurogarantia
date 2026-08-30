@@ -88,7 +88,7 @@ const isExpired = (date: string) => {
 };
 
 const INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all";
-const LABEL_CLS = "block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5";
+const LABEL_CLS = "block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5";
 
 type FieldonChange = React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
 
@@ -459,14 +459,14 @@ const AutoInsurance: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {/* Importar Apólice com IA — no cabeçalho */}
-          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer border transition-all ${autoExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/10 text-gold-hover border-gold/30 hover:bg-gold/20'}`} title="Importar apólice com IA">
+          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer border transition-all ${autoExtracting ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/10 text-gold-hover border-gold/30 hover:bg-gold/20'}`} title="Importar apólice com IA">
             <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
             <FileText size={15} />
             {autoExtracting ? 'Lendo...' : 'Importar Apólice'}
           </label>
           <button
             onClick={() => { setShowForm(true); setEditingId(null); setFormData(EMPTY_FORM); }}
-            className="flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-xl font-black text-sm hover:bg-navy-light transition-all shadow-lg"
+            className="flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-navy-light transition-all shadow-lg"
           >
             <Plus size={15} /> Novo Cliente
           </button>
@@ -482,7 +482,7 @@ const AutoInsurance: React.FC = () => {
           { label: 'Vencidos', value: stats.vencidos, color: 'text-red-600' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{s.label}</p>
             <p className={`text-3xl font-black mt-1 ${s.color}`}>{s.value}</p>
           </div>
         ))}
@@ -504,7 +504,7 @@ const AutoInsurance: React.FC = () => {
       {showForm && (
         <div className="bg-white rounded-3xl border border-gold/30 shadow-xl overflow-hidden">
           <div className="bg-navy px-6 py-4 flex items-center justify-between">
-            <h3 className="text-white font-black text-sm flex items-center gap-2">
+            <h3 className="text-white font-bold text-sm flex items-center gap-2">
               <Car size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Seguro AUTO'}
             </h3>
             <div className="flex items-center gap-3">
@@ -520,11 +520,11 @@ const AutoInsurance: React.FC = () => {
             {/* Importar Apólice com IA */}
             <div className="bg-amber-50 border border-gold/30 rounded-2xl p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-black text-slate-700">📄 Importar Apólice com IA</p>
+                <p className="text-sm font-bold text-slate-700">📄 Importar Apólice com IA</p>
                 <p className="text-xs text-slate-500 mt-0.5">Anexe o PDF e os campos são preenchidos automaticamente</p>
                 {autoExtractMsg && <p className="text-xs font-bold mt-1" style={{ color: autoExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{autoExtractMsg}</p>}
               </div>
-              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm cursor-pointer transition-all shrink-0 ${autoExtracting ? 'bg-slate-100 text-slate-400' : 'bg-navy text-gold hover:bg-navy-light'}`}>
+              <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all shrink-0 ${autoExtracting ? 'bg-slate-100 text-slate-400' : 'bg-navy text-gold hover:bg-navy-light'}`}>
                 <input ref={autoFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleAutoExtract} disabled={autoExtracting} />
                 {autoExtracting ? '⏳ Processando...' : '📤 Anexar PDF'}
               </label>
@@ -532,7 +532,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados do Cliente */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados do Cliente</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3">Dados do Cliente</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="nome" label="Nome Completo" required colSpan="sm:col-span-2 lg:col-span-2" />
                 <InputField formData={fd} onChange={oc}id="cpf" label="CPF" placeholder="000.000.000-00" />
@@ -544,7 +544,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados do Veículo */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados do Veículo</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3">Dados do Veículo</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="marca_modelo" label="Marca / Modelo" placeholder="Ex: Fiat Pulse" colSpan="lg:col-span-2" />
                 <InputField formData={fd} onChange={oc}id="ano_fabricacao" label="Ano Fabricação" placeholder="2023" />
@@ -558,7 +558,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Dados da Apólice */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Dados da Apólice</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3">Dados da Apólice</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InputField formData={fd} onChange={oc}id="seguradora" label="Seguradora" />
                 <InputField formData={fd} onChange={oc}id="apolice" label="Nº Apólice" />
@@ -576,7 +576,7 @@ const AutoInsurance: React.FC = () => {
 
             {/* Observações */}
             <div>
-              <label htmlFor="obs" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Observações</label>
+              <label htmlFor="obs" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Observações</label>
               <textarea
                 id="obs"
                 rows={3}
@@ -589,7 +589,7 @@ const AutoInsurance: React.FC = () => {
             {/* Parcelas / Boletos */}
             {editingId && (
               <div className="border-t border-slate-100 pt-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
                   <FileText size={12} /> Parcelas / Boletos
                   {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
                 </p>
@@ -600,20 +600,20 @@ const AutoInsurance: React.FC = () => {
                     {autoBoletos.map(b => (
                       <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
                           {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                           {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
-                          <span className={`text-xs font-black ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
+                          <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button onClick={() => handleToggleAutoPago(b.id, b.pago)} className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          <button onClick={() => handleToggleAutoPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                             {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                           </button>
-                          <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800">
+                          <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
                             <Download size={12} /> PDF
                           </a>
                           {!b.pago && (
-                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
+                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                               {sendingAutoBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                               {autoBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
@@ -627,7 +627,7 @@ const AutoInsurance: React.FC = () => {
 
                 {/* Add boleto form */}
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
@@ -644,9 +644,9 @@ const AutoInsurance: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
-                    <input type="file" accept="application/pdf" onChange={e => setAutoBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-navy file:text-gold hover:file:bg-navy-light cursor-pointer" />
+                    <input type="file" accept="application/pdf" onChange={e => setAutoBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-navy file:text-gold hover:file:bg-navy-light cursor-pointer" />
                   </div>
-                  <button onClick={handleAddAutoBoleto} disabled={autoBoletoAdding || !autoBoletoForm.parcela || !autoBoletoForm.file} className="flex items-center gap-2 bg-navy text-gold px-5 py-2.5 rounded-xl font-black text-sm hover:bg-navy-light disabled:opacity-50 transition-all">
+                  <button onClick={handleAddAutoBoleto} disabled={autoBoletoAdding || !autoBoletoForm.parcela || !autoBoletoForm.file} className="flex items-center gap-2 bg-navy text-gold px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-navy-light disabled:opacity-50 transition-all">
                     {autoBoletoAdding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                     {autoBoletoAdding ? 'Salvando...' : 'Adicionar Boleto'}
                   </button>
@@ -657,21 +657,21 @@ const AutoInsurance: React.FC = () => {
             <div className="flex items-center justify-between pt-2">
               {editingId ? (
                 <button type="button" onClick={() => handleDelete(editingId)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all">
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all">
                   <Trash2 size={14} /> Excluir
                 </button>
               ) : <div />}
               <div className="flex gap-3">
                 {editingId ? (
                   <button type="button" onClick={handleCancel}
-                    className="px-6 py-2.5 rounded-xl font-black text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
+                    className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
                     Fechar
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 bg-gold text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-gold-hover disabled:opacity-50 transition-all shadow-lg"
+                    className="flex items-center gap-2 bg-gold text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-gold-hover disabled:opacity-50 transition-all shadow-lg"
                   >
                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     {saving ? 'Salvando...' : 'Salvar'}
@@ -736,7 +736,7 @@ const AutoInsurance: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
                   {['Cliente', 'CPF', 'Contato', 'Veículo', 'Placa', 'Cobertura', 'Apólice', 'Prêmio', 'Comissão', 'Fim Vigência', 'Situação', 'Ações'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -763,11 +763,11 @@ const AutoInsurance: React.FC = () => {
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{c.comissao || '—'}</td>
                       <td className={`px-4 py-3 font-bold whitespace-nowrap ${expired ? 'text-red-600' : expiring ? 'text-amber-600' : 'text-slate-600'}`}>
                         {c.fim_vigencia ? new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-                        {expiring && !expired && <span className="ml-1 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-black">VENCE</span>}
-                        {expired && <span className="ml-1 text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-black">VENCIDO</span>}
+                        {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">VENCE</span>}
+                        {expired && <span className="ml-1 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">VENCIDO</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
                           {c.situacao}
                         </span>
                       </td>
@@ -782,9 +782,9 @@ const AutoInsurance: React.FC = () => {
                           </button>
                           {deleteConfirm === c.id ? (
                             <div className="flex items-center gap-1 bg-red-50 rounded-lg px-2 py-1">
-                              <span className="text-[10px] text-red-600 font-black">Confirmar?</span>
-                              <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-800 text-[10px] font-black">Sim</button>
-                              <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 hover:text-slate-600 text-[10px] font-black">Não</button>
+                              <span className="text-[10px] text-red-600 font-bold">Confirmar?</span>
+                              <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-800 text-[10px] font-bold">Sim</button>
+                              <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 hover:text-slate-600 text-[10px] font-bold">Não</button>
                             </div>
                           ) : (
                             <button

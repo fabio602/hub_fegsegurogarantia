@@ -141,7 +141,7 @@ const NominationLetter: React.FC = () => {
               <button 
                 onClick={handleExportPDF}
                 disabled={isExporting}
-                className={`flex items-center justify-center gap-3 bg-gold text-white px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-gold/20 active:scale-95 shrink-0 ${isExporting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gold-hover'}`}
+                className={`flex items-center justify-center gap-3 bg-gold text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-xl shadow-gold/20 active:scale-95 shrink-0 ${isExporting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gold-hover'}`}
               >
                 {isExporting ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
                 {isExporting ? 'Processando...' : 'Baixar PDF A4'}
@@ -156,14 +156,14 @@ const NominationLetter: React.FC = () => {
             <div className="flex items-start gap-3 bg-gold/8 border border-gold/25 rounded-2xl px-5 py-4">
               <span className="text-xl mt-0.5">💡</span>
               <div>
-                <p className="text-sm font-black text-slate-700">Preencha só o CNPJ</p>
+                <p className="text-sm font-bold text-slate-700">Preencha só o CNPJ</p>
                 <p className="text-xs text-slate-500 mt-0.5">Os demais dados (Razão Social, Cidade, Telefone e E-mail) são buscados automaticamente na Receita Federal.</p>
               </div>
             </div>
 
             {/* CNPJ — campo principal em destaque */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                 CNPJ da empresa
                 {cnpjStatus === 'loading' && <span className="flex items-center gap-1 text-slate-400 font-semibold normal-case text-[10px]"><Loader2 size={10} className="animate-spin" /> Consultando Receita Federal...</span>}
                 {cnpjStatus === 'found' && <span className="flex items-center gap-1 text-emerald-500 font-bold normal-case text-[10px]"><CheckCircle2 size={10} /> Dados preenchidos automaticamente</span>}
@@ -189,9 +189,9 @@ const NominationLetter: React.FC = () => {
             <div className={`space-y-6 transition-opacity duration-300 ${cnpjStatus === 'idle' ? 'opacity-50' : 'opacity-100'}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                   Razão Social do Tomador
-                  {cnpjStatus === 'found' && data.razaoSocial && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                  {cnpjStatus === 'found' && data.razaoSocial && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                 </label>
                 <input
                   type="text"
@@ -205,9 +205,9 @@ const NominationLetter: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                     Cidade
-                    {cnpjStatus === 'found' && data.cidade && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                    {cnpjStatus === 'found' && data.cidade && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
                   <input
                     type="text"
@@ -217,9 +217,9 @@ const NominationLetter: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                     Telefone
-                    {cnpjStatus === 'found' && data.telefone && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                    {cnpjStatus === 'found' && data.telefone && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
                   <input
                     type="text"
@@ -229,9 +229,9 @@ const NominationLetter: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                     E-mail
-                    {cnpjStatus === 'found' && data.email && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ auto</span>}
+                    {cnpjStatus === 'found' && data.email && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
                   <input
                     type="email"
@@ -248,15 +248,15 @@ const NominationLetter: React.FC = () => {
                  <UserCheck size={24} />
               </div>
               <div className="flex-1 w-full space-y-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[2px] flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                   Nome do Assinante Responsável
-                  {cnpjStatus === 'found' && data.nomeAssinatura && <span className="text-emerald-400 text-[9px] font-bold normal-case">✓ sócio da empresa</span>}
+                  {cnpjStatus === 'found' && data.nomeAssinatura && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ sócio da empresa</span>}
                 </label>
                 <input 
                   type="text" 
                   value={data.nomeAssinatura}
                   onChange={e => setData({...data, nomeAssinatura: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none font-black text-navy"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none font-bold text-navy"
                   placeholder="Nome que aparecerá na assinatura"
                 />
               </div>
@@ -265,14 +265,14 @@ const NominationLetter: React.FC = () => {
 
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 h-full">
-               <h3 className="font-black text-navy text-xs uppercase tracking-[3px] flex items-center gap-2">
+               <h3 className="font-bold text-navy text-xs uppercase tracking-widest flex items-center gap-2">
                   <ShieldCheck size={16} className="text-gold" />
                   Seleção Cias
                </h3>
                <p className="text-[11px] text-slate-400 font-medium mt-1 mb-4">
                  Escolha as seguradoras para as quais você precisa da nomeação.
                  {data.seguradoras.length > 0 && (
-                   <span className="ml-1 font-black text-gold">{data.seguradoras.length} selecionada{data.seguradoras.length > 1 ? 's' : ''}.</span>
+                   <span className="ml-1 font-bold text-gold">{data.seguradoras.length} selecionada{data.seguradoras.length > 1 ? 's' : ''}.</span>
                  )}
                </p>
                <div className="grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scroll">
@@ -286,7 +286,7 @@ const NominationLetter: React.FC = () => {
                      <button
                        key={seg}
                        onClick={() => handleToggleSeguradora(seg)}
-                       className={`flex items-center justify-between p-3 rounded-xl border transition-all text-[10px] font-black tracking-tight ${
+                       className={`flex items-center justify-between p-3 rounded-xl border transition-all text-[10px] font-bold tracking-tight ${
                          data.seguradoras.includes(seg) 
                          ? 'bg-navy border-navy text-white' 
                          : 'bg-white border-slate-200 text-slate-500'
@@ -306,7 +306,7 @@ const NominationLetter: React.FC = () => {
       {/* Visualização do Documento (Ajustado para Página Única A4) */}
       <div className="flex flex-col items-center gap-6 py-10 bg-slate-100/50 rounded-[3rem] border border-dashed border-slate-200">
          <div className="flex items-center gap-3">
-            <p className="text-slate-500 font-black text-[10px] uppercase tracking-[4px]">Preview A4 • Versão de Página Única</p>
+            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[4px]">Preview A4 • Versão de Página Única</p>
          </div>
 
          {/* Container A4 Rigoroso */}
@@ -323,12 +323,12 @@ const NominationLetter: React.FC = () => {
                    </div>
                    <div>
                       <h1 className="text-xl font-black text-navy leading-none uppercase tracking-tighter">F&G Corretora</h1>
-                      <p className="text-[8px] font-black uppercase tracking-[2px] text-gold mt-1 italic">Garantia, Riscos & Soluções Corporativas</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gold mt-1 italic">Garantia, Riscos & Soluções Corporativas</p>
                    </div>
                 </div>
                 <div className="text-right space-y-0.5">
-                   <p className="text-[8px] font-black text-navy uppercase tracking-wider">Doc Ref: FG-{Math.floor(Math.random() * 9000) + 1000}</p>
-                   <p className="text-[7px] font-bold text-slate-400 uppercase leading-tight">
+                   <p className="text-[10px] font-bold text-navy uppercase tracking-wider">Doc Ref: FG-{Math.floor(Math.random() * 9000) + 1000}</p>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase leading-tight">
                       CNPJ: 56.123.874/0001-90 | SUSEP: 242160653
                    </p>
                 </div>
@@ -340,7 +340,7 @@ const NominationLetter: React.FC = () => {
 
             <div className="space-y-6 text-slate-700 leading-relaxed text-[12px] text-justify">
               <div>
-                <p className="font-black text-navy uppercase text-[9px] tracking-[1.5px] mb-1">À atenção do:</p>
+                <p className="font-bold text-navy uppercase text-[10px] tracking-[1.5px] mb-1">À atenção do:</p>
                 <p className="font-bold text-slate-900 uppercase text-[10px] pl-2">
                   Departamento de Cadastro, Subscrição e Produção
                 </p>
@@ -356,7 +356,7 @@ const NominationLetter: React.FC = () => {
                 {/* Lista de Seguradoras em Grade Compacta */}
                 <div className="grid grid-cols-2 gap-y-2 gap-x-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                    {data.seguradoras.map(s => (
-                      <div key={s} className="flex items-center gap-2 text-[9px] font-black text-navy uppercase tracking-tight">
+                      <div key={s} className="flex items-center gap-2 text-[10px] font-bold text-navy uppercase tracking-tight">
                          <div className="w-2 h-2 rounded-full bg-gold" /> {s}
                       </div>
                    ))}
@@ -380,18 +380,18 @@ const NominationLetter: React.FC = () => {
             <div className="mt-auto pb-6">
               <div className="flex flex-col items-center">
                 <div className="w-64 h-[0.5px] bg-slate-300 mb-4"></div>
-                <p className="text-[11px] font-black text-navy uppercase tracking-[2px] text-center">
+                <p className="text-[11px] font-bold text-navy uppercase tracking-widest text-center">
                   {data.nomeAssinatura || data.razaoSocial || 'ASSINATURA DO RESPONSÁVEL'}
                 </p>
-                <p className="text-[8px] font-bold text-slate-400 uppercase mt-1 tracking-widest">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">
                    CNPJ: {data.cnpj || '00.000.000/0000-00'}
                 </p>
                 
-                <div className="mt-6 flex items-center gap-6 text-[8px] font-bold text-slate-500 uppercase">
+                <div className="mt-6 flex items-center gap-6 text-[10px] font-bold text-slate-500 uppercase">
                   {data.telefone && (
                     <div className="flex items-center gap-1">
                       <Phone size={10} className="text-gold shrink-0" />
-                      <WhatsAppPhoneLink phone={data.telefone} className="text-[8px] font-bold text-slate-500 normal-case" />
+                      <WhatsAppPhoneLink phone={data.telefone} className="text-[10px] font-bold text-slate-500 normal-case" />
                     </div>
                   )}
                   {data.email && (
@@ -402,7 +402,7 @@ const NominationLetter: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between items-end mt-10 text-[8px] font-black text-slate-300 tracking-widest uppercase pt-2 border-t border-slate-50">
+              <div className="flex justify-between items-end mt-10 text-[10px] font-bold text-slate-300 tracking-widest uppercase pt-2 border-t border-slate-50">
                 <p>{data.cidade}, {data.dataExtenso}</p>
                 <p className="flex items-center gap-1 italic">
                   <ShieldCheck size={10} className="text-gold" />

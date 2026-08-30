@@ -58,7 +58,7 @@ function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactN
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
-          <span className={`text-[10px] font-black uppercase tracking-[2px] ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
         </div>
         {copyValue && <CopyBtn text={copyValue} light={highlight} />}
       </div>
@@ -169,7 +169,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       {/* History panel */}
       {showHistory && history.length > 0 && (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 space-y-3">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
           {history.map((entry, i) => (
             <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="min-w-0">
@@ -179,7 +179,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   {new Date(entry.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </p>
                 {entry.data.valor_garantia_proposta_calculado && (
-                  <p className="text-xs font-black text-gold mt-0.5">
+                  <p className="text-xs font-bold text-gold mt-0.5">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.data.valor_garantia_proposta_calculado)}
                   </p>
                 )}
@@ -211,7 +211,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               <Upload size={24} className="text-slate-400" />
             </div>
             <div className="text-center">
-              <p className="font-black text-slate-700">Arraste os arquivos aqui</p>
+              <p className="font-bold text-slate-700">Arraste os arquivos aqui</p>
               <p className="text-slate-400 text-sm mt-1">PDF, JPG, PNG · até 30MB cada</p>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
               {/* Additional instructions */}
               <div className="pt-1">
-                <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1.5">Instrução adicional (opcional)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Instrução adicional (opcional)</label>
                 <textarea
                   value={additionalInstructions}
                   onChange={e => setAdditionalInstructions(e.target.value)}
@@ -246,7 +246,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
               <div className="flex gap-3">
                 <button onClick={analyze} disabled={loading}
-                  className="flex-1 bg-navy text-white px-8 py-3.5 rounded-2xl font-black hover:bg-navy-light transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                  className="flex-1 bg-navy text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-navy-light transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
                   {loading ? 'Analisando...' : `Analisar ${files.length > 1 ? `${files.length} arquivos` : 'Edital'} com IA`}
                 </button>
@@ -274,7 +274,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
         <div className="bg-red-50 border border-red-100 rounded-2xl p-5 flex items-start gap-3">
           <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-black text-red-700">Erro na análise</p>
+            <p className="font-bold text-red-700">Erro na análise</p>
             <p className="text-red-600 text-sm mt-1">{error}</p>
           </div>
         </div>
@@ -290,7 +290,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               <div className="flex-1 min-w-0 space-y-2">
                 {/* Modalidade + Edital */}
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[3px] text-gold">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
                     {result.modalidade || 'Licitação Pública'}{result.numero_edital ? ` · ${result.numero_edital}` : ''}
                   </p>
                   {result.numero_edital && <CopyBtn text={result.numero_edital} light />}
@@ -353,12 +353,12 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
           {(result.formula_calculo || result.divergencia_validade_proposta) && (
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 space-y-2">
               {result.formula_calculo && (
-                <p className="text-sm text-slate-600"><span className="font-black text-slate-700">Fórmula:</span> {result.formula_calculo}</p>
+                <p className="text-sm text-slate-600"><span className="font-bold text-slate-700">Fórmula:</span> {result.formula_calculo}</p>
               )}
               {result.divergencia_validade_proposta &&
                !/nenhuma diverg|sem diverg|não há diverg|nao ha diverg/i.test(result.divergencia_validade_proposta) && (
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                  <span className="font-black">Divergência de validade:</span> {result.divergencia_validade_proposta}
+                  <span className="font-bold">Divergência de validade:</span> {result.divergencia_validade_proposta}
                 </p>
               )}
             </div>
@@ -375,7 +375,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-slate-400"><Calendar size={15} /></span>
-                <span className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Vigência da Garantia de Proposta</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência da Garantia de Proposta</span>
               </div>
               {(() => {
                 const BUFFER_DIAS = 30;
@@ -473,7 +473,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 space-y-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={18} className="text-red-600 shrink-0" />
-                <p className="font-black text-red-800 text-sm">
+                <p className="font-bold text-red-800 text-sm">
                   {result.parse_error ? 'Erro de parsing: resposta do modelo não é JSON válido' : 'Erro de validação de schema'}
                 </p>
               </div>
@@ -496,7 +496,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-100/50 transition-all">
                 <div className="flex items-center gap-2">
                   <Info size={15} className="text-amber-600" />
-                  <span className="font-black text-amber-800 text-xs uppercase tracking-[1.5px]">Observações da IA</span>
+                  <span className="font-bold text-amber-800 text-xs uppercase tracking-[1.5px]">Observações da IA</span>
                 </div>
                 {showObs ? <ChevronUp size={15} className="text-amber-600" /> : <ChevronDown size={15} className="text-amber-600" />}
               </button>
@@ -508,7 +508,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {result.parse_error && (
             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-[2px] mb-2">Resposta bruta</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
           )}
@@ -529,14 +529,14 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   <div className="border border-red-200 rounded-2xl overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 bg-red-50 border-b border-red-200">
                       <AlertTriangle size={14} className="text-red-600 shrink-0" />
-                      <span className="font-black text-red-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
+                      <span className="font-bold text-red-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
                     </div>
                     <ul className="px-5 py-3 space-y-2">
                       {bloqueantes.map((a, i) => {
                         const cfg = ALERTA_CONFIG[a.tipo];
                         return (
                           <li key={i} className="flex items-start gap-2.5">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                             <span className="text-sm text-red-800">{a.texto}</span>
                           </li>
                         );
@@ -548,14 +548,14 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   <div className="border border-amber-200 rounded-2xl overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
                       <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-                      <span className="font-black text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
+                      <span className="font-bold text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
                     </div>
                     <ul className="px-5 py-3 space-y-2">
                       {outros.map((a, i) => {
                         const cfg = ALERTA_CONFIG[a.tipo];
                         return (
                           <li key={i} className="flex items-start gap-2.5">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                             <span className="text-sm text-amber-800">{a.texto}</span>
                           </li>
                         );
@@ -572,8 +572,8 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-red-50 border-2 border-red-300 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 bg-red-100 border-b border-red-200">
                 <AlertTriangle size={15} className="text-red-600 shrink-0" />
-                <span className="font-black text-red-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
-                <span className="ml-auto text-[10px] font-black text-red-600 bg-red-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
+                <span className="font-bold text-red-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
+                <span className="ml-auto text-[10px] font-bold text-red-600 bg-red-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
                 {result.pendencias_bloqueantes.map((p, i) => (
@@ -590,7 +590,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-200">
                 <Info size={14} className="text-slate-500 shrink-0" />
-                <span className="font-black text-slate-600 text-xs uppercase tracking-widest">Recomendações Operacionais</span>
+                <span className="font-bold text-slate-600 text-xs uppercase tracking-widest">Recomendações Operacionais</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
                 {result.recomendacoes.map((r, i) => (
@@ -607,7 +607,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 ? (
               <div className="bg-slate-100 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
                 <AlertTriangle size={24} className="text-slate-400 mx-auto" />
-                <p className="font-black text-slate-600 text-sm">Double Check indisponível</p>
+                <p className="font-bold text-slate-600 text-sm">Double Check indisponível</p>
                 <p className="text-slate-400 text-xs">Resolva as pendências bloqueantes listadas acima antes de validar a minuta. Exemplo: confirme o valor estimado junto ao órgão licitante.</p>
               </div>
             ) : (

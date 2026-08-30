@@ -280,7 +280,7 @@ const PendenciasHub: React.FC = () => {
                 <button
                     type="button"
                     onClick={abrirNova}
-                    className="inline-flex items-center gap-2 bg-navy text-white px-5 py-3 rounded-xl font-black text-sm shadow-lg hover:bg-navy-light transition-all shrink-0"
+                    className="inline-flex items-center gap-2 bg-navy text-white px-5 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-navy-light transition-all shrink-0"
                 >
                     <Plus size={18} /> Nova pendência
                 </button>
@@ -320,11 +320,11 @@ const PendenciasHub: React.FC = () => {
                                     <div className="min-w-0 flex-1 space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="text-lg font-black text-navy leading-tight">{p.titulo}</h3>
-                                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                                 {labelPrioridade(p.prioridade)}
                                             </span>
                                             {p.concluida && (
-                                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                                                     Concluída
                                                 </span>
                                             )}
@@ -354,7 +354,7 @@ const PendenciasHub: React.FC = () => {
                                         </div>
                                         {prazoInfo && !p.concluida ? (
                                             <p
-                                                className={`text-xs font-black uppercase tracking-wide ${
+                                                className={`text-xs font-bold uppercase tracking-wide ${
                                                     prazoInfo.vencido ? 'text-red-600' : 'text-slate-600'
                                                 }`}
                                             >
@@ -368,7 +368,7 @@ const PendenciasHub: React.FC = () => {
                                                 type="button"
                                                 disabled={saving}
                                                 onClick={() => marcarConcluida(p.id)}
-                                                className="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                                className="inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                                             >
                                                 <CheckCircle2 size={16} />
                                                 Marcar como concluída
@@ -378,7 +378,7 @@ const PendenciasHub: React.FC = () => {
                                             type="button"
                                             disabled={saving}
                                             onClick={() => abrirEdicao(p)}
-                                            className="inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            className="inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                                             title="Editar pendência"
                                         >
                                             <Edit2 size={16} />
@@ -388,7 +388,7 @@ const PendenciasHub: React.FC = () => {
                                             type="button"
                                             disabled={saving}
                                             onClick={() => excluirPendencia(p)}
-                                            className="inline-flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-black text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                                            className="inline-flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                                             title="Remover esta pendência"
                                         >
                                             <Trash2 size={16} />
@@ -442,7 +442,7 @@ const PendenciasHub: React.FC = () => {
                                 </div>
                             )}
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
                                     Título *
                                 </label>
                                 <input
@@ -453,7 +453,7 @@ const PendenciasHub: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
                                     Descrição
                                 </label>
                                 <textarea
@@ -465,7 +465,7 @@ const PendenciasHub: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
                                     Responsável
                                 </label>
                                 <select
@@ -483,7 +483,7 @@ const PendenciasHub: React.FC = () => {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
                                         Prazo
                                     </label>
                                     <input
@@ -494,7 +494,7 @@ const PendenciasHub: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
                                         Prioridade
                                     </label>
                                     <select
@@ -518,7 +518,7 @@ const PendenciasHub: React.FC = () => {
                             type="button"
                             disabled={saving}
                             onClick={handleSalvar}
-                            className="mt-8 w-full flex items-center justify-center gap-2 bg-gold text-white font-black py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
+                            className="mt-8 w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
                         >
                             {saving ? (
                                 <Loader2 size={18} className="animate-spin" />

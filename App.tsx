@@ -376,7 +376,7 @@ const App: React.FC = () => {
       </div>
       <div className="flex items-center gap-1.5">
         {badge != null && badge > 0 && (
-          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {badge > 99 ? '99+' : badge}
           </span>
         )}
@@ -689,7 +689,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <div className="hidden md:flex items-center gap-2 bg-areia-escura px-3 py-1.5 rounded-xl border border-gold/25">
               <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></div>
-              <span className="text-[10px] font-black text-navy uppercase tracking-widest">Online</span>
+              <span className="text-[10px] font-bold text-navy uppercase tracking-widest">Online</span>
             </div>
             {/* Busca: ícone no mobile, botão completo no desktop */}
             <button
@@ -723,7 +723,7 @@ const App: React.FC = () => {
                 <div className="bg-navy rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
                   <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
                     <div>
-                      <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 lg:mb-6 border border-gold/20">
+                      <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 lg:mb-6 border border-gold/20">
                         <Zap size={11} fill="currentColor" />
                         Hub F&G v2.7
                       </div>
@@ -734,10 +734,10 @@ const App: React.FC = () => {
                         O Hub centralizado da F&G Corretora permite que você gerencie cálculos, documentos e metas com precisão absoluta.
                       </p>
                       <div className="mt-5 lg:mt-8 flex flex-wrap gap-3">
-                        <button onClick={() => navigate('goals')} className="bg-gold text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 active:scale-95 flex items-center gap-2 text-sm">
+                        <button onClick={() => navigate('goals')} className="bg-gold text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 active:scale-95 flex items-center gap-2 text-sm">
                           Registro de Vendas <ChevronRight size={14} />
                         </button>
-                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-black hover:bg-white/10 transition-all text-sm">Performance</button>
+                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-white/10 transition-all text-sm">Performance</button>
                       </div>
                     </div>
                     <div className="hidden lg:flex justify-end">
@@ -778,9 +778,9 @@ const App: React.FC = () => {
                           {item.icon}
                         </div>
                         <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
-                        <p className="text-[11px] text-slate-400 uppercase font-black tracking-widest opacity-80">{item.desc}</p>
+                        <p className="text-[11px] text-slate-400 uppercase font-bold tracking-widest opacity-80">{item.desc}</p>
                         <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
-                          <span className="text-xs font-black text-gold uppercase tracking-widest group-hover:translate-x-1 transition-transform">Abrir Módulo</span>
+                          <span className="text-xs font-bold text-gold uppercase tracking-widest group-hover:translate-x-1 transition-transform">Abrir Módulo</span>
                           <ChevronRight size={13} className="text-slate-300 group-hover:text-gold transition-colors" />
                         </div>
                       </button>
@@ -802,14 +802,14 @@ const App: React.FC = () => {
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="text-xl shrink-0">{portal.icon}</div>
                           <div className="min-w-0">
-                            <p className="font-black text-slate-800 text-sm">{portal.label}</p>
+                            <p className="font-bold text-slate-800 text-sm">{portal.label}</p>
                             <p className="text-xs text-slate-400 font-medium mt-0.5 hidden sm:block">{portal.desc}</p>
                             <a href={portal.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gold font-bold hover:underline mt-0.5 block truncate max-w-[220px]">
                               {portal.url.replace('https://', '')}
                             </a>
                           </div>
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-black px-4 py-2.5 min-h-[40px] bg-navy hover:bg-navy-light text-white rounded-xl transition-all">
+                        <button onClick={() => navigator.clipboard.writeText(portal.url)} className="shrink-0 text-xs font-bold px-4 py-2.5 min-h-[40px] bg-navy hover:bg-navy-light text-white rounded-xl transition-all">
                           Copiar
                         </button>
                       </div>

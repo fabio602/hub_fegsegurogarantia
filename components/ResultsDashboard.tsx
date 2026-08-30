@@ -147,14 +147,14 @@ function CarteiraEmptyLimitsForm({
                 </div>
             )}
             <p className="text-[10px] font-bold text-slate-500 leading-snug">
-                Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-gold font-black">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
+                Nenhum limite cadastrado. Escolha a seguradora na lista ou use o botão <span className="text-gold font-bold">Outro corretor</span> ao lado do valor, informe o nome e o valor em R$, depois salve.
             </p>
             <div className="space-y-2">
                 {tempLimits.map((l, i) => (
                     <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
                         <span className="font-bold text-slate-700">{l.seguradora}</span>
                         <div className="flex items-center gap-2">
-                            <span className="font-black text-slate-400">{formatCurrency(l.valor)}</span>
+                            <span className="font-bold text-slate-400">{formatCurrency(l.valor)}</span>
                             <button
                                 type="button"
                                 onClick={() => setTempLimits(prev => prev.filter((_, idx) => idx !== i))}
@@ -186,7 +186,7 @@ function CarteiraEmptyLimitsForm({
                     onClick={() => {
                         setNewTemp(prev => ({ ...prev, seguradora: SEGURADORA_OUTRO_CORRETOR }));
                     }}
-                    className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
+                    className={`shrink-0 px-2.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
                         newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR
                             ? 'border-navy bg-navy text-white shadow-sm'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
@@ -240,7 +240,7 @@ function CarteiraEmptyLimitsForm({
                 type="button"
                 onClick={() => void handleSalvar()}
                 disabled={saving || appendPendingRow([...tempLimits]).length === 0}
-                className="w-full flex items-center justify-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-800 py-2.5 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50/50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                className="w-full flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 py-2.5 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50/50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
             >
                 {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                 SALVAR LIMITES
@@ -333,7 +333,7 @@ const CopyButton = ({ text, label }: { text: string; label?: string }) => {
             ) : (
                 <Copy size={10} className="text-slate-300 group-hover/copy:text-gold transition-all" />
             )}
-            {copied && <span className="text-[8px] font-black text-green-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
+            {copied && <span className="text-[10px] font-bold text-green-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
         </button>
     );
 };
@@ -2131,7 +2131,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <AlertCircle size={18} className="text-amber-600" />
                                     </div>
                                     <div>
-                                        <p className="font-black text-amber-800 text-sm">
+                                        <p className="font-bold text-amber-800 text-sm">
                                             ⚠️ {alerts.length} apólice{alerts.length > 1 ? 's' : ''} <span className="text-amber-900">Performance</span>{' '}
                                             {alerts.length > 1 ? 'vencem' : 'vence'} nos próximos 30 dias
                                         </p>
@@ -2147,18 +2147,18 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         return (
                                             <div key={s.id} className="flex justify-between items-center bg-white rounded-xl px-4 py-3 border border-amber-100 gap-4">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-black text-slate-800 text-sm truncate">{s.nome}</p>
+                                                    <p className="font-bold text-slate-800 text-sm truncate">{s.nome}</p>
                                                     <p className="text-xs text-slate-500">{s.tipo} • {s.vendedor}</p>
                                                 </div>
                                                 <div className="text-right shrink-0">
-                                                    <p className="font-black text-amber-600 text-sm">{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</p>
+                                                    <p className="font-bold text-amber-600 text-sm">{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</p>
                                                     <p className="text-xs text-slate-400">Vence {fim.toLocaleDateString('pt-BR')}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     <button
                                                         type="button"
                                                         onClick={() => markExpiryReminderDone(s)}
-                                                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-black text-xs px-3 py-2 rounded-lg transition-all"
+                                                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs px-3 py-2 rounded-lg transition-all"
                                                         title="Remover da lista — pendência já tratada"
                                                     >
                                                         <Check size={13} strokeWidth={2.5} /> Concluído
@@ -2166,7 +2166,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <button
                                                         type="button"
                                                         onClick={() => handleEdit(s)}
-                                                        className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-black text-xs px-3 py-2 rounded-lg transition-all"
+                                                        className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-lg transition-all"
                                                         title="Editar este lead"
                                                     >
                                                         <Edit2 size={13} /> Editar
@@ -2368,14 +2368,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <form onSubmit={handleSaleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Data</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Data</label>
                                     <div className="relative">
                                         <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input type="date" id="data" value={formData.data} onChange={handleInputChange} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all" />
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Nome do Cliente / Tomador</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Nome do Cliente / Tomador</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="nome" value={formData.nome || ''}
@@ -2397,7 +2397,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         onMouseDown={() => handleNameSuggestionSelect(s)}
                                                         className="w-full text-left px-4 py-3 hover:bg-gold/10 transition-colors border-b border-slate-50 last:border-0"
                                                     >
-                                                        <div className="font-black text-sm text-slate-800">{s.nome}</div>
+                                                        <div className="font-bold text-sm text-slate-800">{s.nome}</div>
                                                         {s.cnpj && <div className="text-[11px] text-slate-400 font-medium">{s.cnpj}</div>}
                                                     </button>
                                                 ))}
@@ -2406,7 +2406,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">CNPJ / CPF</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">CNPJ / CPF</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="cnpj" value={formData.cnpj || ''}
@@ -2439,7 +2439,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )}
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Telefone</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Telefone</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="telefone" value={formData.telefone || ''}
@@ -2456,7 +2456,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Decisor / Responsável</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Decisor / Responsável</label>
                                     <div className="relative">
                                         <input
                                             type="text" id="decisor" value={formData.decisor || ''}
@@ -2470,7 +2470,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">E-mail</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">E-mail</label>
                                     <div className="relative">
                                         <input
                                             type="email" id="email" value={formData.email || ''}
@@ -2484,33 +2484,33 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                 </div>
                                 <div className="group/field relative">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Origem</label>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 transition-colors group-focus-within/field:text-gold">Origem</label>
                                     <select id="origem" value={formData.origem} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all">
                                         <option value="">Selecione...</option>
                                         {LIST_DATA.origem.map(o => <option key={o} value={o}>{o}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tipo Seguro</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo Seguro</label>
                                     <select id="tipo" value={formData.tipo} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Selecione...</option>
                                         {LIST_DATA.tipoSeguro.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">IS Garantida</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">IS Garantida</label>
                                     <input type="text" id="is" value={formData.is} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Seguradora</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Seguradora</label>
                                     <input type="text" id="seguradora" value={formData.seguradora} onChange={handleInputChange} placeholder="Nome" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Valor Prêmio</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Valor Prêmio</label>
                                     <input type="text" id="premio" value={formData.premio} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendeu?</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Vendeu?</label>
                                     <select id="vendeu" value={formData.vendeu} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="Sim">Sim</option>
                                         <option value="Não">Não</option>
@@ -2537,7 +2537,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 </div>
                                 {formData.vendeu === 'Não' && (
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Motivo da Perda</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Motivo da Perda</label>
                                         <select id="motivoPerda" value={formData.motivoPerda} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                             <option value="">Selecione...</option>
                                             {LIST_DATA.motivoPerda.map(m => <option key={m} value={m}>{m}</option>)}
@@ -2547,7 +2547,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 {(formData.vendeu === 'Sim' || (formData.vendeu === 'Em andamento' && formData.tipo === 'Licitante')) && (
                                     <>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Início Vigência</label>
                                             <input
                                                 type="date"
                                                 id="vigencia_inicio"
@@ -2569,7 +2569,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">⏱ Dias de Vigência</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">⏱ Dias de Vigência</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -2591,7 +2591,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">📅 Fim Vigência</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Fim Vigência</label>
                                             <input
                                                 type="date"
                                                 id="vigencia_fim"
@@ -2603,7 +2603,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </>
                                 )}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Comissão</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Comissão</label>
                                     <div className="flex gap-2">
                                         <div className="relative w-28 flex-shrink-0">
                                             <input
@@ -2615,13 +2615,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 min="0" max="100" step="0.1"
                                                 className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 pr-8 text-sm outline-none focus:border-amber-400 transition-all"
                                             />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 font-black text-sm">%</span>
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-sm">%</span>
                                         </div>
                                         <input type="text" id="comissao" value={formData.comissao} onChange={handleInputChange} placeholder="R$ 0,00" className="flex-1 bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Vendedor</label>
                                     <select id="vendedor" value={formData.vendedor} onChange={handleInputChange} required className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Selecione...</option>
                                         {vendedorSelectOptions.map((v) => (
@@ -2630,7 +2630,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Parceiro</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Parceiro</label>
                                     <select id="parceiro" value={(formData as any).parceiro || ''} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
                                         <option value="">Nenhum</option>
                                         {parceiros.map(p => (
@@ -2646,15 +2646,15 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             {formData.tipo === 'Licitante' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-amber-50/50 rounded-2xl border border-amber-100">
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Órgão Licitante</label>
+                                        <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1.5">Órgão Licitante</label>
                                         <input type="text" id="orgaoLicitante" value={formData.orgaoLicitante || ''} onChange={handleInputChange} placeholder="Ex: Município de..." className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Valor do Edital</label>
+                                        <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1.5">Valor do Edital</label>
                                         <input type="text" id="valorLote" value={formData.valorLote || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                             <span className={formData.tipo === 'Licitante' && !formData.dataPregao ? 'text-red-500' : 'text-amber-600'}>📅 Data do Pregão</span>
                                             {formData.tipo === 'Licitante' && <span className="text-red-500">*</span>}
                                         </label>
@@ -2670,19 +2670,19 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             {formData.tipo === 'Performance' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Número do Contrato</label>
+                                        <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1.5">Número do Contrato</label>
                                         <input type="text" id="numeroContrato" value={formData.numeroContrato || ''} onChange={handleInputChange} placeholder="Ex: 001/2024" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Segurado (Beneficiário)</label>
+                                        <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1.5">Segurado (Beneficiário)</label>
                                         <input type="text" id="segurado" value={formData.segurado || ''} onChange={handleInputChange} placeholder="Nome do Segurado" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                     <div className="group/field relative md:col-span-2">
-                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Objeto do Contrato</label>
+                                        <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1.5">Objeto do Contrato</label>
                                         <input type="text" id="objetoContrato" value={formData.objetoContrato || ''} onChange={handleInputChange} placeholder="Descrição curta do objeto" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                     <div className="group/field relative">
-                                        <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Valor do Contrato</label>
+                                        <label className="block text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1.5">Valor do Contrato</label>
                                         <input type="text" id="valorContrato" value={formData.valorContrato || ''} onChange={handleInputChange} placeholder="R$ 0,00" className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20" />
                                     </div>
                                 </div>
@@ -2690,13 +2690,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                             {formData.vendeu === 'Sim' && (
                                 <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-100 space-y-3">
-                                    <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">💰 Cobrança / Boleto</label>
+                                    <label className="block text-[10px] font-bold text-amber-600 uppercase tracking-widest px-1">💰 Cobrança / Boleto</label>
                                     {/* O campo "Nº do Boleto" saiu daqui: nunca era preenchido, e o
                                         que ele alimentava (o número citado no WhatsApp) foi removido
                                         da mensagem. A coluna continua na tabela com o histórico. */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                                 <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>{parseInt(qtdParcelas) > 1 ? '1º Vencimento' : 'Vencimento do Boleto'}</span>
                                                 <span className="text-red-500">*</span>
                                             </label>
@@ -2709,7 +2709,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div>
                                             {/* Parcelamento aqui mesmo: registrar a venda já cria as parcelas
                                                 em `boletos`, sem precisar abrir o modal depois. */}
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Parcelas</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Parcelas</label>
                                             <select value={qtdParcelas} onChange={e => setQtdParcelas(e.target.value)}
                                                 className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20">
                                                 <option value="1">À vista (1x)</option>
@@ -2719,7 +2719,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Status Pagamento</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Status Pagamento</label>
                                             <select id="pagamento_status" value={(formData as any).pagamento_status || 'Em dia'} onChange={async (e) => {
                                                 const val = e.target.value;
                                                 handleInputChange(e as any);
@@ -2749,7 +2749,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         const valores = premio ? dividirEmParcelas(premio, qtd) : null;
                                         return (
                                             <div className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-[11px] text-slate-600 font-medium">
-                                                <span className="font-black text-amber-600">{qtd}x</span>
+                                                <span className="font-bold text-amber-600">{qtd}x</span>
                                                 {valores && <> de <span className="font-bold">{formatCurrency(valores[1])}</span> (1ª de {formatCurrency(valores[0])})</>}
                                                 {' — '}1º vencimento em {datas[0].split('-').reverse().join('/')}, último em {datas[qtd - 1].split('-').reverse().join('/')}.
                                                 {!valores && <span className="text-amber-600"> Preencha o prêmio para dividir o valor.</span>}
@@ -2767,7 +2767,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                             {formData.vendeu === 'Sim' && (
                                 <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-4">
-                                    <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest px-1">📎 Documentos de Fechamento</label>
+                                    <label className="block text-[10px] font-bold text-emerald-600 uppercase tracking-widest px-1">📎 Documentos de Fechamento</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="flex items-center gap-3">
                                             <input type="file" id="apolice-file" accept=".pdf" onChange={(e) => setSelectedApolice(e.target.files?.[0] || null)} className="hidden" />
@@ -2864,7 +2864,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         onClick={() => { enviarAoClienteRef.current = false; }}
                                         disabled={saving}
                                         title="Registra a venda sem enviar e-mail ao cliente"
-                                        className="bg-gold text-white px-10 py-3.5 rounded-xl font-black text-sm hover:bg-gold-hover transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                                        className="bg-gold text-white px-10 py-3.5 rounded-xl font-bold text-sm hover:bg-gold-hover transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50"
                                     >
                                         {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                                         Adicionar Venda
@@ -2879,7 +2879,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
+                                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                                     <tr>
                                         <th className="px-6 py-5 align-top">Data</th>
                                         <th className="px-6 py-5 align-top">
@@ -2888,7 +2888,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={salesLeadNomeFilter}
                                                 onChange={(e) => setSalesLeadNomeFilter(e.target.value)}
                                                 aria-label="Filtrar por cliente"
-                                                className="mt-1 block w-fit max-w-[min(100%,200px)] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1 block w-fit max-w-[min(100%,200px)] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {([...new Set(sales.map((s) => (s.nome ?? '').trim()).filter((x): x is string => Boolean(x)))] as string[]).sort((a, b) =>
@@ -2904,7 +2904,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={salesOrigemFilter}
                                                 onChange={(e) => setSalesOrigemFilter(e.target.value)}
                                                 aria-label="Filtrar por origem"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todas</option>
                                                 {LIST_DATA.origem.map((o) => (
@@ -2918,7 +2918,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={salesStatusFilter}
                                                 onChange={(e) => setSalesStatusFilter(e.target.value)}
                                                 aria-label="Filtrar por status"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 <option value="Sim">Sim</option>
@@ -2932,7 +2932,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={salesTipoFilter}
                                                 onChange={(e) => setSalesTipoFilter(e.target.value)}
                                                 aria-label="Filtrar por tipo de seguro"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {LIST_DATA.tipoSeguro.map((t) => (
@@ -2948,7 +2948,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 value={salesVendedorFilter}
                                                 onChange={(e) => setSalesVendedorFilter(e.target.value)}
                                                 aria-label="Filtrar por vendedor"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[9px] font-black uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {vendedorSelectOptions.map((v) => (
@@ -2982,9 +2982,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="font-black text-slate-800 tracking-tight">{sale.nome}</div>
+                                                        <div className="font-bold text-slate-800 tracking-tight">{sale.nome}</div>
                                                         {(sale as any).survey_score && (
-                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
+                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
                                                                 ⭐ {(sale as any).survey_score}
                                                             </span>
                                                         )}
@@ -2993,7 +2993,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
                                                 <td className="px-6 py-5">
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
                                                         sale.vendeu === 'Não' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                                                         }`}>
                                                         {sale.vendeu === 'Sim' ? <CheckCircle2 size={12} /> :
@@ -3002,8 +3002,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-slate-700 font-bold">{sale.tipo}</td>
-                                                <td className="px-6 py-5 text-sm text-slate-800 font-black">{sale.premio || '-'}</td>
-                                                <td className="px-6 py-5 text-sm text-gold font-black">{sale.comissao || '-'}</td>
+                                                <td className="px-6 py-5 text-sm text-slate-800 font-bold">{sale.premio || '-'}</td>
+                                                <td className="px-6 py-5 text-sm text-gold font-bold">{sale.comissao || '-'}</td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.vendedor}</td>
                                                 <td className="px-6 py-5 text-center">
                                                     {(sale as any).apolice_url ? (
@@ -3011,12 +3011,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             href={(sale as any).apolice_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-black hover:bg-emerald-100 transition-all"
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all"
                                                         >
                                                             <Download size={13} /> PDF
                                                         </a>
                                                     ) : (
-                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-black hover:bg-slate-100 transition-all">
+                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-100 transition-all">
                                                             {uploadingApoliceId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <Shield size={13} />}
                                                             {uploadingApoliceId === sale.id ? '...' : 'Upload'}
                                                             <input
@@ -3038,11 +3038,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return (
                                                             <button
                                                                 onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '', (sale as any).decisor || '')}
-                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
                                                                 <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
                                                                 {s && s.total > 0 && (
-                                                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                                                         {s.emAberto > 0 ? `${s.emAberto} em aberto` : 'Todos pagos'}
                                                                     </span>
                                                                 )}
@@ -3068,7 +3068,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         </div>
                         <button
                             onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
-                            className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl shadow transition-all shrink-0"
+                            className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl shadow transition-all shrink-0"
                         >
                             🚀 Disparador de Emails
                         </button>
@@ -3098,7 +3098,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         <button
                             onClick={handleDispatchEmails}
                             disabled={emailDispatchStatus === 'sending'}
-                            className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-60 text-white font-black text-sm rounded-xl transition-all"
+                            className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-60 text-white font-bold text-sm rounded-xl transition-all"
                         >
                             {emailDispatchStatus === 'sending' ? '⏳ Enviando...' : '🚀 Salvar Template e Iniciar Envios'}
                         </button>
@@ -3136,29 +3136,29 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 {boletos.map(b => (
                                     <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
-                                            {b.valor != null && <span className="text-xs font-black text-slate-700">{formatCurrency(Number(b.valor))}</span>}
+                                            {b.valor != null && <span className="text-xs font-bold text-slate-700">{formatCurrency(Number(b.valor))}</span>}
                                             {b.pago
-                                                ? <span className="text-xs font-black text-emerald-600">✓ Pago</span>
-                                                : <span className="text-xs font-black text-red-600">⚠ Em Aberto</span>
+                                                ? <span className="text-xs font-bold text-emerald-600">✓ Pago</span>
+                                                : <span className="text-xs font-bold text-red-600">⚠ Em Aberto</span>
                                             }
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleTogglePago(b.id, b.pago)}
-                                                className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
                                             >
                                                 {b.pago ? 'Marcar como Em Aberto' : 'Marcar como Pago'}
                                             </button>
-                                            <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-800 transition-all">
+                                            <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-all">
                                                 <Download size={13} /> PDF
                                             </a>
                                             {!b.pago && (
                                                 <button
                                                     onClick={() => handleSendBoletoEmail(b)}
                                                     disabled={sendingBoletoEmail === b.id}
-                                                    className={`inline-flex items-center gap-1 text-xs font-black px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}
+                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}
                                                     title={boletoModalEmail ? `Enviar para ${boletoModalEmail}` : 'Sem e-mail cadastrado'}
                                                 >
                                                     {sendingBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
@@ -3176,7 +3176,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                         {/* Venda parcelada — gera todas as parcelas de uma vez */}
                         <div className="border-t border-slate-100 pt-5 space-y-3">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Venda parcelada? Gere as parcelas</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Venda parcelada? Gere as parcelas</p>
                             <p className="text-[11px] text-slate-400 leading-relaxed">
                                 Informe quantas parcelas, a data da primeira e o valor. Eu monto o carnê inteiro mês a mês,
                                 você ajusta as datas que o banco mudou e cadastra tudo de uma vez — cada parcela passa a
@@ -3218,21 +3218,21 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </div>
                             <button
                                 onClick={handleGerarParcelas}
-                                className="w-full py-2.5 bg-white border border-gold text-gold-hover hover:bg-gold/10 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-white border border-gold text-gold-hover hover:bg-gold/10 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 <Plus size={14} /> Gerar parcelas
                             </button>
 
                             {carneParcelas.length > 0 && (
                                 <div className="space-y-2 rounded-xl bg-areia-clara border border-linha p-3">
-                                    <p className="text-[10px] font-black text-navy uppercase tracking-widest">
+                                    <p className="text-[10px] font-bold text-navy uppercase tracking-widest">
                                         Confira antes de cadastrar — {carneParcelas.length} parcela(s)
                                     </p>
                                     {carneParcelas.map((p, i) => {
                                         const jaExiste = boletos.some(b => b.parcela === parseInt(p.parcela));
                                         return (
                                             <div key={i} className={`flex items-center gap-2 ${jaExiste ? 'opacity-40' : ''}`}>
-                                                <span className="text-[11px] font-black text-slate-600 w-8 shrink-0">{p.parcela}ª</span>
+                                                <span className="text-[11px] font-bold text-slate-600 w-8 shrink-0">{p.parcela}ª</span>
                                                 <input
                                                     type="date"
                                                     value={p.vencimento}
@@ -3283,7 +3283,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <button
                                         onClick={handleSalvarCarne}
                                         disabled={salvandoCarne || carneParcelas.some(p => !p.vencimento)}
-                                        className="w-full py-2.5 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2.5 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                                     >
                                         {salvandoCarne ? <><Loader2 size={14} className="animate-spin" /> Cadastrando...</> : <><Plus size={14} /> Cadastrar todas as parcelas</>}
                                     </button>
@@ -3293,7 +3293,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                         {/* Formulário para adicionar parcela */}
                         <div className="border-t border-slate-100 pt-5 space-y-3">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar parcela avulsa</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Adicionar parcela avulsa</p>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº da Parcela</label>
@@ -3341,7 +3341,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <button
                                 onClick={handleAddBoleto}
                                 disabled={uploadingBoleto || !boletoForm.file || !boletoForm.parcela}
-                                className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 {uploadingBoleto ? <><Loader2 size={16} className="animate-spin" /> Enviando...</> : <><Plus size={16} /> Adicionar Parcela</>}
                             </button>
@@ -3365,7 +3365,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     setSaveError(null);
                                     setIsAddClientModalOpen(true);
                                 }}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm shadow-md shadow-gold/25 border border-gold-hover/60 hover:bg-gold-hover hover:border-gold-hover transition-all order-2 sm:order-1 whitespace-nowrap"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-bold text-sm shadow-md shadow-gold/25 border border-gold-hover/60 hover:bg-gold-hover hover:border-gold-hover transition-all order-2 sm:order-1 whitespace-nowrap"
                             >
                                 <Plus size={18} strokeWidth={2.5} className="shrink-0" aria-hidden />
                                 Novo cliente
@@ -3543,7 +3543,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return (
                                                             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${clientTasks.length} tarefa(s) pendente(s)`}>
                                                                 <Clock size={10} className={hasOverdue ? 'animate-pulse' : ''} />
-                                                                <span className="text-[10px] font-black">{clientTasks.length}</span>
+                                                                <span className="text-[10px] font-bold">{clientTasks.length}</span>
                                                             </div>
                                                         );
                                                     })()}
@@ -3587,7 +3587,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             { label: 'Decisor / Responsável', key: 'decisor', type: 'text' },
                                                         ] as { label: string; key: string; type: string }[]).map(({ label, key, type }) => (
                                                             <div key={key}>
-                                                                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{label}</label>
+                                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</label>
                                                                 <input
                                                                     type={type}
                                                                     value={(clientEditForm as any)[key]}
@@ -3599,14 +3599,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         <div className="flex gap-2 pt-1">
                                                             <button
                                                                 onClick={() => setEditingClientName(null)}
-                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 hover:text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-all"
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-all"
                                                             >
                                                                 <X size={11} /> CANCELAR
                                                             </button>
                                                             <button
                                                                 onClick={() => handleSaveClientInfo(client.salesIds)}
                                                                 disabled={saving}
-                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-gold hover:bg-gold-hover py-2 rounded-lg transition-all disabled:opacity-50"
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-gold hover:bg-gold-hover py-2 rounded-lg transition-all disabled:opacity-50"
                                                             >
                                                                 {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                                 SALVAR
@@ -3617,13 +3617,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <div className="mt-1.5 space-y-1">
                                                         {client.decisor && (
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RESPONSÁVEL: <span className="text-slate-700">{client.decisor}</span></p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RESPONSÁVEL: <span className="text-slate-700">{client.decisor}</span></p>
                                                                 <CopyButton text={client.decisor} label="Decisor" />
                                                             </div>
                                                         )}
                                                         {client.cnpj && (
                                                             <div className="flex items-center gap-2">
-                                                                <p className="text-[10px] font-black text-gold">CNPJ: {client.cnpj}</p>
+                                                                <p className="text-[10px] font-bold text-gold">CNPJ: {client.cnpj}</p>
                                                                 <CopyButton text={client.cnpj} label="CNPJ" />
                                                             </div>
                                                         )}
@@ -3650,22 +3650,22 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                                         <div className="space-y-4">
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">Seguros Contratados</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">Seguros Contratados</p>
                                                 {client.salesVendidas.length > 0 ? (
                                                     <div className="space-y-1.5">
                                                         {client.salesVendidas.map((sv) => (
                                                             <div key={sv.id} className="flex flex-col p-2.5 bg-slate-50 border border-slate-100 rounded-xl gap-1">
                                                                 <div className="flex items-center justify-between gap-2">
-                                                                    <span className="text-[10px] font-black text-slate-700 uppercase">{sv.tipo || 'Seguro'}</span>
+                                                                    <span className="text-[10px] font-bold text-slate-700 uppercase">{sv.tipo || 'Seguro'}</span>
                                                                     {sv.seguradora && (
-                                                                        <span className="text-[9px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
+                                                                        <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex justify-between items-center text-[9px] font-bold">
+                                                                <div className="flex justify-between items-center text-[10px] font-bold">
                                                                     <div className="text-slate-500 uppercase">IS: <span className="text-slate-800">{sv.is ? formatCurrency(parseNumber(sv.is)) : '-'}</span></div>
                                                                     <div className="text-slate-500 uppercase">Prêmio: <span className="text-slate-800">{sv.premio ? formatCurrency(parseNumber(sv.premio)) : '-'}</span></div>
                                                                 </div>
-                                                                <div className="text-[9px] text-slate-400">{sv.data.split('-').reverse().join('/')}</div>
+                                                                <div className="text-[10px] text-slate-400">{sv.data.split('-').reverse().join('/')}</div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -3675,7 +3675,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             </div>
 
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1 flex justify-between items-center">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1 flex justify-between items-center">
                                                     <span>Crédito Aprovado nas Seguradoras</span>
                                                     <button
                                                         onClick={() => {
@@ -3697,7 +3697,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
                                                                     <span className="font-bold text-slate-700">{l.seguradora}</span>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="font-black text-slate-400">{formatCurrency(l.valor)}</span>
+                                                                        <span className="font-bold text-slate-400">{formatCurrency(l.valor)}</span>
                                                                         <button
                                                                             onClick={() => setTempClientLimits(prev => prev.filter((_, idx) => idx !== i))}
                                                                             className="text-red-400 hover:text-red-600"
@@ -3731,7 +3731,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                         seguradora: SEGURADORA_OUTRO_CORRETOR,
                                                                     }));
                                                                 }}
-                                                                className={`shrink-0 px-2.5 py-2 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all ${
+                                                                className={`shrink-0 px-2.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
                                                                     newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
                                                                         ? 'border-navy bg-navy text-white shadow-sm'
                                                                         : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
@@ -3787,14 +3787,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     setEditingClientLimits(null);
                                                                     setNewLimitSeguradoraOutro('');
                                                                 }}
-                                                                className="flex-1 text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors"
+                                                                className="flex-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
                                                             >
                                                                 CANCELAR
                                                             </button>
                                                             <button
                                                                 onClick={() => handleUpdateClientLimits(client.nome, client.salesIds)}
                                                                 disabled={saving}
-                                                                className="flex-1 text-[10px] font-black text-emerald-500 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1"
+                                                                className="flex-1 text-[10px] font-bold text-emerald-500 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1"
                                                             >
                                                                 {saving ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
                                                                 SALVAR
@@ -3811,7 +3811,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                             <Shield size={12} className="text-emerald-500" />
                                                                             <span className="text-xs font-bold text-slate-700">{l.seguradora}</span>
                                                                         </div>
-                                                                        <span className="text-xs font-black text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                                                        <span className="text-xs font-bold text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                                                                             {formatCurrency(l.valor)}
                                                                         </span>
                                                                     </div>
@@ -3819,7 +3819,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <button
                                                                     onClick={() => handleSendLimits(client)}
                                                                     disabled={!!sendingLimitsTo}
-                                                                    className="mt-2 w-full py-3 bg-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-navy-light transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                                    className="mt-2 w-full py-3 bg-navy text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-navy-light transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                                                 >
                                                                     {sendingLimitsTo === client.nome ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                                                                     Enviar p/ Cliente
@@ -3844,7 +3844,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                         <div className="mt-4 pt-4 border-t border-slate-100">
                                             <div className="flex items-center gap-1.5 mb-1.5">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                     Observações
                                                 </span>
                                                 <button
@@ -3872,7 +3872,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditingClientObs(null)}
-                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-slate-500 hover:text-slate-700 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all"
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all"
                                                         >
                                                             <X size={11} /> Cancelar
                                                         </button>
@@ -3880,7 +3880,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             type="button"
                                                             onClick={() => handleSaveClientObs(client.salesIds)}
                                                             disabled={saving}
-                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-white bg-navy hover:bg-navy-light py-2 rounded-lg transition-all disabled:opacity-50"
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-navy hover:bg-navy-light py-2 rounded-lg transition-all disabled:opacity-50"
                                                         >
                                                             {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                             Salvar
@@ -3936,7 +3936,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     setShowNewSellerForm((v) => !v);
                                     setEditingSellerId(null);
                                 }}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-sm uppercase tracking-wider border border-gold-hover hover:bg-gold-hover transition-all disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-navy font-bold text-sm uppercase tracking-wider border border-gold-hover hover:bg-gold-hover transition-all disabled:opacity-50"
                             >
                                 <Plus size={18} strokeWidth={2.5} /> Novo Vendedor
                             </button>
@@ -3950,7 +3950,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                         {showNewSellerForm && (
                             <div className="mb-6 p-5 rounded-2xl border border-white/10 bg-white/5 space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Novo vendedor</p>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Novo vendedor</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input
                                         placeholder="Nome"
@@ -3983,7 +3983,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         type="button"
                                         disabled={sellerCrudBusy}
                                         onClick={() => void handleInsertSeller()}
-                                        className="px-5 py-2.5 rounded-xl bg-gold text-navy font-black text-xs uppercase tracking-widest disabled:opacity-50"
+                                        className="px-5 py-2.5 rounded-xl bg-gold text-navy font-bold text-xs uppercase tracking-widest disabled:opacity-50"
                                     >
                                         Salvar
                                     </button>
@@ -3994,7 +3994,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             setShowNewSellerForm(false);
                                             setNewSellerDraft({ name: '', email: '', sharePercent: '', daysPerWeek: '5' });
                                         }}
-                                        className="px-5 py-2.5 rounded-xl border border-white/20 font-black text-xs uppercase tracking-widest text-slate-300 hover:bg-white/5"
+                                        className="px-5 py-2.5 rounded-xl border border-white/20 font-bold text-xs uppercase tracking-widest text-slate-300 hover:bg-white/5"
                                     >
                                         Cancelar
                                     </button>
@@ -4023,20 +4023,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <input
                                                 value={sellerEditDraft.sharePercent}
                                                 onChange={(e) => setSellerEditDraft((p) => ({ ...p, sharePercent: e.target.value }))}
-                                                className="w-28 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-black"
+                                                className="w-28 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-bold"
                                                 placeholder="%"
                                             />
                                             <input
                                                 value={sellerEditDraft.daysPerWeek}
                                                 onChange={(e) => setSellerEditDraft((p) => ({ ...p, daysPerWeek: e.target.value }))}
-                                                className="w-24 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-black"
+                                                className="w-24 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm font-bold"
                                             />
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
                                                     disabled={sellerCrudBusy}
                                                     onClick={() => void handleUpdateSeller(seller.id)}
-                                                    className="px-4 py-2 rounded-xl bg-gold text-navy font-black text-xs uppercase"
+                                                    className="px-4 py-2 rounded-xl bg-gold text-navy font-bold text-xs uppercase"
                                                 >
                                                     Salvar
                                                 </button>
@@ -4044,7 +4044,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="button"
                                                     disabled={sellerCrudBusy}
                                                     onClick={() => setEditingSellerId(null)}
-                                                    className="px-4 py-2 rounded-xl border border-white/20 text-xs font-black uppercase"
+                                                    className="px-4 py-2 rounded-xl border border-white/20 text-xs font-bold uppercase"
                                                 >
                                                     Cancelar
                                                 </button>
@@ -4055,7 +4055,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-black text-white text-lg truncate">{seller.name}</p>
                                                 <p className="text-xs text-slate-400 font-bold truncate">{seller.email || '—'}</p>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-gold mt-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-gold mt-2">
                                                     {Number(seller.share) * 100}% share · {seller.days_per_week} dias/semana
                                                     {!seller.active && <span className="ml-2 text-slate-500">(inativo)</span>}
                                                 </p>
@@ -4075,7 +4075,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             daysPerWeek: String(seller.days_per_week)
                                                         });
                                                     }}
-                                                    className="px-4 py-2 rounded-xl border border-gold/50 text-gold font-black text-xs uppercase tracking-wider hover:bg-gold/10"
+                                                    className="px-4 py-2 rounded-xl border border-gold/50 text-gold font-bold text-xs uppercase tracking-wider hover:bg-gold/10"
                                                 >
                                                     Editar
                                                 </button>
@@ -4083,7 +4083,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="button"
                                                     disabled={sellerCrudBusy}
                                                     onClick={() => void handleDeleteSeller(seller.id, seller.name)}
-                                                    className="px-4 py-2 rounded-xl border border-red-400/40 text-red-300 font-black text-xs uppercase tracking-wider hover:bg-red-500/10"
+                                                    className="px-4 py-2 rounded-xl border border-red-400/40 text-red-300 font-bold text-xs uppercase tracking-wider hover:bg-red-500/10"
                                                 >
                                                     Excluir
                                                 </button>
@@ -4130,7 +4130,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                                             <div className="grid grid-cols-2 gap-8 mb-12">
                                                 <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Mensal</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Mensal</p>
                                                     {editingGoalTargetSellerId === seller.id ? (
                                                         <input
                                                             type="text"
@@ -4162,10 +4162,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             {formatCurrency(sellerTarget)}
                                                         </button>
                                                     )}
-                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter pt-1">Clique para editar</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter pt-1">Clique para editar</p>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meta Semanal</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Semanal</p>
                                                     <p className="text-2xl font-black text-slate-300">{formatCurrency(sellerTarget / 4)}</p>
                                                 </div>
                                             </div>
@@ -4173,7 +4173,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <div className="mt-auto pt-10 border-t border-white/5">
                                                 <div className="flex justify-between items-end mb-4">
                                                     <div>
-                                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Comissão Realizada</p>
                                                         <p className="text-5xl font-black text-gold tracking-tighter">{formatCurrency(totalAchieved)}</p>
                                                     </div>
                                                     <div className="text-right">
@@ -4228,17 +4228,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                                     <div className="space-y-4 mb-8">
                                         <div>
-                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-slate-400' : 'text-slate-400'}`}>Meta</p>
+                                            <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isCurrent ? 'text-slate-400' : 'text-slate-400'}`}>Meta</p>
                                             <p className="text-lg font-bold">{formatCurrency(metaTotal)}</p>
                                         </div>
                                         <div>
-                                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-gold' : 'text-slate-400'}`}>Atingido</p>
+                                            <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isCurrent ? 'text-gold' : 'text-slate-400'}`}>Atingido</p>
                                             <p className={`text-2xl font-black ${isCurrent ? 'text-gold' : 'text-slate-800'}`}>{formatCurrency(achieved)}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-[11px] font-black uppercase tracking-wider">
+                                        <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider">
                                             <span className={isCurrent ? 'text-slate-400' : 'text-slate-400'}>Progresso</span>
                                             <span className={isCurrent ? 'text-white' : 'text-slate-800'}>{percent.toFixed(0)}%</span>
                                         </div>
@@ -4267,7 +4267,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             href="https://yellowgreen-cormorant-961745.hostingersite.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all shadow shrink-0"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all shadow shrink-0"
                         >
                             Abrir em nova aba ↗
                         </a>
@@ -4310,7 +4310,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
+                                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                                     <tr>
                                         <th className="px-6 py-5">Item de Controle</th>
                                         <th className="px-4 py-5">Semana 1</th>
@@ -4386,7 +4386,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         )}
                                                     </td>
                                                 ))}
-                                                <td className="px-6 py-4 bg-slate-100/30 font-black text-slate-800">
+                                                <td className="px-6 py-4 bg-slate-100/30 font-bold text-slate-800">
                                                     {row.isCurrency ? formatCurrency(row.total) : (row.isPercent ? `${row.total.toFixed(1)}%` : row.total)}
                                                 </td>
                                             </tr>
@@ -4444,7 +4444,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             </svg>
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                 <span className="text-4xl font-black">{p.toFixed(0)}%</span>
-                                                <span className="text-[10px] font-black uppercase text-slate-400">Conversão</span>
+                                                <span className="text-[10px] font-bold uppercase text-slate-400">Conversão</span>
                                             </div>
                                         </div>
                                     )
@@ -4559,7 +4559,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 { label: 'Decisor / Responsável', key: 'decisor' as const, type: 'text', required: false, placeholder: 'Opcional' },
                             ].map((field) => (
                                 <div key={field.key}>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                                         {field.label}
                                         {field.required ? ' *' : ''}
                                     </label>
@@ -4588,7 +4588,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <button
                                     type="submit"
                                     disabled={addingManualClient}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gold text-navy font-black text-sm hover:bg-gold-hover transition-colors disabled:opacity-50 shadow-md"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gold text-navy font-bold text-sm hover:bg-gold-hover transition-colors disabled:opacity-50 shadow-md"
                                 >
                                     {addingManualClient ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                     Salvar cliente

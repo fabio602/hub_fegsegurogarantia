@@ -217,7 +217,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                   <MessageCircle size={15} className="text-gold" />
                 </div>
                 <div>
-                  <p className="font-black text-slate-800 text-sm leading-none">Assistente FEG</p>
+                  <p className="font-bold text-slate-800 text-sm leading-none">Assistente FEG</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">
                     {context || 'Seguro Garantia · IA'}
                   </p>
@@ -236,7 +236,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                     <div className="w-12 h-12 rounded-2xl bg-navy flex items-center justify-center mx-auto mb-3">
                       <MessageCircle size={20} className="text-gold" />
                     </div>
-                    <p className="font-black text-slate-800 text-sm">Olá! Como posso ajudar?</p>
+                    <p className="font-bold text-slate-800 text-sm">Olá! Como posso ajudar?</p>
                     <p className="text-slate-400 text-xs mt-1">
                       Tire dúvidas ou envie um PDF para análise.
                     </p>

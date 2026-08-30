@@ -194,7 +194,7 @@ export default function ProspeccaoEmail() {
 
   const EmailStatus = ({ sent, sentAt, day }: { sent: boolean; sentAt: string | null; day: string }) => (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[9px] font-black text-slate-400 uppercase">{day}</span>
+      <span className="text-[10px] font-bold text-slate-400 uppercase">{day}</span>
       {sent ? (
         <CheckCircle2 size={14} className="text-emerald-500" title={sentAt ? new Date(sentAt).toLocaleDateString('pt-BR') : 'Enviado'} />
       ) : (
@@ -242,7 +242,7 @@ export default function ProspeccaoEmail() {
           { label: 'Pausados', value: contatos.filter(c => !c.ativo).length, color: 'bg-white border border-slate-100', val: 'text-amber-600' },
         ].map((s, i) => (
           <div key={i} className={`${s.color} rounded-2xl p-4 shadow-sm`}>
-            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${s.color.includes('1B263B') ? 'text-white/50' : 'text-slate-400'}`}>{s.label}</p>
+            <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${s.color.includes('1B263B') ? 'text-white/50' : 'text-slate-400'}`}>{s.label}</p>
             <p className={`text-2xl font-black ${s.val}`}>{s.value}</p>
           </div>
         ))}
@@ -274,12 +274,12 @@ export default function ProspeccaoEmail() {
         <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-amber-100 flex items-center justify-between bg-amber-50">
             <div>
-              <p className="font-black text-slate-800 text-sm">{importPreview.length} contato(s) encontrado(s) no CSV</p>
+              <p className="font-bold text-slate-800 text-sm">{importPreview.length} contato(s) encontrado(s) no CSV</p>
               <p className="text-xs text-slate-500 mt-0.5">Revise e confirme para importar. Cadência começa hoje.</p>
             </div>
             <div className="flex gap-2 items-center flex-wrap">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Trilha do lote</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Trilha do lote</label>
                 <select
                   value={importTrilha}
                   onChange={e => setImportTrilha(e.target.value)}
@@ -301,9 +301,9 @@ export default function ProspeccaoEmail() {
           <div className="overflow-x-auto max-h-48">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-slate-100">
-                <th className="text-left px-4 py-2 text-[10px] font-black uppercase text-slate-400">Nome</th>
-                <th className="text-left px-4 py-2 text-[10px] font-black uppercase text-slate-400">Empresa</th>
-                <th className="text-left px-4 py-2 text-[10px] font-black uppercase text-slate-400">Email</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Nome</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Empresa</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Email</th>
               </tr></thead>
               <tbody>
                 {importPreview.slice(0, 10).map((r, i) => (
@@ -328,7 +328,7 @@ export default function ProspeccaoEmail() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <Mail size={32} className="text-slate-300 mx-auto mb-3" />
-          <p className="font-black text-slate-400 text-sm">
+          <p className="font-bold text-slate-400 text-sm">
             {search ? 'Nenhum resultado para a busca' : 'Nenhum contato na cadência'}
           </p>
           <p className="text-slate-300 text-xs mt-1">Clique em "Adicionar Contato" ou importe um CSV</p>
@@ -336,18 +336,18 @@ export default function ProspeccaoEmail() {
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100">
-            <p className="font-black text-slate-700 text-sm">{filtered.length} contato(s)</p>
+            <p className="font-bold text-slate-700 text-sm">{filtered.length} contato(s)</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Contato</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Empresa</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Trilha</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Email</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Início</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400" colSpan={5}>Status Emails</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Contato</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Empresa</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilha</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Email</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Início</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400" colSpan={5}>Status Emails</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -358,13 +358,13 @@ export default function ProspeccaoEmail() {
                   return (
                     <tr key={c.id} className={`border-b border-slate-50 hover:bg-slate-50/60 transition-colors ${!c.ativo ? 'opacity-50' : ''}`}>
                       <td className="px-5 py-4">
-                        <p className="font-black text-slate-800 text-sm">{c.nome_contato}</p>
-                        {allDone && <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Concluído</span>}
-                        {!c.ativo && !allDone && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pausado</span>}
+                        <p className="font-bold text-slate-800 text-sm">{c.nome_contato}</p>
+                        {allDone && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Concluído</span>}
+                        {!c.ativo && !allDone && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pausado</span>}
                       </td>
                       <td className="px-5 py-4 text-sm font-medium text-slate-600">{c.nome_empresa}</td>
                       <td className="px-5 py-4">
-                        <span className="inline-block text-[10px] font-black text-navy bg-gold/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <span className="inline-block text-[10px] font-bold text-navy bg-gold/15 px-2.5 py-1 rounded-full whitespace-nowrap">
                           {nomeTrilha(c.trilha)}
                         </span>
                       </td>
@@ -417,7 +417,7 @@ export default function ProspeccaoEmail() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
                 <select
                   value={form.trilha}
                   onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
@@ -440,7 +440,7 @@ export default function ProspeccaoEmail() {
                 { label: 'Cidade (para o [CIDADE] dos e-mails)', key: 'cidade', placeholder: 'Ex: Sorocaba' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
                   <input
                     type={f.type || 'text'}
                     placeholder={f.placeholder}
@@ -453,11 +453,11 @@ export default function ProspeccaoEmail() {
             </div>
             <div className="flex gap-3 pt-2">
               <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email || !form.trilha}
-                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                 {saving ? 'Salvando...' : 'Adicionar à Cadência'}
               </button>
-              <button onClick={() => setShowModal(false)} className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl">
+              <button onClick={() => setShowModal(false)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
                 Cancelar
               </button>
             </div>

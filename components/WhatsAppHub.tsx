@@ -430,7 +430,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <MessageSquare size={15} className="text-gold" />
-            <span className="font-black text-white text-sm">Inbox WhatsApp</span>
+            <span className="font-bold text-white text-sm">Inbox WhatsApp</span>
           </div>
           <button onClick={loadLeads} className="text-slate-400 hover:text-gold transition-colors" title="Atualizar">
             <RefreshCw size={13} />
@@ -491,7 +491,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-0.5">
                         <span className="text-slate-500 text-[10px] truncate">{lead.phone}</span>
-                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
                           lead.status === 'novo' ? 'bg-emerald-500/20 text-emerald-400' :
                           lead.status === 'em atendimento' ? 'bg-blue-500/20 text-blue-400' :
                           lead.status === 'cotação enviada' ? 'bg-amber-500/20 text-amber-400' :
@@ -505,7 +505,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 <div className="px-4 pb-2.5 flex gap-1.5">
                   <button
                     onClick={(e) => { e.stopPropagation(); openCrmModal(lead); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-black transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-bold transition-colors"
                     title="Adicionar ao CRM"
                   >
                     <Plus size={11} /> Adicionar ao CRM
@@ -532,7 +532,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
               <MessageSquare size={26} className="text-slate-300" />
             </div>
-            <p className="font-black text-slate-400 text-sm">Selecione um contato</p>
+            <p className="font-bold text-slate-400 text-sm">Selecione um contato</p>
             <p className="text-slate-300 text-xs mt-1">para ver a conversa e enviar mensagens</p>
           </div>
         ) : (
@@ -552,7 +552,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   <User size={14} className="text-gold" />
                 </div>
                 <div>
-                  <p className="font-black text-slate-800 text-sm leading-none">{selectedLead?.name}</p>
+                  <p className="font-bold text-slate-800 text-sm leading-none">{selectedLead?.name}</p>
                   <p className="text-slate-400 text-xs mt-0.5">{selectedPhone}</p>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200 overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-navy">
             <div>
-              <h3 className="text-base font-black text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus size={16} className="text-gold" /> Adicionar ao CRM
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">{crmModalLead.name} · {crmModalLead.phone}</p>
@@ -742,13 +742,13 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           {crmSuccess ? (
             <div className="p-10 flex flex-col items-center gap-3 text-center">
               <CheckCircle2 size={40} className="text-emerald-500" />
-              <p className="font-black text-slate-800">Adicionado ao CRM!</p>
+              <p className="font-bold text-slate-800">Adicionado ao CRM!</p>
               <p className="text-xs text-slate-500">O lead foi criado em <strong>Novos Leads</strong>.</p>
             </div>
           ) : (
             <div className="p-6 space-y-5">
               <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dados do contato</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dados do contato</p>
                 <p className="text-sm font-bold text-slate-800">{crmModalLead.name}</p>
                 <p className="text-xs text-slate-500">{crmModalLead.phone}</p>
                 <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md w-fit">Origem: WhatsApp</p>
@@ -811,7 +811,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             <Trash2 size={20} className="text-red-500" />
           </div>
           <div>
-            <p className="font-black text-slate-800">Excluir conversa?</p>
+            <p className="font-bold text-slate-800">Excluir conversa?</p>
             <p className="text-sm text-slate-500 mt-1">Todas as mensagens serão apagadas do hub. A conversa no WhatsApp não é afetada.</p>
           </div>
           <div className="flex gap-3">

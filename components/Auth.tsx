@@ -45,12 +45,12 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
               <ShieldCheck size={40} className="text-gold" />
             </div>
             <h1 className="text-white text-3xl font-black tracking-tighter">F&G Hub</h1>
-            <p className="text-gold text-[10px] font-black uppercase tracking-[4px] mt-2">Acesso Restrito</p>
+            <p className="text-gold text-[10px] font-bold uppercase tracking-[4px] mt-2">Acesso Restrito</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail Corporativo</label>
               <div className="relative">
                 <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -65,7 +65,7 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Senha</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -89,7 +89,7 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gold hover:bg-gold-hover text-white py-4 rounded-2xl font-black tracking-widest uppercase text-sm shadow-lg shadow-gold/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+              className="w-full bg-gold hover:bg-gold-hover text-white py-4 rounded-2xl font-bold tracking-widest uppercase text-sm shadow-lg shadow-gold/20 transition-all active:scale-95 flex items-center justify-center gap-3"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
@@ -117,7 +117,7 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
           </div>
         </div>
 
-        <p className="text-center text-slate-600 text-[10px] mt-10 font-bold uppercase tracking-[2px]">
+        <p className="text-center text-slate-600 text-[10px] mt-10 font-bold uppercase tracking-widest">
           &copy; 2026 F&G Corretora de Seguros. Todos os direitos reservados.
         </p>
       </div>

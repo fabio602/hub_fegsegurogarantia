@@ -87,7 +87,7 @@ const Calculator: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor do Contrato</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor do Contrato</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                     <input 
@@ -100,7 +100,7 @@ const Calculator: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Percentual de Garantia (%)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Percentual de Garantia (%)</label>
                   <div className="relative">
                     <Percent size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
@@ -115,14 +115,14 @@ const Calculator: React.FC = () => {
 
               <div className="p-6 bg-gold/5 border border-gold/20 rounded-2xl">
                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black text-gold uppercase tracking-widest">Importância Segurada</label>
+                    <label className="text-[10px] font-bold text-gold uppercase tracking-widest">Importância Segurada</label>
                     <span className="text-lg font-black text-navy">{formatCurrency(importanciaSegurada)}</span>
                  </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa do Tomador (%)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxa do Tomador (%)</label>
                   <input 
                     type="text" 
                     value={taxaTomador}
@@ -131,7 +131,7 @@ const Calculator: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigência (nº de dias)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vigência (nº de dias)</label>
                   <div className="relative">
                     <Calendar size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
@@ -146,7 +146,7 @@ const Calculator: React.FC = () => {
 
               <div className="pt-4 border-t border-slate-100">
                 <div className="flex justify-between items-center text-slate-400 mb-1">
-                   <span className="text-[10px] font-black uppercase tracking-widest">Prêmio Anual</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Prêmio Anual</span>
                    <span className="text-sm font-bold">{formatCurrency(premioAnual)}</span>
                 </div>
               </div>
@@ -167,7 +167,7 @@ const Calculator: React.FC = () => {
           <div className="p-8 space-y-6 flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor do Edital</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor do Edital</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                   <input 
@@ -180,7 +180,7 @@ const Calculator: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lance do Pregão</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lance do Pregão</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
                   <input 
@@ -201,7 +201,7 @@ const Calculator: React.FC = () => {
 
               <div className="flex justify-between items-center p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Garantia Adicional</span>
-                 <span className="text-sm font-black text-amber-700">{formatCurrency(garantiaAdicional)}</span>
+                 <span className="text-sm font-bold text-amber-700">{formatCurrency(garantiaAdicional)}</span>
               </div>
 
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-blue-50/50 rounded-2xl border border-blue-100 gap-4">
@@ -217,13 +217,13 @@ const Calculator: React.FC = () => {
                       />
                     </div>
                  </div>
-                 <span className="text-sm font-black text-blue-700">{formatCurrency(garantiaContratual)}</span>
+                 <span className="text-sm font-bold text-blue-700">{formatCurrency(garantiaContratual)}</span>
               </div>
 
               {/* Independent Inputs for Additional Guarantee */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Taxa do Tomador (%)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxa do Tomador (%)</label>
                   <input 
                     type="text" 
                     value={taxaTomadorAdicional}
@@ -232,7 +232,7 @@ const Calculator: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigência (nº de dias)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vigência (nº de dias)</label>
                   <div className="relative">
                     <Calendar size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
@@ -247,7 +247,7 @@ const Calculator: React.FC = () => {
 
               <div className="pt-4 border-t border-slate-100">
                 <div className="flex justify-between items-center text-slate-400 mb-1">
-                   <span className="text-[10px] font-black uppercase tracking-widest">Prêmio Anual Adicional</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Prêmio Anual Adicional</span>
                    <span className="text-sm font-bold">{formatCurrency(premioAnualAdicional)}</span>
                 </div>
               </div>
@@ -263,7 +263,7 @@ const Calculator: React.FC = () => {
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
              <CalcIcon size={80} className="text-gold" />
           </div>
-          <p className="text-gold text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
+          <p className="text-gold text-[10px] font-bold uppercase tracking-[4px] mb-2">Prêmio Final (Garantia)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotal)}</h4>
 
         </div>
@@ -273,12 +273,12 @@ const Calculator: React.FC = () => {
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:-translate-x-4 transition-transform text-navy">
              <FileText size={80} />
           </div>
-          <p className="text-navy text-[10px] font-black uppercase tracking-[4px] mb-2">Prêmio Final (Adicional)</p>
+          <p className="text-navy text-[10px] font-bold uppercase tracking-[4px] mb-2">Prêmio Final (Adicional)</p>
           <h4 className="text-white text-5xl font-black tracking-tighter">{formatCurrency(premioTotalAdicional)}</h4>
           <div className="mt-4 space-y-2">
             <div className="flex justify-between items-center bg-navy/10 rounded-xl px-4 py-2 border border-navy/5">
-              <span className="text-[10px] font-black text-navy uppercase tracking-widest">Total Garantia Base</span>
-              <span className="text-sm font-black text-white">{formatCurrency(totalGarantia)}</span>
+              <span className="text-[10px] font-bold text-navy uppercase tracking-widest">Total Garantia Base</span>
+              <span className="text-sm font-bold text-white">{formatCurrency(totalGarantia)}</span>
             </div>
           </div>
           <div className="mt-8 p-4 bg-navy/5 border border-navy/10 rounded-2xl flex items-start gap-3">

@@ -238,7 +238,7 @@ export default function GarimpoAutomatico() {
                             ? <ShieldAlert className="text-red-500" size={24} />
                             : <ShieldCheck className="text-emerald-500" size={24} />}
                         <div>
-                            <p className="font-black text-slate-800 text-sm">Reputação de envio ({reputacao?.dominio})</p>
+                            <p className="font-bold text-slate-800 text-sm">Reputação de envio ({reputacao?.dominio})</p>
                             <p className="text-xs text-slate-500 font-medium">
                                 {reputacao?.pausado
                                     ? reputacao.pausado_motivo
@@ -249,31 +249,31 @@ export default function GarimpoAutomatico() {
                     <div className="flex flex-wrap items-center gap-6 text-center">
                         <div>
                             <p className="text-2xl font-black text-slate-800">{enviadosHoje}<span className="text-sm text-slate-400 font-bold"> / {totalLimites}</span></p>
-                            <p className="text-[10px] font-black uppercase text-slate-400">Enviados hoje</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-400">Enviados hoje</p>
                         </div>
                         <div>
                             <p className="text-2xl font-black text-slate-800">{resumo?.enviadosPncpHoje ?? 0}</p>
-                            <p className="text-[10px] font-black uppercase text-slate-400">PNCP ({resumo?.limitePncp ?? 0}/dia)</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-400">PNCP ({resumo?.limitePncp ?? 0}/dia)</p>
                         </div>
                         <div>
                             <p className="text-2xl font-black text-slate-800">{resumo?.enviadosGarimpoHoje ?? 0}</p>
-                            <p className="text-[10px] font-black uppercase text-slate-400">Garimpo ({resumo?.limitesCampanhas ?? 0}/dia)</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-400">Garimpo ({resumo?.limitesCampanhas ?? 0}/dia)</p>
                         </div>
                         <div>
                             <p className={`text-2xl font-black ${(resumo?.bouncesHoje ?? 0) > 0 ? 'text-red-600' : 'text-slate-800'}`}>
                                 {resumo?.bouncesHoje ?? 0}<span className="text-sm text-slate-400 font-bold"> ({taxaBounce.toFixed(1)}%)</span>
                             </p>
-                            <p className="text-[10px] font-black uppercase text-slate-400">Bounces hoje</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-400">Bounces hoje</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <div>
-                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Pausar em (%)</label>
+                                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pausar em (%)</label>
                                 <input type="number" className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold"
                                     value={reputacao?.bounce_max_percentual ?? 5}
                                     onChange={e => reputacao && setReputacao({ ...reputacao, bounce_max_percentual: Number(e.target.value) })} />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Mín. bounces</label>
+                                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Mín. bounces</label>
                                 <input type="number" className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold"
                                     value={reputacao?.bounce_min_quantidade ?? 2}
                                     onChange={e => reputacao && setReputacao({ ...reputacao, bounce_min_quantidade: Number(e.target.value) })} />
@@ -412,7 +412,7 @@ export default function GarimpoAutomatico() {
                         ].map(([estado, label]) => (
                             <div key={estado} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center">
                                 <p className="text-2xl font-black text-slate-800">{estoque[estado] ?? 0}</p>
-                                <p className="text-[10px] font-black uppercase text-slate-400 leading-tight">{label}</p>
+                                <p className="text-[10px] font-bold uppercase text-slate-400 leading-tight">{label}</p>
                             </div>
                         ))}
                     </div>
@@ -420,7 +420,7 @@ export default function GarimpoAutomatico() {
                     {/* Execuções */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100">
-                            <h3 className="font-black text-slate-800">Execuções de {form.nome}</h3>
+                            <h3 className="font-bold text-slate-800">Execuções de {form.nome}</h3>
                         </div>
                         {execucoes.length === 0 ? (
                             <p className="px-6 py-8 text-sm text-slate-400 font-medium">

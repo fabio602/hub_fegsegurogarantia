@@ -203,7 +203,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           </div>
           <button
             onClick={handleAdd}
-            className="bg-gold text-white px-8 py-4 rounded-[1.5rem] hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-black"
+            className="bg-gold text-white px-8 py-4 rounded-[1.5rem] hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
           >
             <Plus size={24} strokeWidth={3} />
             <span className="hidden sm:inline">Novo</span>
@@ -234,18 +234,18 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                 return (
                   <div key={ins.id} className={`relative rounded-[1.5rem] p-5 bg-gradient-to-br ${m.bg} shadow-md flex flex-col gap-3`}>
                     <div className="flex items-start justify-between">
-                      <span className={`text-[10px] font-black uppercase tracking-[2px] ${m.text} opacity-60`}>#{ins.rank_position}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${m.text} opacity-60`}>#{ins.rank_position}</span>
                       {i < 3 && <span className="text-2xl leading-none">{TOP3_EMOJIS[i]}</span>}
                     </div>
                     <h4 className={`font-black text-xl leading-tight ${m.text}`}>{ins.nome}</h4>
                     <div className="flex flex-wrap gap-2">
                       {premioMin && (
-                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border ${m.badge}`}>
+                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full border ${m.badge}`}>
                           MÍNIMO {premioMin}
                         </span>
                       )}
                       {ins.ccg && (
-                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-full border ${m.badge}`}>
+                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full border ${m.badge}`}>
                           CCG {ins.ccg}
                         </span>
                       )}
@@ -310,19 +310,19 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                 {!isEditing && (
                   <div className="flex flex-wrap gap-2">
                     {premioMin && (
-                      <div className="bg-navy/5 text-navy px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase">
+                      <div className="bg-navy/5 text-navy px-5 py-2 rounded-full text-[10px] font-bold tracking-widest inline-flex items-center gap-2 uppercase">
                         <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></div>
                         MÍNIMO {premioMin}
                       </div>
                     )}
                     {ins.ccg && (
-                      <div className="bg-red-50 text-red-600 px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase border border-red-100">
+                      <div className="bg-red-50 text-red-600 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest inline-flex items-center gap-2 uppercase border border-red-100">
                         <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                         CCG ACIMA DE {ins.ccg}
                       </div>
                     )}
                     {ins.rank_position && (
-                      <div className="bg-amber-50 text-amber-700 px-5 py-2 rounded-full text-[10px] font-black tracking-[2px] inline-flex items-center gap-2 uppercase border border-amber-100">
+                      <div className="bg-amber-50 text-amber-700 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest inline-flex items-center gap-2 uppercase border border-amber-100">
                         ⭐ DESTAQUE #{ins.rank_position}
                       </div>
                     )}
@@ -332,7 +332,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                 {isEditing && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs font-black text-gold uppercase tracking-[2px]">Prêmio Mínimo</span>
+                      <span className="text-xs font-bold text-gold uppercase tracking-widest">Prêmio Mínimo</span>
                       <input
                         className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl focus:border-gold"
                         placeholder="Ex: R$ 150,00"
@@ -341,7 +341,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs font-black text-gold uppercase tracking-[2px]">CCG (R$)</span>
+                      <span className="text-xs font-bold text-gold uppercase tracking-widest">CCG (R$)</span>
                       <input
                         className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl focus:border-gold"
                         placeholder="Ex: R$ 1.500,00"
@@ -354,7 +354,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       />
                     </div>
                     <div className="flex flex-col gap-2 sm:col-span-2">
-                      <span className="text-xs font-black text-amber-600 uppercase tracking-[2px]">⭐ Posição no Destaque (deixe vazio para não destacar)</span>
+                      <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">⭐ Posição no Destaque (deixe vazio para não destacar)</span>
                       <input
                         type="number"
                         min="1"
@@ -366,7 +366,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       />
                     </div>
                     <div className="flex flex-col gap-3 sm:col-span-2">
-                      <span className="text-xs font-black text-slate-500 uppercase tracking-[2px]">🎨 Cor do Card no Destaque</span>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">🎨 Cor do Card no Destaque</span>
                       <div className="flex flex-wrap gap-2">
                         {PRESET_COLORS.map(color => (
                           <button
@@ -381,7 +381,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       </div>
                       {editForm.card_color && (
                         <p className="text-xs text-slate-400 font-semibold">
-                          Selecionado: <span className="text-slate-700 font-black">{PRESET_COLORS.find(c => c.id === editForm.card_color)?.label}</span>
+                          Selecionado: <span className="text-slate-700 font-bold">{PRESET_COLORS.find(c => c.id === editForm.card_color)?.label}</span>
                         </p>
                       )}
                     </div>
@@ -393,7 +393,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
               <div className="p-5 sm:p-8 pt-6 space-y-8 flex-1">
                 <div className="space-y-6">
                   <div className="flex flex-col gap-2">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <ExternalLink size={14} className="text-gold" /> Portal do Corretor
                     </p>
                     {isEditing ? (
@@ -409,28 +409,28 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <User size={14} className="text-slate-400" /> Usuário
                     </p>
                     {isEditing ? (
                       <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.login || ''} onChange={e => setEditForm({ ...editForm, login: e.target.value })} placeholder="E-mail ou CPF" />
                     ) : (
                       <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
-                        <p className="text-base font-black text-slate-800 truncate mr-2">{ins.login || '-'}</p>
+                        <p className="text-base font-bold text-slate-800 truncate mr-2">{ins.login || '-'}</p>
                         <CopyButton text={ins.login || ''} />
                       </div>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Key size={14} className="text-slate-400" /> Senha
                     </p>
                     {isEditing ? (
                       <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.senha || ''} onChange={e => setEditForm({ ...editForm, senha: e.target.value })} placeholder="Senha" />
                     ) : (
                       <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
-                        <p className="text-base font-black text-slate-800 truncate mr-2">{ins.senha || '-'}</p>
+                        <p className="text-base font-bold text-slate-800 truncate mr-2">{ins.senha || '-'}</p>
                         <CopyButton text={ins.senha || ''} />
                       </div>
                     )}
@@ -440,23 +440,23 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                 {/* Contato comercial — gerente, WhatsApp e e-mail */}
                 {(ins.gerente || ins.contato || ins.email || isEditing) && (
                   <div className="space-y-4 pt-2 border-t border-slate-100">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <UserRound size={14} className="text-gold" /> Contato Comercial
                     </p>
 
                     <div className="flex flex-col gap-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Gerente</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gerente</p>
                       {isEditing ? (
                         <input className="w-full text-sm border-2 border-slate-100 outline-none bg-slate-50 px-4 py-3 rounded-2xl" value={editForm.gerente || ''} onChange={e => setEditForm({ ...editForm, gerente: e.target.value })} placeholder="Nome do gerente comercial" />
                       ) : (
                         <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
-                          <p className="text-base font-black text-slate-800 truncate mr-2">{ins.gerente || '-'}</p>
+                          <p className="text-base font-bold text-slate-800 truncate mr-2">{ins.gerente || '-'}</p>
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                         <Phone size={12} className="text-slate-400" /> WhatsApp
                       </p>
                       {isEditing ? (
@@ -464,15 +464,15 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       ) : (
                         <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
                           {ins.contato
-                            ? <WhatsAppPhoneLink phone={ins.contato} className="text-base font-black truncate min-w-0 mr-2" />
-                            : <p className="text-base font-black text-slate-800 mr-2">-</p>}
+                            ? <WhatsAppPhoneLink phone={ins.contato} className="text-base font-bold truncate min-w-0 mr-2" />
+                            : <p className="text-base font-bold text-slate-800 mr-2">-</p>}
                           {ins.contato && <div className="shrink-0"><CopyButton text={ins.contato} /></div>}
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] flex items-center gap-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                         <Mail size={12} className="text-slate-400" /> E-mail
                       </p>
                       {isEditing ? (
@@ -481,7 +481,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                         <div className="flex items-center justify-between bg-slate-50/80 p-4 rounded-[1.5rem] border border-slate-100/50">
                           {ins.email
                             ? <a href={`mailto:${ins.email}`} className="text-sm font-bold text-navy hover:text-gold truncate min-w-0 mr-2 underline decoration-gold/40 underline-offset-2">{ins.email}</a>
-                            : <p className="text-base font-black text-slate-800 mr-2">-</p>}
+                            : <p className="text-base font-bold text-slate-800 mr-2">-</p>}
                           {ins.email && <div className="shrink-0"><CopyButton text={ins.email} /></div>}
                         </div>
                       )}
@@ -493,7 +493,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                   <div className={`p-6 rounded-[2rem] flex items-start gap-4 ${isEditing ? 'bg-orange-50 border-2 border-orange-100' : 'bg-navy/5 border border-navy/5'}`}>
                     <Info size={20} className="text-gold mt-0.5 shrink-0" />
                     <div className="flex-1">
-                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-[2px] mb-2">Notas Técnicas</p>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas Técnicas</p>
                       {isEditing ? (
                         <textarea className="w-full text-sm bg-transparent outline-none min-h-[100px] font-medium" placeholder="Regras de aceitação, ramos, particularidades..." value={editForm.obs || ''} onChange={e => setEditForm({ ...editForm, obs: e.target.value })} />
                       ) : (
@@ -515,7 +515,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
             <div className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl flex items-center justify-center text-slate-200 group-hover:text-gold group-hover:scale-110 transition-all mb-8 border border-slate-50">
               <ShieldPlus size={48} />
             </div>
-            <span className="text-slate-400 font-black uppercase tracking-[4px] group-hover:text-navy">{emptyStateText}</span>
+            <span className="text-slate-400 font-bold uppercase tracking-[4px] group-hover:text-navy">{emptyStateText}</span>
           </button>
         )}
       </div>

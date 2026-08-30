@@ -314,7 +314,7 @@ export default function ProspeccaoPncpAuto() {
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100">
-                    <h3 className="font-black text-slate-800">Execuções</h3>
+                    <h3 className="font-bold text-slate-800">Execuções</h3>
                 </div>
                 {execucoes.length === 0 ? (
                     <p className="px-6 py-8 text-sm text-slate-400 font-medium">Nenhuma execução ainda. A primeira roda no próximo ciclo das 07h, ou use o dry run acima.</p>

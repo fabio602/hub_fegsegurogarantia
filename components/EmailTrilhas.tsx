@@ -53,7 +53,7 @@ const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm 
 // (dava a impressão de estar "digitando letra por letra").
 const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
+    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
     {children}
     {dica && <p className="text-[11px] text-slate-400 mt-1 leading-snug">{dica}</p>}
   </div>
@@ -353,7 +353,7 @@ export default function EmailTrilhas() {
         {/* Lista de trilhas */}
         <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trilhas</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilhas</p>
           </div>
           <div className="divide-y divide-slate-50">
             {trilhas.map(t => {
@@ -365,7 +365,7 @@ export default function EmailTrilhas() {
                   onClick={() => setSlugAtual(t.slug)}
                   className={`w-full text-left px-4 py-3 transition-colors ${sel ? 'bg-navy' : 'hover:bg-slate-50'}`}
                 >
-                  <p className={`font-black text-sm leading-tight ${sel ? 'text-white' : 'text-slate-800'}`}>{t.nome}</p>
+                  <p className={`font-bold text-sm leading-tight ${sel ? 'text-white' : 'text-slate-800'}`}>{t.nome}</p>
                   <p className={`text-[11px] mt-0.5 font-semibold ${sel ? 'text-gold' : 'text-slate-400'}`}>
                     {qtd} e-mail{qtd === 1 ? '' : 's'}{!t.ativo && ' · desativada'}
                   </p>
@@ -382,7 +382,7 @@ export default function EmailTrilhas() {
         {!trilha ? (
           <div className="bg-white rounded-[2rem] border border-slate-100 p-12 text-center">
             <Mail size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="font-black text-slate-400 text-sm">Escolha uma trilha à esquerda</p>
+            <p className="font-bold text-slate-400 text-sm">Escolha uma trilha à esquerda</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -390,7 +390,7 @@ export default function EmailTrilhas() {
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="font-black text-slate-800">Identificação</h3>
+                  <h3 className="font-bold text-slate-800">Identificação</h3>
                   <p className="text-xs text-slate-400 font-mono mt-0.5">código: {trilha.slug}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -429,7 +429,7 @@ export default function EmailTrilhas() {
             <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="font-black text-slate-800">Sequência de e-mails</h3>
+                  <h3 className="font-bold text-slate-800">Sequência de e-mails</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
                     Use <code className="font-mono text-gold">[NOME_CONTATO]</code> e <code className="font-mono text-gold">[NOME_EMPRESA]</code> em qualquer campo.
                   </p>
@@ -475,14 +475,14 @@ export default function EmailTrilhas() {
                           className="flex items-center gap-3 text-left flex-1 min-w-0"
                         >
                           {aberta ? <ChevronDown size={16} className="text-slate-400 shrink-0" /> : <ChevronRight size={16} className="text-slate-400 shrink-0" />}
-                          <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
                             {etapa.ordem}º
                           </span>
-                          <span className="text-[10px] font-black text-gold bg-gold/10 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-full shrink-0">
                             D+{etapa.dia}
                           </span>
                           <span className="font-bold text-slate-700 text-sm truncate flex-1">{etapa.assunto}</span>
-                          {!etapa.ativo && <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
+                          {!etapa.ativo && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
                         </button>
                       </div>
 
@@ -604,10 +604,10 @@ export default function EmailTrilhas() {
             </div>
             <div className="flex gap-3 pt-1">
               <button onClick={criarTrilha} disabled={salvando || !novaTrilha.nome.trim()}
-                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-sm rounded-xl flex items-center justify-center gap-2">
+                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2">
                 {salvando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Criar
               </button>
-              <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl">
+              <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
                 Cancelar
               </button>
             </div>
@@ -621,7 +621,7 @@ export default function EmailTrilhas() {
           <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assunto</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>
                 <p className="font-bold text-slate-800 text-sm truncate">{preview.assunto}</p>
               </div>
               <button onClick={() => setPreview(null)} className="p-2 hover:bg-slate-100 rounded-xl shrink-0">

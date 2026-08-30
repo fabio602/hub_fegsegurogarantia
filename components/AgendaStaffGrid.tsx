@@ -79,13 +79,13 @@ const AgendaStaffGrid: React.FC<AgendaStaffGridProps> = ({
                       style={{ backgroundColor: avatarBg }}
                       aria-hidden
                     >
-                      <span className="text-white font-black text-sm">{initial}</span>
+                      <span className="text-white font-bold text-sm">{initial}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="min-w-0 flex-1 pr-12">
-                  <div className="font-black text-sm text-navy truncate">{s.nome}</div>
+                  <div className="font-bold text-sm text-navy truncate">{s.nome}</div>
                   <div className="text-xs text-slate-500 font-bold mt-1 truncate">{s.cargo}</div>
                 </div>
               </div>

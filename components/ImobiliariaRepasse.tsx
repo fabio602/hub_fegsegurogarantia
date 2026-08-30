@@ -170,20 +170,20 @@ function LinhaPendencia({
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-lg" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
             {etiqueta.texto}
           </span>
-          <p className="font-black text-[13px] text-navy">{cliente.inquilino_nome}</p>
+          <p className="font-bold text-[13px] text-navy">{cliente.inquilino_nome}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-1.5">
           {detalhe && (
-            <span className="text-[11px] font-black px-2.5 py-0.5 rounded-lg" style={{ background: detalhe.bg, color: detalhe.cor }}>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg" style={{ background: detalhe.bg, color: detalhe.cor }}>
               {detalhe.texto}
             </span>
           )}
           <span className="text-[10px] font-bold text-slate-400">{rotuloTipoSeguro(cliente)}</span>
           {parceiro && (
-            <span className="text-[10px] font-black text-stone-500 bg-areia px-2 py-0.5 rounded-lg">
+            <span className="text-[10px] font-bold text-stone-500 bg-areia px-2 py-0.5 rounded-lg">
               {parceiro.name.replace('Imobiliária ', '')}
             </span>
           )}
@@ -193,10 +193,10 @@ function LinhaPendencia({
             {documentos.map(d => d.url ? (
               <a
                 key={d.label} href={d.url} target="_blank" rel="noreferrer"
-                className="text-[10px] font-black text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-lg hover:underline"
+                className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-lg hover:underline"
               >{d.label}</a>
             ) : (
-              <span key={d.label} className="text-[10px] font-black text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-lg">
+              <span key={d.label} className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-lg">
                 {d.label}
               </span>
             ))}
@@ -210,7 +210,7 @@ function LinhaPendencia({
         {onGoToSale && (
           <button
             onClick={() => onGoToSale({ nome: cliente.inquilino_nome, telefone: cliente.telefone || '' })}
-            className="text-[11px] font-black bg-white border border-slate-200 hover:border-gold text-slate-600 px-3 py-2 rounded-xl transition-colors"
+            className="text-[11px] font-bold bg-white border border-slate-200 hover:border-gold text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             → Registro de Venda
           </button>
@@ -218,14 +218,14 @@ function LinhaPendencia({
         {acaoSecundaria && (
           <button
             onClick={acaoSecundaria.onClick}
-            className="flex items-center gap-1.5 text-[11px] font-black bg-white border border-slate-200 hover:border-red-600 hover:text-red-600 text-slate-600 px-3 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-bold bg-white border border-slate-200 hover:border-red-600 hover:text-red-600 text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             <XCircle size={13} /> {acaoSecundaria.label}
           </button>
         )}
         <button
           onClick={acao.onClick}
-          className="flex items-center gap-1.5 text-[11px] font-black bg-navy hover:bg-navy-light text-gold px-3 py-2 rounded-xl transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-bold bg-navy hover:bg-navy-light text-gold px-3 py-2 rounded-xl transition-colors"
         >
           <CheckCircle2 size={13} /> {acao.label}
         </button>
@@ -887,7 +887,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             Gestão de clientes residenciais por imobiliária parceira
             <button
               onClick={() => setGuiaAberto(true)}
-              className="flex items-center gap-1.5 text-[11px] font-black text-navy bg-gold/15 hover:bg-gold/30 border border-gold/40 px-2.5 py-1 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-bold text-navy bg-gold/15 hover:bg-gold/30 border border-gold/40 px-2.5 py-1 rounded-lg transition-colors"
               title="Como operar esta tela, passo a passo"
             >
               <Info size={12} /> Como funciona
@@ -976,7 +976,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="bg-orange-900 px-6 py-4 flex items-center gap-3">
             <AlertTriangle size={17} className="text-orange-300" />
             <div>
-              <p className="text-white font-black text-sm">Precisa de atenção ({precisamAtencao.length})</p>
+              <p className="text-white font-bold text-sm">Precisa de atenção ({precisamAtencao.length})</p>
               <p className="text-white/60 text-[11px] font-semibold mt-0.5">
                 Marcados como repasse, mas com dado faltando. Clique no cliente para corrigir.
               </p>
@@ -992,10 +992,10 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <User size={14} className="text-gold" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-black text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
+                <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
                   {problemas.map(p => (
-                    <span key={p} className="px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-700 text-[10px] font-black">
+                    <span key={p} className="px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-700 text-[10px] font-bold">
                       {p}
                     </span>
                   ))}
@@ -1004,7 +1004,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   )}
                 </div>
               </div>
-              <span className="flex items-center gap-1.5 text-gold font-black text-xs shrink-0">
+              <span className="flex items-center gap-1.5 text-gold font-bold text-xs shrink-0">
                 <Pencil size={13} /> Corrigir
               </span>
             </button>
@@ -1018,7 +1018,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="bg-navy px-6 py-4 flex items-center gap-3">
             <RefreshCw size={17} className="text-gold" />
             <div>
-              <p className="text-white font-black text-sm">Pendências do portal ({totalPendenciasPortal})</p>
+              <p className="text-white font-bold text-sm">Pendências do portal ({totalPendenciasPortal})</p>
               <p className="text-white/50 text-[11px] font-semibold mt-0.5">
                 O que a imobiliária registrou e ainda depende de você. Fica aqui até dar baixa.
               </p>
@@ -1103,15 +1103,15 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-navy rounded-2xl p-5 text-white">
-          <p className="text-white/50 text-xs font-black uppercase tracking-widest mb-1">Total Mensal</p>
+          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Mensal</p>
           <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Clientes Ativos</p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes Ativos</p>
           <p className="text-2xl font-black text-slate-800">{ativos.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Envio Automático</p>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Envio Automático</p>
           <p className="text-2xl font-black text-slate-800">Todo dia 10</p>
         </div>
       </div>
@@ -1125,42 +1125,42 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
               <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Maria da Silva" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
               <input value={form.seguradora} onChange={e => setForm(f => ({ ...f, seguradora: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Porto Seguro" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
               <input value={form.numero_apolice} onChange={e => setForm(f => ({ ...f, numero_apolice: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: APL-2024-001" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
               <input value={form.valor_seguro} onChange={e => setForm(f => ({ ...f, valor_seguro: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: 150,00" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
               <input type="number" min="1" max="12" value={form.parcela_atual} onChange={e => setForm(f => ({ ...f, parcela_atual: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
               <input type="number" min="1" value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
               <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
               <input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Opcional" />
             </div>
@@ -1189,7 +1189,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         return (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="font-black text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
+              <h3 className="font-bold text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
@@ -1288,7 +1288,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             {onGoToSale && (
                               <button
                                 onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
-                                className="mt-2 w-full text-[10px] font-black bg-gold hover:bg-gold-hover text-white py-1.5 rounded-lg transition-colors"
+                                className="mt-2 w-full text-[10px] font-bold bg-gold hover:bg-gold-hover text-white py-1.5 rounded-lg transition-colors"
                               >
                                 → Registro de Venda
                               </button>
@@ -1315,7 +1315,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                   });
                                   alert(`✅ Email enviado solicitando ${docsEmFalta.length} documento(s).`);
                                 }}
-                                className="mt-1 w-full text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg transition-colors border border-slate-200"
+                                className="mt-1 w-full text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg transition-colors border border-slate-200"
                               >
                                 📎 Solicitar Documentos
                               </button>
@@ -1371,7 +1371,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   </p>
                 </div>
                 {(c as any).is_repasse && (
-                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-50 text-amber-600 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-50 text-amber-600 shrink-0">
                     Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
                   </span>
                 )}
@@ -1388,28 +1388,28 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       ) : ativos.length === 0 ? (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 text-center">
           <User size={32} className="text-slate-300 mx-auto mb-3" />
-          <p className="font-black text-slate-400">Nenhum cliente ativo</p>
+          <p className="font-bold text-slate-400">Nenhum cliente ativo</p>
           <p className="text-slate-300 text-sm mt-1">Clique em "Novo Cliente" para começar</p>
         </div>
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
-            <p className="font-black text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
+            <p className="font-bold text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
             <p className="text-xs font-bold text-slate-400">Clique em "Avançar Parcela" nos clientes com repasse quando o pagamento for confirmado</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Inquilino</th>
-                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parceiro</th>}
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seguradora</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Nº Apólice</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seg. Residencial</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Garantia / Docs</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Valor</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Venc.</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Parcela</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Inquilino</th>
+                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Parceiro</th>}
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Seguradora</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Nº Apólice</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Seg. Residencial</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Garantia / Docs</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Valor</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Venc.</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Parcela</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -1437,7 +1437,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     </td>
                     {!filterParceiro && (
                       <td className="px-5 py-4">
-                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-600">
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600">
                           {parceiros.find(p => p.id === (c as any).partner_id)?.name?.replace('Imobiliária ', '') || '—'}
                         </span>
                       </td>
@@ -1445,33 +1445,33 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4 text-sm font-bold text-slate-700">{c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                         {getStatusLabel(c.status_residencial || 'aguardando_cotacao', (c as any).status_apolice)}
                       </span>
-                      {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
+                      {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
                     </td>
                     <td className="px-5 py-4">
                       {temGarantia(c) ? (
                         <div className="space-y-1">
-                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                             {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
                           </span>
-                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block text-[10px] font-black text-emerald-600 hover:underline">⬇ Apólice</a>}
+                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
                           {/* Documentos */}
                           <div className="flex flex-col gap-0.5 mt-1">
                             {[['doc_contrato_url','Contrato'],['doc_termo_vistoria_url','Vistoria'],['doc_fotos_vistoria_url','Fotos']].map(([key, label]) => (
                               (c as any)[key]
-                                ? <a key={key} href={(c as any)[key]} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-600 hover:underline">📎 {label}</a>
+                                ? <a key={key} href={(c as any)[key]} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-blue-600 hover:underline">📎 {label}</a>
                                 : <span key={key} className="text-[10px] text-slate-300">📎 {label} pendente</span>
                             ))}
                           </div>
                         </div>
                       ) : <span className="text-slate-300 text-xs">—</span>}
                     </td>
-                    <td className="px-5 py-4 text-sm font-black text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
                     <td className="px-5 py-4 text-center">
                       {c.dia_vencimento_aluguel ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           dia {c.dia_vencimento_aluguel}
                         </span>
                       ) : (
@@ -1479,7 +1479,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                       )}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
                         c.parcela_atual === c.total_parcelas
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-emerald-50 text-emerald-700'
@@ -1490,14 +1490,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2 justify-end">
                         <button onClick={() => openEditStatus(c)}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-black rounded-lg transition-colors"
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
                           title="Atualizar status e apólice">
                           <Pencil size={12} className="inline mr-1" /> Status
                         </button>
                         {(c as any).is_repasse && (
                           <button
                             onClick={() => avancarParcela(c)}
-                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-black rounded-lg transition-colors"
+                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-bold rounded-lg transition-colors"
                             title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
                           >
                             {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
@@ -1520,8 +1520,8 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               </tbody>
               <tfoot>
                 <tr className="bg-navy">
-                  <td colSpan={3} className="px-5 py-3 text-white font-black text-sm">TOTAL MENSAL</td>
-                  <td className="px-5 py-3 text-gold font-black text-sm">{fmtBRL(totalMensal)}</td>
+                  <td colSpan={3} className="px-5 py-3 text-white font-bold text-sm">TOTAL MENSAL</td>
+                  <td className="px-5 py-3 text-gold font-bold text-sm">{fmtBRL(totalMensal)}</td>
                   <td colSpan={2}></td>
                 </tr>
               </tfoot>
@@ -1535,7 +1535,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
           <button onClick={() => setShowEncerrados(e => !e)}
             className="w-full flex items-center justify-between px-7 py-4 hover:bg-slate-50 transition-colors">
-            <p className="font-black text-slate-500 text-sm">{encerrados.length} cliente(s) encerrado(s)</p>
+            <p className="font-bold text-slate-500 text-sm">{encerrados.length} cliente(s) encerrado(s)</p>
             {showEncerrados ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
           </button>
           {showEncerrados && (
@@ -1576,13 +1576,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {GUIA_PASSOS.map((p, i) => (
               <div key={p.titulo} className="flex gap-4">
                 <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-8 h-8 rounded-xl bg-navy text-gold font-black text-[13px] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-navy text-gold font-bold text-[13px] flex items-center justify-center">
                     {i + 1}
                   </div>
                   {i < GUIA_PASSOS.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
                 </div>
                 <div className="pb-1">
-                  <p className="font-black text-[14px] text-navy">{p.titulo}</p>
+                  <p className="font-bold text-[14px] text-navy">{p.titulo}</p>
                   <p className="text-[13px] text-slate-600 font-semibold leading-relaxed mt-1">{p.texto}</p>
                   {p.atencao && (
                     <div className="flex items-start gap-2 mt-2 bg-orange-50 border border-orange-300 rounded-xl px-3 py-2">
@@ -1595,11 +1595,11 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             ))}
 
             <div className="bg-areia-clara border border-linha rounded-2xl px-5 py-4">
-              <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest mb-2">Para lembrar</p>
+              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-2">Para lembrar</p>
               <ul className="space-y-1.5">
                 {GUIA_LEMBRETES.map(l => (
                   <li key={l} className="flex items-start gap-2 text-[12.5px] text-slate-600 font-semibold leading-relaxed">
-                    <span className="text-gold font-black flex-shrink-0">•</span> {l}
+                    <span className="text-gold font-bold flex-shrink-0">•</span> {l}
                   </li>
                 ))}
               </ul>
@@ -1609,7 +1609,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="px-7 py-4 bg-areia-clara border-t border-linha flex justify-end">
             <button
               onClick={() => setGuiaAberto(false)}
-              className="px-5 py-2.5 bg-navy hover:bg-navy-light text-gold font-black text-sm rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-navy hover:bg-navy-light text-gold font-bold text-sm rounded-xl transition-colors"
             >
               Entendi
             </button>
@@ -1634,12 +1634,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
 
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
-            <p className="font-black text-slate-800">{encerramentoModal.cliente.inquilino_nome}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="font-bold text-slate-800">{encerramentoModal.cliente.inquilino_nome}</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">O que aconteceu</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">O que aconteceu</label>
             <div className="grid grid-cols-2 gap-2">
               {SITUACOES_ENCERRAMENTO.map(s => {
                 const ativa = encerramentoModal.situacao === s.valor;
@@ -1653,7 +1653,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                       borderColor: ativa ? s.cor : '#e2e8f0',
                     }}
                   >
-                    <p className="font-black text-[12px]" style={{ color: ativa ? s.cor : '#334155' }}>{s.rotulo}</p>
+                    <p className="font-bold text-[12px]" style={{ color: ativa ? s.cor : '#334155' }}>{s.rotulo}</p>
                     <p className="text-[10px] font-semibold text-slate-400 leading-tight mt-0.5">{s.ajuda}</p>
                   </button>
                 );
@@ -1662,7 +1662,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observação (opcional)</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observação (opcional)</label>
             <textarea
               rows={2}
               value={encerramentoModal.observacao}
@@ -1682,7 +1682,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               {encerramentoModal.avisar && <CheckCircle2 size={13} className="text-white" />}
             </div>
             <div>
-              <p className="font-black text-[12px] text-slate-700 flex items-center gap-1.5">
+              <p className="font-bold text-[12px] text-slate-700 flex items-center gap-1.5">
                 <Mail size={12} className="text-gold" /> Avisar a imobiliária por e-mail
               </p>
               <p className="text-[11px] font-semibold text-slate-400 leading-tight mt-0.5">
@@ -1702,7 +1702,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <button
               onClick={confirmarEncerramento}
               disabled={encerrando}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-gold font-black text-sm rounded-xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-gold font-bold text-sm rounded-xl transition-all"
             >
               {encerrando ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {encerrando ? 'Encerrando...' : 'Encerrar'}
@@ -1710,7 +1710,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <button
               onClick={() => setEncerramentoModal(null)}
               disabled={encerrando}
-              className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl disabled:opacity-50"
+              className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl disabled:opacity-50"
             >
               Voltar
             </button>
@@ -1730,12 +1730,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <p className="text-slate-500 text-sm mt-1">Cliente novo do portal — configure o repasse antes de aprovar.</p>
           </div>
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
-            <p className="font-black text-slate-800">{repasseSetupModal.nome}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="font-bold text-slate-800">{repasseSetupModal.nome}</p>
           </div>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Mensal do Seguro (R$)</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor Mensal do Seguro (R$)</label>
               <input
                 type="text" placeholder="Ex: 182,49"
                 value={repasseSetupForm.valor_seguro}
@@ -1745,7 +1745,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               <p className="text-xs text-slate-400">Este valor será cobrado mensalmente no repasse da imobiliária.</p>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dia de Vencimento do Aluguel</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dia de Vencimento do Aluguel</label>
               <div className="flex items-center gap-3">
                 <input
                   type="number" min="1" max="28" placeholder="Ex: 20"
@@ -1757,12 +1757,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
               <div className="grid grid-cols-3 gap-2">
                 {[6, 12, 24].map(n => (
                   <button key={n} type="button"
                     onClick={() => setRepasseSetupForm(f => ({ ...f, total_parcelas: n }))}
-                    className={`py-3 rounded-xl font-black text-sm transition-all ${repasseSetupForm.total_parcelas === n ? 'bg-navy text-gold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                    className={`py-3 rounded-xl font-bold text-sm transition-all ${repasseSetupForm.total_parcelas === n ? 'bg-navy text-gold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                     {n}x
                   </button>
                 ))}
@@ -1773,11 +1773,11 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="flex gap-3 pt-2">
             <button onClick={confirmarRepasseSetup}
               disabled={!((lerValorBRL(repasseSetupForm.valor_seguro) ?? 0) > 0)}
-              className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all">
+              className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all">
               ✅ Aprovar e configurar repasse
             </button>
             <button onClick={() => setRepasseSetupModal(null)}
-              className="py-3 px-5 bg-slate-100 text-slate-600 font-black text-sm rounded-xl">
+              className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
               Cancelar
             </button>
           </div>
@@ -1795,7 +1795,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mês</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Mês</label>
               <select value={repasseForm.mes} onChange={e => setRepasseForm(f => ({...f, mes: parseInt(e.target.value)}))}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                 {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i) =>
@@ -1803,23 +1803,23 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ano</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ano</label>
               <input type="number" value={repasseForm.ano} onChange={e => setRepasseForm(f => ({...f, ano: parseInt(e.target.value)}))}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Data do Pagamento</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Data do Pagamento</label>
             <input type="date" value={repasseForm.data_pagamento} onChange={e => setRepasseForm(f => ({...f, data_pagamento: e.target.value}))}
               className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
             <input type="file" accept="application/pdf,image/*" onChange={e => setRepasseFile(e.target.files?.[0] || null)}
               className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:font-bold file:text-slate-700" />
           </div>
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
             <input value={repasseForm.observacoes} onChange={e => setRepasseForm(f => ({...f, observacoes: e.target.value}))}
               placeholder="Opcional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
@@ -1853,7 +1853,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div className="px-7 py-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Inquilino</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Inquilino</label>
                 <input
                   value={editStatusForm.inquilino_nome}
                   onChange={e => setEditStatusForm(f => ({...f, inquilino_nome: e.target.value}))}
@@ -1861,7 +1861,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
               </div>
               <div className="col-span-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
                 <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                   <option value="solicitado">📬 Solicitado</option>
@@ -1873,7 +1873,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Situação</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Situação</label>
                 <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                   <option value="ativo">🟢 Ativo</option>
@@ -1883,7 +1883,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vencimento</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vencimento</label>
                 <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
               </div>
@@ -1899,12 +1899,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {/* Seguradora e Apólice */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
                 <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
                   placeholder="Ex: Porto Seguro" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nº Apólice</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº Apólice</label>
                 <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
                   placeholder="Ex: APL-2026-001" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
               </div>
@@ -1912,7 +1912,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
             {/* Repasse */}
             <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
-              <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Repasse Mensal</p>
+              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Repasse Mensal</p>
 
               {/* Sem esta marcação o cliente não entra na lista de repasses ativos
                   nem no total mensal — os campos abaixo ficariam sem efeito. */}
@@ -1933,7 +1933,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Valor Mensal (R$)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Valor Mensal (R$)</label>
                   <input
                     type="text" placeholder="Ex: 182,49"
                     value={editStatusForm.valor_seguro}
@@ -1942,7 +1942,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Dia Venc. Aluguel</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dia Venc. Aluguel</label>
                   <input
                     type="number" min="1" max="28" placeholder="Ex: 20"
                     value={editStatusForm.dia_vencimento_aluguel}
@@ -1956,7 +1956,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
             {/* Recado para a imobiliária — aparece no portal do parceiro */}
             <div className="bg-blue-50 rounded-2xl p-4 space-y-2 border border-blue-100">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Observação para a Imobiliária</p>
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Observação para a Imobiliária</p>
               <textarea
                 rows={3}
                 value={editStatusForm.observacao_imobiliaria}
@@ -1992,16 +1992,16 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
             {/* Apólice Residencial */}
             <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seguro Residencial</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seguro Residencial</p>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</label>
                 <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                   {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
                 {editStatusForm.apolice_residencial_url
                   ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
@@ -2020,16 +2020,16 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {/* Garantia */}
             {temGarantia(editingStatus) && (
               <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Garantia de Aluguel</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Garantia de Aluguel</p>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Status</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</label>
                   <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                     {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
                   {editStatusForm.apolice_garantia_url
                     ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />

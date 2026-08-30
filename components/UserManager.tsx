@@ -168,7 +168,7 @@ const UserManager: React.FC = () => {
                 </div>
                 <button
                     onClick={() => { setShowForm(true); setForm(emptyForm); setError(null); }}
-                    className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-black text-sm rounded-xl transition-all shadow"
+                    className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl transition-all shadow"
                 >
                     <Plus size={16} /> Novo Usuário
                 </button>
@@ -182,7 +182,7 @@ const UserManager: React.FC = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
                             <input
                                 type="email"
                                 value={form.email}
@@ -192,7 +192,7 @@ const UserManager: React.FC = () => {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha</label>
                             <input
                                 type="text"
                                 value={form.password}
@@ -207,12 +207,12 @@ const UserManager: React.FC = () => {
                         <button
                             onClick={handleCreate}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                            className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
                         >
                             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                             {saving ? 'Criando...' : 'Criar Acesso'}
                         </button>
-                        <button onClick={() => { setShowForm(false); setError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
+                        <button onClick={() => { setShowForm(false); setError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
                             <X size={15} /> Cancelar
                         </button>
                     </div>
@@ -228,7 +228,7 @@ const UserManager: React.FC = () => {
                         </h3>
                         <p className="text-sm text-slate-500 font-medium">{pwForm.email}</p>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nova senha</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nova senha</label>
                             <input
                                 type="text"
                                 value={pwForm.password}
@@ -242,12 +242,12 @@ const UserManager: React.FC = () => {
                             <button
                                 onClick={handleUpdatePassword}
                                 disabled={pwSaving}
-                                className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                                className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
                             >
                                 {pwSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                                 {pwSaving ? 'Salvando...' : 'Salvar'}
                             </button>
-                            <button onClick={() => { setPwForm(null); setPwError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
+                            <button onClick={() => { setPwForm(null); setPwError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
                                 <X size={15} /> Cancelar
                             </button>
                         </div>
@@ -274,13 +274,13 @@ const UserManager: React.FC = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setPermForm(f => f ? { ...f, modulos: TODOS_MODULOS } : f)}
-                                    className="text-[11px] font-black px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                                 >
                                     Marcar tudo
                                 </button>
                                 <button
                                     onClick={() => setPermForm(f => f ? { ...f, modulos: [] } : f)}
-                                    className="text-[11px] font-black px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                                 >
                                     Desmarcar tudo
                                 </button>
@@ -307,7 +307,7 @@ const UserManager: React.FC = () => {
                                             className="w-4 h-4 accent-gold"
                                         />
                                         <div className="min-w-0">
-                                            <p className="font-black text-slate-800 text-sm">{m.label}</p>
+                                            <p className="font-bold text-slate-800 text-sm">{m.label}</p>
                                             <p className="text-[11px] text-slate-400 font-medium">
                                                 {m.views.length} {m.views.length === 1 ? 'tela' : 'telas'}
                                             </p>
@@ -327,12 +327,12 @@ const UserManager: React.FC = () => {
                                 <button
                                     onClick={salvarPermissoes}
                                     disabled={permSaving}
-                                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all"
+                                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
                                 >
                                     {permSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                                     {permSaving ? 'Salvando...' : 'Salvar'}
                                 </button>
-                                <button onClick={() => setPermForm(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">
+                                <button onClick={() => setPermForm(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
                                     <X size={15} /> Cancelar
                                 </button>
                             </div>
@@ -353,19 +353,19 @@ const UserManager: React.FC = () => {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Acesso</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Criado em</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Último acesso</th>
-                                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acesso</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Criado em</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Último acesso</th>
+                                <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {users.map(u => (
                                 <tr key={u.id} className="hover:bg-slate-50/80 transition-all">
-                                    <td className="px-6 py-4 font-black text-slate-800">{u.email}</td>
+                                    <td className="px-6 py-4 font-bold text-slate-800">{u.email}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${
+                                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${
                                             u.email === ADMIN_EMAIL ? 'bg-navy text-gold'
                                             : permMap[u.email] ? 'bg-amber-50 text-amber-700'
                                             : 'bg-slate-100 text-slate-500'

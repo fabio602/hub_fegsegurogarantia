@@ -285,12 +285,12 @@ export default function EmailFollowUp() {
   function SendBtn({ id, onClick, disabled }: { id: string; onClick: () => void; disabled?: boolean }) {
     const state = sends[id];
     if (state === 'sent') return (
-      <span className="flex items-center gap-1 text-emerald-600 text-xs font-black">
+      <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
         <CheckCircle size={13} /> Enviado
       </span>
     );
     if (state === 'error') return (
-      <span className="flex items-center gap-1 text-red-500 text-xs font-black">
+      <span className="flex items-center gap-1 text-red-500 text-xs font-bold">
         <AlertCircle size={13} /> Erro
       </span>
     );
@@ -298,7 +298,7 @@ export default function EmailFollowUp() {
       <button
         onClick={onClick}
         disabled={disabled || state === 'sending'}
-        className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-lg bg-navy text-gold disabled:opacity-40 hover:bg-navy-light transition-all"
+        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-navy text-gold disabled:opacity-40 hover:bg-navy-light transition-all"
       >
         {state === 'sending' ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         {state === 'sending' ? 'Enviando…' : 'Enviar'}
@@ -324,8 +324,8 @@ export default function EmailFollowUp() {
         >
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-            <span className={`font-black text-xs ${cfg.text}`}>{cfg.label}</span>
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cfg.badge}`}>{clients.length}</span>
+            <span className={`font-bold text-xs ${cfg.text}`}>{cfg.label}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{clients.length}</span>
           </div>
           {isOpen ? <ChevronUp size={13} className={cfg.text} /> : <ChevronDown size={13} className={cfg.text} />}
         </button>
@@ -345,12 +345,12 @@ export default function EmailFollowUp() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-black text-slate-800 text-xs">{c.nome}</span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${SOURCE_BADGE[c.source]}`}>
+                    <span className="font-bold text-slate-800 text-xs">{c.nome}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase ${SOURCE_BADGE[c.source]}`}>
                       {c.source}
                     </span>
                     {c.recentlySent && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
                         Email enviado
                       </span>
                     )}
@@ -410,7 +410,7 @@ export default function EmailFollowUp() {
             <Mail size={15} className="text-gold" />
           </div>
           <div>
-            <h2 className="font-black text-slate-800 text-base leading-none">Follow-up de Email</h2>
+            <h2 className="font-bold text-slate-800 text-base leading-none">Follow-up de Email</h2>
             <p className="text-slate-400 text-[11px] mt-0.5">Vencimentos, prospectos e envio avulso</p>
           </div>
         </div>
@@ -425,7 +425,7 @@ export default function EmailFollowUp() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-black capitalize transition-all ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
               tab === t ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -448,7 +448,7 @@ export default function EmailFollowUp() {
               {expiring.length === 0 ? (
                 <div className="text-center py-16">
                   <CheckCircle size={28} className="text-emerald-400 mx-auto mb-3" />
-                  <p className="font-black text-slate-500 text-sm">Nenhum vencimento nos próximos 90 dias</p>
+                  <p className="font-bold text-slate-500 text-sm">Nenhum vencimento nos próximos 90 dias</p>
                 </div>
               ) : (
                 <>
@@ -481,7 +481,7 @@ export default function EmailFollowUp() {
               {prospects.length === 0 ? (
                 <div className="text-center py-16">
                   <CheckCircle size={28} className="text-emerald-400 mx-auto mb-3" />
-                  <p className="font-black text-slate-500 text-sm">Todos os prospectos foram contatados recentemente</p>
+                  <p className="font-bold text-slate-500 text-sm">Todos os prospectos foram contatados recentemente</p>
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-100 overflow-hidden">
@@ -499,7 +499,7 @@ export default function EmailFollowUp() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-slate-800 text-xs">{p.nome}</span>
+                            <span className="font-bold text-slate-800 text-xs">{p.nome}</span>
                             {p.company && <span className="text-slate-400 text-[10px]">{p.company}</span>}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
@@ -542,7 +542,7 @@ export default function EmailFollowUp() {
                   <button
                     key={t.label}
                     onClick={() => setAvulso(prev => ({ ...prev, subject: t.subject, message: t.message }))}
-                    className="text-[10px] font-black px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-gold/50 hover:text-navy transition-all"
+                    className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-gold/50 hover:text-navy transition-all"
                   >
                     {t.label}
                   </button>
@@ -552,7 +552,7 @@ export default function EmailFollowUp() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Nome do destinatário</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome do destinatário</label>
                     <input
                       value={avulso.toName}
                       onChange={e => setAvulso(p => ({ ...p, toName: e.target.value }))}
@@ -561,7 +561,7 @@ export default function EmailFollowUp() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Email *</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Email *</label>
                     <input
                       type="email"
                       value={avulso.toEmail}
@@ -573,7 +573,7 @@ export default function EmailFollowUp() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Assunto *</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Assunto *</label>
                   <input
                     value={avulso.subject}
                     onChange={e => setAvulso(p => ({ ...p, subject: e.target.value }))}
@@ -583,7 +583,7 @@ export default function EmailFollowUp() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Mensagem *</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Mensagem *</label>
                   <textarea
                     value={avulso.message}
                     onChange={e => setAvulso(p => ({ ...p, message: e.target.value }))}
@@ -595,11 +595,11 @@ export default function EmailFollowUp() {
 
                 <div className="flex items-center justify-between pt-1">
                   {sends['avulso'] === 'sent' ? (
-                    <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-black">
+                    <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
                       <CheckCircle size={14} /> Email enviado com sucesso!
                     </span>
                   ) : sends['avulso'] === 'error' ? (
-                    <span className="flex items-center gap-1.5 text-red-500 text-xs font-black">
+                    <span className="flex items-center gap-1.5 text-red-500 text-xs font-bold">
                       <AlertCircle size={14} /> Erro ao enviar
                     </span>
                   ) : <span />}
@@ -607,7 +607,7 @@ export default function EmailFollowUp() {
                   <button
                     onClick={sendAvulso}
                     disabled={!avulso.toEmail || !avulso.subject || !avulso.message || sends['avulso'] === 'sending'}
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-navy text-gold font-black text-xs disabled:opacity-40 hover:bg-navy-light transition-all"
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-navy text-gold font-bold text-xs disabled:opacity-40 hover:bg-navy-light transition-all"
                   >
                     {sends['avulso'] === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                     {sends['avulso'] === 'sending' ? 'Enviando…' : 'Enviar email'}
