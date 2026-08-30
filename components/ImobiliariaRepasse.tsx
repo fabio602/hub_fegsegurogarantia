@@ -170,20 +170,20 @@ function LinhaPendencia({
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl" style={{ background: etiqueta.bg, color: etiqueta.cor }}>
             {etiqueta.texto}
           </span>
           <p className="font-bold text-[13px] text-navy">{cliente.inquilino_nome}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-1.5">
           {detalhe && (
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg" style={{ background: detalhe.bg, color: detalhe.cor }}>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-xl" style={{ background: detalhe.bg, color: detalhe.cor }}>
               {detalhe.texto}
             </span>
           )}
           <span className="text-[10px] font-bold text-slate-400">{rotuloTipoSeguro(cliente)}</span>
           {parceiro && (
-            <span className="text-[10px] font-bold text-stone-500 bg-areia px-2 py-0.5 rounded-lg">
+            <span className="text-[10px] font-bold text-stone-500 bg-areia px-2 py-0.5 rounded-xl">
               {parceiro.name.replace('Imobiliária ', '')}
             </span>
           )}
@@ -193,10 +193,10 @@ function LinhaPendencia({
             {documentos.map(d => d.url ? (
               <a
                 key={d.label} href={d.url} target="_blank" rel="noreferrer"
-                className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:underline"
+                className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-xl hover:underline"
               >{d.label}</a>
             ) : (
-              <span key={d.label} className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-lg">
+              <span key={d.label} className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-xl">
                 {d.label}
               </span>
             ))}
@@ -887,7 +887,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             Gestão de clientes residenciais por imobiliária parceira
             <button
               onClick={() => setGuiaAberto(true)}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-navy bg-gold/15 hover:bg-gold/30 border border-gold/40 px-2.5 py-1 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-bold text-navy bg-gold/15 hover:bg-gold/30 border border-gold/40 px-2.5 py-1 rounded-xl transition-colors"
               title="Como operar esta tela, passo a passo"
             >
               <Info size={12} /> Como funciona
@@ -972,7 +972,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           O alerta antigo só olhava a lista de ativos, então justamente quem
           havia sumido da tela não era apontado em lugar nenhum. */}
       {precisamAtencao.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-orange-300 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-orange-300 shadow-sm overflow-hidden">
           <div className="bg-orange-900 px-6 py-4 flex items-center gap-3">
             <AlertTriangle size={17} className="text-orange-300" />
             <div>
@@ -995,7 +995,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
                   {problemas.map(p => (
-                    <span key={p} className="px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-300 text-orange-700 text-[10px] font-bold">
+                    <span key={p} className="px-2 py-0.5 rounded-xl bg-orange-50 border border-orange-300 text-orange-700 text-[10px] font-bold">
                       {p}
                     </span>
                   ))}
@@ -1014,7 +1014,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Pendências do portal — tudo que a imobiliária pediu e ainda está em aberto */}
       {totalPendenciasPortal > 0 && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="bg-navy px-6 py-4 flex items-center gap-3">
             <RefreshCw size={17} className="text-gold" />
             <div>
@@ -1118,7 +1118,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 lg:p-7">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-7">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-black text-slate-800">Novo Cliente</h3>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -1288,7 +1288,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             {onGoToSale && (
                               <button
                                 onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
-                                className="mt-2 w-full text-[10px] font-bold bg-gold hover:bg-gold-hover text-white py-1.5 rounded-lg transition-colors"
+                                className="mt-2 w-full text-[10px] font-bold bg-gold hover:bg-gold-hover text-white py-1.5 rounded-xl transition-colors"
                               >
                                 → Registro de Venda
                               </button>
@@ -1315,7 +1315,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                   });
                                   alert(`✅ Email enviado solicitando ${docsEmFalta.length} documento(s).`);
                                 }}
-                                className="mt-1 w-full text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg transition-colors border border-slate-200"
+                                className="mt-1 w-full text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-xl transition-colors border border-slate-200"
                               >
                                 📎 Solicitar Documentos
                               </button>
@@ -1334,7 +1334,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       })()}
 
       {/* Busca — abre qualquer cliente, esteja ele em que lista estiver */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 mb-5">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
         <div className="flex items-center gap-3">
           <Search size={16} className="text-slate-400 shrink-0" />
           <input
@@ -1371,7 +1371,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   </p>
                 </div>
                 {(c as any).is_repasse && (
-                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-50 text-amber-600 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-xl bg-amber-50 text-amber-600 shrink-0">
                     Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
                   </span>
                 )}
@@ -1386,13 +1386,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 size={24} className="text-gold animate-spin" /></div>
       ) : ativos.length === 0 ? (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 text-center">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
           <User size={32} className="text-slate-300 mx-auto mb-3" />
           <p className="font-bold text-slate-400">Nenhum cliente ativo</p>
           <p className="text-slate-300 text-sm mt-1">Clique em "Novo Cliente" para começar</p>
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
             <p className="font-bold text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
             <p className="text-xs font-bold text-slate-400">Clique em "Avançar Parcela" nos clientes com repasse quando o pagamento for confirmado</p>
@@ -1437,7 +1437,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     </td>
                     {!filterParceiro && (
                       <td className="px-5 py-4">
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600">
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-xl bg-slate-100 text-slate-600">
                           {parceiros.find(p => p.id === (c as any).partner_id)?.name?.replace('Imobiliária ', '') || '—'}
                         </span>
                       </td>
@@ -1445,7 +1445,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4 text-sm font-bold text-slate-700">{c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-xl ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                         {getStatusLabel(c.status_residencial || 'aguardando_cotacao', (c as any).status_apolice)}
                       </span>
                       {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
@@ -1453,7 +1453,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4">
                       {temGarantia(c) ? (
                         <div className="space-y-1">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-xl ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
                             {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
                           </span>
                           {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
@@ -1471,7 +1471,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
                     <td className="px-5 py-4 text-center">
                       {c.dia_vencimento_aluguel ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center px-2 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           dia {c.dia_vencimento_aluguel}
                         </span>
                       ) : (
@@ -1479,7 +1479,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                       )}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                      <span className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-bold ${
                         c.parcela_atual === c.total_parcelas
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-emerald-50 text-emerald-700'
@@ -1490,14 +1490,14 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2 justify-end">
                         <button onClick={() => openEditStatus(c)}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors"
                           title="Atualizar status e apólice">
                           <Pencil size={12} className="inline mr-1" /> Status
                         </button>
                         {(c as any).is_repasse && (
                           <button
                             onClick={() => avancarParcela(c)}
-                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-bold rounded-lg transition-colors"
+                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-bold rounded-xl transition-colors"
                             title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
                           >
                             {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
@@ -1532,7 +1532,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
       {/* Encerrados */}
       {encerrados.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <button onClick={() => setShowEncerrados(e => !e)}
             className="w-full flex items-center justify-between px-7 py-4 hover:bg-slate-50 transition-colors">
             <p className="font-bold text-slate-500 text-sm">{encerrados.length} cliente(s) encerrado(s)</p>
@@ -1557,7 +1557,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         onClick={() => setGuiaAberto(false)}
       >
         <div
-          className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl my-8 overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           <div className="bg-navy px-7 py-5 flex items-start justify-between gap-4 sticky top-0">
@@ -1622,7 +1622,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     {/* Encerramento do seguro — escolher a situação e avisar a imobiliária */}
     {encerramentoModal && createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="font-black text-slate-800 text-lg">Encerrar o seguro</h3>
@@ -1678,7 +1678,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             onClick={() => setEncerramentoModal(m => m ? { ...m, avisar: !m.avisar } : m)}
             className={`w-full flex items-start gap-3 text-left px-4 py-3 rounded-xl border-2 transition-all ${encerramentoModal.avisar ? 'border-gold bg-gold/5' : 'border-slate-200 bg-white'}`}
           >
-            <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${encerramentoModal.avisar ? 'bg-gold' : 'bg-slate-200'}`}>
+            <div className={`w-5 h-5 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${encerramentoModal.avisar ? 'bg-gold' : 'bg-slate-200'}`}>
               {encerramentoModal.avisar && <CheckCircle2 size={13} className="text-white" />}
             </div>
             <div>
@@ -1724,7 +1724,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     {/* Modal de configuração de repasse para novos clientes do portal */}
     {repasseSetupModal && createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
           <div>
             <h3 className="font-black text-slate-800 text-lg">Configurar Repasse</h3>
             <p className="text-slate-500 text-sm mt-1">Cliente novo do portal — configure o repasse antes de aprovar.</p>
@@ -1788,7 +1788,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
 
     {repasseModal && createPortal(
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-black text-slate-800 text-lg">Registrar Repasse</h3>
             <button onClick={() => setRepasseModal(false)}><X size={18} className="text-slate-400" /></button>
@@ -1816,7 +1816,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
             <input type="file" accept="application/pdf,image/*" onChange={e => setRepasseFile(e.target.files?.[0] || null)}
-              className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:font-bold file:text-slate-700" />
+              className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-slate-100 file:font-bold file:text-slate-700" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
@@ -1840,7 +1840,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     {editingStatus && createPortal(
       <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
         <div className="min-h-full flex items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md my-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-4">
           {/* Header */}
           <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-slate-100">
             <div>

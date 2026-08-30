@@ -768,10 +768,10 @@ const AgendaHub: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-col lg:flex-row">
           <div>
-            <div className="inline-flex items-center gap-2 bg-gold/15 text-gold px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-gold/25">
+            <div className="inline-flex items-center gap-2 bg-gold/15 text-gold px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-gold/25">
               <Calendar size={12} /> Agenda (Hub)
             </div>
             <h3 className="text-2xl font-black text-navy mt-3">Agenda Semanal</h3>
@@ -827,7 +827,7 @@ const AgendaHub: React.FC = () => {
       <div className="space-y-6">
         {/* Staff list */}
         <div className="space-y-4">
-          <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div />
               <button
@@ -888,7 +888,7 @@ const AgendaHub: React.FC = () => {
 
         {/* Trello board */}
         <div>
-          <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div className="min-w-0">
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Visão semanal</div>
@@ -970,7 +970,7 @@ const AgendaHub: React.FC = () => {
                               setDragOverDayYmd(null);
                               setDragOverTaskId(null);
                             }}
-                            className={`rounded-[1.4rem] border p-3 overflow-hidden transition-all cursor-grab active:cursor-grabbing ${
+                            className={`rounded-2xl border p-3 overflow-hidden transition-all cursor-grab active:cursor-grabbing ${
                               draggingTaskId === t.id
                                 ? 'opacity-70 scale-[0.995]'
                                 : dragOverTaskId === t.id
@@ -1009,7 +1009,7 @@ const AgendaHub: React.FC = () => {
                                 </div>
                                 <div className="mt-2 flex items-center gap-2">
                                   <span
-                                    className={`text-[10px] font-bold px-2 py-1 rounded-full border ${isDone ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/12 text-navy border-gold/25'}`}
+                                    className={`text-[10px] font-bold px-2 py-1 rounded-xl border ${isDone ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-gold/12 text-navy border-gold/25'}`}
                                   >
                                     {isDone ? 'Concluído' : 'Pendente'}
                                   </span>
@@ -1142,7 +1142,7 @@ const AgendaHub: React.FC = () => {
             onClick={() => !creating && setIsCreateModalOpen(false)}
             aria-label="Fechar"
           />
-          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-gold/25">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gold/25">
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <Plus size={18} className="text-gold" />
@@ -1207,7 +1207,7 @@ const AgendaHub: React.FC = () => {
             onClick={() => setCardItemModal({ open: false, taskId: '', text: '' })}
             aria-label="Fechar"
           />
-          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-gold/25">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gold/25">
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <ListChecks size={18} className="text-gold" />
@@ -1264,7 +1264,7 @@ const AgendaHub: React.FC = () => {
             onClick={() => !editStaffModal.saving && setEditStaffModal({ open: false, staffId: '', name: '', cargo: 'Responsável', saving: false })}
             aria-label="Fechar"
           />
-          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-gold/25">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gold/25">
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black">Editar funcionário</h3>
               <p className="text-xs text-white/70 font-medium mt-1">Atualize o nome e a função exibida no card.</p>
@@ -1328,7 +1328,7 @@ const AgendaHub: React.FC = () => {
             }
             aria-label="Fechar"
           />
-          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-gold/25">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gold/25">
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black flex items-center gap-2">
                 {dayPickerModal.mode === 'copy' ? (
@@ -1424,7 +1424,7 @@ const AgendaHub: React.FC = () => {
             onClick={fecharEdicaoTarefa}
             aria-label="Fechar"
           />
-          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-gold/25">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gold/25">
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <Pencil size={18} className="text-gold" />

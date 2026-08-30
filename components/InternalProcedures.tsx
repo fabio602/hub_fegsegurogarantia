@@ -91,7 +91,7 @@ const InternalProcedures: React.FC = () => {
     return (
         <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
             {/* Sidebar Sub-Navigation */}
-            <aside className="w-full lg:w-72 shrink-0 space-y-2 bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm h-fit sticky top-28">
+            <aside className="w-full lg:w-72 shrink-0 space-y-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit sticky top-28">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[4px] px-4 mb-4">Sumário</p>
 
                 <NavItem id="home" icon={Home} label="Início" />
@@ -144,7 +144,7 @@ const InternalProcedures: React.FC = () => {
                 {activeSection === 'home' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-md border-t-4 border-t-gold">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md border-t-4 border-t-gold">
                                 <h3 className="text-2xl font-black text-navy mb-6 flex items-center gap-3">
                                     <Rocket className="text-gold" size={28} />
                                     Objetivo do Manual
@@ -153,7 +153,7 @@ const InternalProcedures: React.FC = () => {
                                     Formalizar os procedimentos internos no Departamento de Seguro Garantia, visando maior agilidade nas decisões internas. Este manual serve para todos que precisam acessar informações sobre o modelo de trabalho desenvolvido pelo departamento.
                                 </p>
                             </div>
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-md border-t-4 border-t-gold">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md border-t-4 border-t-gold">
                                 <h3 className="text-2xl font-black text-navy mb-6 flex items-center gap-3">
                                     <Headset className="text-gold" size={28} />
                                     Comunicação com Clientes
@@ -174,7 +174,7 @@ const InternalProcedures: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-navy p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                        <div className="bg-navy p-10 rounded-2xl shadow-2xl relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-10 opacity-[0.05] group-hover:scale-110 transition-transform">
                                 <Lightbulb size={120} className="text-gold" />
                             </div>
@@ -198,7 +198,7 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-prazos' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Nossos Prazos Meta</h3>
                             <p className="text-slate-500 font-medium">Excelência operacional garantida através do cumprimento de metas de tempo.</p>
                         </div>
@@ -208,8 +208,8 @@ const InternalProcedures: React.FC = () => {
                                 { title: 'Seguro Contrato', time: '24 Horas', desc: 'Tranquilo de orçar', icon: Clock, color: 'text-blue-500' },
                                 { title: 'Homologação', time: 'Max 3 Dias', desc: 'Acompanhamento constante', icon: CircleCheck, color: 'text-emerald-500' }
                             ].map((item, idx) => (
-                                <div key={idx} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-gold transition-all">
-                                    <div className={`p-6 rounded-[2rem] bg-slate-50 mb-6 group-hover:scale-110 transition-transform ${item.color}`}>
+                                <div key={idx} className="bg-white p-10 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-gold transition-all">
+                                    <div className={`p-6 rounded-2xl bg-slate-50 mb-6 group-hover:scale-110 transition-transform ${item.color}`}>
                                         <item.icon size={48} />
                                     </div>
                                     <h4 className="font-black text-navy text-xl mb-2">{item.title}</h4>
@@ -223,12 +223,12 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'cadastro-seguradoras' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Cadastro Seguradoras</h3>
                             <p className="text-slate-500 font-medium">Processos de homologação e ampliação de limites.</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 className="text-2xl font-black text-navy mb-6 flex items-center gap-3">
                                     <ShieldCheck className="text-gold" size={28} />
                                     Limites Básicos (CNPJ)
@@ -244,7 +244,7 @@ const InternalProcedures: React.FC = () => {
                                     </ul>
                                 </div>
                             </div>
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 className="text-2xl font-black text-navy mb-6 flex items-center gap-3">
                                     <Receipt className="text-gold" size={28} />
                                     Documentação
@@ -265,11 +265,11 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-seguradoras' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Fluxo Crédito | Seguradoras</h3>
                             <p className="text-slate-500 font-medium">Resumo do fluxo de emissão de apólice.</p>
                         </div>
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-10">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-10">
                             {[
                                 { step: '1', title: 'Cadastrar Empresa', desc: 'Essencial para conhecer a taxa e o limite de crédito disponível.' },
                                 { step: '2', title: 'Análise do Contrato', desc: 'Identifique a modalidade. Solicite: Editais, Contratos ou Resumo Judicial.' },
@@ -294,12 +294,12 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'licitante' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Checklist: Seguro Licitante</h3>
                             <p className="text-slate-500 font-medium">Propostas para participação em pregões públicos.</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-xs flex items-center gap-2">
                                     <Clock size={16} className="text-gold" /> Vigência e Prazos
                                 </h4>
@@ -308,14 +308,14 @@ const InternalProcedures: React.FC = () => {
                                     <li>• Iniciar vigência um dia antes do pregão</li>
                                 </ul>
                             </div>
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-xs flex items-center gap-2">
                                     <Receipt size={16} className="text-gold" /> Importância Segurada
                                 </h4>
                                 <p className="text-sm text-slate-600">Normalmente 1% do valor do edital. Validar valor final com o cliente.</p>
                             </div>
                         </div>
-                        <div className="bg-blue-50 p-10 rounded-[3rem] border border-blue-200 shadow-sm space-y-6">
+                        <div className="bg-blue-50 p-10 rounded-2xl border border-blue-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-blue-900 uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Info size={20} className="text-blue-600" />
                                 ⚠️ Nova Regra de Cautela - Evite Desclassificação
@@ -362,7 +362,7 @@ const InternalProcedures: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-rose-50 p-10 rounded-[3rem] border border-rose-100 flex items-center gap-8">
+                        <div className="bg-rose-50 p-10 rounded-2xl border border-rose-100 flex items-center gap-8">
                             <TriangleAlert size={40} className="text-rose-500" />
                             <p className="text-rose-900 font-bold">ERRO ZERO: Qualquer erro desclassifica o cliente do pregão.</p>
                         </div>
@@ -371,13 +371,13 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'performance' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Checklist: Seguro Performance</h3>
                             <p className="text-slate-500 font-medium">Garantia de execução contratual após a vitória na licitação.</p>
                         </div>
 
                         {/* Documentação */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <FileText size={20} className="text-gold" />
                                 Documentação
@@ -413,7 +413,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Verificações Importantes */}
-                        <div className="bg-navy p-10 rounded-[2.5rem] shadow-xl space-y-6">
+                        <div className="bg-navy p-10 rounded-2xl shadow-xl space-y-6">
                             <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
                                 <ClipboardList size={20} />
                                 Verificações Importantes
@@ -483,13 +483,13 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-sem-limite' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">CNPJ - Sem Limite</h3>
                             <p className="text-slate-500 font-medium">Resolução de pendências.</p>
                         </div>
 
                         {/* Contexto */}
-                        <div className="bg-amber-50 p-10 rounded-[2.5rem] border border-amber-200 shadow-sm space-y-4">
+                        <div className="bg-amber-50 p-10 rounded-2xl border border-amber-200 shadow-sm space-y-4">
                             <div className="flex items-start gap-3">
                                 <TriangleAlert size={24} className="text-amber-600 shrink-0" />
                                 <div className="space-y-3">
@@ -502,7 +502,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Buscar Alternativas */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Search size={20} className="text-gold" />
                                 Buscar Alternativas
@@ -514,7 +514,7 @@ const InternalProcedures: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-blue-50 p-6 rounded-2xl border border-blue-200">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
+                                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
                                         <div>
                                             <p className="font-bold text-blue-900 mb-2">Tente aprovar em outra seguradora</p>
                                             <p className="text-sm text-blue-800 leading-relaxed">
@@ -526,7 +526,7 @@ const InternalProcedures: React.FC = () => {
 
                                 <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-200">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0">2</div>
+                                        <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0">2</div>
                                         <div>
                                             <p className="font-bold text-emerald-900 mb-2">Não se restrinja à primeira</p>
                                             <p className="text-sm text-emerald-800 leading-relaxed">
@@ -539,7 +539,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Objetivo */}
-                        <div className="bg-navy p-10 rounded-[2.5rem] shadow-xl">
+                        <div className="bg-navy p-10 rounded-2xl shadow-xl">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="p-3 bg-gold rounded-2xl">
                                     <Zap size={28} className="text-navy" />
@@ -558,13 +558,13 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-serasa' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">CNPJ - Serasa</h3>
                             <p className="text-slate-500 font-medium">Análise de casos com restrição.</p>
                         </div>
 
                         {/* Análise Opções de Seguradoras */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Search size={20} className="text-gold" />
                                 Análise Opções de Seguradoras
@@ -574,7 +574,7 @@ const InternalProcedures: React.FC = () => {
                             </p>
                             <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
+                                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
                                     <p className="text-sm text-blue-900 leading-relaxed">
                                         <span className="font-bold">Busque outras seguradoras</span>, cada Seguradora tem um apetite. Se nenhuma der limite, indica Serasa. Passe para o comercial.
                                     </p>
@@ -583,7 +583,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Abordagem com Cliente */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <MessageSquare size={20} className="text-gold" />
                                 Abordagem com Cliente
@@ -620,7 +620,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Documentação Adicional */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Paperclip size={20} className="text-gold" />
                                 Documentação Adicional
@@ -645,7 +645,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Análise das Documentações */}
-                        <div className="bg-navy p-10 rounded-[2.5rem] text-white shadow-xl space-y-6">
+                        <div className="bg-navy p-10 rounded-2xl text-white shadow-xl space-y-6">
                             <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
                                 <TrendingUp size={20} />
                                 Análise das documentações
@@ -678,11 +678,11 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-ccg' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Contrato de Contra Garantia (CCG)</h3>
                             <p className="text-slate-500 font-medium">Formalização jurídica indispensável.</p>
                         </div>
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 text-sm text-slate-600 space-y-4">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 text-sm text-slate-600 space-y-4">
                             <p>Deve ser assinado em todas as cias com cadastro. Pode ser Eletrônico ou com firma reconhecida. Sócio e cônjuge assinam.</p>
                             <div className="bg-blue-50 p-6 rounded-xl text-blue-900 font-bold border border-blue-100">
                                 Antecipe o CCG para evitar travas na emissão futura.
@@ -693,13 +693,13 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'fluxo-admin-afiancadoras' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Alternativa: Afiançadoras</h3>
                             <p className="text-slate-500 font-medium">Contatos para Cartas Fidejussórias.</p>
                         </div>
 
                         {/* Quando Usar */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Info size={20} className="text-gold" />
                                 Quando Usar Afiançadoras
@@ -710,7 +710,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Avisos Importantes */}
-                        <div className="bg-rose-50 p-10 rounded-[2.5rem] border border-rose-200 shadow-sm space-y-6">
+                        <div className="bg-rose-50 p-10 rounded-2xl border border-rose-200 shadow-sm space-y-6">
                             <div className="flex items-start gap-3">
                                 <TriangleAlert size={24} className="text-rose-600 shrink-0" />
                                 <div className="space-y-4">
@@ -734,14 +734,14 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Processo Comercial */}
-                        <div className="bg-blue-50 p-10 rounded-[2.5rem] border border-blue-200 shadow-sm space-y-6">
+                        <div className="bg-blue-50 p-10 rounded-2xl border border-blue-200 shadow-sm space-y-6">
                             <h4 className="font-bold text-blue-900 uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Briefcase size={20} className="text-blue-600" />
                                 Processo Comercial
                             </h4>
                             <div className="bg-white p-6 rounded-2xl border border-blue-200 space-y-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
+                                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">1</div>
                                     <div>
                                         <p className="font-bold text-blue-900 mb-2">Informar o Custo</p>
                                         <p className="text-sm text-slate-700 leading-relaxed">
@@ -750,7 +750,7 @@ const InternalProcedures: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">2</div>
+                                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">2</div>
                                     <div>
                                         <p className="font-bold text-blue-900 mb-2">Aguardar Aprovação</p>
                                         <p className="text-sm text-slate-700 leading-relaxed">
@@ -762,20 +762,20 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Contatos */}
-                        <div className="bg-navy p-10 rounded-[3rem] shadow-xl space-y-6">
+                        <div className="bg-navy p-10 rounded-2xl shadow-xl space-y-6">
                             <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
                                 <Headset size={20} />
                                 Contatos das Afiançadoras
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-white/10 p-8 rounded-[2rem] border border-white/20 shadow-sm flex items-center gap-6 hover:bg-white/15 transition-colors">
+                                <div className="bg-white/10 p-8 rounded-2xl border border-white/20 shadow-sm flex items-center gap-6 hover:bg-white/15 transition-colors">
                                     <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0">A</div>
                                     <div>
                                         <p className="font-black text-white text-xl">AUPOL</p>
                                         <p className="text-gold text-sm font-bold">11 93096-5184</p>
                                     </div>
                                 </div>
-                                <div className="bg-white/10 p-8 rounded-[2rem] border border-white/20 shadow-sm flex items-center gap-6 hover:bg-white/15 transition-colors">
+                                <div className="bg-white/10 p-8 rounded-2xl border border-white/20 shadow-sm flex items-center gap-6 hover:bg-white/15 transition-colors">
                                     <div className="w-16 h-16 bg-slate-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0">S</div>
                                     <div>
                                         <p className="font-black text-white text-xl">SEVEN</p>
@@ -789,13 +789,13 @@ const InternalProcedures: React.FC = () => {
 
                 {activeSection === 'emails' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Scripts Administrativos</h3>
                             <p className="text-slate-500 font-medium">Modelos de e-mails padronizados para comunicação com clientes.</p>
                         </div>
 
                         {/* Cobrança de Documentos Pendentes */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                     <FileText size={20} className="text-gold" />
@@ -828,7 +828,7 @@ Caso haja alguma dúvida, estamos à disposição. Abraços,`)}
                         </div>
 
                         {/* Agradecimento Envio de Cadastro */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                     <CircleCheck size={20} className="text-emerald-600" />
@@ -857,7 +857,7 @@ Permanecemos à disposição. Abraços,`)}
                         </div>
 
                         {/* Comunicação de Limites Aprovados */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                     <Star size={20} className="text-amber-500" />
@@ -898,7 +898,7 @@ Até breve!`)}
                         </div>
 
                         {/* Cobrança de Inadimplência */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
                                     <TriangleAlert size={20} className="text-rose-600" />
@@ -939,14 +939,14 @@ Atenciosamente,`)}
 
                 {activeSection === 'comercial' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Abordagem Comercial Eficaz – Método DOR &gt; SOLUÇÃO &gt; PROVA &gt; CHAMADA</h3>
                             <p className="text-slate-500 font-medium leading-relaxed">
                                 Com a planilha em mãos e os prospects identificados, iniciamos a abordagem comercial. Como oferecer o Seguro Garantia de forma que o potencial cliente veja valor imediato.
                             </p>
                         </div>
 
-                        <div className="bg-navy p-8 rounded-[2.5rem] text-white flex items-center gap-6 shadow-xl border-l-8 border-gold">
+                        <div className="bg-navy p-8 rounded-2xl text-white flex items-center gap-6 shadow-xl border-l-8 border-gold">
                             <div className="p-4 bg-gold rounded-2xl text-navy">
                                 <Lightbulb size={32} />
                             </div>
@@ -991,7 +991,7 @@ Atenciosamente,`)}
                                     color: 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                 }
                             ].map((item, idx) => (
-                                <div key={idx} className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative group overflow-hidden">
+                                <div key={idx} className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm relative group overflow-hidden">
                                     <div className="flex items-start justify-between mb-8">
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl ${item.color} shadow-sm group-hover:scale-110 transition-transform`}>
                                             {item.step}
@@ -1010,7 +1010,7 @@ Atenciosamente,`)}
                             ))}
                         </div>
 
-                        <div className="bg-navy p-10 rounded-[3.5rem] text-white relative overflow-hidden">
+                        <div className="bg-navy p-10 rounded-2xl text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-10 opacity-5">
                                 <Search size={150} />
                             </div>
@@ -1035,7 +1035,7 @@ Atenciosamente,`)}
                                         </li>
                                     </ul>
                                 </div>
-                                <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 flex flex-col justify-center text-center">
+                                <div className="bg-white/5 p-8 rounded-2xl border border-white/10 flex flex-col justify-center text-center">
                                     <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-navy shadow-lg mx-auto mb-6">
                                         <Star size={32} />
                                     </div>
@@ -1051,7 +1051,7 @@ Atenciosamente,`)}
 
                 {activeSection === 'tutorial-prevendas' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-2">Scripts de Pre-vendas</h3>
                             <p className="text-slate-500 font-medium">Metodologia para prospecção ativa e contorno de objeções.</p>
                         </div>
@@ -1065,7 +1065,7 @@ Atenciosamente,`)}
                                 <h4 className="text-2xl font-black text-navy">Script de Ligações</h4>
                             </div>
 
-                            <div className="bg-navy p-8 rounded-[2.5rem] text-white space-y-4 shadow-xl">
+                            <div className="bg-navy p-8 rounded-2xl text-white space-y-4 shadow-xl">
                                 <h5 className="text-gold font-bold uppercase text-xs tracking-widest flex items-center gap-2">
                                     <TrendingUp size={16} /> Estratégia Geral
                                 </h5>
@@ -1077,10 +1077,10 @@ Atenciosamente,`)}
 
                             <div className="grid grid-cols-1 gap-8">
                                 {/* Parte 1: Secretaria */}
-                                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-navy px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 1: Passando pela Secretaria</h4>
-                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Autoridade Emprestada</span>
+                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Autoridade Emprestada</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">
@@ -1108,10 +1108,10 @@ Atenciosamente,`)}
                                 </div>
 
                                 {/* Parte 2: Decisor */}
-                                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-gold px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 2: Falando com o Decisor</h4>
-                                        <span className="bg-navy text-gold text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Abordagem Consultiva</span>
+                                        <span className="bg-navy text-gold text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Abordagem Consultiva</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">
@@ -1136,10 +1136,10 @@ Atenciosamente,`)}
                                 </div>
 
                                 {/* Parte 3: Fechamento */}
-                                <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-navy px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 3: O Fechamento</h4>
-                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Baixo Risco</span>
+                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Baixo Risco</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <p className="text-slate-600 text-sm leading-relaxed">
@@ -1153,7 +1153,7 @@ Atenciosamente,`)}
                             </div>
 
                             {/* Objeções da Secretaria */}
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-8">
                                 <h4 className="text-xl font-black text-navy border-b pb-4">Como lidar com as Objeções da Secretaria</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="space-y-3">
@@ -1173,15 +1173,15 @@ Atenciosamente,`)}
 
                             {/* Dicas de Ouro */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-navy p-8 rounded-[2rem] text-white">
+                                <div className="bg-navy p-8 rounded-2xl text-white">
                                     <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">1. Evite a palavra "Vender"</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">Troque por <span className="text-white">Validar, Comparar, Cadastrar ou Otimizar</span>.</p>
                                 </div>
-                                <div className="bg-navy p-8 rounded-[2rem] text-white">
+                                <div className="bg-navy p-8 rounded-2xl text-white">
                                     <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">2. Use Jargões do Nicho</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">Falar "Edital", "Tomador", "Apólice", "Seguradora" mostra autoridade.</p>
                                 </div>
-                                <div className="bg-navy p-8 rounded-[2rem] text-white">
+                                <div className="bg-navy p-8 rounded-2xl text-white">
                                     <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">3. Peça Ajuda</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">"Estou meio perdido, preciso falar sobre o edital... quem você me recomenda?"</p>
                                 </div>
@@ -1201,7 +1201,7 @@ Atenciosamente,`)}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* WhatsApp */}
-                                <div className="bg-whatsapp/5 rounded-[2.5rem] border border-whatsapp/20 overflow-hidden">
+                                <div className="bg-whatsapp/5 rounded-2xl border border-whatsapp/20 overflow-hidden">
                                     <div className="bg-whatsapp px-8 py-5 flex justify-between items-center text-white">
                                         <h5 className="font-bold flex items-center gap-2 mt-0 mb-0">
                                             <MessageSquare size={18} /> WhatsApp
@@ -1213,7 +1213,7 @@ Atenciosamente,`)}
                                             <p className="text-[10px] font-bold text-slate-400 uppercase">Mensagem 1: Abertura</p>
                                             <div className="bg-white p-4 rounded-xl text-xs text-slate-600 border border-slate-100 italic relative group">
                                                 "Olá, [Nome do Decisor]. Tudo bem? Aqui é [Seu Nome], da F&G. Tentei contato por telefone... Peguei seu contato com a [Nome da Secretária]..."
-                                                <button onClick={() => copyToClipboard('Olá, [Nome do Decisor]. Tudo bem?\nAqui é [Seu Nome], da F&G.\nTentei contato por telefone, mas imagino que esteja corrido. Peguei seu contato com a [Nome da Secretária] pois vi que a [Nome da Empresa do Cliente] tem participado ativamente de licitações recentes.')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => copyToClipboard('Olá, [Nome do Decisor]. Tudo bem?\nAqui é [Seu Nome], da F&G.\nTentei contato por telefone, mas imagino que esteja corrido. Peguei seu contato com a [Nome da Secretária] pois vi que a [Nome da Empresa do Cliente] tem participado ativamente de licitações recentes.')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Copy size={12} className="text-gold" />
                                                 </button>
                                             </div>
@@ -1222,7 +1222,7 @@ Atenciosamente,`)}
                                             <p className="text-[10px] font-bold text-slate-400 uppercase">Mensagem 2: O Gancho</p>
                                             <div className="bg-white p-4 rounded-xl text-xs text-slate-600 border border-slate-100 italic relative group">
                                                 "Não quero tomar seu tempo... O meu objetivo é simples: ser um ponto de verificação de preço... Faz sentido pra você?"
-                                                <button onClick={() => copyToClipboard('Não quero tomar seu tempo com apresentações. O meu objetivo é simples: ser um ponto de verificação de preço para os seus Seguros Garantia.\nNa próxima demanda que tiver na mesa, me permite fazer um cálculo sem compromisso? Se meu preço for melhor, a gente avança. Se não, você mantém seu corretor atual sabendo que ele está cobrando o justo.\nFaz sentido pra você?')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => copyToClipboard('Não quero tomar seu tempo com apresentações. O meu objetivo é simples: ser um ponto de verificação de preço para os seus Seguros Garantia.\nNa próxima demanda que tiver na mesa, me permite fazer um cálculo sem compromisso? Se meu preço for melhor, a gente avança. Se não, você mantém seu corretor atual sabendo que ele está cobrando o justo.\nFaz sentido pra você?')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Copy size={12} className="text-gold" />
                                                 </button>
                                             </div>
@@ -1231,7 +1231,7 @@ Atenciosamente,`)}
                                 </div>
 
                                 {/* E-mail */}
-                                <div className="bg-blue-50/50 rounded-[2.5rem] border border-blue-100 overflow-hidden">
+                                <div className="bg-blue-50/50 rounded-2xl border border-blue-100 overflow-hidden">
                                     <div className="bg-blue-600 px-8 py-5 flex justify-between items-center text-white">
                                         <h5 className="font-bold flex items-center gap-2 mt-0 mb-0">
                                             <MailOpen size={18} /> E-mail
@@ -1255,7 +1255,7 @@ Atenciosamente,`)}
                             </div>
 
                             {/* Pulo do Gato: Áudio */}
-                            <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
                                     <Headset size={150} />
                                 </div>
@@ -1267,7 +1267,7 @@ Atenciosamente,`)}
                                         <h4 className="text-2xl font-black text-navy mb-2">O "Pulo do Gato"</h4>
                                         <p className="text-xs font-bold text-gold uppercase tracking-widest">Mensagem de áudio no WhatsApp</p>
                                     </div>
-                                    <div className="md:w-2/3 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                                    <div className="md:w-2/3 bg-slate-50 p-8 rounded-2xl border border-slate-100">
                                         <p className="text-sm text-slate-500 mb-6 italic leading-relaxed">
                                             "Se visualizou e não respondeu: mande um áudio de 20-30 segundos. Gera conexão pessoal."
                                         </p>
@@ -1280,13 +1280,13 @@ Atenciosamente,`)}
 
                             {/* Dicas Finais */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="bg-navy p-10 rounded-[2.5rem] shadow-sm text-white">
+                                <div className="bg-navy p-10 rounded-2xl shadow-sm text-white">
                                     <h5 className="font-bold text-gold mb-4">1. Personalização Mínima</h5>
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Se souber de um edital que eles ganharam recentemente, cite-o. Ex: <span className="text-white italic">"Vi que venceram o pregão do órgão X..."</span>. Isso prova que você não é um robô.
                                     </p>
                                 </div>
-                                <div className="bg-navy p-10 rounded-[2.5rem] shadow-sm text-white">
+                                <div className="bg-navy p-10 rounded-2xl shadow-sm text-white">
                                     <h5 className="font-bold text-gold mb-4">2. O "Call to Action" (CTA)</h5>
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Não peça uma reuniões de 30 min. Peça uma <span className="text-white font-bold">oportunidade de cotar</span>. É baixo risco e alta conversão.
@@ -1299,13 +1299,13 @@ Atenciosamente,`)}
 
                 {activeSection === 'pos-venda' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm border-t-4 border-t-gold">
+                        <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm border-t-4 border-t-gold">
                             <h3 className="text-3xl font-black text-navy mb-4">Pós-Venda Estratégico</h3>
                             <p className="text-slate-500 font-medium italic">O Seguro Garantia é cíclico. Não espere ser procurado, faça contatos proativos.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 className="text-xl font-black text-navy mb-8 flex items-center gap-3">
                                     <History className="text-gold" size={28} />
                                     Ciclo do Cliente
@@ -1321,7 +1321,7 @@ Atenciosamente,`)}
                                 </div>
                             </div>
 
-                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                            <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 className="text-xl font-black text-navy mb-8 flex items-center gap-3">
                                     <LayoutDashboard className="text-gold" size={28} />
                                     Gestão Interna (CRM)
@@ -1345,7 +1345,7 @@ Atenciosamente,`)}
                             </div>
                         </div>
 
-                        <div className="bg-navy p-10 rounded-[3rem] shadow-sm text-white relative overflow-hidden group">
+                        <div className="bg-navy p-10 rounded-2xl shadow-sm text-white relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform">
                                 <Megaphone size={120} />
                             </div>
@@ -1356,7 +1356,7 @@ Atenciosamente,`)}
                                     </div>
                                     Dia da Licitação: Contato Ativo
                                 </h4>
-                                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 space-y-6">
+                                <div className="bg-white/5 p-8 rounded-2xl border border-white/10 space-y-6">
                                     <p className="text-slate-300 text-sm italic">
                                         "Oi, Sr. XXX, estamos na expectativa para saber como foi o pregão de hoje. Por favor, nos mantenha informados. Estamos na torcida por aqui!"
                                     </p>

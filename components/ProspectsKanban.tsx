@@ -1239,7 +1239,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="w-full max-w-[190px] px-2 py-1 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold tracking-wider uppercase text-sm"
+                                                className="w-full max-w-[190px] px-2 py-1 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold tracking-wider uppercase text-sm"
                                             />
                                         ) : (
                                             <span
@@ -1255,7 +1255,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         )}
                                     </h3>
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/20 text-white">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-white/20 text-white">
                                             {columnProspects.length}
                                         </span>
                                         {!column.protected && (
@@ -1288,7 +1288,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2 min-w-0 group/header">
                                             {selectionMode && (
-                                                <div className={`w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-600 border-rose-600' : 'border-slate-300 bg-white'}`}>
+                                                <div className={`w-5 h-5 rounded-xl border-2 shrink-0 flex items-center justify-center transition-all ${isSelected ? 'bg-rose-600 border-rose-600' : 'border-slate-300 bg-white'}`}>
                                                     {isSelected && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                                 </div>
                                             )}
@@ -1310,12 +1310,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         {(prospect.ramo && prospect.ramo !== 'nan') ? prospect.ramo : (prospect.position && prospect.position !== 'nan' ? prospect.position : 'Sem Categoria')}
                                                     </p>
                                                 {prospect.segmento && prospect.segmento !== 'nan' ? (
-                                                    <span className="mt-1 inline-flex text-[10px] font-bold bg-gold/12 text-navy px-2 py-0.5 rounded-md border border-gold/25 truncate max-w-[140px]">
+                                                    <span className="mt-1 inline-flex text-[10px] font-bold bg-gold/12 text-navy px-2 py-0.5 rounded-xl border border-gold/25 truncate max-w-[140px]">
                                                         {prospect.segmento}
                                                     </span>
                                                 ) : null}
                                                 {prospect.product_type ? (
-                                                    <span className={`mt-0.5 inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border truncate max-w-[140px] ${PRODUCT_BADGE[prospect.product_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                                    <span className={`mt-0.5 inline-flex text-[10px] font-bold px-2 py-0.5 rounded-xl border truncate max-w-[140px] ${PRODUCT_BADGE[prospect.product_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
                                                         {prospect.product_type}
                                                     </span>
                                                 ) : null}
@@ -1334,7 +1334,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                                             {/* Context Menu */}
                                             {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
-                                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
+                                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-xl p-1 transition-colors">
                                                     <MoreVertical size={16} />
                                                 </button>
                                                 {openMenuId === prospect.id && (
@@ -1398,7 +1398,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Limites</p>
                                                         <div className="flex flex-wrap gap-1">
                                                             {lims.map((l: any, i: number) => (
-                                                                <span key={i} className="text-[10px] font-bold bg-gold/12 text-navy px-2 py-0.5 rounded-md border border-gold/25 truncate max-w-[120px]">
+                                                                <span key={i} className="text-[10px] font-bold bg-gold/12 text-navy px-2 py-0.5 rounded-xl border border-gold/25 truncate max-w-[120px]">
                                                                     {l.seguradora}: {l.valor}
                                                                 </span>
                                                             ))}
@@ -1413,7 +1413,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Valor Estimado</span>
                                                 <span className="text-xs font-bold text-navy">{formatCurrency(prospect.lead_value || 0)}</span>
                                             </div>
-                                            {prospect.source && <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-md max-w-[80px] truncate">{prospect.source}</span>}
+                                            {prospect.source && <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-xl max-w-[80px] truncate">{prospect.source}</span>}
                                             
                                             {/* Task Indicator */}
                                             {(() => {
@@ -1422,7 +1422,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 
                                                 const hasOverdue = leadTasks.some(t => new Date(t.due_date) < new Date());
                                                 return (
-                                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${leadTasks.length} tarefa(s) pendente(s)`}>
+                                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-xl ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${leadTasks.length} tarefa(s) pendente(s)`}>
                                                         <Clock size={10} className={hasOverdue ? 'animate-pulse' : ''} />
                                                         <span className="text-[10px] font-bold">{leadTasks.length}</span>
                                                     </div>
@@ -1431,11 +1431,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         </div>
 
                                         {!selectionMode && <div className="flex gap-2 pt-1">
-                                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-navy bg-gold/12 hover:bg-gold/22 rounded-lg py-1.5 transition-colors">
+                                            <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-navy bg-gold/12 hover:bg-gold/22 rounded-xl py-1.5 transition-colors">
                                                 <Edit2 size={11} /> Editar
                                             </button>
                                             {onConvertToSale && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleConvertToSale(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-navy bg-gold/15 hover:bg-gold/25 rounded-lg py-1.5 transition-colors">
+                                                <button onClick={(e) => { e.stopPropagation(); handleConvertToSale(prospect); }} className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-navy bg-gold/15 hover:bg-gold/25 rounded-xl py-1.5 transition-colors">
                                                     <TrendingUp size={11} /> Venda
                                                 </button>
                                             )}
@@ -1482,7 +1482,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     )}
                     <button
                         onClick={exitSelectionMode}
-                        className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                        className="text-slate-400 hover:text-white transition-colors p-1 rounded-xl hover:bg-white/10"
                         title="Cancelar"
                     >
                         <X size={18} />
@@ -1493,7 +1493,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* ── ADD COLUMN MODAL ── */}
             {isAddColumnOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden">
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LayoutGrid size={20} className="text-gold" /> Nova Coluna</h3>
@@ -1546,7 +1546,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* ── NEW LEAD MODAL ── */}
             {isNewLeadModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800">Criar Novo Lead</h3>
@@ -1571,7 +1571,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 <button
                                                     type="button"
                                                     onClick={() => setNewLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
-                                                    className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                    className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                                                 >
                                                     <X size={14} />
                                                 </button>
@@ -1626,7 +1626,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* ── EDIT LEAD MODAL ── */}
             {isEditModalOpen && editingLead && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center p-6 border-b border-gold/20 bg-gold/10">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-gold" />Editar Lead</h3>
@@ -1705,7 +1705,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         className="rounded-xl border border-gold/30 bg-white shadow-sm overflow-hidden"
                                                     >
                                                         <div className="flex items-start justify-between gap-2 px-3 py-2 bg-navy">
-                                                            <span className="inline-flex items-center gap-1.5 rounded-md bg-navy-light px-2 py-1 text-[11px] font-bold tabular-nums text-gold ring-1 ring-gold/40">
+                                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-navy-light px-2 py-1 text-[11px] font-bold tabular-nums text-gold ring-1 ring-gold/40">
                                                                 <Clock size={12} className="shrink-0 text-gold/90" aria-hidden />
                                                                 {entry.timestamp}
                                                             </span>
@@ -1747,7 +1747,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
-                                                            className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                            className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                                                         >
                                                             <X size={14} />
                                                         </button>
@@ -1807,7 +1807,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* ── CSV MAPPING MODAL ── */}
             {isImportModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800">Mapear Colunas do CSV</h3>

@@ -274,13 +274,13 @@ const UserManager: React.FC = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setPermForm(f => f ? { ...f, modulos: TODOS_MODULOS } : f)}
-                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                    className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                                 >
                                     Marcar tudo
                                 </button>
                                 <button
                                     onClick={() => setPermForm(f => f ? { ...f, modulos: [] } : f)}
-                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                    className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                                 >
                                     Desmarcar tudo
                                 </button>
@@ -365,7 +365,7 @@ const UserManager: React.FC = () => {
                                 <tr key={u.id} className="hover:bg-slate-50/80 transition-all">
                                     <td className="px-6 py-4 font-bold text-slate-800">{u.email}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${
+                                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-xl ${
                                             u.email === ADMIN_EMAIL ? 'bg-navy text-gold'
                                             : permMap[u.email] ? 'bg-amber-50 text-amber-700'
                                             : 'bg-slate-100 text-slate-500'
@@ -381,7 +381,7 @@ const UserManager: React.FC = () => {
                                             {u.email !== ADMIN_EMAIL && (
                                                 <button
                                                     onClick={() => abrirPermissoes(u.email)}
-                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
+                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"
                                                     title="Definir o que este usuário vê"
                                                 >
                                                     <Lock size={15} />
@@ -389,7 +389,7 @@ const UserManager: React.FC = () => {
                                             )}
                                             <button
                                                 onClick={() => setPwForm({ userId: u.id, email: u.email, password: '' })}
-                                                className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
+                                                className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"
                                                 title="Alterar senha"
                                             >
                                                 <Key size={15} />
@@ -397,7 +397,7 @@ const UserManager: React.FC = () => {
                                             {u.email !== ADMIN_EMAIL && (
                                                 <button
                                                     onClick={() => handleDelete(u.id, u.email)}
-                                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                                                     title="Remover acesso"
                                                 >
                                                     <UserX size={15} />

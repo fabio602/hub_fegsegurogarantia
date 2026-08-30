@@ -210,12 +210,12 @@ const BanksDirectory: React.FC = () => {
                             placeholder="Buscar Banco..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-[1.5rem] focus:ring-4 focus:ring-gold/10 outline-none min-w-[320px] shadow-sm transition-all font-medium text-slate-700"
+                            className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-gold/10 outline-none min-w-[320px] shadow-sm transition-all font-medium text-slate-700"
                         />
                     </div>
                     <button
                         onClick={handleAdd}
-                        className="bg-gold text-white px-8 py-4 rounded-[1.5rem] hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
+                        className="bg-gold text-white px-8 py-4 rounded-2xl hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
                     >
                         <Plus size={24} strokeWidth={3} />
                         <span className="hidden sm:inline">Novo</span>
@@ -229,7 +229,7 @@ const BanksDirectory: React.FC = () => {
                     const data = isEditing ? editData : parseBankData(bank.obs);
 
                     return (
-                        <div key={bank.id} className={`bg-white rounded-[2.5rem] border transition-all flex flex-col group relative overflow-hidden ${isEditing ? 'ring-4 ring-gold/30 shadow-2xl z-10' : 'border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1'}`}>
+                        <div key={bank.id} className={`bg-white rounded-2xl border transition-all flex flex-col group relative overflow-hidden ${isEditing ? 'ring-4 ring-gold/30 shadow-2xl z-10' : 'border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1'}`}>
                             <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-navy to-gold" />
 
                             {/* Header: Name and Actions */}
@@ -309,7 +309,7 @@ const BanksDirectory: React.FC = () => {
                                     <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
                                         <UserCircle size={16} className="text-gold" /> Gerente Comercial
                                     </h4>
-                                    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                                         {isEditing ? (
                                             <div className="space-y-3">
                                                 <input className="w-full text-sm font-bold bg-slate-50 px-4 py-3 rounded-xl outline-none" placeholder="Nome do Gerente" value={editData.gerente.nome} onChange={e => setEditData({ ...editData, gerente: { ...editData.gerente, nome: e.target.value } })} />
@@ -352,7 +352,7 @@ const BanksDirectory: React.FC = () => {
                                             placeholder="Liste os documentos aqui..."
                                         />
                                     ) : (
-                                        <div className="bg-navy/5 p-5 rounded-3xl border border-navy/5">
+                                        <div className="bg-navy/5 p-5 rounded-2xl border border-navy/5">
                                             <ul className="space-y-2">
                                                 {data.documentos.split('\n').filter(l => l.trim()).map((line, i) => (
                                                     <li key={i} className="flex items-start gap-3">
@@ -380,7 +380,7 @@ const BanksDirectory: React.FC = () => {
                                             placeholder="Liste os requisitos de contratação aqui..."
                                         />
                                     ) : (
-                                        <div className="bg-navy/5 p-5 rounded-3xl border border-navy/5">
+                                        <div className="bg-navy/5 p-5 rounded-2xl border border-navy/5">
                                             {data.requisitos ? (
                                                 <ul className="space-y-2">
                                                     {data.requisitos.split('\n').filter(l => l.trim()).map((line, i) => (
@@ -412,7 +412,7 @@ const BanksDirectory: React.FC = () => {
                                             placeholder="Liste os documentos para abertura de conta..."
                                         />
                                     ) : (
-                                        <div className="bg-navy/5 p-5 rounded-3xl border border-navy/5">
+                                        <div className="bg-navy/5 p-5 rounded-2xl border border-navy/5">
                                             {data.documentosConta ? (
                                                 <ul className="space-y-2">
                                                     {data.documentosConta.split('\n').filter(l => l.trim()).map((line, i) => (
@@ -439,9 +439,9 @@ const BanksDirectory: React.FC = () => {
                 {!searchTerm && banks.length === 0 && !loading && (
                     <button
                         onClick={handleAdd}
-                        className="bg-slate-50 border-4 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center p-12 group hover:border-gold/40 hover:bg-white transition-all min-h-[400px]"
+                        className="bg-slate-50 border-4 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center p-12 group hover:border-gold/40 hover:bg-white transition-all min-h-[400px]"
                     >
-                        <div className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl flex items-center justify-center text-slate-200 group-hover:text-gold group-hover:scale-110 transition-all mb-8 border border-slate-50">
+                        <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl flex items-center justify-center text-slate-200 group-hover:text-gold group-hover:scale-110 transition-all mb-8 border border-slate-50">
                             <ShieldPlus size={48} />
                         </div>
                         <span className="text-slate-400 font-bold uppercase tracking-[4px] group-hover:text-navy">Adicionar Banco</span>

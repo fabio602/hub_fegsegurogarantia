@@ -460,16 +460,16 @@ const ParceiroManager: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
                                           {p.partner_type !== 'imobiliaria' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold rounded-lg text-xs font-bold w-fit">
+                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold rounded-xl text-xs font-bold w-fit">
                                                 {p.commission_pct}%
                                             </span>
                                           )}
                                           {p.partner_type === 'imobiliaria' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold w-fit">
+                                            <span className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold w-fit">
                                                 Repasse mensal
                                             </span>
                                           )}
-                                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md w-fit ${p.partner_type === 'imobiliaria' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+                                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xl w-fit ${p.partner_type === 'imobiliaria' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
                                               {p.partner_type === 'imobiliaria' ? '🏠 Imobiliária' : '🏢 Seg. Garantia'}
                                           </span>
                                         </div>
@@ -481,16 +481,16 @@ const ParceiroManager: React.FC = () => {
                                             ) : (
                                                 <button onClick={() => sendTestReport(p)} disabled={testSendingId === p.id}
                                                     title="Enviar relatório de teste para mim"
-                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all disabled:opacity-40">
+                                                    className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all disabled:opacity-40">
                                                     {testSendingId === p.id ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                                                 </button>
                                             )}
                                             <button onClick={() => abrirRepasse(p)} title="Fechar repasse do mês"
-                                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><DollarSign size={15} /></button>
+                                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"><DollarSign size={15} /></button>
                                             <button onClick={() => setWelcomeModal(p)} title="Enviar e-mail de boas-vindas"
-                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Mail size={15} /></button>
-                                            <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"><Edit2 size={15} /></button>
-                                            <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={15} /></button>
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Mail size={15} /></button>
+                                            <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"><Edit2 size={15} /></button>
+                                            <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={15} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -670,7 +670,7 @@ const ParceiroManager: React.FC = () => {
                             <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong></p>
                         </div>
                         {!welcomeModal.email && (
-                            <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-lg">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
+                            <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-xl">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
                         )}
                         <div className="flex gap-3 mt-4">
                             {welcomeModal.email && (

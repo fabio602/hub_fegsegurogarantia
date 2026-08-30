@@ -141,7 +141,7 @@ function CarteiraEmptyLimitsForm({
     return (
         <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
             {localError && (
-                <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-[11px] text-rose-800 font-medium">
+                <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-[11px] text-rose-800 font-medium">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" />
                     {localError}
                 </div>
@@ -151,7 +151,7 @@ function CarteiraEmptyLimitsForm({
             </p>
             <div className="space-y-2">
                 {tempLimits.map((l, i) => (
-                    <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
+                    <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-xl border border-slate-100 text-[11px]">
                         <span className="font-bold text-slate-700">{l.seguradora}</span>
                         <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-400">{formatCurrency(l.valor)}</span>
@@ -174,7 +174,7 @@ function CarteiraEmptyLimitsForm({
                         setNewTemp(prev => ({ ...prev, seguradora: v }));
                         setOutroNome('');
                     }}
-                    className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
+                    className="flex-1 min-w-[100px] text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                 >
                     <option value="">Seguradora...</option>
                     {insurers.map(ins => (
@@ -186,7 +186,7 @@ function CarteiraEmptyLimitsForm({
                     onClick={() => {
                         setNewTemp(prev => ({ ...prev, seguradora: SEGURADORA_OUTRO_CORRETOR }));
                     }}
-                    className={`shrink-0 px-2.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
+                    className={`shrink-0 px-2.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight transition-all ${
                         newTemp.seguradora === SEGURADORA_OUTRO_CORRETOR
                             ? 'border-navy bg-navy text-white shadow-sm'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
@@ -200,7 +200,7 @@ function CarteiraEmptyLimitsForm({
                         placeholder="Nome do corretor ou seguradora"
                         value={outroNome}
                         onChange={e => setOutroNome(e.target.value)}
-                        className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
+                        className="flex-1 min-w-[120px] text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
                     />
                 )}
                 <input
@@ -212,7 +212,7 @@ function CarteiraEmptyLimitsForm({
                         const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
                         setNewTemp(prev => ({ ...prev, valor: val }));
                     }}
-                    className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
+                    className="w-20 text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                 />
                 <button
                     type="button"
@@ -231,7 +231,7 @@ function CarteiraEmptyLimitsForm({
                         setNewTemp({ seguradora: '', valor: '' });
                         setOutroNome('');
                     }}
-                    className="bg-gold text-white p-2 rounded-lg shrink-0"
+                    className="bg-gold text-white p-2 rounded-xl shrink-0"
                 >
                     <Plus size={12} />
                 </button>
@@ -2158,7 +2158,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <button
                                                         type="button"
                                                         onClick={() => markExpiryReminderDone(s)}
-                                                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs px-3 py-2 rounded-lg transition-all"
+                                                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs px-3 py-2 rounded-xl transition-all"
                                                         title="Remover da lista — pendência já tratada"
                                                     >
                                                         <Check size={13} strokeWidth={2.5} /> Concluído
@@ -2166,7 +2166,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <button
                                                         type="button"
                                                         onClick={() => handleEdit(s)}
-                                                        className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-lg transition-all"
+                                                        className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-xl transition-all"
                                                         title="Editar este lead"
                                                     >
                                                         <Edit2 size={13} /> Editar
@@ -2253,7 +2253,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>
 
                     {/* Form Card */}
-                    <div ref={saleFormRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                    <div ref={saleFormRef} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                         <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
                             <div className="w-1.5 h-6 bg-gold rounded-full"></div>
                             {editingId ? 'Editar Registro' : 'Nova Entrada de Venda'}
@@ -2318,14 +2318,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     window.location.href = mailto;
                                                     setShowEmailPrompt(null);
                                                 }}
-                                                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-[10px] hover:bg-slate-200 transition-colors flex items-center gap-2"
+                                                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-[10px] hover:bg-slate-200 transition-colors flex items-center gap-2"
                                             >
                                                 <Mail size={14} />
                                                 Abrir Cópia Manual
                                             </button>
                                             <button
                                                 onClick={() => setShowEmailPrompt(null)}
-                                                className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-[10px] hover:bg-emerald-700 transition-colors"
+                                                className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] hover:bg-emerald-700 transition-colors"
                                             >
                                                 Entendido
                                             </button>
@@ -2774,14 +2774,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <label htmlFor="apolice-file" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedApolice ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
                                                 <Shield size={16} /> {selectedApolice ? selectedApolice.name.substring(0, 15) : 'Anexar Apólice (PDF)'}
                                             </label>
-                                            {selectedApolice && <button type="button" onClick={() => setSelectedApolice(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><X size={16} /></button>}
+                                            {selectedApolice && <button type="button" onClick={() => setSelectedApolice(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><X size={16} /></button>}
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <input type="file" id="boleto-file" accept=".pdf" onChange={(e) => setSelectedBoleto(e.target.files?.[0] || null)} className="hidden" />
                                             <label htmlFor="boleto-file" className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${selectedBoleto ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
                                                 <DollarSign size={16} /> {selectedBoleto ? selectedBoleto.name.substring(0, 15) : 'Anexar Boleto (PDF)'}
                                             </label>
-                                            {selectedBoleto && <button type="button" onClick={() => setSelectedBoleto(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><X size={16} /></button>}
+                                            {selectedBoleto && <button type="button" onClick={() => setSelectedBoleto(null)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"><X size={16} /></button>}
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-emerald-600/70 font-medium italic text-center">
@@ -2876,7 +2876,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>
 
                     {/* Table Card */}
-                    <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
@@ -2984,7 +2984,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <div className="flex items-center gap-2">
                                                         <div className="font-bold text-slate-800 tracking-tight">{sale.nome}</div>
                                                         {(sale as any).survey_score && (
-                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
+                                                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
                                                                 ⭐ {(sale as any).survey_score}
                                                             </span>
                                                         )}
@@ -2993,7 +2993,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 </td>
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
                                                 <td className="px-6 py-5">
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
                                                         sale.vendeu === 'Não' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'
                                                         }`}>
                                                         {sale.vendeu === 'Sim' ? <CheckCircle2 size={12} /> :
@@ -3011,12 +3011,12 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             href={(sale as any).apolice_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all"
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
                                                         >
                                                             <Download size={13} /> PDF
                                                         </a>
                                                     ) : (
-                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-100 transition-all">
+                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">
                                                             {uploadingApoliceId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <Shield size={13} />}
                                                             {uploadingApoliceId === sale.id ? '...' : 'Upload'}
                                                             <input
@@ -3038,11 +3038,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return (
                                                             <button
                                                                 onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '', (sale as any).decisor || '')}
-                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
                                                                 <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
                                                                 {s && s.total > 0 && (
-                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl ${s.emAberto > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                                                         {s.emAberto > 0 ? `${s.emAberto} em aberto` : 'Todos pagos'}
                                                                     </span>
                                                                 )}
@@ -3085,9 +3085,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-black text-slate-800">Disparador de Emails — {activeKanbanProduct}</h3>
-                            <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all">✕</button>
+                            <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all">✕</button>
                         </div>
-                        <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded">[NOME_EMPRESA]</code> como variáveis.</p>
+                        <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded-xl">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded-xl">[NOME_EMPRESA]</code> como variáveis.</p>
                         <textarea
                             value={emailTemplate}
                             onChange={e => setEmailTemplate(e.target.value)}
@@ -3127,7 +3127,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     }
                                 </p>
                             </div>
-                            <button onClick={() => setBoletoModalSaleId(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all"><X size={18} /></button>
+                            <button onClick={() => setBoletoModalSaleId(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"><X size={18} /></button>
                         </div>
 
                         {/* Lista de boletos existentes */}
@@ -3136,7 +3136,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 {boletos.map(b => (
                                     <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-xl ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                                             {b.valor != null && <span className="text-xs font-bold text-slate-700">{formatCurrency(Number(b.valor))}</span>}
                                             {b.pago
@@ -3147,7 +3147,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleTogglePago(b.id, b.pago)}
-                                                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                                className={`text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
                                             >
                                                 {b.pago ? 'Marcar como Em Aberto' : 'Marcar como Pago'}
                                             </button>
@@ -3158,14 +3158,14 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <button
                                                     onClick={() => handleSendBoletoEmail(b)}
                                                     disabled={sendingBoletoEmail === b.id}
-                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}
+                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl transition-all ${boletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}
                                                     title={boletoModalEmail ? `Enviar para ${boletoModalEmail}` : 'Sem e-mail cadastrado'}
                                                 >
                                                     {sendingBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                                                     {boletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={13} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -3237,7 +3237,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="date"
                                                     value={p.vencimento}
                                                     onChange={e => setCarneParcelas(prev => prev.map((x, j) => j === i ? { ...x, vencimento: e.target.value } : x))}
-                                                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-gold"
+                                                    className="flex-1 min-w-0 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-gold"
                                                 />
                                                 <input
                                                     type="text"
@@ -3245,11 +3245,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     value={p.valor}
                                                     onChange={e => setCarneParcelas(prev => prev.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))}
                                                     placeholder="2.083,53"
-                                                    className="w-24 shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-gold"
+                                                    className="w-24 shrink-0 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-gold"
                                                 />
                                                 <button
                                                     onClick={() => setCarneParcelas(prev => prev.filter((_, j) => j !== i))}
-                                                    className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all shrink-0"
+                                                    className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all shrink-0"
                                                     title="Remover esta parcela da lista"
                                                 >
                                                     <X size={13} />
@@ -3507,7 +3507,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             if (clients.length === 0) {
                                 const filteredOut = salesSearch.trim().length > 0;
                                 return (
-                                    <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                    <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
                                         <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
                                             <Users size={32} />
                                         </div>
@@ -3524,7 +3524,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             }
 
                             return clients.map((client: ClientPortfolioItem, idx: number) => (
-                                <div key={idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden">
+                                <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-bl-full -z-0"></div>
 
                                     <div className="relative z-10 flex-1">
@@ -3541,7 +3541,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         if (clientTasks.length === 0) return null;
                                                         const hasOverdue = clientTasks.some(t => t.status === 'pending' && new Date(t.due_date) < new Date());
                                                         return (
-                                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${clientTasks.length} tarefa(s) pendente(s)`}>
+                                                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-xl ${hasOverdue ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`} title={`${clientTasks.length} tarefa(s) pendente(s)`}>
                                                                 <Clock size={10} className={hasOverdue ? 'animate-pulse' : ''} />
                                                                 <span className="text-[10px] font-bold">{clientTasks.length}</span>
                                                             </div>
@@ -3559,7 +3559,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 decisor: client.decisor,
                                                             });
                                                         }}
-                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
+                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"
                                                         title="Editar dados do cliente"
                                                     >
                                                         <Edit2 size={14} />
@@ -3570,7 +3570,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             salesIds: client.salesIds,
                                                             vendas: client.salesVendidas.length,
                                                         })}
-                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                        className="shrink-0 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                                                         title="Excluir cliente da carteira"
                                                     >
                                                         <Trash2 size={14} />
@@ -3592,21 +3592,21 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     type={type}
                                                                     value={(clientEditForm as any)[key]}
                                                                     onChange={e => setClientEditForm(prev => ({ ...prev, [key]: e.target.value }))}
-                                                                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
+                                                                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all"
                                                                 />
                                                             </div>
                                                         ))}
                                                         <div className="flex gap-2 pt-1">
                                                             <button
                                                                 onClick={() => setEditingClientName(null)}
-                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-all"
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 py-2 rounded-xl hover:bg-slate-100 transition-all"
                                                             >
                                                                 <X size={11} /> CANCELAR
                                                             </button>
                                                             <button
                                                                 onClick={() => handleSaveClientInfo(client.salesIds)}
                                                                 disabled={saving}
-                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-gold hover:bg-gold-hover py-2 rounded-lg transition-all disabled:opacity-50"
+                                                                className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-gold hover:bg-gold-hover py-2 rounded-xl transition-all disabled:opacity-50"
                                                             >
                                                                 {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                                 SALVAR
@@ -3658,7 +3658,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 <div className="flex items-center justify-between gap-2">
                                                                     <span className="text-[10px] font-bold text-slate-700 uppercase">{sv.tipo || 'Seguro'}</span>
                                                                     {sv.seguradora && (
-                                                                        <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-full uppercase">{sv.seguradora}</span>
+                                                                        <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-xl uppercase">{sv.seguradora}</span>
                                                                     )}
                                                                 </div>
                                                                 <div className="flex justify-between items-center text-[10px] font-bold">
@@ -3694,7 +3694,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     <div className="space-y-3 p-3 bg-slate-50 rounded-2xl border border-gold/20 animate-in fade-in zoom-in-95 duration-200">
                                                         <div className="space-y-2">
                                                             {tempClientLimits.map((l, i) => (
-                                                                <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[11px]">
+                                                                <div key={i} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-xl border border-slate-100 text-[11px]">
                                                                     <span className="font-bold text-slate-700">{l.seguradora}</span>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-bold text-slate-400">{formatCurrency(l.valor)}</span>
@@ -3716,7 +3716,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     setNewTempLimit(prev => ({ ...prev, seguradora: v }));
                                                                     setNewLimitSeguradoraOutro('');
                                                                 }}
-                                                                className="flex-1 min-w-[100px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
+                                                                className="flex-1 min-w-[100px] text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-white"
                                                             >
                                                                 <option value="">Seguradora...</option>
                                                                 {insurers.map(ins => (
@@ -3731,7 +3731,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                         seguradora: SEGURADORA_OUTRO_CORRETOR,
                                                                     }));
                                                                 }}
-                                                                className={`shrink-0 px-2.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
+                                                                className={`shrink-0 px-2.5 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight transition-all ${
                                                                     newTempLimit.seguradora === SEGURADORA_OUTRO_CORRETOR
                                                                         ? 'border-navy bg-navy text-white shadow-sm'
                                                                         : 'border-slate-200 bg-white text-slate-600 hover:border-gold/50 hover:text-gold'
@@ -3745,7 +3745,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     placeholder="Nome do corretor ou seguradora"
                                                                     value={newLimitSeguradoraOutro}
                                                                     onChange={e => setNewLimitSeguradoraOutro(e.target.value)}
-                                                                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
+                                                                    className="flex-1 min-w-[120px] text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold bg-slate-50"
                                                                 />
                                                             )}
                                                             <input
@@ -3756,7 +3756,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                     const val = digits ? formatCurrency(parseFloat(digits) / 100) : '';
                                                                     setNewTempLimit(prev => ({ ...prev, valor: val }));
                                                                 }}
-                                                                className="w-20 text-[10px] p-2 rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-gold"
+                                                                className="w-20 text-[10px] p-2 rounded-xl border border-slate-200 outline-none focus:ring-1 focus:ring-gold"
                                                             />
                                                             <button
                                                                 type="button"
@@ -3775,7 +3775,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                         setNewLimitSeguradoraOutro('');
                                                                     }
                                                                 }}
-                                                                className="bg-gold text-white p-2 rounded-lg shrink-0"
+                                                                className="bg-gold text-white p-2 rounded-xl shrink-0"
                                                             >
                                                                 <Plus size={12} />
                                                             </button>
@@ -3811,7 +3811,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                             <Shield size={12} className="text-emerald-500" />
                                                                             <span className="text-xs font-bold text-slate-700">{l.seguradora}</span>
                                                                         </div>
-                                                                        <span className="text-xs font-bold text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                                                        <span className="text-xs font-bold text-slate-600 bg-white px-2 py-0.5 rounded-xl border border-slate-200">
                                                                             {formatCurrency(l.valor)}
                                                                         </span>
                                                                     </div>
@@ -3853,7 +3853,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         setEditingClientObs(client.nome);
                                                         setTempClientObs(client.obs || '');
                                                     }}
-                                                    className="p-1 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
+                                                    className="p-1 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"
                                                     title="Editar observações"
                                                     aria-label="Editar observações"
                                                 >
@@ -3872,7 +3872,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditingClientObs(null)}
-                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all"
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all"
                                                         >
                                                             <X size={11} /> Cancelar
                                                         </button>
@@ -3880,7 +3880,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                             type="button"
                                                             onClick={() => handleSaveClientObs(client.salesIds)}
                                                             disabled={saving}
-                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-navy hover:bg-navy-light py-2 rounded-lg transition-all disabled:opacity-50"
+                                                            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold text-white bg-navy hover:bg-navy-light py-2 rounded-xl transition-all disabled:opacity-50"
                                                         >
                                                             {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
                                                             Salvar
@@ -4114,7 +4114,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 const percent = sellerTarget > 0 ? Math.min((totalAchieved / sellerTarget) * 100, 100) : 0;
 
                                 return (
-                                    <div key={seller.id} className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                                    <div key={seller.id} className="bg-slate-900 rounded-2xl p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
                                         <div className="relative z-10 flex flex-col h-full">
                                             <div className="flex justify-between items-start mb-12">
                                                 <div>
@@ -4123,7 +4123,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         {Number(seller.share) * 100}% da meta empresa (fallback proporcional)
                                                     </p>
                                                 </div>
-                                                <div className="bg-gold/20 p-4 rounded-3xl">
+                                                <div className="bg-gold/20 p-4 rounded-2xl">
                                                     <Target size={32} className="text-gold" />
                                                 </div>
                                             </div>
@@ -4219,7 +4219,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             const isCurrent = key === String(new Date().getMonth() + 1).padStart(2, '0');
 
                             return (
-                                <div key={key} className={`p-8 rounded-[2rem] border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-navy text-white border-gold shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
+                                <div key={key} className={`p-8 rounded-2xl border transition-all duration-500 hover:scale-105 ${isCurrent ? 'bg-navy text-white border-gold shadow-2xl scale-105 z-10' : 'bg-white text-slate-800 border-slate-100 shadow-sm'
                                     }`}>
                                     <div className="flex justify-between items-start mb-6">
                                         <h3 className="text-2xl font-black tracking-tight">{monthLabel}</h3>
@@ -4307,7 +4307,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
@@ -4377,7 +4377,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                 type="number"
                                                                 value={val}
                                                                 onChange={(e) => updateManualCost(`${leadsMonthSelector}_w${i + 1}`, parseFloat(e.target.value) || 0)}
-                                                                className="w-24 bg-slate-50 border-slate-200 rounded-lg px-2 py-1 outline-none text-xs focus:ring-1 focus:ring-gold"
+                                                                className="w-24 bg-slate-50 border-slate-200 rounded-xl px-2 py-1 outline-none text-xs focus:ring-1 focus:ring-gold"
                                                             />
                                                         ) : (
                                                             <span className="font-medium text-slate-600">
@@ -4399,7 +4399,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
                     {/* Distribution Graph Simulation */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
                             <h4 className="text-lg font-black text-slate-800 mb-6">Distribuição por Origem</h4>
                             <div className="space-y-6">
                                 {(() => {
@@ -4428,7 +4428,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </div>
                         </div>
 
-                        <div className="bg-navy p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden">
+                        <div className="bg-navy p-8 rounded-2xl shadow-xl text-white relative overflow-hidden">
                             <h4 className="text-lg font-black text-gold mb-6">Eficiência de Vendas</h4>
                             <div className="flex items-center justify-center p-8">
                                 {(() => {
@@ -4470,7 +4470,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div
                         role="dialog"
                         aria-modal="true"
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200"
+                        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 animate-in zoom-in-95 duration-200"
                     >
                         <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mb-5">
                             <Trash2 size={20} className="text-rose-600" />
@@ -4523,7 +4523,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="add-client-modal-title"
-                        className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gold/25 animate-in zoom-in-95 duration-200"
+                        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gold/25 animate-in zoom-in-95 duration-200"
                     >
                         <div className="flex items-start justify-between gap-3 p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
                             <div>

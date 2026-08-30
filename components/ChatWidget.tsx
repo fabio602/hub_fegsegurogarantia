@@ -201,7 +201,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
     <>
       {/* Chat panel */}
       <div
-        className={`fixed bottom-24 right-6 z-50 flex flex-col bg-white rounded-[2rem] shadow-2xl border border-slate-100 transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-24 right-6 z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-100 transition-all duration-300 origin-bottom-right ${
           open
             ? 'w-[380px] h-[580px] opacity-100 scale-100 pointer-events-auto'
             : 'w-0 h-0 opacity-0 scale-75 pointer-events-none'
@@ -313,7 +313,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                 {/* Attach button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-gold hover:bg-slate-100 transition-all"
+                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-xl text-slate-400 hover:text-gold hover:bg-slate-100 transition-all"
                   title="Anexar PDF"
                 >
                   <Paperclip size={15} />

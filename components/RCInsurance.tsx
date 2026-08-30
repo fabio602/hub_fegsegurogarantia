@@ -458,7 +458,7 @@ const RCInsurance: React.FC = () => {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-3xl border border-gold/30 shadow-xl overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gold/30 shadow-xl overflow-hidden">
           <div className="bg-navy px-6 py-4 flex items-center justify-between">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
               <ShieldAlert size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Responsabilidade Civil'}
@@ -544,25 +544,25 @@ const RCInsurance: React.FC = () => {
                     {rcBoletos.map(b => (
                       <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-xl ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                           {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                           {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
                           <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-rose-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button onClick={() => handleToggleRCPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          <button onClick={() => handleToggleRCPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                             {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                           </button>
                           <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
                             <Download size={12} /> PDF
                           </a>
                           {!b.pago && (
-                            <button onClick={() => handleSendRCBoletoEmail(b)} disabled={sendingRcBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${rcBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
+                            <button onClick={() => handleSendRCBoletoEmail(b)} disabled={sendingRcBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl transition-all ${rcBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                               {sendingRcBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                               {rcBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
                           )}
-                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
                         </div>
                       </div>
                     ))}
@@ -658,7 +658,7 @@ const RCInsurance: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden h-3">
           <div ref={topScrollInnerRef} className="h-1" />
         </div>
@@ -677,9 +677,9 @@ const RCInsurance: React.FC = () => {
                 className={`p-4 cursor-pointer transition-colors active:bg-gold/10 ${editingId === c.id ? 'bg-gold/10 border-l-4 border-gold' : 'hover:bg-slate-50'}`}>
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="font-bold text-slate-800 text-sm">{c.nome}</p>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>{c.situacao}</span>
+                  <span className={`shrink-0 px-2 py-0.5 rounded-xl text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>{c.situacao}</span>
                 </div>
-                <p className="text-xs text-slate-500 mb-1">{c.cpf_cnpj} {c.tipo_rc && <span className="ml-2 px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-[10px] font-bold">{c.tipo_rc}</span>}</p>
+                <p className="text-xs text-slate-500 mb-1">{c.cpf_cnpj} {c.tipo_rc && <span className="ml-2 px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded-xl text-[10px] font-bold">{c.tipo_rc}</span>}</p>
                 <div className="flex gap-3 text-xs text-slate-400 flex-wrap">
                   {c.apolice && <span>Apólice {c.apolice}</span>}
                   {c.fim_vigencia && <span className={expired ? 'text-rose-500 font-bold' : expiring ? 'text-amber-500 font-bold' : ''}>{new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
@@ -727,7 +727,7 @@ const RCInsurance: React.FC = () => {
                         {c.telefone ? <WhatsAppPhoneLink phone={c.telefone} name={c.nome} /> : '—'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">
+                        <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-violet-100 text-violet-700">
                           {c.tipo_rc || '—'}
                         </span>
                       </td>
@@ -738,23 +738,23 @@ const RCInsurance: React.FC = () => {
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{c.comissao || '—'}</td>
                       <td className={`px-4 py-3 font-bold whitespace-nowrap ${expired ? 'text-rose-600' : expiring ? 'text-amber-600' : 'text-slate-600'}`}>
                         {c.fim_vigencia ? new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-                        {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">VENCE</span>}
-                        {expired && <span className="ml-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">VENCIDO</span>}
+                        {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-xl font-bold">VENCE</span>}
+                        {expired && <span className="ml-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-xl font-bold">VENCIDO</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
                           {c.situacao}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         {deleteConfirm === c.id ? (
-                          <div className="flex items-center gap-1 bg-rose-50 rounded-lg px-2 py-1">
+                          <div className="flex items-center gap-1 bg-rose-50 rounded-xl px-2 py-1">
                             <span className="text-[10px] text-rose-600 font-bold">Excluir?</span>
                             <button onClick={() => handleDelete(c.id)} className="text-rose-600 hover:text-rose-800 text-[10px] font-bold">Sim</button>
                             <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-[10px] font-bold">Não</button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-rose-400 hover:bg-rose-50 rounded-lg transition-all" title="Excluir">
+                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-rose-400 hover:bg-rose-50 rounded-xl transition-all" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         )}

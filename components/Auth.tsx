@@ -39,9 +39,9 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
       <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-navy opacity-[0.2] rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 shadow-2xl">
           <div className="flex flex-col items-center mb-10">
-            <div className="w-20 h-20 bg-navy border-2 border-gold/30 rounded-3xl flex items-center justify-center mb-6 shadow-xl">
+            <div className="w-20 h-20 bg-navy border-2 border-gold/30 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
               <ShieldCheck size={40} className="text-gold" />
             </div>
             <h1 className="text-white text-3xl font-black tracking-tighter">F&G Hub</h1>

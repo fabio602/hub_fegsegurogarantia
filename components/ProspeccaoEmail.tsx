@@ -334,7 +334,7 @@ export default function ProspeccaoEmail() {
           <p className="text-slate-300 text-xs mt-1">Clique em "Adicionar Contato" ou importe um CSV</p>
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100">
             <p className="font-bold text-slate-700 text-sm">{filtered.length} contato(s)</p>
           </div>
@@ -359,12 +359,12 @@ export default function ProspeccaoEmail() {
                     <tr key={c.id} className={`border-b border-slate-50 hover:bg-slate-50/60 transition-colors ${!c.ativo ? 'opacity-50' : ''}`}>
                       <td className="px-5 py-4">
                         <p className="font-bold text-slate-800 text-sm">{c.nome_contato}</p>
-                        {allDone && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Concluído</span>}
-                        {!c.ativo && !allDone && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pausado</span>}
+                        {allDone && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl">Concluído</span>}
+                        {!c.ativo && !allDone && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-xl">Pausado</span>}
                       </td>
                       <td className="px-5 py-4 text-sm font-medium text-slate-600">{c.nome_empresa}</td>
                       <td className="px-5 py-4">
-                        <span className="inline-block text-[10px] font-bold text-navy bg-gold/15 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <span className="inline-block text-[10px] font-bold text-navy bg-gold/15 px-2.5 py-1 rounded-xl whitespace-nowrap">
                           {nomeTrilha(c.trilha)}
                         </span>
                       </td>
@@ -407,7 +407,7 @@ export default function ProspeccaoEmail() {
       {/* Modal Adicionar */}
       {showModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-800 text-lg">Adicionar Contato</h3>

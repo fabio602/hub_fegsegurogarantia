@@ -70,7 +70,7 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
     setTimeout(() => setDone(false), 1500);
   };
   return (
-    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-lg transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
+    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-xl transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
       {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
     </button>
   );
@@ -81,7 +81,7 @@ function Card({ icon, label, value, sub, highlight, copyValue, editing, editValu
   editing?: boolean; editValue?: string; onEditChange?: (v: string) => void; editType?: 'text' | 'number' | 'textarea';
 }) {
   return (
-    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
+    <div className={`rounded-2xl border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
@@ -242,7 +242,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
       {/* History panel */}
       {showHistory && history.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 space-y-3">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
           {history.map((entry, i) => (
             <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -276,7 +276,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
+            className="border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
           >
             <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
@@ -333,7 +333,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
       )}
 
       {loading && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
           <Loader2 size={36} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800 text-lg">Lendo o contrato...</p>
@@ -357,14 +357,14 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
 
           {/* Cabeçalho do contrato */}
-          <div className="bg-navy rounded-[2rem] p-7 text-white">
+          <div className="bg-navy rounded-2xl p-7 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2">
                   {editing
                     ? <input value={result.numero_contrato ?? ''} onChange={e => updField('numero_contrato', e.target.value)}
                         placeholder="Número do contrato"
-                        className="text-[10px] font-bold uppercase tracking-widest text-gold bg-white/10 border border-white/20 rounded-lg px-2 py-1 focus:outline-none w-full" />
+                        className="text-[10px] font-bold uppercase tracking-widest text-gold bg-white/10 border border-white/20 rounded-xl px-2 py-1 focus:outline-none w-full" />
                     : result.numero_contrato
                       ? <><p className="text-[10px] font-bold uppercase tracking-widest text-gold">Contrato {result.numero_contrato}</p><CopyBtn text={result.numero_contrato} light /></>
                       : <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Sem número</p>
@@ -397,7 +397,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
           {/* Tomador e Segurado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase size={15} className="text-slate-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tomador (Contratada)</span>
@@ -411,7 +411,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 : result.tomador_cnpj && <div className="flex items-center gap-2 mt-1"><p className="text-xs text-slate-400 font-mono">{result.tomador_cnpj}</p><CopyBtn text={result.tomador_cnpj} /></div>
               }
             </div>
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Shield size={15} className="text-slate-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Segurado (Órgão Público)</span>
@@ -458,7 +458,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
           {/* Vigência */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={15} className="text-slate-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência do Contrato</span>
@@ -477,7 +477,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                 <p className="text-xl font-black text-slate-500">—</p>
               )}
             </div>
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={15} className="text-slate-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência da Garantia</span>
@@ -537,7 +537,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
           {/* Cláusula específica */}
           {result.exige_clausula_especifica && result.clausula_garantia_descricao && (
-            <div className="bg-blue-50 border border-blue-100 rounded-[1.5rem] overflow-hidden">
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl overflow-hidden">
               <button onClick={() => setShowClausula(!showClausula)}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-blue-100/50 transition-all">
                 <div className="flex items-center gap-2">
@@ -554,7 +554,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
 
           {/* Observações */}
           {result.observacoes_relevantes && (
-            <div className="bg-amber-50 border border-amber-100 rounded-[1.5rem] overflow-hidden">
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl overflow-hidden">
               <button onClick={() => setShowObs(!showObs)}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-100/50 transition-all">
                 <div className="flex items-center gap-2">

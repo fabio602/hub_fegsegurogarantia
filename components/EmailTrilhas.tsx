@@ -351,7 +351,7 @@ export default function EmailTrilhas() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
         {/* Lista de trilhas */}
-        <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilhas</p>
           </div>
@@ -380,14 +380,14 @@ export default function EmailTrilhas() {
 
         {/* Editor */}
         {!trilha ? (
-          <div className="bg-white rounded-[2rem] border border-slate-100 p-12 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
             <Mail size={32} className="text-slate-300 mx-auto mb-3" />
             <p className="font-bold text-slate-400 text-sm">Escolha uma trilha à esquerda</p>
           </div>
         ) : (
           <div className="space-y-5">
             {/* Dados da trilha */}
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6 space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <h3 className="font-bold text-slate-800">Identificação</h3>
@@ -426,7 +426,7 @@ export default function EmailTrilhas() {
             </div>
 
             {/* Etapas */}
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <h3 className="font-bold text-slate-800">Sequência de e-mails</h3>
@@ -475,14 +475,14 @@ export default function EmailTrilhas() {
                           className="flex items-center gap-3 text-left flex-1 min-w-0"
                         >
                           {aberta ? <ChevronDown size={16} className="text-slate-400 shrink-0" /> : <ChevronRight size={16} className="text-slate-400 shrink-0" />}
-                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-xl shrink-0">
                             {etapa.ordem}º
                           </span>
-                          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-full shrink-0">
+                          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2 py-1 rounded-xl shrink-0">
                             D+{etapa.dia}
                           </span>
                           <span className="font-bold text-slate-700 text-sm truncate flex-1">{etapa.assunto}</span>
-                          {!etapa.ativo && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">Desativado</span>}
+                          {!etapa.ativo && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-xl shrink-0">Desativado</span>}
                         </button>
                       </div>
 
@@ -576,7 +576,7 @@ export default function EmailTrilhas() {
       {/* Modal nova trilha */}
       {novaTrilha && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-800 text-lg">Nova Trilha</h3>
@@ -618,7 +618,7 @@ export default function EmailTrilhas() {
       {/* Preview */}
       {preview && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>

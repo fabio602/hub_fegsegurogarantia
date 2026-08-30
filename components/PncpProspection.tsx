@@ -419,7 +419,7 @@ const PncpProspection: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
+            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
@@ -471,7 +471,7 @@ const PncpProspection: React.FC = () => {
                                 type="checkbox"
                                 checked={hideContador}
                                 onChange={(e) => setHideContador(e.target.checked)}
-                                className="rounded border-slate-300 text-gold focus:ring-gold"
+                                className="rounded-xl border-slate-300 text-gold focus:ring-gold"
                             />
                             Ocultar contador / contábil
                         </label>
@@ -513,7 +513,7 @@ const PncpProspection: React.FC = () => {
                     return (
                         <article
                             key={c.dedupKey}
-                            className="bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100 space-y-4"
+                            className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-4"
                         >
                             <div className="flex flex-wrap justify-between gap-3 items-start">
                                 <div className="space-y-1 min-w-0 flex-1">
@@ -528,7 +528,7 @@ const PncpProspection: React.FC = () => {
                                     </p>
                                 </div>
                                 <span
-                                    className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${probBadgeClasses(
+                                    className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-xl ${probBadgeClasses(
                                         c.probabilidadeSg
                                     )}`}
                                 >
@@ -661,7 +661,7 @@ const PncpProspection: React.FC = () => {
 
             {leadModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm">
-                    <div className="bg-areia-clara rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
+                    <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
                         <div className="flex justify-between items-start mb-4">
                             <h4 className="text-xl font-black text-navy">Enviar para LEADS</h4>
                             <button

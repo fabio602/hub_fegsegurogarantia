@@ -150,11 +150,11 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
       </div>
 
       {/* Action items */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-bold text-slate-800">O que precisa de atenção agora</h3>
           {items.length === 0 && !loading && (
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Tudo em dia</span>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-xl">Tudo em dia</span>
           )}
         </div>
         {loading ? (

@@ -845,10 +845,10 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                         <p className="font-bold text-amber-600 text-sm">{daysLeft} dia{daysLeft !== 1 ? 's' : ''}</p>
                                         <p className="text-xs text-slate-400">Vence {fim.toLocaleDateString('pt-BR')}</p>
                                     </div>
-                                    <button onClick={() => handleEdit(c)} className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-lg transition-all">
+                                    <button onClick={() => handleEdit(c)} className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-xl transition-all">
                                         <Edit2 size={13} /> Editar
                                     </button>
-                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs px-3 py-2 rounded-lg transition-all">
+                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs px-3 py-2 rounded-xl transition-all">
                                         ✕ Não renovar
                                     </button>
                                 </div>
@@ -919,7 +919,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             </div>
 
             {/* Form */}
-            <div ref={formRef} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div ref={formRef} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
                         <div className="w-1.5 h-6 bg-gold rounded-full"></div>
@@ -938,7 +938,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                             <span className="font-bold text-slate-800">{formatEntrada(formData.created_at)}</span>
                         </span>
                         {formData.origem_publica && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider bg-navy text-gold px-2 py-1 rounded-md">
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-navy text-gold px-2 py-1 rounded-xl">
                                 Formulário do site
                             </span>
                         )}
@@ -1220,25 +1220,25 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     {resBoletos.map(b => (
                                         <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                                             <div className="flex items-center gap-3 flex-wrap">
-                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
+                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-xl ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                                                 {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                                                 {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
                                                 <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-rose-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                                             </div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <button onClick={() => handleToggleResPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                                                <button onClick={() => handleToggleResPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                                                     {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                                                 </button>
                                                 <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
                                                     <Download size={12} /> PDF
                                                 </a>
                                                 {!b.pago && (
-                                                    <button onClick={() => handleSendResBoletoEmail(b)} disabled={sendingResBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${resBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
+                                                    <button onClick={() => handleSendResBoletoEmail(b)} disabled={sendingResBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl transition-all ${resBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                                                         {sendingResBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                                                         {resBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
                                             </div>
                                         </div>
                                     ))}
@@ -1299,7 +1299,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/40">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                         Ordenar lista
@@ -1319,7 +1319,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                         );
                                     }
                                 }}
-                                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
                                     sortBy === opt
                                         ? 'bg-navy text-white shadow'
                                         : 'text-slate-400 hover:text-slate-600'
@@ -1402,7 +1402,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     <p className="font-bold text-slate-800 text-sm">{c.nome}</p>
                                     <p className="text-xs text-slate-400 mt-0.5">{c.produto || '—'}</p>
                                 </div>
-                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${situacaoColor(c.situacao)}`}>{c.situacao}</span>
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded-xl ${situacaoColor(c.situacao)}`}>{c.situacao}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div><span className="text-slate-400">Apólice:</span> <span className="font-bold">{c.apolice || '—'}</span></div>
@@ -1538,17 +1538,17 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-bold text-slate-800 text-sm truncate">{c.nome}</span>
                                                 {isPublicLead(c) && (
-                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-navy text-gold px-2 py-0.5 rounded-md">
+                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-navy text-gold px-2 py-0.5 rounded-xl">
                                                         Site
                                                     </span>
                                                 )}
                                                 {isNovoLead(c) && (
-                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
+                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-xl">
                                                         Novo lead
                                                     </span>
                                                 )}
                                                 {c.parceiro_nome && (
-                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-xl">
                                                         🏠 {c.parceiro_nome.replace('Imobiliária ', '')}
                                                     </span>
                                                 )}
@@ -1597,19 +1597,19 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                         <td className="px-6 py-5 text-sm">
                                             <span className={nearExpiry ? 'text-amber-600 font-bold' : 'text-slate-600'}>
                                                 {c.fim_vigencia ? new Date(c.fim_vigencia).toLocaleDateString('pt-BR') : '-'}
-                                                {nearExpiry && <span className="ml-2 text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-bold">{dias}d</span>}
+                                                {nearExpiry && <span className="ml-2 text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-xl font-bold">{dias}d</span>}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5 text-sm text-slate-600">{c.forma_pagamento || '-'}</td>
                                         <td className="px-6 py-5">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${situacaoColor(c.situacao)}`}>
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider ${situacaoColor(c.situacao)}`}>
                                                 {c.situacao === 'Lead (site)' ? <Home size={12} /> : c.situacao === 'Ativo' ? <CheckCircle2 size={12} /> : c.situacao === 'Vencido' ? <AlertCircle size={12} /> : <Clock size={12} />}
                                                 {c.situacao}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5 text-sm">
                                             {c.tem_garantia === 'Sim'
-                                                ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-[10px]"><Home size={11} /> Sim</span>
+                                                ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-emerald-50 text-emerald-600 font-bold text-[10px]"><Home size={11} /> Sim</span>
                                                 : <span className="text-slate-400 text-xs">—</span>}
                                         </td>
                                     </tr>

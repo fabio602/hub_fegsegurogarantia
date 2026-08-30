@@ -376,7 +376,7 @@ const App: React.FC = () => {
       </div>
       <div className="flex items-center gap-1.5">
         {badge != null && badge > 0 && (
-          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-xl flex items-center justify-center">
             {badge > 99 ? '99+' : badge}
           </span>
         )}
@@ -698,7 +698,7 @@ const App: React.FC = () => {
             >
               <Search size={15} />
               <span className="hidden sm:inline text-sm font-semibold">Buscar</span>
-              <kbd className="hidden sm:inline text-[10px] bg-linha rounded px-1 text-slate-400">⌘K</kbd>
+              <kbd className="hidden sm:inline text-[10px] bg-linha rounded-xl px-1 text-slate-400">⌘K</kbd>
             </button>
             <button className="p-2 text-slate-400 hover:text-gold transition-all relative">
               <Bell size={16} />
@@ -720,10 +720,11 @@ const App: React.FC = () => {
             {/* ── Visão Geral ──────────────────────────────────── */}
             {activeView === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
+                {/* Exceção da regra de raio: só o hero do dashboard mantém raio maior */}
                 <div className="bg-navy rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
                   <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
                     <div>
-                      <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 lg:mb-6 border border-gold/20">
+                      <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest mb-4 lg:mb-6 border border-gold/20">
                         <Zap size={11} fill="currentColor" />
                         Hub F&G v2.7
                       </div>
@@ -773,7 +774,7 @@ const App: React.FC = () => {
                       .filter(item => podeVer(item.view))
                       .map((item, idx) => (
                       <button key={idx} onClick={() => navigate(item.view)}
-                        className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-gold hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
+                        className="bg-white p-8 rounded-2xl border border-slate-100 hover:border-gold hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
                         <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 shadow-sm`}>
                           {item.icon}
                         </div>

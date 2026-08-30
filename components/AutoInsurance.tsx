@@ -502,7 +502,7 @@ const AutoInsurance: React.FC = () => {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-3xl border border-gold/30 shadow-xl overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gold/30 shadow-xl overflow-hidden">
           <div className="bg-navy px-6 py-4 flex items-center justify-between">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
               <Car size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Seguro AUTO'}
@@ -600,25 +600,25 @@ const AutoInsurance: React.FC = () => {
                     {autoBoletos.map(b => (
                       <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-xl ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                           {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                           {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
                           <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-rose-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button onClick={() => handleToggleAutoPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          <button onClick={() => handleToggleAutoPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-xl transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                             {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                           </button>
                           <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
                             <Download size={12} /> PDF
                           </a>
                           {!b.pago && (
-                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
+                            <button onClick={() => handleSendAutoBoletoEmail(b)} disabled={sendingAutoBoletoEmail === b.id} className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-xl transition-all ${autoBoletoEmailSent.has(b.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-gold/10 text-gold-hover hover:bg-gold/20'}`}>
                               {sendingAutoBoletoEmail === b.id ? <Loader2 size={11} className="animate-spin" /> : <Mail size={11} />}
                               {autoBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
                           )}
-                          <button onClick={() => handleDeleteAutoBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDeleteAutoBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
                         </div>
                       </div>
                     ))}
@@ -714,7 +714,7 @@ const AutoInsurance: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {/* Dual scroll bar */}
         <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden h-3">
           <div ref={topScrollInnerRef} className="h-1" />
@@ -763,11 +763,11 @@ const AutoInsurance: React.FC = () => {
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{c.comissao || '—'}</td>
                       <td className={`px-4 py-3 font-bold whitespace-nowrap ${expired ? 'text-rose-600' : expiring ? 'text-amber-600' : 'text-slate-600'}`}>
                         {c.fim_vigencia ? new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-                        {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">VENCE</span>}
-                        {expired && <span className="ml-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">VENCIDO</span>}
+                        {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-xl font-bold">VENCE</span>}
+                        {expired && <span className="ml-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-xl font-bold">VENCIDO</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
                           {c.situacao}
                         </span>
                       </td>
@@ -775,13 +775,13 @@ const AutoInsurance: React.FC = () => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEdit(c)}
-                            className="p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
+                            className="p-1.5 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-xl transition-all"
                             title="Editar"
                           >
                             <Edit2 size={13} />
                           </button>
                           {deleteConfirm === c.id ? (
-                            <div className="flex items-center gap-1 bg-rose-50 rounded-lg px-2 py-1">
+                            <div className="flex items-center gap-1 bg-rose-50 rounded-xl px-2 py-1">
                               <span className="text-[10px] text-rose-600 font-bold">Confirmar?</span>
                               <button onClick={() => handleDelete(c.id)} className="text-rose-600 hover:text-rose-800 text-[10px] font-bold">Sim</button>
                               <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 hover:text-slate-600 text-[10px] font-bold">Não</button>
@@ -789,7 +789,7 @@ const AutoInsurance: React.FC = () => {
                           ) : (
                             <button
                               onClick={() => setDeleteConfirm(c.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                               title="Excluir"
                             >
                               <Trash2 size={13} />

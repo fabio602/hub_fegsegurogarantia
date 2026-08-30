@@ -422,7 +422,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   return (
     <>
     <div
-      className="flex rounded-[2rem] overflow-hidden shadow-lg border border-slate-200 bg-white"
+      className="flex rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white"
       style={{ height: 'calc(100vh - 160px)', minHeight: '500px' }}
     >
       {/* ── Left panel: contacts — oculto no mobile quando chat está aberto ── */}
@@ -491,7 +491,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-0.5">
                         <span className="text-slate-500 text-[10px] truncate">{lead.phone}</span>
-                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-xl shrink-0 ${
                           lead.status === 'novo' ? 'bg-emerald-500/20 text-emerald-400' :
                           lead.status === 'em atendimento' ? 'bg-blue-500/20 text-blue-400' :
                           lead.status === 'cotação enviada' ? 'bg-amber-500/20 text-amber-400' :
@@ -505,14 +505,14 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 <div className="px-4 pb-2.5 flex gap-1.5">
                   <button
                     onClick={(e) => { e.stopPropagation(); openCrmModal(lead); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-bold transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-bold transition-colors"
                     title="Adicionar ao CRM"
                   >
                     <Plus size={11} /> Adicionar ao CRM
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeletingConv(lead.phone); }}
-                    className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 transition-colors"
+                    className="px-2 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 transition-colors"
                     title="Excluir conversa"
                   >
                     <Trash2 size={11} />
@@ -594,10 +594,10 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {editingMsg?.id !== msg.id && (
                           <>
-                            <button onClick={() => setEditingMsg({ id: msg.id, zapi_id: msg.zapi_id, text: msg.message })} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Editar">
+                            <button onClick={() => setEditingMsg({ id: msg.id, zapi_id: msg.zapi_id, text: msg.message })} className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Editar">
                               <Pencil size={12} />
                             </button>
-                            <button onClick={() => setDeletingMsgId(msg.id)} className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Excluir">
+                            <button onClick={() => setDeletingMsgId(msg.id)} className="p-1 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Excluir">
                               <Trash2 size={12} />
                             </button>
                           </>
@@ -617,11 +617,11 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                             value={editingMsg.text}
                             onChange={e => setEditingMsg(em => em ? { ...em, text: e.target.value } : em)}
                             rows={3}
-                            className="w-full bg-white/10 text-white text-sm p-2 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-white/30 placeholder-white/40"
+                            className="w-full bg-white/10 text-white text-sm p-2 rounded-xl resize-none focus:outline-none focus:ring-1 focus:ring-white/30 placeholder-white/40"
                           />
                           <div className="flex gap-2 justify-end">
                             <button onClick={() => setEditingMsg(null)} className="text-white/50 hover:text-white text-xs px-2 py-1 transition-colors">Cancelar</button>
-                            <button onClick={saveEditedMessage} className="bg-gold text-white text-xs px-3 py-1 rounded-lg font-bold hover:bg-gold-hover transition-colors">Salvar</button>
+                            <button onClick={saveEditedMessage} className="bg-gold text-white text-xs px-3 py-1 rounded-xl font-bold hover:bg-gold-hover transition-colors">Salvar</button>
                           </div>
                         </div>
                       ) : deletingMsgId === msg.id ? (
@@ -726,7 +726,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
 
     {crmModalLead && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200 overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-navy">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -751,7 +751,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dados do contato</p>
                 <p className="text-sm font-bold text-slate-800">{crmModalLead.name}</p>
                 <p className="text-xs text-slate-500">{crmModalLead.phone}</p>
-                <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md w-fit">Origem: WhatsApp</p>
+                <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl w-fit">Origem: WhatsApp</p>
               </div>
 
               <div className="space-y-1.5">
@@ -806,7 +806,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     {/* ── Delete conversation modal ── */}
     {deletingConv && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto">
             <Trash2 size={20} className="text-rose-500" />
           </div>

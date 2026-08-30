@@ -301,7 +301,7 @@ const PendenciasHub: React.FC = () => {
                     <p className="font-bold uppercase tracking-widest text-xs">Carregando pendências…</p>
                 </div>
             ) : lista.length === 0 ? (
-                <div className="bg-white rounded-[2rem] border border-slate-100 p-12 text-center text-slate-500 font-medium">
+                <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-500 font-medium">
                     Nenhuma pendência neste filtro.
                 </div>
             ) : (
@@ -320,11 +320,11 @@ const PendenciasHub: React.FC = () => {
                                     <div className="min-w-0 flex-1 space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="text-lg font-black text-navy leading-tight">{p.titulo}</h3>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl bg-slate-100 text-slate-600">
                                                 {labelPrioridade(p.prioridade)}
                                             </span>
                                             {p.concluida && (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl bg-emerald-100 text-emerald-800">
                                                     Concluída
                                                 </span>
                                             )}
@@ -404,7 +404,7 @@ const PendenciasHub: React.FC = () => {
 
             {modalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/55 backdrop-blur-sm">
-                    <div className="bg-areia-clara rounded-3xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h4 className="text-xl font-black text-navy">

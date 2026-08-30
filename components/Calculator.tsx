@@ -74,7 +74,7 @@ const Calculator: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Seção 1: Seguro Garantia */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="bg-navy p-8 text-white">
             <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                <Scale size={20} className="text-gold" />
@@ -155,7 +155,7 @@ const Calculator: React.FC = () => {
         </div>
 
         {/* Seção 2: Seguro Adicional */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="bg-gold p-8 text-navy">
             <h3 className="text-xl font-black tracking-tight flex items-center gap-3">
                <FileText size={20} />
@@ -213,7 +213,7 @@ const Calculator: React.FC = () => {
                         type="text" 
                         value={percentualGarantiaContratual}
                         onChange={(e) => handleInputChange(e.target.value, setPercentualGarantiaContratual)}
-                        className="w-full pl-3 pr-8 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none font-bold text-blue-700 text-xs text-center"
+                        className="w-full pl-3 pr-8 py-2 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none font-bold text-blue-700 text-xs text-center"
                       />
                     </div>
                  </div>
@@ -259,7 +259,7 @@ const Calculator: React.FC = () => {
       {/* Resultados Finais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Resultado Final: Seguro Garantia */}
-        <div className="bg-navy p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+        <div className="bg-navy p-10 rounded-2xl shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
              <CalcIcon size={80} className="text-gold" />
           </div>
@@ -269,7 +269,7 @@ const Calculator: React.FC = () => {
         </div>
 
         {/* Resultado Final: Seguro Adicional */}
-        <div className="bg-gold p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+        <div className="bg-gold p-10 rounded-2xl shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:-translate-x-4 transition-transform text-navy">
              <FileText size={80} />
           </div>

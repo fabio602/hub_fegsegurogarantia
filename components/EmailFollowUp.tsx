@@ -298,7 +298,7 @@ export default function EmailFollowUp() {
       <button
         onClick={onClick}
         disabled={disabled || state === 'sending'}
-        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-navy text-gold disabled:opacity-40 hover:bg-navy-light transition-all"
+        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-navy text-gold disabled:opacity-40 hover:bg-navy-light transition-all"
       >
         {state === 'sending' ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         {state === 'sending' ? 'Enviando…' : 'Enviar'}
@@ -325,7 +325,7 @@ export default function EmailFollowUp() {
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
             <span className={`font-bold text-xs ${cfg.text}`}>{cfg.label}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{clients.length}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xl ${cfg.badge}`}>{clients.length}</span>
           </div>
           {isOpen ? <ChevronUp size={13} className={cfg.text} /> : <ChevronDown size={13} className={cfg.text} />}
         </button>
@@ -346,11 +346,11 @@ export default function EmailFollowUp() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-slate-800 text-xs">{c.nome}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase ${SOURCE_BADGE[c.source]}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl uppercase ${SOURCE_BADGE[c.source]}`}>
                       {c.source}
                     </span>
                     {c.recentlySent && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-emerald-100 text-emerald-700 uppercase">
                         Email enviado
                       </span>
                     )}
@@ -425,7 +425,7 @@ export default function EmailFollowUp() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+            className={`px-4 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
               tab === t ? 'bg-white text-navy shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -516,7 +516,7 @@ export default function EmailFollowUp() {
                           <select
                             value={template}
                             onChange={e => setProspectTemplate(prev => ({ ...prev, [p.id]: e.target.value as 'intro' | 'followup' }))}
-                            className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 text-slate-600 bg-white focus:outline-none focus:border-gold/50 cursor-pointer"
+                            className="text-[10px] font-bold border border-slate-200 rounded-xl px-2 py-1 text-slate-600 bg-white focus:outline-none focus:border-gold/50 cursor-pointer"
                           >
                             <option value="intro">Apresentação</option>
                             <option value="followup">Follow-up</option>
@@ -542,7 +542,7 @@ export default function EmailFollowUp() {
                   <button
                     key={t.label}
                     onClick={() => setAvulso(prev => ({ ...prev, subject: t.subject, message: t.message }))}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-gold/50 hover:text-navy transition-all"
+                    className="text-[10px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:border-gold/50 hover:text-navy transition-all"
                   >
                     {t.label}
                   </button>

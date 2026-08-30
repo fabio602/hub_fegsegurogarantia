@@ -246,7 +246,7 @@ export default function WhatsAppBlast() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* ── Left: contact list ───────────────────────── */}
-        <div className="bg-white rounded-[1.75rem] border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
               <p className="font-bold text-slate-800 text-sm">Lista de Contatos</p>
@@ -254,7 +254,7 @@ export default function WhatsAppBlast() {
             </div>
             <div className="flex items-center gap-2">
               {contacts.length > 0 && (
-                <span className="text-xs font-bold text-gold bg-amber-50 px-2.5 py-1 rounded-lg border border-gold/20">
+                <span className="text-xs font-bold text-gold bg-amber-50 px-2.5 py-1 rounded-xl border border-gold/20">
                   {contacts.length} contato{contacts.length !== 1 ? 's' : ''}
                 </span>
               )}
@@ -306,11 +306,11 @@ export default function WhatsAppBlast() {
         {/* ── Right: message + config ──────────────────── */}
         <div className="space-y-4">
           {/* Message template */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
               <div>
                 <p className="font-bold text-slate-800 text-sm">Mensagem</p>
-                <p className="text-slate-400 text-[11px] mt-0.5">Use <span className="font-mono bg-slate-100 px-1 rounded">{'{{nome}}'}</span> para personalizar</p>
+                <p className="text-slate-400 text-[11px] mt-0.5">Use <span className="font-mono bg-slate-100 px-1 rounded-xl">{'{{nome}}'}</span> para personalizar</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -343,18 +343,18 @@ export default function WhatsAppBlast() {
                             autoFocus
                             value={editingTemplate.name}
                             onChange={e => setEditingTemplate(et => et ? { ...et, name: e.target.value } : et)}
-                            className="w-full text-sm font-bold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-gold"
+                            className="w-full text-sm font-bold px-3 py-1.5 border border-slate-200 rounded-xl focus:outline-none focus:border-gold"
                             placeholder="Nome do modelo"
                           />
                           <textarea
                             value={editingTemplate.body}
                             onChange={e => setEditingTemplate(et => et ? { ...et, body: e.target.value } : et)}
                             rows={5}
-                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-gold resize-none"
+                            className="w-full text-sm px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-gold resize-none"
                           />
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => setEditingTemplate(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                            <button onClick={updateTemplate} className="px-3 py-1.5 text-xs font-bold bg-navy text-white rounded-lg hover:bg-navy-light flex items-center gap-1.5 transition-colors">
+                            <button onClick={() => setEditingTemplate(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
+                            <button onClick={updateTemplate} className="px-3 py-1.5 text-xs font-bold bg-navy text-white rounded-xl hover:bg-navy-light flex items-center gap-1.5 transition-colors">
                               <Save size={12} /> Salvar alterações
                             </button>
                           </div>
@@ -426,7 +426,7 @@ export default function WhatsAppBlast() {
           </div>
 
           {/* Delay config */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 px-6 py-5">
+          <div className="bg-white rounded-2xl border border-slate-100 px-6 py-5">
             <p className="font-bold text-slate-800 text-sm mb-4">Intervalo entre mensagens</p>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -455,7 +455,7 @@ export default function WhatsAppBlast() {
           </div>
 
           {/* Progress / action */}
-          <div className="bg-white rounded-[1.75rem] border border-slate-100 px-6 py-5">
+          <div className="bg-white rounded-2xl border border-slate-100 px-6 py-5">
             {/* Stats */}
             {(running || done) && (
               <div className="grid grid-cols-3 gap-3 mb-4">

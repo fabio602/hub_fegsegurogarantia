@@ -180,7 +180,7 @@ const GarantiaLocaticia: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-navy rounded-[2rem] p-8 text-white relative overflow-hidden shadow-lg">
+      <div className="bg-navy rounded-2xl p-8 text-white relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex items-center gap-4">
           <div className="w-14 h-14 bg-gold/20 rounded-2xl flex items-center justify-center border border-gold/30">
             <Calculator size={28} className="text-gold" />
@@ -200,7 +200,7 @@ const GarantiaLocaticia: React.FC = () => {
         <div className="xl:col-span-1 space-y-6">
 
           {/* Dados do imóvel */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Dados do Imóvel</SectionTitle>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -243,7 +243,7 @@ const GarantiaLocaticia: React.FC = () => {
           </div>
 
           {/* Valores */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Valores Mensais</SectionTitle>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -282,7 +282,7 @@ const GarantiaLocaticia: React.FC = () => {
           </div>
 
           {/* Pagamento */}
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
             <SectionTitle>Forma de Pagamento</SectionTitle>
             <div className="space-y-4">
               <div className="flex gap-2">
@@ -314,7 +314,7 @@ const GarantiaLocaticia: React.FC = () => {
 
           {/* Parâmetros (admin only) */}
           {isAdmin && (
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
               <button
                 onClick={() => setShowParams(p => !p)}
                 className="w-full flex items-center justify-between"
@@ -383,7 +383,7 @@ const GarantiaLocaticia: React.FC = () => {
         {/* RIGHT — Resultado */}
         <div className="xl:col-span-2 space-y-6">
           {!result ? (
-            <div className="bg-white rounded-[2rem] p-16 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+            <div className="bg-white rounded-2xl p-16 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
               <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
                 <Calculator size={36} className="text-slate-300" />
               </div>
@@ -450,7 +450,7 @@ const GarantiaLocaticia: React.FC = () => {
               )}
 
               {/* Tabela de parcelas */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <SectionTitle>Cronograma de Parcelas</SectionTitle>
                 <div className="overflow-x-auto rounded-xl border border-slate-100">
                   <table className="w-full text-sm">
@@ -475,7 +475,7 @@ const GarantiaLocaticia: React.FC = () => {
               </div>
 
               {/* Mensagem WhatsApp */}
-              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <SectionTitle>Mensagem para o Cliente</SectionTitle>
                 <div className="bg-slate-50 rounded-xl p-4 mb-4 font-mono text-xs text-slate-600 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto border border-slate-100">
                   {mensagem}
@@ -522,7 +522,7 @@ const GarantiaLocaticia: React.FC = () => {
 
           {/* Histórico de simulações */}
           {simulacoes.length > 0 && (
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
               <SectionTitle>Últimas Simulações</SectionTitle>
               <div className="space-y-2">
                 {simulacoes.map(sim => (

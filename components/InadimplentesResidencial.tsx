@@ -293,7 +293,7 @@ export default function InadimplentesResidencial() {
 
       {/* Preview after PDF parse */}
       {preview && (
-        <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <FileText size={18} className="text-amber-600" />
@@ -360,7 +360,7 @@ export default function InadimplentesResidencial() {
       )}
 
       {/* List */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <p className="font-bold text-slate-800">{filtered.length} registro(s)</p>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
@@ -393,7 +393,7 @@ export default function InadimplentesResidencial() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap mb-1">
                         <p className="font-bold text-slate-800">{item.nome}</p>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}/>
                           {cfg.label}
                         </span>

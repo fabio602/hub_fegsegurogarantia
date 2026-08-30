@@ -165,17 +165,17 @@ export default function ProspeccaoPncpAuto() {
                 </div>
                 <div className="flex items-center gap-2">
                     {config.dry_run && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-xl text-xs font-bold">
                             <FlaskConical size={14} /> Dry run: nenhum e-mail sai para leads
                         </span>
                     )}
                     {config.pausado && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-700 rounded-xl text-xs font-bold">
                             <PauseCircle size={14} /> Pausada por bounce
                         </span>
                     )}
                     {!config.ativo && (
-                        <span className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">Desligada</span>
+                        <span className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-xl text-xs font-bold">Desligada</span>
                     )}
                 </div>
             </div>
@@ -344,11 +344,11 @@ export default function ProspeccaoPncpAuto() {
                                         </td>
                                         <td className="px-3 py-3 text-slate-500">{ex.data_referencia.split('-').reverse().join('/')}</td>
                                         <td className="px-3 py-3">
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${ex.dry_run ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            <span className={`px-2 py-0.5 rounded-xl text-xs font-bold ${ex.dry_run ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                 {ex.dry_run ? 'dry run' : 'real'}
                                             </span>
                                             {ex.fase !== 'finalizada' && (
-                                                <span className="ml-1.5 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">em andamento</span>
+                                                <span className="ml-1.5 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-bold">em andamento</span>
                                             )}
                                         </td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.coletados}</td>

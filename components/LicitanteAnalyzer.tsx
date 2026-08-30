@@ -46,7 +46,7 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
     setTimeout(() => setDone(false), 1500);
   };
   return (
-    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-lg transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
+    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-xl transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
       {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
     </button>
   );
@@ -54,7 +54,7 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
 
 function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactNode; label: string; value: React.ReactNode; highlight?: boolean; copyValue?: string }) {
   return (
-    <div className={`rounded-[1.5rem] border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
+    <div className={`rounded-2xl border p-6 shadow-sm ${highlight ? 'bg-navy border-navy' : 'bg-white border-slate-100'}`}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
@@ -168,7 +168,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
       {/* History panel */}
       {showHistory && history.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 space-y-3">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
           {history.map((entry, i) => (
             <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -203,7 +203,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
             onDragOver={e => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
+            className="border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-4 transition-all cursor-pointer border-slate-200 bg-white hover:border-gold hover:bg-amber-50/10"
           >
             <input ref={inputRef} type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
@@ -261,7 +261,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       )}
 
       {loading && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-4">
           <Loader2 size={36} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800 text-lg">Lendo o edital...</p>
@@ -285,7 +285,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
 
           {/* Cabeçalho do órgão */}
-          <div className="bg-navy rounded-[2rem] p-7 text-white">
+          <div className="bg-navy rounded-2xl p-7 text-white">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
                 {/* Modalidade + Edital */}
@@ -372,7 +372,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               value={result.data_sessao_publica ?? '—'}
               copyValue={result.data_sessao_publica ?? undefined}
             />
-            <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-slate-400"><Calendar size={15} /></span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência da Garantia de Proposta</span>
@@ -491,7 +491,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {/* Observações */}
           {result.observacoes_relevantes && (
-            <div className="bg-amber-50 border border-amber-100 rounded-[1.5rem] overflow-hidden">
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl overflow-hidden">
               <button onClick={() => setShowObs(!showObs)}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-100/50 transition-all">
                 <div className="flex items-center gap-2">
@@ -536,7 +536,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                         const cfg = ALERTA_CONFIG[a.tipo];
                         return (
                           <li key={i} className="flex items-start gap-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xl shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                             <span className="text-sm text-rose-800">{a.texto}</span>
                           </li>
                         );
@@ -555,7 +555,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                         const cfg = ALERTA_CONFIG[a.tipo];
                         return (
                           <li key={i} className="flex items-start gap-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xl shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                             <span className="text-sm text-amber-800">{a.texto}</span>
                           </li>
                         );
@@ -573,7 +573,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               <div className="flex items-center gap-2 px-5 py-3 bg-rose-100 border-b border-rose-200">
                 <AlertTriangle size={15} className="text-rose-600 shrink-0" />
                 <span className="font-bold text-rose-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
-                <span className="ml-auto text-[10px] font-bold text-rose-600 bg-rose-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
+                <span className="ml-auto text-[10px] font-bold text-rose-600 bg-rose-200 px-2 py-0.5 rounded-xl">Confirme antes do Double Check</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
                 {result.pendencias_bloqueantes.map((p, i) => (

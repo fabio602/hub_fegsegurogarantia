@@ -119,7 +119,7 @@ const NominationLetter: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="bg-white p-6 lg:p-8 rounded-[2rem] border border-slate-200 shadow-sm no-print">
+      <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm no-print">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-navy rounded-2xl flex items-center justify-center text-gold shadow-lg">
@@ -243,7 +243,7 @@ const NominationLetter: React.FC = () => {
               </div>
             </div>{/* fecha opacity wrapper */}
 
-            <div className="bg-navy/5 p-6 rounded-[2rem] border border-navy/10 flex flex-col md:flex-row items-center gap-6">
+            <div className="bg-navy/5 p-6 rounded-2xl border border-navy/10 flex flex-col md:flex-row items-center gap-6">
               <div className="w-12 h-12 bg-navy rounded-2xl flex items-center justify-center text-gold shrink-0">
                  <UserCheck size={24} />
               </div>
@@ -264,7 +264,7 @@ const NominationLetter: React.FC = () => {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 h-full">
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 h-full">
                <h3 className="font-bold text-navy text-xs uppercase tracking-widest flex items-center gap-2">
                   <ShieldCheck size={16} className="text-gold" />
                   Seleção Cias
@@ -304,7 +304,7 @@ const NominationLetter: React.FC = () => {
       </div>
 
       {/* Visualização do Documento (Ajustado para Página Única A4) */}
-      <div className="flex flex-col items-center gap-6 py-10 bg-slate-100/50 rounded-[3rem] border border-dashed border-slate-200">
+      <div className="flex flex-col items-center gap-6 py-10 bg-slate-100/50 rounded-2xl border border-dashed border-slate-200">
          <div className="flex items-center gap-3">
             <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[4px]">Preview A4 • Versão de Página Única</p>
          </div>

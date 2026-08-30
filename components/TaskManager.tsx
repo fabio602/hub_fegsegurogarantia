@@ -114,7 +114,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tarefas & Lembretes</h4>
                 <button 
                     onClick={() => setIsAdding(!isAdding)} 
-                    className="text-xs font-bold text-navy flex items-center gap-1 hover:bg-gold/12 px-2 py-1 rounded-lg transition-colors"
+                    className="text-xs font-bold text-navy flex items-center gap-1 hover:bg-gold/12 px-2 py-1 rounded-xl transition-colors"
                 >
                     {isAdding ? <X size={14} /> : <Plus size={14} />}
                     {isAdding ? 'Cancelar' : 'Nova Tarefa'}
@@ -200,7 +200,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                             <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-bold ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700'}`}>{task.title}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${task.status === 'completed' ? 'bg-slate-100 text-slate-400' : 'bg-gold/12 text-navy'}`}>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl uppercase tracking-wider ${task.status === 'completed' ? 'bg-slate-100 text-slate-400' : 'bg-gold/12 text-navy'}`}>
                                         {task.type}
                                     </span>
                                     <span className={`text-[10px] font-bold flex items-center gap-1 ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`}>
@@ -210,7 +210,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
 
                                 {task.assigned_staff_id && (
                                     <div className="mt-2">
-                                        <span className="text-[10px] font-bold text-navy bg-gold/15 border border-gold/25 px-2 py-0.5 rounded-full">
+                                        <span className="text-[10px] font-bold text-navy bg-gold/15 border border-gold/25 px-2 py-0.5 rounded-xl">
                                             Resp.: {staffOptions.find(s => s.id === task.assigned_staff_id)?.name || '—'}
                                         </span>
                                     </div>

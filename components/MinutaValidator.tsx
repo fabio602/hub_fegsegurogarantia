@@ -354,7 +354,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
           onDragOver={e => e.preventDefault()}
           onClick={() => !file && inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-[1.5rem] p-8 flex flex-col items-center gap-4 transition-all cursor-pointer
+          className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center gap-4 transition-all cursor-pointer
             ${file ? 'border-gold bg-amber-50/30 cursor-default' : 'border-slate-200 bg-slate-50/50 hover:border-gold hover:bg-amber-50/10'}`}
         >
           <input ref={inputRef} type="file" accept="application/pdf" className="hidden"
@@ -433,14 +433,14 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                 </div>
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
                   <div className="flex gap-1.5 text-xs font-bold flex-wrap justify-end">
-                    {okCount - favCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">{okCount - favCount} OK</span>}
-                    {divCount > 0 && <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
-                    {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">{naCount} ⚠</span>}
-                    {favCount > 0 && <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">{favCount} ↑</span>}
-                    {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg">{naAplCount} N/A</span>}
+                    {okCount - favCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-xl">{okCount - favCount} OK</span>}
+                    {divCount > 0 && <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-xl">{divCount} ✗</span>}
+                    {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-xl">{naCount} ⚠</span>}
+                    {favCount > 0 && <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-xl">{favCount} ↑</span>}
+                    {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-xl">{naAplCount} N/A</span>}
                   </div>
                   {result.veredicto && (
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest ${
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase tracking-widest ${
                       result.veredicto === 'PODE EMITIR' ? 'bg-emerald-700 text-white' :
                       result.veredicto === 'EMITIR COM RESSALVA' ? 'bg-amber-600 text-white' :
                       'bg-rose-700 text-white'
@@ -462,7 +462,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-700 text-sm">{item.campo}</span>
-                        <span className={`text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-0.5 rounded-xl ${cfg.badge}`}>{cfg.label}</span>
                       </div>
                       <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                         <div>
@@ -510,7 +510,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                   <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mensagem WhatsApp</span>
                     <button onClick={copyMsg}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                       {copied ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar</>}
                     </button>
                   </div>
