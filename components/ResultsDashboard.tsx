@@ -364,6 +364,9 @@ function loadExpiryReminderDismissed(): Set<string> {
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
 const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string }; initialEditSaleId?: number }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData, initialEditSaleId }) => {
+    // Modo embutido (modal "Abrir cadastro completo" da aba Pós-venda):
+    // a seção de vendas mostra só o formulário, sem banner, filtros e listagem.
+    const somenteFormulario = !!initialEditSaleId;
     const { toast, confirm: confirmDialog } = useToast();
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const saleFormRef = useRef<HTMLDivElement>(null);
@@ -2162,7 +2165,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             {activeSection === 'sales' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                     {/* Expiry Alert Banner */}
-                    {(() => {
+                    {!somenteFormulario && (() => {
                         const alerts = getExpiringAlerts();
                         if (alerts.length === 0) return null;
                         return (
@@ -2221,6 +2224,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         );
                     })()}
 
+                    {!somenteFormulario && (
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-800">Acompanhamento de Vendas</h2>
@@ -2292,6 +2296,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </button>
                         </div>
                     </div>
+                    )}
 
                     {/* Form Card */}
                     <div ref={saleFormRef} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -2972,6 +2977,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>
 
                     {/* Table Card */}
+                    {!somenteFormulario && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             {/* min-w garante que a tabela transborde o card e o wrapper role na horizontal,
@@ -3154,6 +3160,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </table>
                         </div>
                     </div>
+                    )}
                 </section>
             )}
 
