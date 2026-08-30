@@ -299,7 +299,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                   ) : (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0">
                       <button onClick={() => handleEdit(ins)} className="text-slate-400 hover:text-gold transition-colors p-3 hover:bg-slate-50 rounded-2xl"><Edit3 size={20} /></button>
-                      <button onClick={() => handleDelete(ins.id)} className="text-slate-300 hover:text-red-500 transition-colors p-3 hover:bg-red-50 rounded-2xl"><X size={20} /></button>
+                      <button onClick={() => handleDelete(ins.id)} className="text-slate-300 hover:text-rose-500 transition-colors p-3 hover:bg-rose-50 rounded-2xl"><X size={20} /></button>
                     </div>
                   )}
                 </div>
@@ -316,8 +316,8 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       </div>
                     )}
                     {ins.ccg && (
-                      <div className="bg-red-50 text-red-600 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest inline-flex items-center gap-2 uppercase border border-red-100">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                      <div className="bg-rose-50 text-rose-600 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest inline-flex items-center gap-2 uppercase border border-rose-100">
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
                         CCG ACIMA DE {ins.ccg}
                       </div>
                     )}

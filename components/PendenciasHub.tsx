@@ -289,7 +289,7 @@ const PendenciasHub: React.FC = () => {
             <div className="flex flex-wrap gap-2">{filtrosBar}</div>
 
             {error && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold">
+                <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold">
                     <AlertCircle size={18} />
                     {error}
                 </div>
@@ -355,7 +355,7 @@ const PendenciasHub: React.FC = () => {
                                         {prazoInfo && !p.concluida ? (
                                             <p
                                                 className={`text-xs font-bold uppercase tracking-wide ${
-                                                    prazoInfo.vencido ? 'text-red-600' : 'text-slate-600'
+                                                    prazoInfo.vencido ? 'text-rose-600' : 'text-slate-600'
                                                 }`}
                                             >
                                                 {prazoInfo.texto}

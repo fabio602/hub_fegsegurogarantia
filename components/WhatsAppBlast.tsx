@@ -52,7 +52,7 @@ const STATUS_CONFIG: Record<Status, { icon: React.ReactNode; label: string; colo
   pending: { icon: <Clock size={14} />, label: 'Aguardando', color: 'text-slate-400' },
   sending: { icon: <Loader2 size={14} className="animate-spin" />, label: 'Enviando...', color: 'text-blue-500' },
   sent: { icon: <CheckCircle2 size={14} />, label: 'Enviado', color: 'text-emerald-500' },
-  failed: { icon: <XCircle size={14} />, label: 'Falhou', color: 'text-red-500' },
+  failed: { icon: <XCircle size={14} />, label: 'Falhou', color: 'text-rose-500' },
 };
 
 export default function WhatsAppBlast() {
@@ -291,7 +291,7 @@ export default function WhatsAppBlast() {
                         )}
                       </div>
                       {st === 'failed' && errors[c.phone] && (
-                        <p className="text-[10px] text-red-400 mt-0.5 max-w-[160px] truncate" title={errors[c.phone]}>
+                        <p className="text-[10px] text-rose-400 mt-0.5 max-w-[160px] truncate" title={errors[c.phone]}>
                           {errors[c.phone]}
                         </p>
                       )}
@@ -372,7 +372,7 @@ export default function WhatsAppBlast() {
                           <button onClick={() => setEditingTemplate({ ...tpl })} className="shrink-0 p-1.5 text-slate-300 hover:text-gold transition-colors opacity-0 group-hover:opacity-100" title="Editar">
                             <Pencil size={13} />
                           </button>
-                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
+                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -461,7 +461,7 @@ export default function WhatsAppBlast() {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { label: 'Enviados', value: sentCount, color: 'text-emerald-600 bg-emerald-50' },
-                  { label: 'Falharam', value: failedCount, color: 'text-red-600 bg-red-50' },
+                  { label: 'Falharam', value: failedCount, color: 'text-rose-600 bg-rose-50' },
                   { label: 'Total', value: totalCount, color: 'text-slate-700 bg-slate-50' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className={`${color} rounded-2xl px-3 py-3 text-center`}>
@@ -510,7 +510,7 @@ export default function WhatsAppBlast() {
               ) : (
                 <button
                   onClick={stopBlast}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold text-sm py-3.5 rounded-2xl transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm py-3.5 rounded-2xl transition-all active:scale-95"
                 >
                   <Square size={14} fill="currentColor" />
                   Parar disparo
@@ -519,7 +519,7 @@ export default function WhatsAppBlast() {
               {(Object.keys(statuses).length > 0 && !running) && (
                 <button
                   onClick={reset}
-                  className="w-12 h-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 transition-all"
+                  className="w-12 h-12 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all"
                   title="Limpar progresso"
                 >
                   <Trash2 size={14} />

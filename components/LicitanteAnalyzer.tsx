@@ -226,7 +226,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                     <p className="font-bold text-slate-800 text-sm truncate">{f.name}</p>
                     <p className="text-xs text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
-                  <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-rose-500 transition-colors">
                     <X size={16} />
                   </button>
                 </div>
@@ -271,11 +271,11 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-5 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-rose-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-red-700">Erro na análise</p>
-            <p className="text-red-600 text-sm mt-1">{error}</p>
+            <p className="font-bold text-rose-700">Erro na análise</p>
+            <p className="text-rose-600 text-sm mt-1">{error}</p>
           </div>
         </div>
       )}
@@ -470,20 +470,20 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {/* Erros de schema ou parse — nunca silenciosos */}
           {(result.schema_validation_error || result.parse_error) && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 space-y-2">
+            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 space-y-2">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-red-600 shrink-0" />
-                <p className="font-bold text-red-800 text-sm">
+                <AlertTriangle size={18} className="text-rose-600 shrink-0" />
+                <p className="font-bold text-rose-800 text-sm">
                   {result.parse_error ? 'Erro de parsing: resposta do modelo não é JSON válido' : 'Erro de validação de schema'}
                 </p>
               </div>
               {result.schema_validation_error && (
-                <p className="text-red-700 text-xs font-mono bg-red-100 rounded-xl px-3 py-2">{String(result.schema_validation_error)}</p>
+                <p className="text-rose-700 text-xs font-mono bg-rose-100 rounded-xl px-3 py-2">{String(result.schema_validation_error)}</p>
               )}
               {result.parse_error && result.raw && (
                 <details className="mt-2">
-                  <summary className="text-red-600 text-xs font-bold cursor-pointer">Ver resposta bruta</summary>
-                  <pre className="text-xs text-red-600 bg-red-100 rounded-xl px-3 py-2 mt-1 whitespace-pre-wrap overflow-auto max-h-48">{String(result.raw)}</pre>
+                  <summary className="text-rose-600 text-xs font-bold cursor-pointer">Ver resposta bruta</summary>
+                  <pre className="text-xs text-rose-600 bg-rose-100 rounded-xl px-3 py-2 mt-1 whitespace-pre-wrap overflow-auto max-h-48">{String(result.raw)}</pre>
                 </details>
               )}
             </div>
@@ -526,10 +526,10 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             return (
               <div className="space-y-2">
                 {bloqueantes.length > 0 && (
-                  <div className="border border-red-200 rounded-2xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-5 py-3 bg-red-50 border-b border-red-200">
-                      <AlertTriangle size={14} className="text-red-600 shrink-0" />
-                      <span className="font-bold text-red-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
+                  <div className="border border-rose-200 rounded-2xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-5 py-3 bg-rose-50 border-b border-rose-200">
+                      <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+                      <span className="font-bold text-rose-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
                     </div>
                     <ul className="px-5 py-3 space-y-2">
                       {bloqueantes.map((a, i) => {
@@ -537,7 +537,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                         return (
                           <li key={i} className="flex items-start gap-2.5">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
-                            <span className="text-sm text-red-800">{a.texto}</span>
+                            <span className="text-sm text-rose-800">{a.texto}</span>
                           </li>
                         );
                       })}
@@ -569,16 +569,16 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {/* Pendências bloqueantes — impedem emissão e bloqueiam Double Check */}
           {result.pendencias_bloqueantes && result.pendencias_bloqueantes.length > 0 && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 bg-red-100 border-b border-red-200">
-                <AlertTriangle size={15} className="text-red-600 shrink-0" />
-                <span className="font-bold text-red-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
-                <span className="ml-auto text-[10px] font-bold text-red-600 bg-red-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
+            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 bg-rose-100 border-b border-rose-200">
+                <AlertTriangle size={15} className="text-rose-600 shrink-0" />
+                <span className="font-bold text-rose-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
+                <span className="ml-auto text-[10px] font-bold text-rose-600 bg-rose-200 px-2 py-0.5 rounded-full">Confirme antes do Double Check</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
                 {result.pendencias_bloqueantes.map((p, i) => (
-                  <li key={i} className="text-sm text-red-800 flex items-start gap-2">
-                    <span className="text-red-500 mt-0.5 shrink-0">!</span> {p}
+                  <li key={i} className="text-sm text-rose-800 flex items-start gap-2">
+                    <span className="text-rose-500 mt-0.5 shrink-0">!</span> {p}
                   </li>
                 ))}
               </ul>

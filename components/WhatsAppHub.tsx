@@ -512,7 +512,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeletingConv(lead.phone); }}
-                    className="px-2 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 transition-colors"
+                    className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 transition-colors"
                     title="Excluir conversa"
                   >
                     <Trash2 size={11} />
@@ -597,7 +597,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                             <button onClick={() => setEditingMsg({ id: msg.id, zapi_id: msg.zapi_id, text: msg.message })} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Editar">
                               <Pencil size={12} />
                             </button>
-                            <button onClick={() => setDeletingMsgId(msg.id)} className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Excluir">
+                            <button onClick={() => setDeletingMsgId(msg.id)} className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Excluir">
                               <Trash2 size={12} />
                             </button>
                           </>
@@ -630,7 +630,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                           <p className="text-xs text-white/70">Excluir para todos?</p>
                           <div className="flex gap-2">
                             <button onClick={() => setDeletingMsgId(null)} className="text-white/50 hover:text-white text-xs transition-colors">Não</button>
-                            <button onClick={() => deleteMessage(msg)} className="text-red-400 hover:text-red-300 text-xs font-bold transition-colors">Excluir</button>
+                            <button onClick={() => deleteMessage(msg)} className="text-rose-400 hover:text-rose-300 text-xs font-bold transition-colors">Excluir</button>
                           </div>
                         </div>
                       ) : msg.audio_url ? (
@@ -807,8 +807,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     {deletingConv && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-            <Trash2 size={20} className="text-red-500" />
+          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto">
+            <Trash2 size={20} className="text-rose-500" />
           </div>
           <div>
             <p className="font-bold text-slate-800">Excluir conversa?</p>
@@ -816,7 +816,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           </div>
           <div className="flex gap-3">
             <button onClick={() => setDeletingConv(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">Cancelar</button>
-            <button onClick={() => deleteConversation(deletingConv)} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors text-sm">Excluir</button>
+            <button onClick={() => deleteConversation(deletingConv)} className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-colors text-sm">Excluir</button>
           </div>
         </div>
       </div>

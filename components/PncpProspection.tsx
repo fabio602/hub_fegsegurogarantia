@@ -491,7 +491,7 @@ const PncpProspection: React.FC = () => {
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold">
+                    <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold">
                         <AlertCircle size={18} />
                         {error}
                     </div>

@@ -702,7 +702,7 @@ const App: React.FC = () => {
             </button>
             <button className="p-2 text-slate-400 hover:text-gold transition-all relative">
               <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
             </button>
             <div className="hidden sm:block h-8 w-[1px] bg-gold/30"></div>
             <div className="hidden sm:flex items-center gap-3 group cursor-pointer">

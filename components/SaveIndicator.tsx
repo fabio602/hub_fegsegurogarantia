@@ -31,7 +31,7 @@ export const SaveIndicator: React.FC<SaveIndicatorProps> = ({
   const corNeutra = escuro ? 'text-slate-300' : 'text-slate-400';
   const corPonto = escuro ? 'bg-slate-400' : 'bg-slate-300';
   const corSucesso = escuro ? 'text-emerald-300' : 'text-emerald-600';
-  const corErro = escuro ? 'text-red-300' : 'text-red-600';
+  const corErro = escuro ? 'text-rose-300' : 'text-rose-600';
 
   return (
     <span
@@ -63,7 +63,7 @@ export const SaveIndicator: React.FC<SaveIndicatorProps> = ({
 
       {estado === 'erro' && (
         <>
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
           <span className={corErro}>Não salvou</span>
           {aoTentarNovamente && (
             <button

@@ -79,11 +79,23 @@ O Tailwind é compilado no build (`tailwind.config.js` + `postcss.config.js`), e
 
 Cor, sombra e duração ficam em `tailwind.config.js`, que é o lugar único desses tokens:
 
-- `navy` (`#1B263B`) e `navy-light` (`#243447`)
-- `gold` (`#C69C6D`) e `gold-hover` (`#B58A5B`)
-- `areia` (`#F5F1EA`) e `linha` (`#E8E4DC`)
+- `navy` (`#1B263B`), `navy-light` (`#243447`) e `navy-dark` (`#162033`)
+- `gold` (`#C69C6D`), `gold-hover` (`#B58A5B`) e `gold-dark` (`#8B6C3E`, dourado legível como texto em fundo claro)
+- `areia` (`#F5F1EA`), `areia-clara` (`#F8F4ED`), `areia-escura` (`#EFE7DB`) e `linha` (`#E8E4DC`)
+- `whatsapp` (`#25D366`), `whatsapp-hover` e `whatsapp-bolha`
 
 Use `bg-navy`, `text-gold`, `hover:bg-gold-hover` em vez de repetir o hexadecimal. Hexadecimal solto só é aceitável fora de classe do Tailwind, como em `style` inline, SVG e cor de gráfico.
+
+**Semântica de cor (regra fixa, não misturar):**
+
+- **gold é identidade, nunca estado** — não usar para sucesso, alerta ou erro;
+- **amber é alerta, nunca decoração**;
+- **rose é erro/destrutivo** — não existe `red-*` no app; se aparecer, é regressão;
+- **emerald é sucesso** — não usar `green-*`;
+- **blue é informação/condicional**;
+- **whatsapp só para UI que representa o WhatsApp de fato** (hub de conversas, links wa.me, bolha de chat) — botão de e-mail nunca é verde.
+
+Cores categóricas de dados (badges de tipo de produto, etiquetas de urgência do Repasse, paletas escolhíveis de cartão/coluna) ficam fora dessa regra por serem legenda, não estado.
 
 O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in-*` e `fade-in-*`.
 

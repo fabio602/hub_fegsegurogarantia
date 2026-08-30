@@ -72,7 +72,7 @@ function urgencyOf(days: number): 'critical' | 'urgent' | 'soon' {
 }
 
 const BAND = {
-  critical: { label: 'Crítico — ≤7 dias', dot: 'bg-red-500', text: 'text-red-700', badge: 'bg-red-100 text-red-700', row: 'border-red-100 hover:bg-red-50/40' },
+  critical: { label: 'Crítico — ≤7 dias', dot: 'bg-rose-500', text: 'text-rose-700', badge: 'bg-rose-100 text-rose-700', row: 'border-rose-100 hover:bg-rose-50/40' },
   urgent:   { label: 'Urgente — 8 a 30 dias', dot: 'bg-amber-400', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', row: 'border-amber-100 hover:bg-amber-50/40' },
   soon:     { label: 'Em breve — 31 a 90 dias', dot: 'bg-blue-400', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', row: 'border-blue-100 hover:bg-blue-50/30' },
 };
@@ -290,7 +290,7 @@ export default function EmailFollowUp() {
       </span>
     );
     if (state === 'error') return (
-      <span className="flex items-center gap-1 text-red-500 text-xs font-bold">
+      <span className="flex items-center gap-1 text-rose-500 text-xs font-bold">
         <AlertCircle size={13} /> Erro
       </span>
     );
@@ -458,7 +458,7 @@ export default function EmailFollowUp() {
                       { label: 'Total', value: expiring.length, color: 'text-slate-700' },
                       { label: 'Com email', value: withEmail, color: 'text-emerald-600' },
                       { label: 'Sem email', value: withoutEmail, color: 'text-slate-400' },
-                      { label: 'Críticos', value: byBand.critical.length, color: 'text-red-600' },
+                      { label: 'Críticos', value: byBand.critical.length, color: 'text-rose-600' },
                     ].map(s => (
                       <div key={s.label} className="bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-center">
                         <p className={`font-black text-lg leading-none ${s.color}`}>{s.value}</p>
@@ -504,7 +504,7 @@ export default function EmailFollowUp() {
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                             <span className="text-slate-400 text-[10px] truncate max-w-[200px]">{p.email}</span>
-                            <span className={`flex items-center gap-1 text-[10px] font-bold ${neverContacted ? 'text-slate-400' : p.daysSince > 60 ? 'text-red-500' : 'text-amber-600'}`}>
+                            <span className={`flex items-center gap-1 text-[10px] font-bold ${neverContacted ? 'text-slate-400' : p.daysSince > 60 ? 'text-rose-500' : 'text-amber-600'}`}>
                               <Clock size={10} />
                               {neverContacted ? 'Nunca contatado' : `${p.daysSince}d sem contato`}
                             </span>
@@ -599,7 +599,7 @@ export default function EmailFollowUp() {
                       <CheckCircle size={14} /> Email enviado com sucesso!
                     </span>
                   ) : sends['avulso'] === 'error' ? (
-                    <span className="flex items-center gap-1.5 text-red-500 text-xs font-bold">
+                    <span className="flex items-center gap-1.5 text-rose-500 text-xs font-bold">
                       <AlertCircle size={14} /> Erro ao enviar
                     </span>
                   ) : <span />}

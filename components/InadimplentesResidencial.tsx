@@ -24,7 +24,7 @@ interface Inadimplente {
 }
 
 const STATUS_CONFIG = {
-  inadimplente:     { label: 'Inadimplente',       bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',     dot: 'bg-red-500' },
+  inadimplente:     { label: 'Inadimplente',       bg: 'bg-rose-50',     text: 'text-rose-700',     border: 'border-rose-200',     dot: 'bg-rose-500' },
   contatado:        { label: 'Contatado',           bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500' },
   boleto_solicitado:{ label: 'Boleto Solicitado',   bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-500' },
   aguardando:       { label: 'Aguardando Pgto.',    bg: 'bg-yellow-50',  text: 'text-yellow-700',  border: 'border-yellow-200',  dot: 'bg-yellow-500' },
@@ -330,7 +330,7 @@ export default function InadimplentesResidencial() {
                     <td className="px-3 py-2 font-mono text-xs">{p.apolice || '—'}</td>
                     <td className="px-3 py-2 text-center">{p.parcela || '—'}</td>
                     <td className="px-3 py-2">{fmtData(p.vencimento)}</td>
-                    <td className="px-3 py-2 font-bold text-red-700">{fmtBRL(p.valor)}</td>
+                    <td className="px-3 py-2 font-bold text-rose-700">{fmtBRL(p.valor)}</td>
                     <td className="px-3 py-2 text-xs">{p.telefone_pdf || '—'}</td>
                     <td className="px-3 py-2">
                       <input
@@ -402,7 +402,7 @@ export default function InadimplentesResidencial() {
                         <span>Apólice {item.apolice || '—'}</span>
                         <span>Parcela {item.parcela || '—'}</span>
                         <span>Vence {fmtData(item.vencimento)}</span>
-                        <span className="font-bold text-red-700">{fmtBRL(item.valor)}</span>
+                        <span className="font-bold text-rose-700">{fmtBRL(item.valor)}</span>
                         {phone && <span className="flex items-center gap-1"><Phone size={11}/>{item.telefone_pdf || item.telefone_base}</span>}
                         {!phone && <span className="text-slate-300">Sem telefone</span>}
                       </div>

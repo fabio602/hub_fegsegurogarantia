@@ -80,7 +80,7 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3 text-xs font-bold">
+              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center gap-3 text-xs font-bold">
                 <AlertCircle size={16} />
                 {error}
               </div>

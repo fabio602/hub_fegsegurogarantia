@@ -121,9 +121,9 @@ const STATUS_CONFIG = {
     label: 'OK',
   },
   divergencia: {
-    icon: <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />,
-    row: 'bg-red-50 border-red-100',
-    badge: 'bg-red-100 text-red-700',
+    icon: <XCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />,
+    row: 'bg-rose-50 border-rose-100',
+    badge: 'bg-rose-100 text-rose-700',
     label: 'DIVERGÊNCIA',
   },
   nao_encontrado: {
@@ -156,10 +156,10 @@ const GERAL_CONFIG = {
     text: 'Todos os campos conferem com os dados originais.',
   },
   divergencias: {
-    bg: 'bg-red-50 border-red-200',
-    icon: <XCircle size={24} className="text-red-600" />,
+    bg: 'bg-rose-50 border-rose-200',
+    icon: <XCircle size={24} className="text-rose-600" />,
     title: 'Divergências Encontradas',
-    titleColor: 'text-red-800',
+    titleColor: 'text-rose-800',
     text: 'A minuta contém diferenças em relação aos dados originais. Corrija antes de emitir.',
   },
   verificar: {
@@ -405,11 +405,11 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-rose-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-red-700 text-sm">Erro na validação</p>
-            <p className="text-red-600 text-sm">{error}</p>
+            <p className="font-bold text-rose-700 text-sm">Erro na validação</p>
+            <p className="text-rose-600 text-sm">{error}</p>
           </div>
         </div>
       )}
@@ -434,7 +434,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
                   <div className="flex gap-1.5 text-xs font-bold flex-wrap justify-end">
                     {okCount - favCount > 0 && <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">{okCount - favCount} OK</span>}
-                    {divCount > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
+                    {divCount > 0 && <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg">{divCount} ✗</span>}
                     {naCount > 0 && <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg">{naCount} ⚠</span>}
                     {favCount > 0 && <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">{favCount} ↑</span>}
                     {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg">{naAplCount} N/A</span>}
@@ -443,7 +443,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest ${
                       result.veredicto === 'PODE EMITIR' ? 'bg-emerald-700 text-white' :
                       result.veredicto === 'EMITIR COM RESSALVA' ? 'bg-amber-600 text-white' :
-                      'bg-red-700 text-white'
+                      'bg-rose-700 text-white'
                     }`}>{result.veredicto}</span>
                   )}
                 </div>
@@ -472,7 +472,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                         {item.status !== 'ok' && (
                           <div>
                             <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
-                            <span className={`font-semibold ${item.status === 'divergencia' ? 'text-red-700' : 'text-amber-700'}`}>{item.encontrado}</span>
+                            <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : 'text-amber-700'}`}>{item.encontrado}</span>
                           </div>
                         )}
                       </div>
@@ -619,9 +619,9 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     </div>
 
                     {vendaError && (
-                      <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-2">
-                        <AlertTriangle size={14} className="text-red-500 shrink-0" />
-                        <p className="text-red-600 text-xs font-semibold">{vendaError}</p>
+                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 flex items-center gap-2">
+                        <AlertTriangle size={14} className="text-rose-500 shrink-0" />
+                        <p className="text-rose-600 text-xs font-semibold">{vendaError}</p>
                       </div>
                     )}
 

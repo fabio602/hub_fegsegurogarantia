@@ -302,7 +302,7 @@ export default function ChatWidget({ activeView }: { activeView?: string }) {
                 <div className="flex items-center gap-2 bg-amber-50 border border-gold/30 rounded-xl px-3 py-2">
                   <FileText size={14} className="text-gold shrink-0" />
                   <span className="flex-1 text-xs font-bold text-slate-700 truncate">{attachedFile.name}</span>
-                  <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-rose-500 transition-colors">
                     <X size={13} />
                   </button>
                 </div>

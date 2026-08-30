@@ -327,14 +327,14 @@ const InternalProcedures: React.FC = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-white p-4 rounded-2xl border border-blue-200">
                                         <p className="text-xs font-bold text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                            <CircleCheck size={14} className="text-green-600" />
+                                            <CircleCheck size={14} className="text-emerald-600" />
                                             Início da vigência
                                         </p>
                                         <p className="text-sm text-slate-700">Sempre coloque <span className="font-bold text-blue-900">1 dia antes</span> da data da licitação.</p>
                                     </div>
                                     <div className="bg-white p-4 rounded-2xl border border-blue-200">
                                         <p className="text-xs font-bold text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                            <CircleCheck size={14} className="text-green-600" />
+                                            <CircleCheck size={14} className="text-emerald-600" />
                                             Fim da vigência
                                         </p>
                                         <p className="text-sm text-slate-700">Não esqueça de somar <span className="font-bold text-blue-900">+1 dia</span> no final para manter o prazo do edital.</p>
@@ -362,9 +362,9 @@ const InternalProcedures: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-red-50 p-10 rounded-[3rem] border border-red-100 flex items-center gap-8">
-                            <TriangleAlert size={40} className="text-red-500" />
-                            <p className="text-red-900 font-bold">ERRO ZERO: Qualquer erro desclassifica o cliente do pregão.</p>
+                        <div className="bg-rose-50 p-10 rounded-[3rem] border border-rose-100 flex items-center gap-8">
+                            <TriangleAlert size={40} className="text-rose-500" />
+                            <p className="text-rose-900 font-bold">ERRO ZERO: Qualquer erro desclassifica o cliente do pregão.</p>
                         </div>
                     </div>
                 )}
@@ -396,15 +396,15 @@ const InternalProcedures: React.FC = () => {
                                     </p>
                                 </div>
                             </div>
-                            <div className="bg-red-50 p-6 rounded-2xl border border-red-200">
+                            <div className="bg-rose-50 p-6 rounded-2xl border border-rose-200">
                                 <div className="flex items-start gap-3">
-                                    <TriangleAlert size={20} className="text-red-600 shrink-0" />
+                                    <TriangleAlert size={20} className="text-rose-600 shrink-0" />
                                     <div className="space-y-2">
-                                        <p className="text-sm font-bold text-red-900 uppercase tracking-wide">Atenção</p>
-                                        <p className="text-sm text-red-800 leading-relaxed">
+                                        <p className="text-sm font-bold text-rose-900 uppercase tracking-wide">Atenção</p>
+                                        <p className="text-sm text-rose-800 leading-relaxed">
                                             <span className="font-bold">Não emitir o seguro enquanto não tivermos a minuta.</span>
                                         </p>
-                                        <p className="text-xs text-red-700 italic">
+                                        <p className="text-xs text-rose-700 italic">
                                             Se ainda não houver a minuta, precisamos de algum documento que mostre o valor que foi vencedor no pregão.
                                         </p>
                                     </div>
@@ -710,21 +710,21 @@ const InternalProcedures: React.FC = () => {
                         </div>
 
                         {/* Avisos Importantes */}
-                        <div className="bg-red-50 p-10 rounded-[2.5rem] border border-red-200 shadow-sm space-y-6">
+                        <div className="bg-rose-50 p-10 rounded-[2.5rem] border border-rose-200 shadow-sm space-y-6">
                             <div className="flex items-start gap-3">
-                                <TriangleAlert size={24} className="text-red-600 shrink-0" />
+                                <TriangleAlert size={24} className="text-rose-600 shrink-0" />
                                 <div className="space-y-4">
-                                    <h4 className="font-black text-red-900 text-lg uppercase tracking-wide">Atenção</h4>
+                                    <h4 className="font-black text-rose-900 text-lg uppercase tracking-wide">Atenção</h4>
                                     <div className="space-y-4">
-                                        <div className="bg-white p-5 rounded-2xl border border-red-200">
-                                            <p className="text-xs font-bold text-red-900 uppercase tracking-wide mb-2">Última Alternativa</p>
-                                            <p className="text-sm text-red-800 leading-relaxed">
+                                        <div className="bg-white p-5 rounded-2xl border border-rose-200">
+                                            <p className="text-xs font-bold text-rose-900 uppercase tracking-wide mb-2">Última Alternativa</p>
+                                            <p className="text-sm text-rose-800 leading-relaxed">
                                                 Essa é nossa <span className="font-bold">última alternativa</span>, porque nem sempre será aceito pelo órgão público.
                                             </p>
                                         </div>
-                                        <div className="bg-white p-5 rounded-2xl border border-red-200">
-                                            <p className="text-xs font-bold text-red-900 uppercase tracking-wide mb-2">Validação Obrigatória</p>
-                                            <p className="text-sm text-red-800 leading-relaxed">
+                                        <div className="bg-white p-5 rounded-2xl border border-rose-200">
+                                            <p className="text-xs font-bold text-rose-900 uppercase tracking-wide mb-2">Validação Obrigatória</p>
+                                            <p className="text-sm text-rose-800 leading-relaxed">
                                                 É sempre importante <span className="font-bold">validar com o cliente</span> se o órgão público aceita uma garantia feita por uma empresa privada.
                                             </p>
                                         </div>
@@ -901,7 +901,7 @@ Até breve!`)}
                         <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
-                                    <TriangleAlert size={20} className="text-red-600" />
+                                    <TriangleAlert size={20} className="text-rose-600" />
                                     Cobrança de Inadimplência
                                 </h4>
                                 <button
@@ -917,18 +917,18 @@ Segue abaixo descritivo da apólice:
 Caso a situação já tenha sido regularizada, por favor, desconsidere esta mensagem.
 
 Atenciosamente,`)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-bold"
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors text-sm font-bold"
                                 >
                                     <Copy size={16} />
                                     Copiar
                                 </button>
                             </div>
-                            <div className="bg-red-50 p-6 rounded-2xl border border-red-200 text-sm text-red-900 leading-relaxed font-mono">
+                            <div className="bg-rose-50 p-6 rounded-2xl border border-rose-200 text-sm text-rose-900 leading-relaxed font-mono">
                                 <p className="mb-4">Prezados, boa tarde!</p>
-                                <p className="mb-4">A <span className="text-red-700 font-bold">(nome da sua Corretora)</span> tem trabalhado para sempre oferecer os melhores serviços para sua empresa.</p>
+                                <p className="mb-4">A <span className="text-rose-700 font-bold">(nome da sua Corretora)</span> tem trabalhado para sempre oferecer os melhores serviços para sua empresa.</p>
                                 <p className="mb-4">Dessa forma, solicitamos que entre em contato conosco o mais breve possível, a fim de juntos solucionarmos a(s) pendência(s) da(s) apólice(s) que se encontra em atraso de pagamento.</p>
                                 <p className="mb-4">Segue abaixo descritivo da apólice:<br />
-                                    <span className="text-red-700 font-bold">(descrever a apólice que encontra-se pendente de pagamento)</span></p>
+                                    <span className="text-rose-700 font-bold">(descrever a apólice que encontra-se pendente de pagamento)</span></p>
                                 <p className="mb-4">Caso a situação já tenha sido regularizada, por favor, desconsidere esta mensagem.</p>
                                 <p>Atenciosamente,</p>
                             </div>
@@ -964,7 +964,7 @@ Atenciosamente,`)}
                                     subtitle: 'Destaque o problema',
                                     desc: 'Toque na "ferida" para demonstrar que entende a realidade do cliente.',
                                     example: '"Vocês já passaram pela situação de perder um contrato grande por não ter a garantia pronta?"',
-                                    color: 'bg-red-50 text-red-600 border-red-100'
+                                    color: 'bg-rose-50 text-rose-600 border-rose-100'
                                 },
                                 {
                                     step: '2',

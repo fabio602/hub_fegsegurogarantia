@@ -342,7 +342,7 @@ export default function EmailTrilhas() {
       {/* Aviso */}
       {aviso && (
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold ${
-          aviso.tipo === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+          aviso.tipo === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
         }`}>
           {aviso.tipo === 'ok' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
           {aviso.texto}
@@ -403,7 +403,7 @@ export default function EmailTrilhas() {
                     <Save size={14} /> Salvar
                   </button>
                   <button onClick={excluirTrilha} disabled={salvando}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl" title="Excluir trilha">
+                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl" title="Excluir trilha">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -553,7 +553,7 @@ export default function EmailTrilhas() {
                               Salvar e visualizar
                             </button>
                             <button onClick={() => excluirEtapa(etapa)} disabled={salvando}
-                              className="ml-auto p-2 text-red-500 hover:bg-red-50 rounded-xl" title="Excluir e-mail">
+                              className="ml-auto p-2 text-rose-500 hover:bg-rose-50 rounded-xl" title="Excluir e-mail">
                               <Trash2 size={16} />
                             </button>
                           </div>

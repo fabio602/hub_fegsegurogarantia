@@ -231,11 +231,11 @@ export default function GarimpoAutomatico() {
             </div>
 
             {/* Painel único de reputação */}
-            <div className={`rounded-2xl border p-5 ${reputacao?.pausado ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className={`rounded-2xl border p-5 ${reputacao?.pausado ? 'bg-rose-50 border-rose-200' : 'bg-white border-slate-100 shadow-sm'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         {reputacao?.pausado
-                            ? <ShieldAlert className="text-red-500" size={24} />
+                            ? <ShieldAlert className="text-rose-500" size={24} />
                             : <ShieldCheck className="text-emerald-500" size={24} />}
                         <div>
                             <p className="font-bold text-slate-800 text-sm">Reputação de envio ({reputacao?.dominio})</p>
@@ -260,7 +260,7 @@ export default function GarimpoAutomatico() {
                             <p className="text-[10px] font-bold uppercase text-slate-400">Garimpo ({resumo?.limitesCampanhas ?? 0}/dia)</p>
                         </div>
                         <div>
-                            <p className={`text-2xl font-black ${(resumo?.bouncesHoje ?? 0) > 0 ? 'text-red-600' : 'text-slate-800'}`}>
+                            <p className={`text-2xl font-black ${(resumo?.bouncesHoje ?? 0) > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
                                 {resumo?.bouncesHoje ?? 0}<span className="text-sm text-slate-400 font-bold"> ({taxaBounce.toFixed(1)}%)</span>
                             </p>
                             <p className="text-[10px] font-bold uppercase text-slate-400">Bounces hoje</p>
@@ -284,7 +284,7 @@ export default function GarimpoAutomatico() {
                         </div>
                         {reputacao?.pausado && (
                             <button onClick={despausarGlobal}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-all">
+                                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-all">
                                 Despausar tudo
                             </button>
                         )}
@@ -296,7 +296,7 @@ export default function GarimpoAutomatico() {
                 <div className={`rounded-2xl p-4 flex items-center gap-3 text-sm font-medium border ${
                     feedback.tipo === 'ok'
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : 'bg-red-50 border-red-200 text-red-800'}`}>
+                        : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
                     {feedback.tipo === 'ok' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
                     {feedback.texto}
                 </div>
@@ -459,7 +459,7 @@ export default function GarimpoAutomatico() {
                                                 <td className="px-3 py-3 text-right font-bold text-slate-800">{ex.enviados}</td>
                                                 <td className="px-3 py-3 text-right text-slate-600">{ex.so_whatsapp}</td>
                                                 <td className="px-3 py-3 text-right text-slate-600">{ex.descartados}</td>
-                                                <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-red-600' : 'text-slate-600'}`}>{ex.bounces}</td>
+                                                <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}`}>{ex.bounces}</td>
                                                 <td className="px-6 py-3 text-right">
                                                     {ex.arquivo_relatorio && (
                                                         <button onClick={() => baixarRelatorio(ex.arquivo_relatorio!)}

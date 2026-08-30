@@ -298,7 +298,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
                     <p className="font-bold text-slate-800 text-sm truncate">{f.name}</p>
                     <p className="text-xs text-slate-400">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
-                  <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-rose-500 transition-colors">
                     <X size={16} />
                   </button>
                 </div>
@@ -343,11 +343,11 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-5 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-rose-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-red-700">Erro na análise</p>
-            <p className="text-red-600 text-sm mt-1">{error}</p>
+            <p className="font-bold text-rose-700">Erro na análise</p>
+            <p className="text-rose-600 text-sm mt-1">{error}</p>
           </div>
         </div>
       )}

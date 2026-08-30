@@ -158,7 +158,7 @@ function CarteiraEmptyLimitsForm({
                             <button
                                 type="button"
                                 onClick={() => setTempLimits(prev => prev.filter((_, idx) => idx !== i))}
-                                className="text-red-400 hover:text-red-600"
+                                className="text-rose-400 hover:text-rose-600"
                             >
                                 <X size={12} />
                             </button>
@@ -329,11 +329,11 @@ const CopyButton = ({ text, label }: { text: string; label?: string }) => {
             title={`Copiar ${label || ''}`}
         >
             {copied ? (
-                <Check size={10} className="text-green-500 animate-in zoom-in duration-200" />
+                <Check size={10} className="text-emerald-500 animate-in zoom-in duration-200" />
             ) : (
                 <Copy size={10} className="text-slate-300 group-hover/copy:text-gold transition-all" />
             )}
-            {copied && <span className="text-[10px] font-bold text-green-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
+            {copied && <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter animate-in fade-in slide-in-from-left-1 duration-200">Copiado</span>}
         </button>
     );
 };
@@ -2276,7 +2276,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         )}
 
                         {saveError && (
-                            <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-xl text-sm font-bold">
+                            <div className="mb-6 flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 px-5 py-4 rounded-xl text-sm font-bold">
                                 <AlertCircle size={18} />
                                 {saveError}
                             </div>
@@ -2336,13 +2336,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         )}
 
                         {/* ── Importar Minuta / Apólice ── */}
-                        <div className="mb-6 relative overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-indigo-50 to-blue-50 shadow-sm">
+                        <div className="mb-6 relative overflow-hidden rounded-2xl border border-gold/40 bg-areia-clara shadow-sm">
                             {/* decorative gradient bar */}
-                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-400 via-indigo-400 to-blue-400" />
+                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gold" />
                             <div className="flex items-center justify-between gap-4 px-5 py-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-navy text-gold flex items-center justify-center shadow-md">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                                             <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
                                         </svg>
@@ -2356,7 +2356,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                     </div>
                                 </div>
-                                <label className={`cursor-pointer flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all ${importingPdf ? 'bg-violet-300 cursor-not-allowed' : 'bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 hover:shadow-lg'}`}>
+                                <label className={`cursor-pointer flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all ${importingPdf ? 'bg-navy/50 cursor-not-allowed' : 'bg-navy hover:bg-navy-light hover:shadow-lg'}`}>
                                     {importingPdf
                                         ? <><Loader2 size={13} className="animate-spin" /> Processando...</>
                                         : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Selecionar PDF</>}
@@ -2655,13 +2655,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                     <div className="group/field relative">
                                         <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                            <span className={formData.tipo === 'Licitante' && !formData.dataPregao ? 'text-red-500' : 'text-amber-600'}>📅 Data do Pregão</span>
-                                            {formData.tipo === 'Licitante' && <span className="text-red-500">*</span>}
+                                            <span className={formData.tipo === 'Licitante' && !formData.dataPregao ? 'text-rose-500' : 'text-amber-600'}>📅 Data do Pregão</span>
+                                            {formData.tipo === 'Licitante' && <span className="text-rose-500">*</span>}
                                         </label>
                                         <input type="date" id="dataPregao" value={formData.dataPregao || ''} onChange={handleInputChange}
-                                            className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${formData.tipo === 'Licitante' && !formData.dataPregao ? 'border-2 border-red-400 focus:ring-red-400/20 bg-red-50/30' : 'border border-amber-200 focus:ring-amber-500/20'}`} />
+                                            className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${formData.tipo === 'Licitante' && !formData.dataPregao ? 'border-2 border-rose-400 focus:ring-rose-400/20 bg-rose-50/30' : 'border border-amber-200 focus:ring-amber-500/20'}`} />
                                         {formData.tipo === 'Licitante' && !formData.dataPregao && (
-                                            <p className="text-[10px] text-red-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
+                                            <p className="text-[10px] text-rose-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
                                         )}
                                     </div>
                                 </div>
@@ -2697,13 +2697,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
                                             <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                                <span className={!(formData as any).vencimento_boleto ? 'text-red-500' : 'text-slate-400'}>{parseInt(qtdParcelas) > 1 ? '1º Vencimento' : 'Vencimento do Boleto'}</span>
-                                                <span className="text-red-500">*</span>
+                                                <span className={!(formData as any).vencimento_boleto ? 'text-rose-500' : 'text-slate-400'}>{parseInt(qtdParcelas) > 1 ? '1º Vencimento' : 'Vencimento do Boleto'}</span>
+                                                <span className="text-rose-500">*</span>
                                             </label>
                                             <input type="date" id="vencimento_boleto" value={(formData as any).vencimento_boleto || ''} onChange={handleInputChange}
-                                                className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${!(formData as any).vencimento_boleto ? 'border-2 border-red-400 focus:ring-red-400/20 bg-red-50/30' : 'border border-amber-200 focus:ring-amber-400/20'}`} />
+                                                className={`w-full px-4 py-2.5 bg-white rounded-xl text-sm outline-none focus:ring-2 transition-all ${!(formData as any).vencimento_boleto ? 'border-2 border-rose-400 focus:ring-rose-400/20 bg-rose-50/30' : 'border border-amber-200 focus:ring-amber-400/20'}`} />
                                             {!(formData as any).vencimento_boleto && (
-                                                <p className="text-[10px] text-red-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
+                                                <p className="text-[10px] text-rose-500 font-bold mt-1">Obrigatório para envio dos lembretes automáticos</p>
                                             )}
                                         </div>
                                         <div>
@@ -2797,7 +2797,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     <button
                                         type="button"
                                         onClick={() => handleDelete(editingId)}
-                                        className="px-5 py-3.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all flex items-center gap-2"
+                                        className="px-5 py-3.5 rounded-xl font-bold text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 transition-all flex items-center gap-2"
                                     >
                                         <Trash2 size={16} /> Excluir
                                     </button>
@@ -2994,7 +2994,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
                                                 <td className="px-6 py-5">
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
-                                                        sale.vendeu === 'Não' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                                        sale.vendeu === 'Não' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'
                                                         }`}>
                                                         {sale.vendeu === 'Sim' ? <CheckCircle2 size={12} /> :
                                                             sale.vendeu === 'Não' ? <AlertCircle size={12} /> : <Clock size={12} />}
@@ -3038,11 +3038,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         return (
                                                             <button
                                                                 onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '', (sale as any).decisor || '')}
-                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-red-50 text-red-600 hover:bg-red-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
                                                                 <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
                                                                 {s && s.total > 0 && (
-                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.emAberto > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                                                         {s.emAberto > 0 ? `${s.emAberto} em aberto` : 'Todos pagos'}
                                                                     </span>
                                                                 )}
@@ -3106,7 +3106,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <p className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 rounded-xl py-3">✅ Comando recebido! O n8n já está enviando os emails.</p>
                         )}
                         {emailDispatchStatus === 'error' && (
-                            <p className="text-center text-sm font-bold text-red-600 bg-red-50 rounded-xl py-3">❌ Erro de conexão. Verifique se a automação está ativa.</p>
+                            <p className="text-center text-sm font-bold text-rose-600 bg-rose-50 rounded-xl py-3">❌ Erro de conexão. Verifique se a automação está ativa.</p>
                         )}
                     </div>
                 </div>,
@@ -3134,20 +3134,20 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         {boletos.length > 0 ? (
                             <div className="space-y-2">
                                 {boletos.map(b => (
-                                    <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                                    <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                                             {b.vencimento && <span className="text-xs text-slate-500 font-medium">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                                             {b.valor != null && <span className="text-xs font-bold text-slate-700">{formatCurrency(Number(b.valor))}</span>}
                                             {b.pago
                                                 ? <span className="text-xs font-bold text-emerald-600">✓ Pago</span>
-                                                : <span className="text-xs font-bold text-red-600">⚠ Em Aberto</span>
+                                                : <span className="text-xs font-bold text-rose-600">⚠ Em Aberto</span>
                                             }
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleTogglePago(b.id, b.pago)}
-                                                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
                                             >
                                                 {b.pago ? 'Marcar como Em Aberto' : 'Marcar como Pago'}
                                             </button>
@@ -3165,7 +3165,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     {boletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={13} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -3249,7 +3249,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 />
                                                 <button
                                                     onClick={() => setCarneParcelas(prev => prev.filter((_, j) => j !== i))}
-                                                    className="p-1 text-slate-300 hover:text-red-500 rounded-lg transition-all shrink-0"
+                                                    className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all shrink-0"
                                                     title="Remover esta parcela da lista"
                                                 >
                                                     <X size={13} />
@@ -3263,7 +3263,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </p>
                                     )}
                                     {carneParcelas.some(p => !p.vencimento) && (
-                                        <p className="text-[10px] text-red-500 font-bold">
+                                        <p className="text-[10px] text-rose-500 font-bold">
                                             Preencha o vencimento das parcelas em branco — é a data que dispara o lembrete.
                                         </p>
                                     )}
@@ -3384,7 +3384,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>
 
                     {saveError && (
-                        <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+                        <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium">
                             <AlertCircle size={18} className="shrink-0 mt-0.5" />
                             <span>{saveError}</span>
                         </div>
@@ -3700,7 +3700,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                                         <span className="font-bold text-slate-400">{formatCurrency(l.valor)}</span>
                                                                         <button
                                                                             onClick={() => setTempClientLimits(prev => prev.filter((_, idx) => idx !== i))}
-                                                                            className="text-red-400 hover:text-red-600"
+                                                                            className="text-rose-400 hover:text-rose-600"
                                                                         >
                                                                             <X size={12} />
                                                                         </button>
@@ -3943,7 +3943,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         </div>
 
                         {sellerMgmtError && (
-                            <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/15 border border-red-400/40 text-red-200 text-sm font-bold">
+                            <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-sm font-bold">
                                 {sellerMgmtError}
                             </div>
                         )}
@@ -4083,7 +4083,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     type="button"
                                                     disabled={sellerCrudBusy}
                                                     onClick={() => void handleDeleteSeller(seller.id, seller.name)}
-                                                    className="px-4 py-2 rounded-xl border border-red-400/40 text-red-300 font-bold text-xs uppercase tracking-wider hover:bg-red-500/10"
+                                                    className="px-4 py-2 rounded-xl border border-rose-400/40 text-rose-300 font-bold text-xs uppercase tracking-wider hover:bg-rose-500/10"
                                                 >
                                                     Excluir
                                                 </button>

@@ -90,7 +90,7 @@ const Field: React.FC<{
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="px-6 py-3 bg-red-600 text-white font-bold text-sm tracking-widest uppercase">
+    <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
       {title}
     </div>
     <div className="p-5 grid grid-cols-2 gap-4">
@@ -294,7 +294,7 @@ const EndossoAllseg: React.FC = () => {
 
       {/* OBJETO */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 bg-red-600 text-white font-bold text-sm tracking-widest uppercase">
+        <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
           Objeto do Seguro
         </div>
         <div className="p-5 space-y-4">
@@ -346,7 +346,7 @@ const EndossoAllseg: React.FC = () => {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="flex items-center gap-2 px-8 py-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl transition-all shadow-lg shadow-red-600/20"
+          className="flex items-center gap-2 px-8 py-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl transition-all shadow-lg shadow-rose-600/20"
         >
           {generating ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
           {generating ? 'Gerando documento...' : 'Gerar Pedido de Endosso (.docx)'}

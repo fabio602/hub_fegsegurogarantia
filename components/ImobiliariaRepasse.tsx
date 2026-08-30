@@ -193,7 +193,7 @@ function LinhaPendencia({
             {documentos.map(d => d.url ? (
               <a
                 key={d.label} href={d.url} target="_blank" rel="noreferrer"
-                className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-lg hover:underline"
+                className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:underline"
               >{d.label}</a>
             ) : (
               <span key={d.label} className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-300 px-2 py-0.5 rounded-lg">
@@ -218,7 +218,7 @@ function LinhaPendencia({
         {acaoSecundaria && (
           <button
             onClick={acaoSecundaria.onClick}
-            className="flex items-center gap-1.5 text-[11px] font-bold bg-white border border-slate-200 hover:border-red-600 hover:text-red-600 text-slate-600 px-3 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 text-[11px] font-bold bg-white border border-slate-200 hover:border-rose-600 hover:text-rose-600 text-slate-600 px-3 py-2 rounded-xl transition-colors"
           >
             <XCircle size={13} /> {acaoSecundaria.label}
           </button>
@@ -405,7 +405,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
 
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
-  const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-green-100 text-green-800', recusado: 'bg-slate-50 text-slate-600' };
+  const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-emerald-100 text-emerald-800', recusado: 'bg-slate-50 text-slate-600' };
 
   // Detalhamento do status quando encerrado — usa status_apolice para mostrar o motivo real
   const STATUS_APOLICE_LABELS: Record<string, string> = {
@@ -963,7 +963,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         </div>
       )}
       {sendError && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-3 rounded-xl font-bold text-sm">
+        <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 px-5 py-3 rounded-xl font-bold text-sm">
           <AlertTriangle size={16} /> {sendError}
         </div>
       )}
@@ -1505,11 +1505,11 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                         )}
                         {confirmDelete === c.id ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => deletar(c.id)} className="text-red-500 text-xs font-bold hover:text-red-700">Confirmar</button>
+                            <button onClick={() => deletar(c.id)} className="text-rose-500 text-xs font-bold hover:text-rose-700">Confirmar</button>
                             <button onClick={() => setConfirmDelete(null)} className="text-slate-400 text-xs hover:text-slate-600">Cancelar</button>
                           </div>
                         ) : (
-                          <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 text-slate-300 hover:text-red-400 transition-colors">
+                          <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 text-slate-300 hover:text-rose-400 transition-colors">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -1693,7 +1693,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </button>
 
           {encerramentoErro && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl font-bold text-[12px]">
+            <div className="flex items-start gap-2 bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl font-bold text-[12px]">
               <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" /> {encerramentoErro}
             </div>
           )}
@@ -2006,7 +2006,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
                       <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
-                      <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} className="text-slate-400 hover:text-red-400"><X size={13} /></button>
+                      <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
                     </div>
                   : <ApoliceUpload
                       clienteId={editingStatus.id}
@@ -2034,7 +2034,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                     ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
                         <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
-                        <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} className="text-slate-400 hover:text-red-400"><X size={13} /></button>
+                        <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
                       </div>
                     : <ApoliceUpload
                         clienteId={editingStatus.id}

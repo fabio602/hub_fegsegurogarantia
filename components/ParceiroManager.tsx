@@ -402,7 +402,7 @@ const ParceiroManager: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    {error && <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">{error}</p>}
+                    {error && <p className="text-sm text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl">{error}</p>}
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={handleSave}
@@ -490,7 +490,7 @@ const ParceiroManager: React.FC = () => {
                                             <button onClick={() => setWelcomeModal(p)} title="Enviar e-mail de boas-vindas"
                                                 className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"><Mail size={15} /></button>
                                             <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"><Edit2 size={15} /></button>
-                                            <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={15} /></button>
+                                            <button onClick={() => handleDelete(p.id, p.name)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={15} /></button>
                                         </div>
                                     </td>
                                 </tr>

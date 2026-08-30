@@ -170,7 +170,7 @@ export default function ProspeccaoPncpAuto() {
                         </span>
                     )}
                     {config.pausado && (
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">
                             <PauseCircle size={14} /> Pausada por bounce
                         </span>
                     )}
@@ -181,15 +181,15 @@ export default function ProspeccaoPncpAuto() {
             </div>
 
             {config.pausado && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start justify-between gap-4">
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                        <AlertTriangle className="text-rose-500 shrink-0 mt-0.5" size={20} />
                         <div>
-                            <p className="font-bold text-red-800 text-sm">Automação pausada pela proteção de reputação</p>
-                            <p className="text-red-700 text-sm mt-1">{config.pausado_motivo}</p>
+                            <p className="font-bold text-rose-800 text-sm">Automação pausada pela proteção de reputação</p>
+                            <p className="text-rose-700 text-sm mt-1">{config.pausado_motivo}</p>
                         </div>
                     </div>
-                    <button onClick={despausar} className="shrink-0 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-all">
+                    <button onClick={despausar} className="shrink-0 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-all">
                         Despausar
                     </button>
                 </div>
@@ -199,7 +199,7 @@ export default function ProspeccaoPncpAuto() {
                 <div className={`rounded-2xl p-4 flex items-center gap-3 text-sm font-medium border ${
                     feedback.tipo === 'ok'
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : 'bg-red-50 border-red-200 text-red-800'}`}>
+                        : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
                     {feedback.tipo === 'ok' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
                     {feedback.texto}
                 </div>
@@ -356,7 +356,7 @@ export default function ProspeccaoPncpAuto() {
                                         <td className="px-3 py-3 text-right font-bold text-slate-800">{ex.enviados}</td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.sem_email}</td>
                                         <td className="px-3 py-3 text-right text-slate-600">{ex.fora_do_perfil}</td>
-                                        <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-red-600' : 'text-slate-600'}`}>{ex.bounces}</td>
+                                        <td className={`px-3 py-3 text-right ${ex.bounces > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}`}>{ex.bounces}</td>
                                         <td className={`px-3 py-3 text-right ${ex.erros > 0 ? 'font-bold text-amber-600' : 'text-slate-600'}`}>{ex.erros}</td>
                                         <td className="px-6 py-3 text-right">
                                             {ex.arquivo_relatorio && (

@@ -167,7 +167,7 @@ const NominationLetter: React.FC = () => {
                 CNPJ da empresa
                 {cnpjStatus === 'loading' && <span className="flex items-center gap-1 text-slate-400 font-semibold normal-case text-[10px]"><Loader2 size={10} className="animate-spin" /> Consultando Receita Federal...</span>}
                 {cnpjStatus === 'found' && <span className="flex items-center gap-1 text-emerald-500 font-bold normal-case text-[10px]"><CheckCircle2 size={10} /> Dados preenchidos automaticamente</span>}
-                {cnpjStatus === 'error' && <span className="text-red-400 font-bold normal-case text-[10px]">⚠ CNPJ não encontrado — preencha manualmente</span>}
+                {cnpjStatus === 'error' && <span className="text-rose-400 font-bold normal-case text-[10px]">⚠ CNPJ não encontrado — preencha manualmente</span>}
               </label>
               <input
                 type="text"
@@ -176,7 +176,7 @@ const NominationLetter: React.FC = () => {
                 autoFocus
                 className={`w-full px-5 py-4 border-2 rounded-2xl outline-none transition-all font-black text-lg tracking-widest ${
                   cnpjStatus === 'found' ? 'border-emerald-400 bg-emerald-50/40 text-emerald-800' :
-                  cnpjStatus === 'error' ? 'border-red-300 bg-red-50/30 text-slate-700' :
+                  cnpjStatus === 'error' ? 'border-rose-300 bg-rose-50/30 text-slate-700' :
                   cnpjStatus === 'loading' ? 'border-gold bg-amber-50/30 text-slate-700' :
                   'border-gold/40 bg-slate-50 text-slate-700 focus:border-gold focus:ring-2 focus:ring-gold/20'
                 }`}

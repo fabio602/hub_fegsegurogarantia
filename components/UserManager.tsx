@@ -202,7 +202,7 @@ const UserManager: React.FC = () => {
                             />
                         </div>
                     </div>
-                    {error && <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">{error}</p>}
+                    {error && <p className="text-sm text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl">{error}</p>}
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={handleCreate}
@@ -237,7 +237,7 @@ const UserManager: React.FC = () => {
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
                             />
                         </div>
-                        {pwError && <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">{pwError}</p>}
+                        {pwError && <p className="text-sm text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl">{pwError}</p>}
                         <div className="flex gap-3 pt-2">
                             <button
                                 onClick={handleUpdatePassword}
@@ -397,7 +397,7 @@ const UserManager: React.FC = () => {
                                             {u.email !== ADMIN_EMAIL && (
                                                 <button
                                                     onClick={() => handleDelete(u.id, u.email)}
-                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                     title="Remover acesso"
                                                 >
                                                     <UserX size={15} />

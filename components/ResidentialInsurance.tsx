@@ -806,12 +806,12 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     const situacaoColor = (s: string) => {
         if (s === 'Lead (site)') return 'bg-gold/15 text-navy border border-gold/40';
         if (s === 'Ativo') return 'bg-emerald-50 text-emerald-600';
-        if (s === 'Vencido') return 'bg-red-50 text-red-600';
+        if (s === 'Vencido') return 'bg-rose-50 text-rose-600';
         if (s === 'Cancelado') return 'bg-slate-100 text-slate-500';
         if (s === 'Saiu do Imóvel') return 'bg-orange-50 text-orange-600';
         if (s === 'Optou Não Contratar') return 'bg-slate-100 text-slate-500';
         if (s === 'Desistiu da Locação') return 'bg-slate-100 text-slate-500';
-        if (s === 'Reprovado') return 'bg-red-100 text-red-700';
+        if (s === 'Reprovado') return 'bg-rose-100 text-rose-700';
         return 'bg-blue-50 text-blue-600';
     };
 
@@ -848,7 +848,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                     <button onClick={() => handleEdit(c)} className="shrink-0 flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold text-xs px-3 py-2 rounded-lg transition-all">
                                         <Edit2 size={13} /> Editar
                                     </button>
-                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 font-bold text-xs px-3 py-2 rounded-lg transition-all">
+                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs px-3 py-2 rounded-lg transition-all">
                                         ✕ Não renovar
                                     </button>
                                 </div>
@@ -946,7 +946,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                 )}
 
                 {saveError && (
-                    <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-xl text-sm font-bold">
+                    <div className="mb-6 flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 px-5 py-4 rounded-xl text-sm font-bold">
                         <AlertCircle size={18} />{saveError}
                     </div>
                 )}
@@ -1103,7 +1103,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                   <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                                     <a href={(formData as any).apolice_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-700 hover:underline flex-1 truncate">PDF anexado — clique para ver</a>
-                                    <button onClick={() => setFormData(prev => ({ ...prev, apolice_url: null } as any))} className="text-slate-400 hover:text-red-400 transition-colors"><X size={14} /></button>
+                                    <button onClick={() => setFormData(prev => ({ ...prev, apolice_url: null } as any))} className="text-slate-400 hover:text-rose-400 transition-colors"><X size={14} /></button>
                                   </div>
                                 ) : (
                                   <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingApolice ? 'border-slate-200 bg-slate-50' : 'border-gold/40 hover:border-gold hover:bg-gold/5'}`}>
@@ -1166,7 +1166,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                             <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                                                 <FileText size={15} className="text-emerald-600 shrink-0" />
                                                 <a href={(formData as any).apolice_garantia_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-700 hover:underline flex-1 truncate">Ver apólice anexada</a>
-                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, apolice_garantia_url: null }))} className="text-slate-400 hover:text-red-400"><X size={14} /></button>
+                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, apolice_garantia_url: null }))} className="text-slate-400 hover:text-rose-400"><X size={14} /></button>
                                             </div>
                                         ) : (
                                             <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'apolice_garantia_url' ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/30'}`}>
@@ -1183,7 +1183,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
                                                 <FileText size={15} className="text-blue-600 shrink-0" />
                                                 <a href={(formData as any).contrato_locacao_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-700 hover:underline flex-1 truncate">Ver contrato anexado</a>
-                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, contrato_locacao_url: null }))} className="text-slate-400 hover:text-red-400"><X size={14} /></button>
+                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, contrato_locacao_url: null }))} className="text-slate-400 hover:text-rose-400"><X size={14} /></button>
                                             </div>
                                         ) : (
                                             <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'contrato_locacao_url' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
@@ -1218,15 +1218,15 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                             {resBoletos.length > 0 && (
                                 <div className="space-y-2 mb-4">
                                     {resBoletos.map(b => (
-                                        <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                                        <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                                             <div className="flex items-center gap-3 flex-wrap">
-                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                                                 {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                                                 {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
-                                                <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
+                                                <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-rose-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                                             </div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <button onClick={() => handleToggleResPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                                                <button onClick={() => handleToggleResPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                                                     {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                                                 </button>
                                                 <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
@@ -1238,7 +1238,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                                         {resBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-red-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={13} /></button>
                                             </div>
                                         </div>
                                     ))}
@@ -1277,7 +1277,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     <div className="flex justify-between items-center gap-3">
                         {editingId ? (
                             <button type="button" onClick={() => handleDelete(editingId)}
-                                className="px-5 py-3.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all flex items-center gap-2">
+                                className="px-5 py-3.5 rounded-xl font-bold text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 transition-all flex items-center gap-2">
                                 <Trash2 size={16} /> Excluir
                             </button>
                         ) : <div />}
@@ -1412,7 +1412,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                             </div>
                             <div className="flex gap-2 mt-3">
                                 <button onClick={() => handleEdit(c)} className="flex-1 py-2 bg-navy text-white text-xs font-bold rounded-xl">Editar</button>
-                                <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-red-50 text-red-500 text-xs font-bold rounded-xl border border-red-100">✕</button>
+                                <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-rose-50 text-rose-500 text-xs font-bold rounded-xl border border-rose-100">✕</button>
                             </div>
                         </div>
                     ))}

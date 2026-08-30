@@ -50,7 +50,7 @@ const SITUACOES = ['Lead', 'Ativo', 'Vencido', 'Cancelado', 'Pendente Renovaçã
 const SITUACAO_COLORS: Record<string, string> = {
   'Lead': 'bg-blue-100 text-blue-700',
   'Ativo': 'bg-emerald-100 text-emerald-700',
-  'Vencido': 'bg-red-100 text-red-700',
+  'Vencido': 'bg-rose-100 text-rose-700',
   'Cancelado': 'bg-slate-100 text-slate-600',
   'Pendente Renovação': 'bg-amber-100 text-amber-700',
   'Em Renovação': 'bg-purple-100 text-purple-700',
@@ -87,7 +87,7 @@ const RCInputField: React.FC<{
   required?: boolean; placeholder?: string; colSpan?: string;
 }> = ({ formData, onChange, id, label, type = 'text', value, required, placeholder, colSpan = '' }) => (
   <div className={colSpan}>
-    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-rose-400 ml-0.5">*</span>}</label>
     <input id={id} type={type} value={value ?? formData[id] ?? ''} onChange={onChange} placeholder={placeholder} className={RC_INPUT_CLS} />
   </div>
 );
@@ -97,7 +97,7 @@ const RCSelectField: React.FC<{
   id: string; label: string; options: string[]; required?: boolean; colSpan?: string;
 }> = ({ formData, onChange, id, label, options, required, colSpan = '' }) => (
   <div className={colSpan}>
-    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <label htmlFor={id} className={RC_LABEL_CLS}>{label}{required && <span className="text-rose-400 ml-0.5">*</span>}</label>
     <select id={id} value={formData[id] ?? ''} onChange={onChange} className={RC_INPUT_CLS}>
       <option value="">Selecionar...</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -435,7 +435,7 @@ const RCInsurance: React.FC = () => {
           { label: 'Total', value: stats.total, color: 'text-slate-700' },
           { label: 'Ativos', value: stats.ativos, color: 'text-emerald-600' },
           { label: 'Vencendo em 30d', value: stats.vencendo, color: 'text-amber-600' },
-          { label: 'Vencidos', value: stats.vencidos, color: 'text-red-600' },
+          { label: 'Vencidos', value: stats.vencidos, color: 'text-rose-600' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{s.label}</p>
@@ -451,7 +451,7 @@ const RCInsurance: React.FC = () => {
         </div>
       )}
       {saveError && (
-        <div className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-bold">
+        <div className="flex items-center gap-2 bg-rose-50 text-rose-700 border border-rose-200 px-4 py-3 rounded-xl text-sm font-bold">
           <AlertCircle size={15} /> Erro: {saveError}
         </div>
       )}
@@ -542,15 +542,15 @@ const RCInsurance: React.FC = () => {
                 {rcBoletos.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {rcBoletos.map(b => (
-                      <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                      <div key={b.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${b.pago ? 'bg-emerald-50' : 'bg-rose-50'}`}>
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Parcela {b.parcela}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${b.pago ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Parcela {b.parcela}</span>
                           {b.vencimento && <span className="text-xs text-slate-500">Venc. {b.vencimento.split('-').reverse().join('/')}</span>}
                           {b.valor && <span className="text-xs font-bold text-slate-700">{new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(b.valor)}</span>}
-                          <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-red-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
+                          <span className={`text-xs font-bold ${b.pago ? 'text-emerald-600' : 'text-rose-600'}`}>{b.pago ? '✓ Pago' : '⚠ Em Aberto'}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button onClick={() => handleToggleRCPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                          <button onClick={() => handleToggleRCPago(b.id, b.pago)} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${b.pago ? 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
                             {b.pago ? 'Marcar Em Aberto' : 'Marcar Pago'}
                           </button>
                           <a href={b.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800">
@@ -562,7 +562,7 @@ const RCInsurance: React.FC = () => {
                               {rcBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
                           )}
-                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-300 hover:text-red-500 rounded-lg transition-all"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={13} /></button>
                         </div>
                       </div>
                     ))}
@@ -601,7 +601,7 @@ const RCInsurance: React.FC = () => {
             <div className="flex items-center justify-between pt-2">
               {editingId ? (
                 <button type="button" onClick={() => handleDelete(editingId)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 border border-red-200 transition-all">
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-rose-500 hover:bg-rose-50 border border-rose-200 transition-all">
                   <Trash2 size={14} /> Excluir
                 </button>
               ) : <div />}
@@ -682,7 +682,7 @@ const RCInsurance: React.FC = () => {
                 <p className="text-xs text-slate-500 mb-1">{c.cpf_cnpj} {c.tipo_rc && <span className="ml-2 px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-[10px] font-bold">{c.tipo_rc}</span>}</p>
                 <div className="flex gap-3 text-xs text-slate-400 flex-wrap">
                   {c.apolice && <span>Apólice {c.apolice}</span>}
-                  {c.fim_vigencia && <span className={expired ? 'text-red-500 font-bold' : expiring ? 'text-amber-500 font-bold' : ''}>{new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
+                  {c.fim_vigencia && <span className={expired ? 'text-rose-500 font-bold' : expiring ? 'text-amber-500 font-bold' : ''}>{new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
                   {c.premio_total && <span className="font-bold text-slate-600">{c.premio_total}</span>}
                 </div>
               </div>
@@ -736,10 +736,10 @@ const RCInsurance: React.FC = () => {
                       <td className="px-4 py-3 text-slate-700 font-bold whitespace-nowrap">{c.limite_garantia || '—'}</td>
                       <td className="px-4 py-3 text-slate-700 font-bold whitespace-nowrap">{c.premio_total || '—'}</td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{c.comissao || '—'}</td>
-                      <td className={`px-4 py-3 font-bold whitespace-nowrap ${expired ? 'text-red-600' : expiring ? 'text-amber-600' : 'text-slate-600'}`}>
+                      <td className={`px-4 py-3 font-bold whitespace-nowrap ${expired ? 'text-rose-600' : expiring ? 'text-amber-600' : 'text-slate-600'}`}>
                         {c.fim_vigencia ? new Date(c.fim_vigencia + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
                         {expiring && !expired && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">VENCE</span>}
-                        {expired && <span className="ml-1 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">VENCIDO</span>}
+                        {expired && <span className="ml-1 text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">VENCIDO</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${SITUACAO_COLORS[c.situacao] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -748,13 +748,13 @@ const RCInsurance: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         {deleteConfirm === c.id ? (
-                          <div className="flex items-center gap-1 bg-red-50 rounded-lg px-2 py-1">
-                            <span className="text-[10px] text-red-600 font-bold">Excluir?</span>
-                            <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-800 text-[10px] font-bold">Sim</button>
+                          <div className="flex items-center gap-1 bg-rose-50 rounded-lg px-2 py-1">
+                            <span className="text-[10px] text-rose-600 font-bold">Excluir?</span>
+                            <button onClick={() => handleDelete(c.id)} className="text-rose-600 hover:text-rose-800 text-[10px] font-bold">Sim</button>
                             <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-[10px] font-bold">Não</button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-red-400 hover:bg-red-50 rounded-lg transition-all" title="Excluir">
+                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-rose-400 hover:bg-rose-50 rounded-lg transition-all" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         )}
