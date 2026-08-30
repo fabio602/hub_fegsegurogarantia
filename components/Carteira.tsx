@@ -162,28 +162,6 @@ export default function Carteira() {
     notificar('Corrigido. Registrado no histórico.');
   }
 
-  /** Desfecho "Cadastro completo" do card sem contato: registra a edição,
-   *  conclui o toque e recria o mesmo gatilho para amanhã, para voltar a
-   *  falar com o cliente já com telefone/email preenchidos. */
-  async function concluirCadastroCompleto() {
-    if (!atual) return;
-    await supabase.from('apolice_contatos').insert({
-      sale_id: atual.sale_id, toque_id: atual.id, staff_id: staffId,
-      canal: 'whatsapp', tipo: 'edicao', observacao: 'Cadastro de contato completado na fila do pós-venda',
-    });
-    await supabase.from('posvenda_toques')
-      .update({ status: 'concluido', concluido_em: new Date().toISOString(), staff_id: staffId })
-      .eq('id', atual.id);
-    await supabase.from('posvenda_toques').insert({
-      sale_id: atual.sale_id, gatilho: atual.gatilho,
-      vence_em: new Date(Date.now() + 864e5).toISOString().slice(0, 10),
-    });
-    setFeitos(f => f + 1);
-    setToques(ts => ts.filter(x => x.id !== atual.id));
-    setI(0);
-    notificar('Cadastro completo. O contato volta para a fila amanhã.');
-  }
-
   async function fecharCadastro() {
     setCadastroAberto(false);
     if (!atual) return;
@@ -257,7 +235,7 @@ export default function Carteira() {
 
       {vista === 'foco' && (atual ? (
         <CardFoco t={atual} hist={hist} semStaff={!staffId} onAbrirCadastro={() => setCadastroAberto(true)}
-          onAbrirFicha={() => setFichaAberta(true)} onCadastroCompleto={concluirCadastroCompleto}
+          onAbrirFicha={() => setFichaAberta(true)}
           onSemDados={() => concluir('sem_retorno', 'sem dados de contato')}
           editando={editando} setEditando={setEditando}
           onSalvarCampo={salvarCampo} onToque={registrarToque} onDesfecho={d => d === 'nao_renova' ? setPainel('motivo') : concluir(d)}
@@ -333,7 +311,7 @@ export default function Carteira() {
   );
 }
 
-function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onCadastroCompleto, onSemDados, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
+function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
   const s = t.sales, g = GATILHOS[t.gatilho];
   const atraso = diasDe(t.vence_em);
   const semContato = !s.telefone && !s.email;
@@ -438,15 +416,9 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onCadastro
       )}
 
       {semContato ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-6">
-          <button onClick={onCadastroCompleto} disabled={!s.telefone && !s.email}
-            title={!s.telefone && !s.email ? 'Preencha telefone ou email pelo botão Completar cadastro antes de concluir.' : undefined}
-            className="border border-navy/15 rounded-xl p-4 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:hover:border-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="block text-[13px] font-bold text-navy leading-tight">Cadastro completo</span>
-            <span className="block text-[11px] text-navy/50 mt-1">Conclui e volta para a fila amanhã, já com contato.</span>
-          </button>
+        <div className="mt-6">
           <button onClick={onSemDados}
-            className="border border-navy/15 rounded-xl p-4 text-left hover:-translate-y-0.5 hover:shadow-md transition">
+            className="w-full border border-navy/15 rounded-xl p-4 text-left hover:-translate-y-0.5 hover:shadow-md transition">
             <span className="block text-[13px] font-bold text-navy leading-tight">Não consegui achar o contato</span>
             <span className="block text-[11px] text-navy/50 mt-1">Registra sem retorno, por falta de dados de contato.</span>
           </button>
