@@ -71,18 +71,21 @@ export default function Carteira() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
+    // O staff é o usuário logado, vinculado pela coluna unique agenda_staff.email.
+    // Sem vínculo, staffId fica null e o contato é registrado sem identificação.
+    const { data: auth } = await supabase.auth.getUser();
+    const email = auth.user?.email ?? '';
     const [{ data: t }, { data: r }, { data: st }] = await Promise.all([
       supabase.from('posvenda_toques')
         .select('id, gatilho, vence_em, sale_id, sales(*)')
         .eq('status', 'aberto').lte('vence_em', hojeISO())
         .order('vence_em', { ascending: true }),
       supabase.from('vw_posvenda_revisar').select('*').order('dias', { ascending: false }),
-      supabase.from('agenda_staff').select('id, name').limit(20),
+      supabase.from('agenda_staff').select('id').eq('email', email).maybeSingle(),
     ]);
     setToques(t || []);
     setRevisar(r || []);
-    const bru = (st || []).find((s: any) => /bru/i.test(s.name));
-    setStaffId(bru?.id ?? st?.[0]?.id ?? null);
+    setStaffId(st?.id ?? null);
     setI(0);
     setCarregando(false);
   }, []);
@@ -216,7 +219,7 @@ export default function Carteira() {
       </header>
 
       {vista === 'foco' && (atual ? (
-        <CardFoco t={atual} hist={hist} editando={editando} setEditando={setEditando}
+        <CardFoco t={atual} hist={hist} semStaff={!staffId} editando={editando} setEditando={setEditando}
           onSalvarCampo={salvarCampo} onToque={registrarToque} onDesfecho={d => d === 'nao_renova' ? setPainel('motivo') : concluir(d)}
           painel={painel} setPainel={setPainel} onEscolher={(m: string) =>
             painel === 'erro' ? concluir('encerrada', m) : concluir('nao_renova', m)} />
@@ -251,7 +254,7 @@ export default function Carteira() {
   );
 }
 
-function CardFoco({ t, hist, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
+function CardFoco({ t, hist, semStaff, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
   const s = t.sales, g = GATILHOS[t.gatilho];
   const atraso = diasDe(t.vence_em);
   const campos = [
@@ -377,6 +380,12 @@ function CardFoco({ t, hist, editando, setEditando, onSalvarCampo, onToque, onDe
           </div>
         )) : <p className="text-[13px] text-navy/40 py-3">Nenhum contato registrado ainda.</p>}
       </details>
+
+      {semStaff && (
+        <p className="mt-4 pt-3 border-t border-navy/10 text-[11px] text-navy/40">
+          Seu login não está vinculado a um usuário da equipe. Os contatos serão registrados sem identificação.
+        </p>
+      )}
     </article>
   );
 }
