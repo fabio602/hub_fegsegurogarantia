@@ -319,7 +319,7 @@ const UserManager: React.FC = () => {
 
                         <div className="shrink-0 p-8 pt-4 space-y-4 border-t border-slate-100">
                             <p className="text-[11px] text-slate-500 font-medium bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
-                                A Visão Geral fica sempre visível — sem ela a pessoa abriria o hub numa tela em branco.
+                                A Visão Geral fica sempre visível. Sem ela a pessoa abriria o hub numa tela em branco.
                                 A mudança vale na hora, sem precisar deslogar. Marcar todos os módulos equivale a acesso total.
                             </p>
 

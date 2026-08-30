@@ -473,7 +473,7 @@ const PendenciasHub: React.FC = () => {
                                     onChange={(e) => setForm((f) => ({ ...f, responsavel: e.target.value }))}
                                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
                                 >
-                                    <option value="">— Selecione —</option>
+                                    <option value="">Selecione...</option>
                                     {RESPONSAVEIS.map((r) => (
                                         <option key={r} value={r}>
                                             {r}

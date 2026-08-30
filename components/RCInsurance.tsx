@@ -461,7 +461,7 @@ const RCInsurance: React.FC = () => {
         <div className="bg-white rounded-2xl border border-gold/30 shadow-xl overflow-hidden">
           <div className="bg-navy px-6 py-4 flex items-center justify-between">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
-              <ShieldAlert size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente — Responsabilidade Civil'}
+              <ShieldAlert size={15} /> {editingId ? 'Editar Cliente' : 'Novo Cliente · Responsabilidade Civil'}
             </h3>
             <div className="flex items-center gap-3">
               {editingId && (
@@ -535,7 +535,7 @@ const RCInsurance: React.FC = () => {
               <div className="border-t border-slate-100 pt-6">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
                   <FileText size={12} /> Parcelas / Boletos
-                  {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">⚠ Sem e-mail — configure para enviar boletos</span>}
+                  {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">Sem e-mail. Configure para enviar boletos</span>}
                 </p>
 
                 {/* List of boletos */}

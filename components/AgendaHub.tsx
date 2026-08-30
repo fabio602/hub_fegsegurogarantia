@@ -1146,7 +1146,7 @@ const AgendaHub: React.FC = () => {
             <div className="p-6 border-b border-gold/20 bg-navy text-white rounded-t-[2rem]">
               <h3 className="text-lg font-black flex items-center gap-2">
                 <Plus size={18} className="text-gold" />
-                Nova tarefa — {dayNamePtShort(createDayYmd)} {createDayYmd.split('-').reverse().join('/')}
+                Nova tarefa · {dayNamePtShort(createDayYmd)} {createDayYmd.split('-').reverse().join('/')}
               </h3>
               <p className="text-xs text-white/70 font-medium mt-1">Checklist em linhas separadas (cada linha vira um item).</p>
             </div>

@@ -472,7 +472,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     if (ehRepasse && diaVencEdit && valorSegEdit === undefined && !jaTemValor) {
       const seguir = confirm(
         'Este cliente está como repasse, vencimento dia ' + diaVencEdit + ', mas sem "Valor Mensal (R$)".\n\n' +
-        'Pode salvar assim — ele fica de fora dos avisos de repasse até o valor ser preenchido, ' +
+        'Pode salvar assim. Ele fica de fora dos avisos de repasse até o valor ser preenchido, ' +
         'então a imobiliária não recebe cobrança de R$ 0,00.\n\n' +
         'OK para salvar assim. Cancelar para preencher o valor agora.'
       );
@@ -880,7 +880,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           <h2 className="text-xl lg:text-3xl font-black text-slate-800 tracking-tight">
             Repasse Imobiliárias
             {filterParceiro && parceiros.find(p => p.id === filterParceiro) && (
-              <span className="text-lg text-gold ml-2">— {parceiros.find(p => p.id === filterParceiro)?.name}</span>
+              <span className="text-lg text-gold ml-2">· {parceiros.find(p => p.id === filterParceiro)?.name}</span>
             )}
           </h2>
           <p className="text-slate-500 font-semibold mt-1 flex items-center gap-2 flex-wrap">
@@ -1043,7 +1043,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                 fundo={vencido ? '#fef2f2' : undefined}
                 etiqueta={{ texto: '🔄 Renovar', bg: '#f8f5f0', cor: '#78716c' }}
                 detalhe={{
-                  texto: `${vencido ? '⛔ ' : urgente ? '⚠️ ' : ''}${prazo} — ${fmtData((c as any).vigencia_fim)}`,
+                  texto: `${vencido ? '⛔ ' : urgente ? '⚠️ ' : ''}${prazo} · ${fmtData((c as any).vigencia_fim)}`,
                   bg: vencido ? '#fecaca' : urgente ? '#fff7ed' : '#f4f1ec',
                   cor: vencido ? '#7f1d1d' : urgente ? '#c2410c' : '#78716c',
                 }}
@@ -1071,7 +1071,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   ? [{ label: (c as any).distrato_url ? '📄 Distrato' : '⚠️ Sem distrato', url: (c as any).distrato_url }]
                   : []
               }
-              observacao={temGarantia(c) && !(c as any).distrato_url ? 'A garantia locatícia só é cancelada com o distrato — cobre a imobiliária.' : undefined}
+              observacao={temGarantia(c) && !(c as any).distrato_url ? 'A garantia locatícia só é cancelada com o distrato, que cobre a imobiliária.' : undefined}
               acao={{ label: 'Cancelada', onClick: () => abrirEncerramento(c, 'cancelado') }}
             />
           ))}
@@ -1727,7 +1727,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
           <div>
             <h3 className="font-black text-slate-800 text-lg">Configurar Repasse</h3>
-            <p className="text-slate-500 text-sm mt-1">Cliente novo do portal — configure o repasse antes de aprovar.</p>
+            <p className="text-slate-500 text-sm mt-1">Cliente novo do portal. Configure o repasse antes de aprovar.</p>
           </div>
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>

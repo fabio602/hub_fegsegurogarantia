@@ -93,7 +93,7 @@ export const AvisoNovaVersao: React.FC = () => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold">Nova versão do hub disponível</p>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-            Atualize quando terminar o que está fazendo — a página recarrega e você
+            Atualize quando terminar o que está fazendo. A página recarrega e você
             não perde nada que já tenha salvo.
           </p>
           <button

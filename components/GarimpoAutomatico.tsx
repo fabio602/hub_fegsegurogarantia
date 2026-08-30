@@ -357,7 +357,7 @@ export default function GarimpoAutomatico() {
                                 <input className={campo} value={termosText} onChange={e => setTermosText(e.target.value)} />
                             </div>
                             <div className="md:col-span-3">
-                                <label className={rotulo}>Cidades (separadas por ponto e vírgula) — cursor do ciclo: {form.garimpo_cursor}/{(form.cidades ?? []).length}</label>
+                                <label className={rotulo}>Cidades (separadas por ponto e vírgula) · cursor do ciclo: {form.garimpo_cursor}/{(form.cidades ?? []).length}</label>
                                 <textarea className={`${campo} h-24`} value={cidadesText} onChange={e => setCidadesText(e.target.value)} />
                             </div>
                             <div className="md:col-span-3">

@@ -72,9 +72,9 @@ function urgencyOf(days: number): 'critical' | 'urgent' | 'soon' {
 }
 
 const BAND = {
-  critical: { label: 'Crítico — ≤7 dias', dot: 'bg-rose-500', text: 'text-rose-700', badge: 'bg-rose-100 text-rose-700', row: 'border-rose-100 hover:bg-rose-50/40' },
-  urgent:   { label: 'Urgente — 8 a 30 dias', dot: 'bg-amber-400', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', row: 'border-amber-100 hover:bg-amber-50/40' },
-  soon:     { label: 'Em breve — 31 a 90 dias', dot: 'bg-blue-400', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', row: 'border-blue-100 hover:bg-blue-50/30' },
+  critical: { label: 'Crítico · até 7 dias', dot: 'bg-rose-500', text: 'text-rose-700', badge: 'bg-rose-100 text-rose-700', row: 'border-rose-100 hover:bg-rose-50/40' },
+  urgent:   { label: 'Urgente · 8 a 30 dias', dot: 'bg-amber-400', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', row: 'border-amber-100 hover:bg-amber-50/40' },
+  soon:     { label: 'Em breve · 31 a 90 dias', dot: 'bg-blue-400', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', row: 'border-blue-100 hover:bg-blue-50/30' },
 };
 
 const SOURCE_BADGE: Record<string, string> = {
@@ -394,9 +394,9 @@ export default function EmailFollowUp() {
   // ── Avulso templates ─────────────────────────────────────────────────────────
 
   const TEMPLATES = [
-    { label: 'Apresentação', subject: '🛡️ Seguro Garantia para sua empresa — F&G Corretora', message: 'Olá,\n\nSou o Fábio da F&G Corretora de Seguros. Entramos em contato pois acreditamos que sua empresa pode se beneficiar das nossas soluções em Seguro Garantia.\n\nEstamos à disposição para apresentar uma proposta personalizada. Aguardo seu retorno!' },
-    { label: 'Renovação',    subject: '📋 Renovação de apólice — F&G Corretora', message: 'Olá,\n\nPassando para avisar que sua apólice está se aproximando do vencimento. Para evitar qualquer interrupção na sua cobertura, entre em contato conosco para iniciarmos o processo de renovação.\n\nContamos com você!' },
-    { label: 'Follow-up',   subject: '📩 Retomando nosso contato — F&G Corretora', message: 'Olá,\n\nRecentemente entrei em contato e queria verificar se surgiu alguma dúvida ou necessidade que possamos ajudar.\n\nEstou à disposição!' },
+    { label: 'Apresentação', subject: 'Seguro Garantia para sua empresa - F&G Corretora', message: 'Olá,\n\nSou o Fábio da F&G Corretora de Seguros. Entramos em contato pois acreditamos que sua empresa pode se beneficiar das nossas soluções em Seguro Garantia.\n\nEstamos à disposição para apresentar uma proposta personalizada. Aguardo seu retorno!' },
+    { label: 'Renovação',    subject: 'Renovação de apólice - F&G Corretora', message: 'Olá,\n\nPassando para avisar que sua apólice está se aproximando do vencimento. Para evitar qualquer interrupção na sua cobertura, entre em contato conosco para iniciarmos o processo de renovação.\n\nContamos com você!' },
+    { label: 'Follow-up',   subject: 'Retomando nosso contato - F&G Corretora', message: 'Olá,\n\nRecentemente entrei em contato e queria verificar se surgiu alguma dúvida ou necessidade que possamos ajudar.\n\nEstou à disposição!' },
   ];
 
   // ─────────────────────────────────────────────────────────────────────────────

@@ -191,7 +191,7 @@ const EndossoAllseg: React.FC = () => {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso — Allseg</h2>
+          <h2 className="text-3xl font-black text-slate-800">Pedido de Endosso · Allseg</h2>
           <p className="text-slate-500 font-medium mt-1">Preencha os campos e gere o documento Word no formato exato exigido pela Allseg.</p>
         </div>
         {/* Importar apólice para preencher Tomador/Segurado */}
@@ -226,7 +226,7 @@ const EndossoAllseg: React.FC = () => {
                 ...(d.segurado_cpf_cnpj ? { seg_cnpj: d.segurado_cpf_cnpj } : {}),
                 ...(d.numero_apolice ? { risco_num_apolice: d.numero_apolice } : {}),
               }));
-              setMsg(`✅ Tomador: ${d.tomador_razao_social || '—'} | Segurado: ${d.segurado_razao_social || '—'}`);
+              setMsg(`Tomador: ${d.tomador_razao_social || '—'} | Segurado: ${d.segurado_razao_social || '—'}`);
               // msg já setado acima
             } catch (err: any) {
               setMsg('❌ ' + (err.message || 'Erro ao processar PDF.'));

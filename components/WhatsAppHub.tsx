@@ -287,7 +287,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         const dbMsg = isAudio ? `[Áudio: ${pf.name}]` : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
         const { data: inserted } = await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
-          message: caption ? `${dbMsg} — ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
+          message: caption ? `${dbMsg} - ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
         // Realtime will pick it up automatically — but add locally if needed

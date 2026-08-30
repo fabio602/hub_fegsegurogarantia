@@ -167,7 +167,7 @@ const NominationLetter: React.FC = () => {
                 CNPJ da empresa
                 {cnpjStatus === 'loading' && <span className="flex items-center gap-1 text-slate-400 font-semibold normal-case text-[10px]"><Loader2 size={10} className="animate-spin" /> Consultando Receita Federal...</span>}
                 {cnpjStatus === 'found' && <span className="flex items-center gap-1 text-emerald-500 font-bold normal-case text-[10px]"><CheckCircle2 size={10} /> Dados preenchidos automaticamente</span>}
-                {cnpjStatus === 'error' && <span className="text-rose-400 font-bold normal-case text-[10px]">⚠ CNPJ não encontrado — preencha manualmente</span>}
+                {cnpjStatus === 'error' && <span className="text-rose-400 font-bold normal-case text-[10px]">CNPJ não encontrado. Preencha manualmente</span>}
               </label>
               <input
                 type="text"

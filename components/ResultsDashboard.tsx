@@ -2159,7 +2159,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         type="button"
                                                         onClick={() => markExpiryReminderDone(s)}
                                                         className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 font-bold text-xs px-3 py-2 rounded-xl transition-all"
-                                                        title="Remover da lista — pendência já tratada"
+                                                        title="Remover da lista (pendência já tratada)"
                                                     >
                                                         <Check size={13} strokeWidth={2.5} /> Concluído
                                                     </button>
@@ -2432,7 +2432,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         </div>
                                     </div>
                                     {cnpjLookupStatus === 'found' && (
-                                        <p className="text-[10px] font-bold text-emerald-600 mt-1">✓ Cliente encontrado — dados preenchidos automaticamente</p>
+                                        <p className="text-[10px] font-bold text-emerald-600 mt-1">Cliente encontrado. Dados preenchidos automaticamente</p>
                                     )}
                                     {cnpjLookupStatus === 'not_found' && (
                                         <p className="text-[10px] font-bold text-amber-600 mt-1">⚠ CNPJ não encontrado na base. Preencha manualmente.</p>
@@ -2529,7 +2529,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <AlertCircle size={14} className="mt-0.5 shrink-0" />
                                             <span>
                                                 Para o cliente receber, clique em <strong>Enviar Apólice</strong> aqui
-                                                embaixo — é esse botão que manda a apólice e o boleto.
+                                                embaixo. É esse botão que manda a apólice e o boleto.
                                                 <strong> Adicionar Venda</strong> apenas registra, sem enviar nada.
                                             </span>
                                         </div>
@@ -2751,13 +2751,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             <div className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-[11px] text-slate-600 font-medium">
                                                 <span className="font-bold text-amber-600">{qtd}x</span>
                                                 {valores && <> de <span className="font-bold">{formatCurrency(valores[1])}</span> (1ª de {formatCurrency(valores[0])})</>}
-                                                {' — '}1º vencimento em {datas[0].split('-').reverse().join('/')}, último em {datas[qtd - 1].split('-').reverse().join('/')}.
+                                                {': '}1º vencimento em {datas[0].split('-').reverse().join('/')}, último em {datas[qtd - 1].split('-').reverse().join('/')}.
                                                 {!valores && <span className="text-amber-600"> Preencha o prêmio para dividir o valor.</span>}
                                             </div>
                                         );
                                     })()}
                                     <p className="text-[10px] text-amber-600/70 font-medium italic">
-                                        O lembrete sai 3 dias antes do vencimento, uma vez só — não precisa marcar "Pago" para ele parar.
+                                        O lembrete sai 3 dias antes do vencimento, uma vez só. Não precisa marcar "Pago" para ele parar.
                                         {parseInt(qtdParcelas) > 1
                                             ? ' As parcelas são criadas ao salvar; para ajustar datas ou valores, use o botão Boletos na tabela abaixo.'
                                             : ''}
@@ -3084,7 +3084,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowEmailDispatcher(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-black text-slate-800">Disparador de Emails — {activeKanbanProduct}</h3>
+                            <h3 className="text-lg font-black text-slate-800">Disparador de Emails · {activeKanbanProduct}</h3>
                             <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"><X size={14} /></button>
                         </div>
                         <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded-xl">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded-xl">[NOME_EMPRESA]</code> como variáveis.</p>
@@ -3119,7 +3119,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
+                                <h3 className="text-lg font-black text-slate-800">Boletos · {boletoModalNome}</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {boletoModalEmail
                                         ? <>Para <span className="font-bold text-gold">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
@@ -3179,7 +3179,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Venda parcelada? Gere as parcelas</p>
                             <p className="text-[11px] text-slate-400 leading-relaxed">
                                 Informe quantas parcelas, a data da primeira e o valor. Eu monto o carnê inteiro mês a mês,
-                                você ajusta as datas que o banco mudou e cadastra tudo de uma vez — cada parcela passa a
+                                você ajusta as datas que o banco mudou e cadastra tudo de uma vez. Cada parcela passa a
                                 ter seu próprio lembrete, 3 dias antes do vencimento.
                             </p>
                             <div className="grid grid-cols-3 gap-2">
@@ -3226,7 +3226,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             {carneParcelas.length > 0 && (
                                 <div className="space-y-2 rounded-xl bg-areia-clara border border-linha p-3">
                                     <p className="text-[10px] font-bold text-navy uppercase tracking-widest">
-                                        Confira antes de cadastrar — {carneParcelas.length} parcela(s)
+                                        Confira antes de cadastrar: {carneParcelas.length} parcela(s)
                                     </p>
                                     {carneParcelas.map((p, i) => {
                                         const jaExiste = boletos.some(b => b.parcela === parseInt(p.parcela));
@@ -3264,7 +3264,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     )}
                                     {carneParcelas.some(p => !p.vencimento) && (
                                         <p className="text-[10px] text-rose-500 font-bold">
-                                            Preencha o vencimento das parcelas em branco — é a data que dispara o lembrete.
+                                            Preencha o vencimento das parcelas em branco. É a data que dispara o lembrete.
                                         </p>
                                     )}
 
@@ -4260,7 +4260,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 <section className="animate-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h2 className="text-3xl font-black text-slate-800">PNPC — Consulta</h2>
+                            <h2 className="text-3xl font-black text-slate-800">PNPC · Consulta</h2>
                             <p className="text-slate-500 font-medium">Consulta de editais e licitações.</p>
                         </div>
                         <a

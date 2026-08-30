@@ -334,8 +334,8 @@ const ParceiroManager: React.FC = () => {
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipo de Parceiro</label>
                             <select value={form.partner_type} onChange={e => setForm(f => ({ ...f, partner_type: e.target.value }))}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all">
-                                <option value="seguro_garantia">🏢 Seguro Garantia — Parceiro comercial (comissões)</option>
-                                <option value="imobiliaria">🏠 Imobiliária — Repasse mensal de seguros residenciais</option>
+                                <option value="seguro_garantia">Seguro Garantia: parceiro comercial (comissões)</option>
+                                <option value="imobiliaria">Imobiliária: repasse mensal de seguros residenciais</option>
                             </select>
                         </div>
                         <div className="space-y-1">
@@ -543,7 +543,7 @@ const ParceiroManager: React.FC = () => {
                                 <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                                     <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0"/>
                                     <p className="text-emerald-700 text-sm font-bold">
-                                        Repasse já confirmado em {fmtData(repasseExistente.data_pagamento)} — {fmt(repasseExistente.valor_total)}
+                                        Repasse já confirmado em {fmtData(repasseExistente.data_pagamento)}: {fmt(repasseExistente.valor_total)}
                                         {repasseExistente.comprovante_url && <a href={repasseExistente.comprovante_url} target="_blank" className="ml-2 underline">ver comprovante</a>}
                                     </p>
                                 </div>
@@ -607,7 +607,7 @@ const ParceiroManager: React.FC = () => {
                                     {savingRepasse ? 'Salvando...' : repasseExistente ? 'Atualizar Repasse' : 'Confirmar Repasse'}
                                 </button>
                                 {repasseModal.email && repasseExistente?.status === 'pago' && (
-                                    <a href={`mailto:${repasseModal.email}?subject=${encodeURIComponent(`Repasse de Comissão — ${MESES[repasseMes]}/${repasseAno} — F&G Seguro Garantia`)}&body=${encodeURIComponent(`Prezada ${repasseModal.name},\n\nInformamos que realizamos o repasse de comissão referente a ${MESES[repasseMes]}/${repasseAno} no valor de ${fmt(totalComissaoRepasse())}.\n\nO comprovante está disponível no seu portal de parceiro:\nhub.fegsegurogarantia.com/parceiros-login.html\n\nAgradecemos pela parceria e pela confiança!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
+                                    <a href={`mailto:${repasseModal.email}?subject=${encodeURIComponent(`Repasse de Comissão - ${MESES[repasseMes]}/${repasseAno} — F&G Seguro Garantia`)}&body=${encodeURIComponent(`Prezada ${repasseModal.name},\n\nInformamos que realizamos o repasse de comissão referente a ${MESES[repasseMes]}/${repasseAno} no valor de ${fmt(totalComissaoRepasse())}.\n\nO comprovante está disponível no seu portal de parceiro:\nhub.fegsegurogarantia.com/parceiros-login.html\n\nAgradecemos pela parceria e pela confiança!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
                                         className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all">
                                         <Mail size={15}/> Avisar parceiro
                                     </a>
@@ -652,7 +652,7 @@ const ParceiroManager: React.FC = () => {
                         </div>
                         <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-2 border border-slate-200 font-mono text-xs leading-relaxed">
                             <p><strong>Para:</strong> {welcomeModal.email || '⚠️ E-mail não cadastrado'}</p>
-                            <p><strong>Assunto:</strong> Bem-vindo ao Portal de Parceiros — F&G Seguro Garantia</p>
+                            <p><strong>Assunto:</strong> Bem-vindo ao Portal de Parceiros - F&G Seguro Garantia</p>
                             <hr className="border-slate-200 my-2" />
                             <p>Prezados {welcomeModal.name},</p>
                             <br />
@@ -663,7 +663,7 @@ const ParceiroManager: React.FC = () => {
                             👤 Login: <strong>{welcomeModal.username}</strong><br />
                             🔒 Senha: <strong>{welcomeModal.password}</strong></p>
                             <br />
-                            <p>Recomendamos alterar a senha no primeiro acesso — há uma opção disponível diretamente no portal.</p>
+                            <p>Recomendamos alterar a senha no primeiro acesso. Há uma opção disponível no portal.</p>
                             <br />
                             <p>Qualquer dúvida, estamos à disposição!</p>
                             <br />

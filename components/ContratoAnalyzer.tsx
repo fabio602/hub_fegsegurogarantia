@@ -228,7 +228,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Seguro de Contrato</h2>
-          <p className="text-slate-500 font-semibold mt-1">Upload do contrato em PDF — a IA extrai todos os dados para cotação do seguro garantia de execução.</p>
+          <p className="text-slate-500 font-semibold mt-1">Envie o contrato em PDF. A IA extrai os dados para a cotação do seguro garantia de execução.</p>
         </div>
         {history.length > 0 && (
           <button
@@ -530,7 +530,7 @@ export default function ContratoAnalyzer({ onVerVendas }: { onVerVendas?: () => 
             <WarnBadge
               active={!!result.contrato_abaixo_85_percent}
               label={result.contrato_abaixo_85_percent
-                ? 'Contrato abaixo de 85% — exige garantia adicional (art. 59 §4º Lei 14.133/2021)'
+                ? 'Contrato abaixo de 85%: exige garantia adicional (art. 59 §4º Lei 14.133/2021)'
                 : 'Contrato não enquadrado como abaixo de 85%'}
             />
           </div>

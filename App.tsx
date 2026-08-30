@@ -13,9 +13,7 @@ import {
   ChevronRight,
   ChevronDown,
   User,
-  Bell,
   Loader2,
-  Zap,
   Home,
   Landmark,
   Scale,
@@ -87,12 +85,12 @@ const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
-  goals: 'Gestão Comercial — Vendas',
-  directory: 'Seguradoras — Garantia',
+  goals: 'Gestão Comercial · Vendas',
+  directory: 'Seguradoras · Garantia',
   banks: 'Bancos Garantidores',
   letter: 'Gerador de Nomeação',
   calculator: 'Calculadora de Seguros',
-  'endosso-allseg': 'Pedido de Endosso — Allseg',
+  'endosso-allseg': 'Pedido de Endosso · Allseg',
   carteira: 'Carteira de Clientes',
   prospeccao: 'Prospecção',
   'prospeccao-email': 'Prospecção Email',
@@ -109,7 +107,7 @@ const VIEW_TITLES: Record<View, string> = {
   'residencial-seguradoras': 'Seguradoras Residencial',
   'residencial-garantidoras': 'Garantidoras',
   rc: 'Responsabilidade Civil',
-  'rc-seguradoras': 'Seguradoras — RC',
+  'rc-seguradoras': 'Seguradoras · RC',
   'metas-mensais': 'Metas Mensais',
   'metas-anuais': 'Metas Anuais',
   manual: 'Manual de Procedimentos Internos',
@@ -117,12 +115,12 @@ const VIEW_TITLES: Record<View, string> = {
   parceiros: 'Gestão de Parceiros',
   usuarios: 'Usuários do Hub',
   sureties: 'Afiançadoras',
-  whatsapp: 'WhatsApp — Inbox',
-  'whatsapp-blast': 'WhatsApp — Prospecção',
+  whatsapp: 'WhatsApp · Inbox',
+  'whatsapp-blast': 'WhatsApp · Prospecção',
   'email-followup': 'Follow-up de Email',
   'imobiliaria-repasse': 'Repasse Imobiliárias',
   'garantia-locaticia': 'Garantia Locatícia',
-  'inadimplentes': 'Inadimplentes — Residencial',
+  'inadimplentes': 'Inadimplentes · Residencial',
 };
 
 const BadgeDot = ({ count }: { count: number }) => {
@@ -287,7 +285,7 @@ const App: React.FC = () => {
           if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
             const msg = payload.new?.message ?? 'Nova mensagem recebida';
             const name = payload.new?.name ?? payload.new?.phone ?? 'Contato';
-            new Notification(`WhatsApp — ${name}`, {
+            new Notification(`WhatsApp · ${name}`, {
               body: msg.length > 80 ? msg.substring(0, 80) + '…' : msg,
               icon: '/logo.svg',
             });
@@ -650,8 +648,7 @@ const App: React.FC = () => {
                 hour: '2-digit', minute: '2-digit',
               });
               return (
-                <div className="flex items-center gap-2 px-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <div className="px-2">
                   <span className="text-[10px] text-slate-500 font-mono">build {fmt}</span>
                 </div>
               );
@@ -688,10 +685,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
-            <div className="hidden md:flex items-center gap-2 bg-areia-escura px-3 py-1.5 rounded-xl border border-gold/25">
-              <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></div>
-              <span className="text-[10px] font-bold text-navy uppercase tracking-widest">Online</span>
-            </div>
             {/* Busca: ícone no mobile, botão completo no desktop */}
             <button
               onMouseDown={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
@@ -700,10 +693,6 @@ const App: React.FC = () => {
               <Search size={15} />
               <span className="hidden sm:inline text-sm font-semibold">Buscar</span>
               <kbd className="hidden sm:inline text-[10px] bg-linha rounded-xl px-1 text-slate-400">⌘K</kbd>
-            </button>
-            <button className="p-2 text-slate-400 hover:text-gold transition-all relative">
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
             </button>
             <div className="hidden sm:block h-8 w-[1px] bg-gold/30"></div>
             <div className="hidden sm:flex items-center gap-3 group cursor-pointer">
@@ -725,10 +714,6 @@ const App: React.FC = () => {
                 <div className="bg-navy rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
                   <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
                     <div>
-                      <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest mb-4 lg:mb-6 border border-gold/20">
-                        <Zap size={11} fill="currentColor" />
-                        Hub F&G v2.7
-                      </div>
                       <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black mb-3 lg:mb-6 tracking-tighter leading-tight">
                         Eficiência em <br /><span className="text-gold">Seguros Corporativos.</span>
                       </h1>
@@ -750,7 +735,7 @@ const App: React.FC = () => {
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
                           </div>
                         </div>
-                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl animate-bounce [transition-duration:3000ms]">
+                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl">
                           <Target size={26} className="text-gold" />
                         </div>
                       </div>
@@ -781,10 +766,6 @@ const App: React.FC = () => {
                         </div>
                         <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
                         <p className="text-[11px] text-slate-400 uppercase font-bold tracking-widest opacity-80">{item.desc}</p>
-                        <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
-                          <span className="text-xs font-bold text-gold uppercase tracking-widest group-hover:translate-x-1 transition-transform">Abrir Módulo</span>
-                          <ChevronRight size={13} className="text-slate-300 group-hover:text-gold transition-colors" />
-                        </div>
                       </button>
                     ))}
                   </div>
@@ -840,7 +821,7 @@ const App: React.FC = () => {
               {vista === 'directory' && (
                 <InsuranceDirectory
                   tableName="insurers"
-                  title="Seguradoras — Garantia"
+                  title="Seguradoras · Garantia"
                   subtitle="Gerenciamento centralizado de acessos e condições comerciais."
                   itemName="Seguradora"
                   emptyStateText="Adicionar Seguradora"
@@ -892,7 +873,7 @@ const App: React.FC = () => {
               {vista === 'rc-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_rc"
-                  title="Seguradoras — RC"
+                  title="Seguradoras · RC"
                   subtitle="Portais, acessos e condições para responsabilidade civil."
                   itemName="Seguradora"
                   emptyStateText="Adicionar Seguradora"

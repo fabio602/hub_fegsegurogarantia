@@ -188,7 +188,7 @@ const GarantiaLocaticia: React.FC = () => {
           <div>
             <h1 className="text-2xl font-black tracking-tight">Garantia Locatícia</h1>
             <p className="text-slate-400 text-sm font-medium mt-0.5">
-              Simulação e envio — {config.garantidora}
+              Simulação e envio · {config.garantidora}
             </p>
           </div>
         </div>
@@ -216,7 +216,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <InputLabel>Endereço do Imóvel (opcional)</InputLabel>
                 <input
                   className={inputCls}
-                  placeholder="Ex.: Rua das Flores, 123 — Apto 42"
+                  placeholder="Ex.: Rua das Flores, 123, Apto 42"
                   value={endereco}
                   onChange={e => setEndereco(e.target.value)}
                 />
@@ -535,7 +535,7 @@ const GarantiaLocaticia: React.FC = () => {
                         {sim.nome_cliente || 'Cliente não informado'}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {sim.forma_pagamento === 'cartao' ? 'Cartão' : 'Boleto'} —{' '}
+                        {sim.forma_pagamento === 'cartao' ? 'Cartão' : 'Boleto'} ·{' '}
                         {new Date(sim.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>

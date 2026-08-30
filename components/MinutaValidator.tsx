@@ -343,7 +343,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           <ClipboardCheck size={16} className="text-gold" />
         </div>
         <div>
-          <h3 className="font-black text-slate-800 text-lg">Double Check — Minuta do Seguro</h3>
+          <h3 className="font-black text-slate-800 text-lg">Double Check · Minuta do Seguro</h3>
           <p className="text-slate-400 text-sm">Faça upload da minuta emitida pela seguradora para validar os dados automaticamente.</p>
         </div>
       </div>
@@ -547,7 +547,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                   className="w-full flex items-center justify-between px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all font-bold text-sm shadow">
                   <div className="flex items-center gap-2">
                     <TrendingUp size={16} />
-                    <span>Fechar Venda — Registrar no Acompanhamento</span>
+                    <span>Fechar Venda e Registrar</span>
                   </div>
                   {showVenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>

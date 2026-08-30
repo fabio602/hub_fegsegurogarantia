@@ -215,7 +215,7 @@ export default function ProspeccaoEmail() {
         <div>
           <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Prospecção Email</h2>
           <p className="text-slate-500 font-semibold mt-1 text-sm">
-            Cadência automática de e-mails — cada contato segue a trilha do produto escolhido
+            Cadência automática de e-mails. Cada contato segue a trilha do produto escolhido
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">

@@ -220,7 +220,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
             </div>
             <div>
               <h3 className="font-black text-slate-800 text-lg tracking-tight">Seguradoras Prioritárias para o Seguro de Proposta</h3>
-              <p className="text-xs text-slate-400 font-medium">Ordem definida por você — edite uma seguradora para ajustar posição e cor</p>
+              <p className="text-xs text-slate-400 font-medium">Ordem definida por você. Edite uma seguradora para ajustar posição e cor</p>
             </div>
           </div>
 

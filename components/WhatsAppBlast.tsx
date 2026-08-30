@@ -417,7 +417,7 @@ export default function WhatsAppBlast() {
             />
             {showPreview && (
               <div className="px-5 pb-5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Preview — como vai aparecer</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Preview: como vai aparecer</p>
                 <div className="bg-whatsapp-bolha rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {previewMessage(firstContactName)}
                 </div>
@@ -492,7 +492,7 @@ export default function WhatsAppBlast() {
             {done && (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 mb-4">
                 <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                <p className="text-emerald-700 font-bold text-xs">Disparo concluído — {sentCount} de {totalCount} enviados com sucesso.</p>
+                <p className="text-emerald-700 font-bold text-xs">Disparo concluído: {sentCount} de {totalCount} enviados.</p>
               </div>
             )}
 

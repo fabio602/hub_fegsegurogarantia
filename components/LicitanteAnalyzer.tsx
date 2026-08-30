@@ -154,7 +154,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Seguro Licitante</h2>
-          <p className="text-slate-500 font-semibold mt-1">Upload do edital em PDF — a IA extrai todos os dados para cotação do seguro-garantia.</p>
+          <p className="text-slate-500 font-semibold mt-1">Envie o edital em PDF. A IA extrai os dados para a cotação do seguro-garantia.</p>
         </div>
         {history.length > 0 && (
           <button
@@ -410,7 +410,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
                 // Linha de auditoria: distingue dado extraído de padrão conservador aplicado
                 const regraContagem = dataBase.isFallback
-                  ? `Padrão conservador: termo inicial não declarado no edital — usando data da sessão pública. Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'}. Art. 183, Lei 14.133/2021.`
+                  ? `Padrão conservador: termo inicial não declarado no edital; usei a data da sessão pública. Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'}. Art. 183, Lei 14.133/2021.`
                   : `Contado de ${dataBase.dateStr ? dataBase.dateStr.split(' ')[0] : '?'} (${dataBase.label}). Exclui o dia do início, inclui o do vencimento. Art. 183, Lei 14.133/2021.`;
 
                 if (result.vigencia_garantia_proposta) return (

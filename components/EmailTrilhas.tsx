@@ -132,7 +132,7 @@ export default function EmailTrilhas() {
   const criarTrilha = async () => {
     if (!novaTrilha?.nome.trim()) return;
     const slug = gerarSlug(novaTrilha.nome);
-    if (!slug) return notificar('erro', 'Nome inválido — use letras e números.');
+    if (!slug) return notificar('erro', 'Nome inválido. Use letras e números.');
     if (trilhas.some(t => t.slug === slug)) return notificar('erro', `Já existe uma trilha com o código "${slug}".`);
 
     setSalvando(true);
@@ -150,7 +150,7 @@ export default function EmailTrilhas() {
     setNovaTrilha(null);
     setSlugAtual(slug);
     await load();
-    notificar('ok', 'Trilha criada — desligada até você escrever as etapas.');
+    notificar('ok', 'Trilha criada. Fica desligada até você escrever as etapas.');
   };
 
   const excluirTrilha = async () => {
@@ -524,7 +524,7 @@ export default function EmailTrilhas() {
 
                           <Campo
                             label="Corpo"
-                            dica='Escreva cada parágrafo assim: <p style="{{P}}">texto do parágrafo</p> — e troque {{P}} por {{PF}} no último, que tem espaço maior antes do botão.'
+                            dica='Escreva cada parágrafo assim: <p style="{{P}}">texto do parágrafo</p>. Troque {{P}} por {{PF}} no último, que tem espaço maior antes do botão.'
                           >
                             <textarea rows={10} className={`${inputCls} font-mono text-xs leading-relaxed`}
                               value={etapa.corpo_html ?? ''}
@@ -580,7 +580,7 @@ export default function EmailTrilhas() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-800 text-lg">Nova Trilha</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada — ligue quando os e-mails estiverem prontos.</p>
+                <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada. Ligue quando os e-mails estiverem prontos.</p>
               </div>
               <button onClick={() => setNovaTrilha(null)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
             </div>

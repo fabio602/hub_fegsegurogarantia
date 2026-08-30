@@ -259,7 +259,7 @@ export default function InadimplentesResidencial() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl lg:text-3xl font-black text-slate-800">Inadimplentes</h2>
-          <p className="text-slate-500 font-medium mt-1">Relatório Tokio Marine — cobrança via WhatsApp</p>
+          <p className="text-slate-500 font-medium mt-1">Relatório Tokio Marine · cobrança via WhatsApp</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={fetchItems} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:border-gold transition-all">
@@ -297,7 +297,7 @@ export default function InadimplentesResidencial() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <FileText size={18} className="text-amber-600" />
-              {preview.length} inadimplente(s) extraído(s) — confirme antes de importar
+              {preview.length} inadimplente(s) extraído(s). Confirme antes de importar
             </h3>
             <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600"><X size={18}/></button>
           </div>
