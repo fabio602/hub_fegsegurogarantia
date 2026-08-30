@@ -216,7 +216,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => deleteTask(task)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-500 transition-all">
+                            <button onClick={() => deleteTask(task)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 transition-all">
                                 <X size={14} />
                             </button>
                         </div>

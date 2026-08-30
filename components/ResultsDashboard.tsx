@@ -3165,7 +3165,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                     {boletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={13} /></button>
+                                            <button onClick={() => handleDeleteBoleto(b.id)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={13} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -3249,7 +3249,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 />
                                                 <button
                                                     onClick={() => setCarneParcelas(prev => prev.filter((_, j) => j !== i))}
-                                                    className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all shrink-0"
+                                                    className="p-1 text-slate-400 hover:text-rose-500 rounded-xl transition-all shrink-0"
                                                     title="Remover esta parcela da lista"
                                                 >
                                                     <X size={13} />

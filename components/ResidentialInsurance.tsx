@@ -1238,7 +1238,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                                                         {resBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                                                     </button>
                                                 )}
-                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
+                                                <button onClick={() => handleDeleteResBoleto(b.id)} className="p-1 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
                                             </div>
                                         </div>
                                     ))}

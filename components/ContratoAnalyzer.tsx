@@ -70,7 +70,7 @@ function CopyBtn({ text, light }: { text: string; light?: boolean }) {
     setTimeout(() => setDone(false), 1500);
   };
   return (
-    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-xl transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-100'}`}>
+    <button onClick={handle} title="Copiar" className={`shrink-0 p-1 rounded-xl transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
       {done ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
     </button>
   );

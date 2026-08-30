@@ -1509,7 +1509,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             <button onClick={() => setConfirmDelete(null)} className="text-slate-400 text-xs hover:text-slate-600">Cancelar</button>
                           </div>
                         ) : (
-                          <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 text-slate-300 hover:text-rose-400 transition-colors">
+                          <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors">
                             <Trash2 size={14} />
                           </button>
                         )}

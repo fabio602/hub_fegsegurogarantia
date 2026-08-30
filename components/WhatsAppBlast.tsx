@@ -372,7 +372,7 @@ export default function WhatsAppBlast() {
                           <button onClick={() => setEditingTemplate({ ...tpl })} className="shrink-0 p-1.5 text-slate-300 hover:text-gold transition-colors opacity-0 group-hover:opacity-100" title="Editar">
                             <Pencil size={13} />
                           </button>
-                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-300 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
+                          <button onClick={() => deleteTemplate(tpl.id)} className="shrink-0 p-1.5 text-slate-400 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         </div>

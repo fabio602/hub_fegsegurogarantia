@@ -562,7 +562,7 @@ const RCInsurance: React.FC = () => {
                               {rcBoletoEmailSent.has(b.id) ? 'Enviado' : 'E-mail'}
                             </button>
                           )}
-                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDeleteRCBoleto(b.id)} className="p-1 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={13} /></button>
                         </div>
                       </div>
                     ))}
@@ -754,7 +754,7 @@ const RCInsurance: React.FC = () => {
                             <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-[10px] font-bold">Não</button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-200 hover:text-rose-400 hover:bg-rose-50 rounded-xl transition-all" title="Excluir">
+                          <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-50 rounded-xl transition-all" title="Excluir">
                             <Trash2 size={13} />
                           </button>
                         )}

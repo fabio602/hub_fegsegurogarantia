@@ -1334,7 +1334,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                                             {/* Context Menu */}
                                             {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
-                                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-xl p-1 transition-colors">
+                                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl p-1 transition-colors">
                                                     <MoreVertical size={16} />
                                                 </button>
                                                 {openMenuId === prospect.id && (

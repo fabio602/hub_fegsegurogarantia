@@ -263,7 +263,7 @@ const BanksDirectory: React.FC = () => {
                                     ) : (
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => handleEdit(bank)} className="text-slate-400 hover:text-gold transition-colors p-3 hover:bg-slate-50 rounded-2xl"><Edit3 size={20} /></button>
-                                            <button onClick={() => handleDelete(bank.id)} className="text-slate-300 hover:text-rose-500 transition-colors p-3 hover:bg-rose-50 rounded-2xl"><X size={20} /></button>
+                                            <button onClick={() => handleDelete(bank.id)} className="text-slate-400 hover:text-rose-500 transition-colors p-3 hover:bg-rose-50 rounded-2xl"><X size={20} /></button>
                                         </div>
                                     )}
                                 </div>
