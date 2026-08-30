@@ -318,15 +318,21 @@ async function contatosDoSite(site: string): Promise<{ email: string; cnpj: stri
 
 async function consultarCnpj(supabase: SupabaseClient, cnpj: string): Promise<{
   razao_social: string; socio: string; situacao: string; cnae_descricao: string;
+  cnae_divisao: string; cidade: string; uf: string; telefone: string;
 } | null> {
   const { data: cacheado } = await supabase.from('prospeccao_pncp_cnpj_cache')
-    .select('razao_social, socio, situacao, cnae_descricao').eq('cnpj', cnpj).maybeSingle();
+    .select('razao_social, socio, situacao, cnae_descricao, cnae_divisao, cidade, uf, telefone')
+    .eq('cnpj', cnpj).maybeSingle();
   if (cacheado) {
     return {
       razao_social: String(cacheado.razao_social ?? ''),
       socio: String(cacheado.socio ?? ''),
       situacao: String(cacheado.situacao ?? ''),
       cnae_descricao: String(cacheado.cnae_descricao ?? ''),
+      cnae_divisao: String(cacheado.cnae_divisao ?? ''),
+      cidade: String(cacheado.cidade ?? ''),
+      uf: String(cacheado.uf ?? ''),
+      telefone: String(cacheado.telefone ?? ''),
     };
   }
   try {
@@ -343,6 +349,10 @@ async function consultarCnpj(supabase: SupabaseClient, cnpj: string): Promise<{
       socio: String((admin ?? qsa[0])?.nome_socio ?? ''),
       situacao: String(d.descricao_situacao_cadastral ?? ''),
       cnae_descricao: String(d.cnae_fiscal_descricao ?? ''),
+      cnae_divisao: String(d.cnae_fiscal ?? '').replace(/\D/g, '').padStart(7, '0').slice(0, 2),
+      cidade: String(d.municipio ?? ''),
+      uf: String(d.uf ?? ''),
+      telefone: String(d.ddd_telefone_1 ?? '').trim(),
     };
     // Compartilha o cache com o PNCP (sem mexer nos campos de e-mail de la).
     await supabase.from('prospeccao_pncp_cnpj_cache').upsert({
@@ -377,7 +387,9 @@ interface EstoqueRow {
   nome: string; categoria: string | null; email: string | null; tipo_email: string | null;
   socio: string | null; telefone: string | null; site: string | null; cnpj: string | null;
   razao_social: string | null; cidade: string | null; uf: string | null;
-  cnae_descricao: string | null;
+  cnae_descricao: string | null; cnae_divisao: string | null;
+  classe: string | null; submercado: string | null; lote_diff: string | null;
+  primeira_vista: string | null;
   avaliacoes: number | null; nota: number | null; endereco: string | null;
   estado: string; motivo: string | null; ultimo_resultado: string | null;
   enviado_em: string | null; atualizado_em: string;
@@ -385,13 +397,15 @@ interface EstoqueRow {
 
 const CABECALHO = [
   'Nome', 'Categoria', 'E-mail', 'Tipo de e-mail', 'Socio (follow-up)', 'Telefone', 'Site',
-  'CNPJ', 'Razao social', 'Cidade', 'UF', 'Avaliacoes', 'Nota', 'Endereco',
+  'CNPJ', 'Razao social', 'Classe', 'CNAE', 'Novo na fonte', 'Submercado',
+  'Cidade', 'UF', 'Avaliacoes', 'Nota', 'Endereco',
 ];
 
 function linha(r: EstoqueRow): (string | number)[] {
   return [
     r.nome, r.categoria ?? '', r.email ?? '', r.tipo_email ?? '', r.socio ?? '',
     r.telefone ?? '', r.site ?? '', r.cnpj ? formatCnpj(r.cnpj) : '', r.razao_social ?? '',
+    r.classe ?? '', r.cnae_descricao ?? '', r.lote_diff === 'novo' ? 'sim' : '', r.submercado ?? '',
     r.cidade ?? '', r.uf ?? '', r.avaliacoes ?? 0, r.nota ?? 0, r.endereco ?? '',
   ];
 }
@@ -442,6 +456,8 @@ interface Campanha {
   limite_diario: number;
   cadencia_garimpo_dias: number;
   exigir_cnpj: boolean;
+  gancho_adesao_texto: string | null;
+  fonte_config: Record<string, unknown>;
   garimpo_cursor: number;
   garimpo_ciclo_iniciado: string | null;
   apify_run_id: string | null;
@@ -652,14 +668,417 @@ async function enriquecer(
   }
 }
 
+
+// ─── Fonte CCEE: consumidores livres e especiais ────────────────────────────
+//
+// O WAF da CCEE so aceita navegador de verdade (bloqueia por fingerprint
+// TLS), entao a coleta roda no Apify com o actor apify/web-scraper: um Chrome
+// abre o portal de dados abertos e chama a API datastore da propria origem,
+// paginando e devolvendo os registros como itens do dataset do run.
+
+const CCEE_PAGE_FUNCTION = `async function pageFunction(context) {
+  const cfg = context.customData || {};
+  const colher = async (rid, filtros) => {
+    const out = [];
+    let offset = 0;
+    const f = encodeURIComponent(JSON.stringify(filtros));
+    while (true) {
+      const r = await fetch('/api/3/action/datastore_search?resource_id=' + rid +
+        '&limit=10000&offset=' + offset + '&filters=' + f);
+      const d = await r.json();
+      const recs = (d && d.result && d.result.records) || [];
+      for (const x of recs) out.push(x);
+      if (recs.length < 10000 || offset > 300000) break;
+      offset += 10000;
+    }
+    return out;
+  };
+
+  // Lista atual: classe + status ativo + categoria Consumo (2026 em diante).
+  const atual = await colher(cfg.recursoAtual, {
+    CLASSE_PERFIL_AGENTE: ['Consumidor Livre', 'Consumidor Especial'],
+    STATUS_PERFIL: 'ATIVO',
+    CATEGORIA_AGENTE: 'Consumo',
+  });
+  const porCnpj = new Map();
+  for (const x of atual) {
+    const cnpj = String(x.CNPJ || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+    const e = porCnpj.get(cnpj);
+    if (e) {
+      if (String(x.CLASSE_PERFIL_AGENTE) === 'Consumidor Especial') e.classe = 'Consumidor Especial';
+      continue;
+    }
+    porCnpj.set(cnpj, {
+      cnpj,
+      nome: String(x.NOME_EMPRESARIAL || ''),
+      classe: String(x.CLASSE_PERFIL_AGENTE || ''),
+      submercado: String(x.SUBMERCADO || ''),
+    });
+  }
+
+  // Baseline anterior (primeira carga): SO classe, sem status nem categoria.
+  // O vocabulario de CATEGORIA_AGENTE mudou entre os anos ('Consumo' zera em
+  // 2025) e, para o diff, basta saber que o CNPJ ja constava na CCEE.
+  const anteriores = new Set();
+  if (cfg.primeiraCarga && cfg.recursoAnterior) {
+    const ant = await colher(cfg.recursoAnterior, {
+      CLASSE_PERFIL_AGENTE: ['Consumidor Livre', 'Consumidor Especial'],
+    });
+    for (const x of ant) {
+      const cnpj = String(x.CNPJ || '').replace(/\D/g, '');
+      if (cnpj.length === 14) anteriores.add(cnpj);
+    }
+  }
+
+  // Itens em LOTES de 500: imune a limites de quantidade de resultados do
+  // actor e mais rapido de colher do outro lado.
+  const itens = [];
+  const listaAtual = Array.from(porCnpj.values());
+  for (let i = 0; i < listaAtual.length; i += 500) {
+    itens.push({ tipo: 'atual_lote', lista: listaAtual.slice(i, i + 500) });
+  }
+  const listaAnterior = Array.from(anteriores);
+  for (let i = 0; i < listaAnterior.length; i += 500) {
+    itens.push({ tipo: 'anterior_lote', lista: listaAnterior.slice(i, i + 500) });
+  }
+  return itens;
+}`;
+
+async function talvezGarimparCcee(supabase: SupabaseClient, c: Campanha, avisos: string[]): Promise<void> {
+  if (c.apify_run_id) return;
+  if (!APIFY_TOKEN) {
+    avisos.push('APIFY_TOKEN nao configurado em Edge Functions > Secrets; o garimpo nao roda.');
+    return;
+  }
+  const inicio = c.garimpo_ciclo_iniciado ? Date.parse(c.garimpo_ciclo_iniciado) : 0;
+  if (Date.now() - inicio < Number(c.cadencia_garimpo_dias) * 86_400_000) return;
+
+  const fc = c.fonte_config ?? {};
+  const recursoAtual = String(fc.recurso_atual ?? '');
+  if (!recursoAtual) { avisos.push('fonte_config.recurso_atual nao definido na campanha.'); return; }
+
+  try {
+    const res = await fetch(`https://api.apify.com/v2/acts/apify~web-scraper/runs?token=${APIFY_TOKEN}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startUrls: [{ url: 'https://dadosabertos.ccee.org.br/dataset/lista_perfil_v1' }],
+        pageFunction: CCEE_PAGE_FUNCTION,
+        customData: {
+          recursoAtual,
+          recursoAnterior: String(fc.recurso_anterior ?? ''),
+          primeiraCarga: fc.diff_inicial_feito !== true,
+        },
+        proxyConfiguration: { useApifyProxy: true },
+        maxPagesPerCrawl: 1,
+        maxResultsPerCrawl: 999999,
+        pageLoadTimeoutSecs: 120,
+        pageFunctionTimeoutSecs: 300,
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      avisos.push(`Falha ao iniciar o run CCEE no Apify: HTTP ${res.status}`);
+      console.error('[ccee] iniciar run:', res.status, await res.text());
+      return;
+    }
+    const body = await res.json();
+    await supabase.from('campanhas_garimpo').update({
+      apify_run_id: String(body?.data?.id ?? ''),
+      apify_dataset_id: String(body?.data?.defaultDatasetId ?? ''),
+      apify_cidade: 'lista CCEE',
+      garimpo_ciclo_iniciado: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', c.id);
+    console.log(`[garimpo/${c.slug}] run CCEE iniciado (${body?.data?.id})`);
+  } catch (e) {
+    console.error('[ccee]', e);
+    avisos.push('Erro de rede ao iniciar o run CCEE no Apify.');
+  }
+}
+
+async function colherCcee(supabase: SupabaseClient, c: Campanha, execId: string): Promise<void> {
+  if (!c.apify_run_id) return;
+  const status = await statusRunApify(c.apify_run_id);
+  if (['READY', 'RUNNING'].includes(status)) return;
+
+  let inseridos = 0;
+  let novosDiff = 0;
+  if (status === 'SUCCEEDED' && c.apify_dataset_id) {
+    // Itens: {tipo:'atual', cnpj, nome, classe, submercado} e {tipo:'anterior', cnpj}.
+    const brutos: Record<string, unknown>[] = [];
+    let offset = 0;
+    while (true) {
+      const res = await fetch(
+        `https://api.apify.com/v2/datasets/${c.apify_dataset_id}/items?token=${APIFY_TOKEN}&format=json&clean=true&limit=1000&offset=${offset}`,
+        { signal: AbortSignal.timeout(30_000) },
+      );
+      if (!res.ok) break;
+      const lote = await res.json().catch(() => []) as Record<string, unknown>[];
+      if (!Array.isArray(lote) || !lote.length) break;
+      brutos.push(...lote);
+      offset += lote.length;
+      if (lote.length < 1000) break;
+    }
+
+    // Itens vem em lotes de 500 ({tipo, lista}).
+    const atuais: Record<string, unknown>[] = [];
+    const anteriores = new Set<string>();
+    for (const b of brutos) {
+      const lista = Array.isArray(b.lista) ? b.lista : [];
+      if (b.tipo === 'atual_lote') for (const x of lista) atuais.push(x as Record<string, unknown>);
+      if (b.tipo === 'anterior_lote') for (const x of lista) anteriores.add(String(x));
+    }
+    const primeiraCarga = (c.fonte_config ?? {}).diff_inicial_feito !== true;
+
+    // Dedup: CNPJs ja no estoque desta campanha e ja conhecidos do Hub.
+    const { data: estoqueAtual } = await supabase.from('garimpo_estoque')
+      .select('cnpj').eq('campanha_id', c.id).not('cnpj', 'is', null);
+    const noEstoque = new Set((estoqueAtual ?? []).map((r) => cleanCnpj(String(r.cnpj))));
+    const dedup = await conjuntosDedup(supabase);
+
+    const filaInsert: Record<string, unknown>[] = [];
+    for (const b of atuais) {
+      const cnpj = cleanCnpj(String(b.cnpj));
+      if (cnpj.length !== 14) continue;
+      if (noEstoque.has(cnpj) || dedup.cnpjs.has(cnpj)) continue;
+      noEstoque.add(cnpj);
+      const novo = primeiraCarga ? !anteriores.has(cnpj) : true;
+      if (novo) novosDiff++;
+      filaInsert.push({
+        campanha_id: c.id,
+        place_id: `ccee:${cnpj}`,
+        nome: String(b.nome ?? ''),
+        categoria: 'Agente CCEE',
+        cnpj,
+        classe: String(b.classe ?? '') || null,
+        submercado: String(b.submercado ?? '') || null,
+        lote_diff: novo ? 'novo' : 'antigo',
+        estado: 'novo',
+      });
+    }
+    for (let i = 0; i < filaInsert.length; i += 500) {
+      const { error } = await supabase.from('garimpo_estoque').insert(filaInsert.slice(i, i + 500));
+      if (error) console.error('[ccee/estoque]', error.message);
+      else inseridos += Math.min(500, filaInsert.length - i);
+    }
+
+    // Marca o diff inicial como feito: das proximas vezes, todo CNPJ inedito e novo.
+    await supabase.from('campanhas_garimpo').update({
+      fonte_config: { ...(c.fonte_config ?? {}), diff_inicial_feito: true },
+      updated_at: new Date().toISOString(),
+    }).eq('id', c.id);
+
+    console.log(`[garimpo/${c.slug}] lista CCEE colhida: ${brutos.length} itens, ${inseridos} no estoque, ${novosDiff} novos no diff`);
+  } else {
+    console.error(`[garimpo/${c.slug}] run CCEE ${c.apify_run_id} terminou com status ${status}`);
+  }
+
+  await supabase.from('campanhas_garimpo').update({
+    apify_run_id: null, apify_dataset_id: null, apify_cidade: null, updated_at: new Date().toISOString(),
+  }).eq('id', c.id);
+  if (inseridos) {
+    const { data: ex } = await supabase.from('garimpo_execucoes').select('garimpados, detalhes').eq('id', execId).single();
+    await supabase.from('garimpo_execucoes').update({
+      garimpados: Number(ex?.garimpados ?? 0) + inseridos,
+      detalhes: { ...(ex?.detalhes ?? {}), novos_diff: novosDiff },
+    }).eq('id', execId);
+  }
+}
+
+/** Prioridade CCEE: novos, depois industria (10-33), atacado e logistica
+ *  (46, 49-53), servicos; Consumidor Especial antes de Livre; visto ha menos
+ *  tempo primeiro. */
+function grupoCnae(divisao: string | null | undefined): number {
+  const n = parseInt(String(divisao ?? ''), 10);
+  if (n >= 10 && n <= 33) return 0;
+  if (n === 46 || (n >= 49 && n <= 53)) return 1;
+  return 2;
+}
+
+function prioridadeCcee(a: EstoqueRow, b: EstoqueRow): number {
+  const na = a.lote_diff === 'novo' ? 0 : 1;
+  const nb = b.lote_diff === 'novo' ? 0 : 1;
+  if (na !== nb) return na - nb;
+  const ga = grupoCnae(a.cnae_divisao);
+  const gb = grupoCnae(b.cnae_divisao);
+  if (ga !== gb) return ga - gb;
+  const ca = a.classe === 'Consumidor Especial' ? 0 : 1;
+  const cb = b.classe === 'Consumidor Especial' ? 0 : 1;
+  if (ca !== cb) return ca - cb;
+  return Date.parse(b.primeira_vista ?? '1970-01-01') - Date.parse(a.primeira_vista ?? '1970-01-01');
+}
+
+/** Estagio A da fonte CCEE: cadastro em massa na BrasilAPI (barata) para ter
+ *  CNAE, socio, cidade e telefone ANTES de gastar a cota da cadeia de e-mail. */
+async function cadastrarCcee(supabase: SupabaseClient, c: Campanha, fimTarefaMs: number): Promise<void> {
+  const { data: novosPrimeiro } = await supabase.from('garimpo_estoque')
+    .select('id, cnpj, lote_diff').eq('campanha_id', c.id).eq('estado', 'novo')
+    .eq('lote_diff', 'novo').order('classe').limit(30);
+  let lote = novosPrimeiro ?? [];
+  if (lote.length < 30) {
+    const { data: antigos } = await supabase.from('garimpo_estoque')
+      .select('id, cnpj, lote_diff').eq('campanha_id', c.id).eq('estado', 'novo')
+      .neq('lote_diff', 'novo').order('classe').limit(30 - lote.length);
+    lote = [...lote, ...(antigos ?? [])];
+  }
+
+  let consultas = 0;
+  for (const item of lote) {
+    if (Date.now() > fimTarefaMs) break;
+    const cnpj = cleanCnpj(String(item.cnpj));
+    if (cnpj.length !== 14) continue;
+    if (consultas > 0) await pausa(1200);
+    consultas++;
+    const dados = await consultarCnpj(supabase, cnpj);
+    if (!dados) continue;  // rede: tenta no proximo tique
+    if (dados.situacao && dados.situacao.toUpperCase() !== 'ATIVA') {
+      await supabase.from('garimpo_estoque').update({
+        estado: 'descartado', motivo: `Situacao cadastral: ${dados.situacao}`,
+        atualizado_em: new Date().toISOString(),
+      }).eq('id', item.id);
+      continue;
+    }
+    await supabase.from('garimpo_estoque').update({
+      estado: 'cadastrado',
+      razao_social: dados.razao_social || null,
+      socio: dados.socio || null,
+      cnae_descricao: dados.cnae_descricao || null,
+      cnae_divisao: dados.cnae_divisao || null,
+      cidade: dados.cidade || null,
+      uf: dados.uf || null,
+      telefone: dados.telefone || null,
+      atualizado_em: new Date().toISOString(),
+    }).eq('id', item.id);
+  }
+}
+
+// Cadeia de e-mail por CNPJ (mesmas fontes e cache do PNCP):
+// CNPJa aberta (5/min) -> cnpj.ws publica (3/min).
+interface ProvedorEmail {
+  nome: string;
+  cooldownMs: number;
+  proximaEm: number;
+  consultar: (cnpj: string) => Promise<{ ok: boolean; email: string }>;
+}
+
+function criarProvedoresEmail(): ProvedorEmail[] {
+  return [
+    {
+      nome: 'cnpja', cooldownMs: 13_000, proximaEm: 0,
+      consultar: async (cnpj) => {
+        const res = await fetch(`https://open.cnpja.com/office/${cnpj}`, { signal: AbortSignal.timeout(15_000) });
+        if (res.status === 429) throw new Error('rate limit');
+        if (!res.ok) return { ok: false, email: '' };
+        const d = await res.json().catch(() => null) as { emails?: { address?: string }[] } | null;
+        if (!d) return { ok: false, email: '' };
+        return { ok: true, email: String(d.emails?.[0]?.address ?? '').trim().toLowerCase() };
+      },
+    },
+    {
+      nome: 'cnpjws', cooldownMs: 21_000, proximaEm: 0,
+      consultar: async (cnpj) => {
+        const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`, { signal: AbortSignal.timeout(15_000) });
+        if (res.status === 429) throw new Error('rate limit');
+        if (!res.ok) return { ok: false, email: '' };
+        const d = await res.json().catch(() => null) as { estabelecimento?: { email?: string } } | null;
+        if (!d) return { ok: false, email: '' };
+        return { ok: true, email: String(d.estabelecimento?.email ?? '').trim().toLowerCase() };
+      },
+    },
+  ];
+}
+
+async function buscarEmailCnpj(
+  cnpj: string,
+  provedores: ProvedorEmail[],
+  fimOrcamentoMs: number,
+): Promise<{ consultado: boolean; email: string; fonte: string; semTempo: boolean }> {
+  for (let t = 0; t < provedores.length; t++) {
+    const prov = [...provedores].sort((a, b) => a.proximaEm - b.proximaEm)[0];
+    const espera = Math.max(0, prov.proximaEm - Date.now());
+    if (Date.now() + espera > fimOrcamentoMs) return { consultado: false, email: '', fonte: '', semTempo: true };
+    if (espera > 0) await pausa(espera);
+    prov.proximaEm = Date.now() + prov.cooldownMs;
+    try {
+      const r = await prov.consultar(cnpj);
+      if (r.ok) return { consultado: true, email: r.email, fonte: prov.nome, semTempo: false };
+    } catch {
+      prov.proximaEm = Date.now() + 60_000;
+    }
+  }
+  return { consultado: false, email: '', fonte: '', semTempo: false };
+}
+
+/** Estagio B da fonte CCEE: e-mail pela cadeia, na ordem de prioridade. */
+async function enriquecerCcee(
+  supabase: SupabaseClient,
+  c: Campanha,
+  execId: string,
+  padroesContador: string[],
+  prefixosGenericos: string[],
+  fimTarefaMs: number,
+): Promise<void> {
+  const { data: brutos } = await supabase.from('garimpo_estoque')
+    .select('*').eq('campanha_id', c.id).eq('estado', 'cadastrado').limit(120);
+  if (!brutos?.length) return;
+  const lote = (brutos as EstoqueRow[]).sort(prioridadeCcee);
+  const provedores = criarProvedoresEmail();
+
+  for (const item of lote) {
+    if (Date.now() > fimTarefaMs) break;
+    const cnpj = cleanCnpj(String(item.cnpj));
+
+    const marcar = async (estado: string, extras: Record<string, unknown> = {}) => {
+      await supabase.from('garimpo_estoque').update({
+        estado,
+        atualizado_em: new Date().toISOString(),
+        ...(estado === 'descartado' ? { ultima_execucao_id: execId, ultimo_resultado: 'descartado' } : {}),
+        ...extras,
+      }).eq('id', item.id);
+    };
+
+    // Cache do PNCP: e-mail ja consultado?
+    const { data: cache } = await supabase.from('prospeccao_pncp_cnpj_cache')
+      .select('email, tem_email, email_consultado').eq('cnpj', cnpj).maybeSingle();
+
+    let email = '';
+    if (cache?.email_consultado === true) {
+      email = String(cache.email ?? '');
+    } else {
+      const r = await buscarEmailCnpj(cnpj, provedores, fimTarefaMs);
+      if (r.semTempo) break;
+      if (!r.consultado) continue;  // rede/rate limit: fica para o proximo tique
+      email = r.email;
+      await supabase.from('prospeccao_pncp_cnpj_cache').upsert({
+        cnpj,
+        email: email || null,
+        tem_email: !!email,
+        email_fonte: r.fonte || null,
+        email_consultado: true,
+      }, { onConflict: 'cnpj' });
+    }
+
+    if (email && RE_EMAIL.test(email)) {
+      await marcar('enriquecido', { email, tipo_email: classificarEmail(email, padroesContador, prefixosGenericos) });
+    } else if (normalizarTelefone(item.telefone)) {
+      await marcar('so_whatsapp', { motivo: 'Sem e-mail na Receita; tem telefone' });
+    } else {
+      await marcar('descartado', { motivo: 'Sem canal de contato (nem e-mail, nem telefone)' });
+    }
+  }
+}
+
 // ─── Fase 4: envio diario ────────────────────────────────────────────────────
 
 async function conjuntosDedup(supabase: SupabaseClient) {
-  const [pRes, cRes, parRes, bRes] = await Promise.all([
+  const [pRes, cRes, parRes, bRes, sRes] = await Promise.all([
     supabase.from('prospects').select('email, phonenumber, cnpj'),
     supabase.from('email_cadencia').select('email'),
     supabase.from('partners').select('email, email_2, cnpj'),
     supabase.from('email_blocklist').select('email'),
+    supabase.from('sales').select('cnpj, email').not('cnpj', 'is', null),
   ]);
   const emails = new Set<string>();
   const fones = new Set<string>();
@@ -679,6 +1098,11 @@ async function conjuntosDedup(supabase: SupabaseClient) {
     if (d.length === 14) cnpjs.add(d);
   }
   for (const r of (bRes.data ?? [])) if (r.email) emails.add(String(r.email).toLowerCase());
+  for (const r of (sRes.data ?? [])) {
+    if (r.email) emails.add(String(r.email).toLowerCase());
+    const d = cleanCnpj(String(r.cnpj ?? ''));
+    if (d.length === 14) cnpjs.add(d);
+  }
   return { emails, fones, cnpjs };
 }
 
@@ -720,7 +1144,8 @@ async function enviarDia(
       .not('ultima_execucao_id', 'is', null)
       .neq('ultima_execucao_id', execId)
       .limit(200);
-    const candidatos = ([...(candidatosRaw ?? []), ...(antigosDry ?? [])] as EstoqueRow[]).sort(prioridade);
+    const ordenar = c.fonte === 'ccee' ? prioridadeCcee : prioridade;
+    const candidatos = ([...(candidatosRaw ?? []), ...(antigosDry ?? [])] as EstoqueRow[]).sort(ordenar);
 
     for (const cand of candidatos) {
       if (Date.now() > fimTarefaMs) break;
@@ -752,6 +1177,9 @@ async function enviarDia(
       if (!claim?.length) continue;
 
       const cidade = String(cand.cidade ?? '');
+      const descricao = c.fonte === 'ccee'
+        ? `Agente CCEE (${cand.classe ?? ''}${cand.submercado ? ', submercado ' + cand.submercado : ''})${cand.lote_diff === 'novo' ? ', ADESAO RECENTE' : ''}\nCNAE: ${cand.cnae_descricao ?? ''}`
+        : `Garimpo Google Maps (${c.nome})\nCategoria: ${cand.categoria ?? ''}\nAvaliacoes: ${cand.avaliacoes ?? 0} (nota ${cand.nota ?? 0})`;
       const { data: prospect } = await supabase.from('prospects').insert({
         name: cand.socio || cand.nome,
         company: cand.nome,
@@ -767,7 +1195,7 @@ async function enviarDia(
         product_type: c.tipo_prospect,
         segmento: cand.cnae_descricao || cand.categoria || null,
         decisor: cand.socio || null,
-        description: `Garimpo Google Maps (${c.nome})\nCategoria: ${cand.categoria ?? ''}\nAvaliacoes: ${cand.avaliacoes ?? 0} (nota ${cand.nota ?? 0})`,
+        description: descricao,
         tags: ['garimpo', c.slug],
       }).select('id').single();
 
@@ -783,6 +1211,9 @@ async function enviarDia(
         prospect_id: prospect?.id ?? null,
         cidade: cidade || null,
         site: cand.site || null,
+        // [GANCHO_ADESAO]: so os leads novos do diff recebem o paragrafo.
+        gancho_adesao: (c.fonte === 'ccee' && cand.lote_diff === 'novo' && c.gancho_adesao_texto)
+          ? c.gancho_adesao_texto : null,
       }).select('id').single();
 
       let okEnvio = false;
@@ -892,6 +1323,16 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
 
   const cidadesPendentes = c.cidades.slice(Number(c.garimpo_cursor ?? 0));
 
+  // Fonte CCEE: quantos agentes novos o diff encontrou nos ultimos 7 dias.
+  let novosSemana = 0;
+  if (c.fonte === 'ccee') {
+    const { count } = await supabase.from('garimpo_estoque')
+      .select('id', { count: 'exact', head: true })
+      .eq('campanha_id', c.id).eq('lote_diff', 'novo')
+      .gte('primeira_vista', new Date(Date.now() - 7 * 86_400_000).toISOString());
+    novosSemana = Number(count ?? 0);
+  }
+
   const xlsxB64 = montarXlsx({ enviados, soWhatsapp, bounces, descartados, dryRun: c.dry_run });
   const caminho = `${c.slug}/${hoje}${c.dry_run ? '-dry-run' : ''}.xlsx`;
   const { error: upErr } = await supabase.storage.from('garimpo').upload(
@@ -930,7 +1371,7 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
               ${linhaHtml('Descartados hoje', descartados.length)}
               ${linhaHtml('Estoque aguardando enriquecimento', Number(novoCount ?? 0))}
               ${linhaHtml('Estoque pronto para envio', Number(prontoCount ?? 0))}
-              ${linhaHtml('Cidades pendentes no ciclo', pendentesTxt)}
+              ${c.fonte === 'ccee' ? linhaHtml('Agentes novos na semana (diff)', novosSemana) : linhaHtml('Cidades pendentes no ciclo', pendentesTxt)}
             </table>
             ${avisosHtml}
             <p style="font-size:12px;color:#8a97a5;margin-top:20px">
@@ -951,7 +1392,7 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
     descartados: descartados.length,
     bounces: bounces.length,
     arquivo_relatorio: upErr ? null : caminho,
-    detalhes: { avisos, estoque_novo: Number(novoCount ?? 0), estoque_pronto: Number(prontoCount ?? 0), cidades_pendentes: cidadesPendentes.length },
+    detalhes: { avisos, estoque_novo: Number(novoCount ?? 0), estoque_pronto: Number(prontoCount ?? 0), cidades_pendentes: cidadesPendentes.length, novos_semana: novosSemana },
   }).eq('id', execId);
 
   console.log(`[garimpo/${c.slug}] dia ${hoje} finalizado: ${enviados.length} enviados, ${soWhatsapp.length} so WhatsApp`);
@@ -983,6 +1424,7 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
     }
     if (!campanha) { console.log('[garimpo] nenhuma campanha ativa'); return; }
     if (!campanha.ativo) { console.log(`[garimpo/${campanha.slug}] campanha desligada`); return; }
+    console.log(`[garimpo/${campanha.slug}] tique iniciado (fonte ${campanha.fonte})`);
 
     await supabase.from('campanhas_garimpo')
       .update({ ultimo_tique: new Date().toISOString() }).eq('id', campanha.id);
@@ -1008,20 +1450,41 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
     }
 
     // Fases 1 e 2 rodam mesmo com o dia finalizado: estoque nunca para de encher.
-    await colherApify(supabase, campanha, execId);
+    if (campanha.fonte === 'ccee') {
+      await colherCcee(supabase, campanha, execId);
+    } else {
+      await colherApify(supabase, campanha, execId);
+    }
     // Recarrega o cursor/run que a colheita pode ter alterado.
     const { data: recarregada } = await supabase.from('campanhas_garimpo')
       .select('*').eq('id', campanha.id).single();
     campanha = (recarregada ?? campanha) as Campanha;
-    await talvezGarimpar(supabase, campanha, avisos);
+    console.log(`[garimpo/${campanha.slug}] fase colheita concluida`);
+    if (campanha.fonte === 'ccee') {
+      await talvezGarimparCcee(supabase, campanha, avisos);
+    } else {
+      await talvezGarimpar(supabase, campanha, avisos);
+    }
+    console.log(`[garimpo/${campanha.slug}] fase garimpo concluida (avisos: ${avisos.length})`);
 
     if (Date.now() < fimTarefaMs) {
-      await enriquecer(supabase, campanha, execId, padroesContador, prefixosGenericos, fimTarefaMs);
+      if (campanha.fonte === 'ccee') {
+        // Estagio A (BrasilAPI em massa) e estagio B (cadeia de e-mail),
+        // cada um dentro do orcamento restante.
+        await cadastrarCcee(supabase, campanha, Math.min(fimTarefaMs, Date.now() + 50_000));
+        if (Date.now() < fimTarefaMs) {
+          await enriquecerCcee(supabase, campanha, execId, padroesContador, prefixosGenericos, fimTarefaMs);
+        }
+      } else {
+        await enriquecer(supabase, campanha, execId, padroesContador, prefixosGenericos, fimTarefaMs);
+      }
     }
 
+    console.log(`[garimpo/${campanha.slug}] fase enriquecimento concluida`);
     if (!finalizadaHoje && Date.now() < fimTarefaMs) {
       await enviarDia(supabase, campanha, execId, fimTarefaMs);
     }
+    console.log(`[garimpo/${campanha.slug}] fase envio concluida`);
 
     // Contagens parciais.
     const { count: enriquecidosTotal } = await supabase.from('garimpo_estoque')
@@ -1046,6 +1509,107 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+
+  // Modo de diagnostico: tenta iniciar o run CCEE e devolve a resposta crua.
+  if (body.modo === 'testar-ccee') {
+    const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SVC);
+    const { data: c } = await supabase.from('campanhas_garimpo').select('*').eq('slug', 'energia').single();
+    if (!c) return json({ success: false, error: 'campanha energia nao encontrada' });
+    const fc = (c.fonte_config ?? {}) as Record<string, unknown>;
+    try {
+      const res = await fetch(`https://api.apify.com/v2/acts/apify~web-scraper/runs?token=${APIFY_TOKEN}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startUrls: [{ url: 'https://dadosabertos.ccee.org.br/dataset/lista_perfil_v1' }],
+          pageFunction: CCEE_PAGE_FUNCTION,
+          customData: {
+            recursoAtual: String(fc.recurso_atual ?? ''),
+            recursoAnterior: String(fc.recurso_anterior ?? ''),
+            primeiraCarga: fc.diff_inicial_feito !== true,
+          },
+          proxyConfiguration: { useApifyProxy: true },
+          maxPagesPerCrawl: 1,
+          maxResultsPerCrawl: 999999,
+          pageLoadTimeoutSecs: 120,
+          pageFunctionTimeoutSecs: 300,
+        }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const texto = await res.text();
+      if (res.ok) {
+        const d = JSON.parse(texto);
+        await supabase.from('campanhas_garimpo').update({
+          apify_run_id: String(d?.data?.id ?? ''),
+          apify_dataset_id: String(d?.data?.defaultDatasetId ?? ''),
+          apify_cidade: 'lista CCEE',
+          garimpo_ciclo_iniciado: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', c.id);
+      }
+      return json({ success: res.ok, http: res.status, resposta: texto.slice(0, 800) });
+    } catch (e) {
+      return json({ success: false, error: String(e) });
+    }
+  }
+
+  // Modo manual: garimpa a proxima cidade da campanha AGORA, ignorando o alvo
+  // de estoque. Uso pontual (botao da tela / diagnostico); a cadencia e o
+  // ciclo continuam valendo para o cron.
+  if (body.modo === 'garimpar-cidade' && typeof body.campanha === 'string') {
+    const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SVC);
+    const { data: c } = await supabase.from('campanhas_garimpo').select('*').eq('slug', body.campanha).single();
+    if (!c) return json({ success: false, error: 'campanha nao encontrada' });
+    if (c.fonte !== 'maps') return json({ success: false, error: 'modo valido apenas para fonte maps' });
+    if (c.apify_run_id) return json({ success: false, error: `ja ha run em andamento (${c.apify_cidade})` });
+    const cursor = Number(c.garimpo_cursor ?? 0);
+    const cidades = (c.cidades ?? []) as string[];
+    if (cursor >= cidades.length) return json({ success: false, error: 'ciclo de cidades completo' });
+    const cidade = cidades[cursor];
+    const run = await iniciarRunApify((c.termos_busca ?? []) as string[], cidade);
+    if (!run) return json({ success: false, error: 'falha ao iniciar o run no Apify' });
+    await supabase.from('campanhas_garimpo').update({
+      apify_run_id: run.runId,
+      apify_dataset_id: run.datasetId,
+      apify_cidade: cidade,
+      garimpo_cursor: cursor + 1,
+      garimpo_ciclo_iniciado: c.garimpo_ciclo_iniciado ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', c.id);
+    return json({ success: true, cidade, run: run.runId });
+  }
+
+  // Modo status: resumo sincrono das campanhas, para diagnostico.
+  if (body.modo === 'status') {
+    const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SVC);
+    const { data: camps } = await supabase.from('campanhas_garimpo')
+      .select('slug, fonte, apify_run_id, apify_cidade, garimpo_cursor, fonte_config');
+    const resumo: Record<string, unknown>[] = [];
+    for (const c of (camps ?? [])) {
+      const { data: est } = await supabase.from('garimpo_estoque')
+        .select('estado, cidade, lote_diff')
+        .eq('campanha_id', (await supabase.from('campanhas_garimpo').select('id').eq('slug', c.slug).single()).data?.id ?? '');
+      const porEstado: Record<string, number> = {};
+      const porCidade: Record<string, number> = {};
+      let novosDiff = 0;
+      for (const r of (est ?? [])) {
+        porEstado[r.estado] = (porEstado[r.estado] ?? 0) + 1;
+        const cid = String(r.cidade ?? '?');
+        porCidade[cid] = (porCidade[cid] ?? 0) + 1;
+        if (r.lote_diff === 'novo') novosDiff++;
+      }
+      resumo.push({
+        slug: c.slug, fonte: c.fonte,
+        run_ativo: c.apify_run_id ? `${c.apify_run_id} (${c.apify_cidade})` : null,
+        cursor: c.garimpo_cursor,
+        diff_inicial_feito: (c.fonte_config as Record<string, unknown>)?.diff_inicial_feito ?? null,
+        estoque_por_estado: porEstado,
+        estoque_por_cidade: porCidade,
+        novos_diff_total: novosDiff,
+      });
+    }
+    return json({ success: true, campanhas: resumo });
+  }
 
   // deno-lint-ignore no-explicit-any
   const runtime = (globalThis as any).EdgeRuntime;

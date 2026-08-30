@@ -150,6 +150,24 @@ export default function GarimpoAutomatico() {
         }
     };
 
+    const garimparProximaCidade = async () => {
+        if (!form) return;
+        setRunning(true);
+        setFeedback(null);
+        try {
+            const { data, error } = await supabase.functions.invoke('garimpo', {
+                body: { modo: 'garimpar-cidade', campanha: form.slug },
+            });
+            if (error) throw new Error(error.message);
+            if (data?.success === false) throw new Error(data?.error || 'falha');
+            setFeedback({ tipo: 'ok', texto: `Garimpo iniciado em ${data?.cidade}. A colheita acontece no próximo tique (ou em "Rodar um tique agora" daqui a alguns minutos).` });
+            [30, 120].forEach(s => setTimeout(load, s * 1000));
+        } catch (e: any) {
+            setFeedback({ tipo: 'erro', texto: `Garimpo manual falhou: ${e?.message || e}` });
+        }
+        setRunning(false);
+    };
+
     const rodarTique = async () => {
         if (!form) return;
         setRunning(true);
@@ -207,10 +225,10 @@ export default function GarimpoAutomatico() {
     const taxaBounce = enviadosHoje > 0 ? ((resumo?.bouncesHoje ?? 0) / enviadosHoje) * 100 : 0;
 
     if (loading && !campanhas.length) {
-        return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-[#C69C6D]" size={32} /></div>;
+        return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-gold" size={32} /></div>;
     }
 
-    const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C69C6D]/20 focus:border-[#C69C6D] focus:bg-white transition-all';
+    const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
     const rotulo = 'block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5';
 
     return (
@@ -218,14 +236,14 @@ export default function GarimpoAutomatico() {
             <div className="flex flex-col lg:flex-row justify-between gap-4 items-start">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                        <Pickaxe className="text-[#C69C6D]" size={30} /> Garimpo Automático
+                        <Pickaxe className="text-gold" size={30} /> Garimpo Automático
                     </h2>
                     <p className="text-slate-500 font-medium">
-                        Campanhas de prospecção no Google Maps. O estoque enche sozinho e o envio diário respeita o limite de cada campanha.
+                        Campanhas de prospecção automática (Google Maps e CCEE). O estoque enche sozinho e o envio diário respeita o limite de cada campanha.
                     </p>
                 </div>
                 <button onClick={novaCampanha}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1B263B] hover:bg-[#243347] text-white text-sm font-bold rounded-xl transition-all">
+                    className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white text-sm font-bold rounded-xl transition-all">
                     <Plus size={16} /> Nova campanha
                 </button>
             </div>
@@ -278,7 +296,7 @@ export default function GarimpoAutomatico() {
                                     value={reputacao?.bounce_min_quantidade ?? 2}
                                     onChange={e => reputacao && setReputacao({ ...reputacao, bounce_min_quantidade: Number(e.target.value) })} />
                             </div>
-                            <button onClick={salvarLimitesReputacao} className="mt-4 p-2 text-slate-500 hover:text-[#1B263B]" title="Salvar limites">
+                            <button onClick={salvarLimitesReputacao} className="mt-4 p-2 text-slate-500 hover:text-navy" title="Salvar limites">
                                 <Save size={16} />
                             </button>
                         </div>
@@ -308,7 +326,7 @@ export default function GarimpoAutomatico() {
                     <button key={c.slug} onClick={() => setAbaAtiva(c.slug)}
                         className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all border-b-2 ${
                             abaAtiva === c.slug
-                                ? 'border-[#C69C6D] text-[#1B263B] bg-white'
+                                ? 'border-gold text-navy bg-white'
                                 : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
                         {c.nome}
                         {c.dry_run && <span className="ml-2 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-xl text-[10px]">dry run</span>}
@@ -324,19 +342,19 @@ export default function GarimpoAutomatico() {
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={form.ativo}
                                     onChange={e => setForm({ ...form, ativo: e.target.checked })}
-                                    className="w-4 h-4 accent-[#1B263B]" />
+                                    className="w-4 h-4 accent-navy" />
                                 <span className="text-sm font-bold text-slate-700">Campanha ligada</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={form.dry_run}
                                     onChange={e => setForm({ ...form, dry_run: e.target.checked })}
-                                    className="w-4 h-4 accent-[#1B263B]" />
+                                    className="w-4 h-4 accent-navy" />
                                 <span className="text-sm font-bold text-slate-700">Modo de teste (dry run)</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={form.exigir_cnpj}
                                     onChange={e => setForm({ ...form, exigir_cnpj: e.target.checked })}
-                                    className="w-4 h-4 accent-[#1B263B]" />
+                                    className="w-4 h-4 accent-navy" />
                                 <span className="text-sm font-bold text-slate-700">Exigir CNPJ no site</span>
                             </label>
                             {form.apify_run_id && (
@@ -352,18 +370,30 @@ export default function GarimpoAutomatico() {
                                 <input className={campo} value={form.nome}
                                     onChange={e => setForm({ ...form, nome: e.target.value })} />
                             </div>
-                            <div className="md:col-span-2">
-                                <label className={rotulo}>Termos de busca no Maps (separados por vírgula)</label>
-                                <input className={campo} value={termosText} onChange={e => setTermosText(e.target.value)} />
-                            </div>
-                            <div className="md:col-span-3">
-                                <label className={rotulo}>Cidades (separadas por ponto e vírgula) · cursor do ciclo: {form.garimpo_cursor}/{(form.cidades ?? []).length}</label>
-                                <textarea className={`${campo} h-24`} value={cidadesText} onChange={e => setCidadesText(e.target.value)} />
-                            </div>
-                            <div className="md:col-span-3">
-                                <label className={rotulo}>Palavras de exclusão (ponto e vírgula; aceita "X sem menção a Y")</label>
-                                <input className={campo} value={exclusoesText} onChange={e => setExclusoesText(e.target.value)} />
-                            </div>
+                            {form.fonte === 'ccee' ? (
+                                <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed">
+                                    <span className="font-bold text-slate-600">Fonte: lista de agentes da CCEE.</span> Baixa semanal
+                                    dos Consumidores Livres e Especiais ativos (categoria Consumo) via dados abertos; CNPJs novos no
+                                    diff entram com prioridade máxima e recebem o parágrafo de adesão no primeiro e-mail.
+                                </div>
+                            ) : (
+                                <div className="md:col-span-2">
+                                    <label className={rotulo}>Termos de busca no Maps (separados por vírgula)</label>
+                                    <input className={campo} value={termosText} onChange={e => setTermosText(e.target.value)} />
+                                </div>
+                            )}
+                            {form.fonte !== 'ccee' && (
+                                <div className="md:col-span-3">
+                                    <label className={rotulo}>Cidades (separadas por ponto e vírgula) · cursor do ciclo: {form.garimpo_cursor}/{(form.cidades ?? []).length}</label>
+                                    <textarea className={`${campo} h-24`} value={cidadesText} onChange={e => setCidadesText(e.target.value)} />
+                                </div>
+                            )}
+                            {form.fonte !== 'ccee' && (
+                                <div className="md:col-span-3">
+                                    <label className={rotulo}>Palavras de exclusão (ponto e vírgula; aceita "X sem menção a Y")</label>
+                                    <input className={campo} value={exclusoesText} onChange={e => setExclusoesText(e.target.value)} />
+                                </div>
+                            )}
                             <div>
                                 <label className={rotulo}>Trilha de e-mail</label>
                                 <select className={`${campo} cursor-pointer`} value={form.trilha}
@@ -382,7 +412,7 @@ export default function GarimpoAutomatico() {
                                     onChange={e => setForm({ ...form, limite_diario: Number(e.target.value) })} />
                             </div>
                             <div>
-                                <label className={rotulo}>Cadência do garimpo (dias)</label>
+                                <label className={rotulo}>{form.fonte === 'ccee' ? 'Cadência da baixa da lista (dias)' : 'Cadência do garimpo (dias)'}</label>
                                 <input className={campo} type="number" min={1} value={form.cadencia_garimpo_dias}
                                     onChange={e => setForm({ ...form, cadencia_garimpo_dias: Number(e.target.value) })} />
                             </div>
@@ -390,11 +420,11 @@ export default function GarimpoAutomatico() {
 
                         <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-100">
                             <button onClick={salvar} disabled={saving}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-[#1B263B] hover:bg-[#243347] text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50">
+                                className="flex items-center gap-2 px-5 py-2.5 bg-navy hover:bg-navy-light text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50">
                                 {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Salvar campanha
                             </button>
                             <button onClick={rodarTique} disabled={running}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-[#C69C6D] text-slate-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50">
+                                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-gold text-slate-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50">
                                 {running ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />} Rodar um tique agora
                             </button>
                         </div>
@@ -463,7 +493,7 @@ export default function GarimpoAutomatico() {
                                                 <td className="px-6 py-3 text-right">
                                                     {ex.arquivo_relatorio && (
                                                         <button onClick={() => baixarRelatorio(ex.arquivo_relatorio!)}
-                                                            className="inline-flex items-center gap-1.5 text-[#1B263B] hover:text-[#C69C6D] font-bold text-xs transition-colors">
+                                                            className="inline-flex items-center gap-1.5 text-navy hover:text-gold font-bold text-xs transition-colors">
                                                             <Download size={14} /> XLSX
                                                         </button>
                                                     )}

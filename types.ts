@@ -255,7 +255,11 @@ export interface CampanhaGarimpo {
   nome: string;
   ativo: boolean;
   dry_run: boolean;
-  fonte: 'maps' | 'instagram';
+  fonte: 'maps' | 'instagram' | 'ccee';
+  /** Parágrafo do [GANCHO_ADESAO], só para leads novos no diff da fonte. */
+  gancho_adesao_texto: string | null;
+  /** Config da fonte (ccee: recurso_atual, recurso_anterior, diff_inicial_feito). */
+  fonte_config: Record<string, unknown>;
   termos_busca: string[];
   cidades: string[];
   palavras_exclusao: string[];

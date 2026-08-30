@@ -102,15 +102,23 @@ function montarEmail(
   empresa: string,
   cidade = '',
   site = '',
+  gancho = '',
 ): { assunto: string; html: string } {
-  const assunto = personalizar(etapa.assunto, nome, empresa, cidade, site);
+  const assunto = personalizar(etapa.assunto, nome, empresa, cidade, site).replaceAll('[GANCHO_ADESAO]', '');
+
+  // [GANCHO_ADESAO]: paragrafo condicional. Contato com gancho gravado (lead
+  // que acabou de aderir, por exemplo) ganha o paragrafo; os demais, nada.
+  // Placeholders dentro do gancho ([NOME_EMPRESA]...) sao resolvidos depois,
+  // pelo personalizar do HTML final.
+  const ganchoHtml = gancho && gancho.trim() ? `<p style="${P}">${gancho.trim()}</p>` : '';
 
   // Escape hatch: se a etapa trouxer HTML completo, ele manda — o molde é ignorado.
   if (etapa.html_completo && etapa.html_completo.trim()) {
-    return { assunto, html: personalizar(etapa.html_completo, nome, empresa, cidade, site) };
+    return { assunto, html: personalizar(etapa.html_completo.replaceAll('[GANCHO_ADESAO]', ganchoHtml), nome, empresa, cidade, site) };
   }
 
   const corpo = (etapa.corpo_html ?? '')
+    .replaceAll('[GANCHO_ADESAO]', ganchoHtml)
     .replaceAll('{{PF}}', PF)
     .replaceAll('{{P}}', P);
 
@@ -212,6 +220,7 @@ Deno.serve(async (req) => {
       const empresa = String(body.nome_empresa ?? 'Empresa Exemplo');
       const cidadePrev = String(body.cidade ?? '');
       const sitePrev   = String(body.site ?? '');
+      const ganchoPrev = String(body.gancho_adesao ?? '');
       const ordem   = body.ordem ? Number(body.ordem) : null;
       const alvo    = ordem ? etapas.filter(e => e.ordem === ordem) : etapas;
       if (!alvo.length) return json({ success: false, error: `Etapa ${ordem} não existe ou está inativa` }, 404);
@@ -219,7 +228,7 @@ Deno.serve(async (req) => {
       const montados = alvo.map(e => ({
         ordem: e.ordem,
         dia: e.dia,
-        ...montarEmail(trilha, e, etapas.length, nome, empresa, cidadePrev, sitePrev),
+        ...montarEmail(trilha, e, etapas.length, nome, empresa, cidadePrev, sitePrev, ganchoPrev),
       }));
 
       if (body.modo === 'preview') {
@@ -241,7 +250,7 @@ Deno.serve(async (req) => {
     if (body.contact_id) {
       const { data: c } = await supabase
         .from('email_cadencia')
-        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha, cidade, site')
+        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha, cidade, site, gancho_adesao')
         .eq('id', body.contact_id)
         .single();
 
@@ -259,6 +268,7 @@ Deno.serve(async (req) => {
       const { assunto, html } = montarEmail(
         trilha, primeira, etapas.length, c.nome_contato, c.nome_empresa,
         String((c as any).cidade ?? ''), String((c as any).site ?? ''),
+        String((c as any).gancho_adesao ?? ''),
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
@@ -306,7 +316,7 @@ Deno.serve(async (req) => {
 
     const { data: contatos, error: errContatos } = await supabase
       .from('email_cadencia')
-      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site')
+      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site, gancho_adesao')
       .eq('ativo', true)
       .gte('data_inicio', limiteInicio)
       .lte('data_inicio', today);
@@ -352,6 +362,7 @@ Deno.serve(async (req) => {
       const { assunto, html } = montarEmail(
         trilha, pendente, etapas.length, c.nome_contato, c.nome_empresa,
         String((c as any).cidade ?? ''), String((c as any).site ?? ''),
+        String((c as any).gancho_adesao ?? ''),
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
