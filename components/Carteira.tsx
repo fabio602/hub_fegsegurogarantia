@@ -67,6 +67,7 @@ export default function Carteira() {
   const [feitos, setFeitos] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
   const [cadastroAberto, setCadastroAberto] = useState(false);
+  const [fichaAberta, setFichaAberta] = useState(false);
 
   const atual = toques[i];
 
@@ -184,7 +185,7 @@ export default function Carteira() {
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (cadastroAberto) return;
+      if (cadastroAberto || fichaAberta) return;
       if (/input|select|textarea/i.test((e.target as HTMLElement).tagName)) return;
       if (e.key.toLowerCase() === 'l') return setVista(v => (v === 'foco' ? 'lista' : 'foco'));
       if (vista !== 'foco' || !atual || painel) return;
@@ -194,7 +195,7 @@ export default function Carteira() {
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [vista, atual, painel, cadastroAberto]);
+  }, [vista, atual, painel, cadastroAberto, fichaAberta]);
 
   if (carregando) return <div className="p-8 text-sm text-navy/50">Carregando a carteira...</div>;
 
@@ -232,7 +233,7 @@ export default function Carteira() {
 
       {vista === 'foco' && (atual ? (
         <CardFoco t={atual} hist={hist} semStaff={!staffId} onAbrirCadastro={() => setCadastroAberto(true)}
-          editando={editando} setEditando={setEditando}
+          onAbrirFicha={() => setFichaAberta(true)} editando={editando} setEditando={setEditando}
           onSalvarCampo={salvarCampo} onToque={registrarToque} onDesfecho={d => d === 'nao_renova' ? setPainel('motivo') : concluir(d)}
           painel={painel} setPainel={setPainel} onEscolher={(m: string) =>
             painel === 'erro' ? concluir('encerrada', m) : concluir('nao_renova', m)} />
@@ -264,6 +265,26 @@ export default function Carteira() {
         </div>
       )}
 
+      {/* Ficha do cliente: reaproveita o card da Carteira de Clientes, já filtrado
+          pelo CNPJ (ou nome) do cliente do card. Fechar mantém a fila onde estava. */}
+      {fichaAberta && atual && (
+        <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={() => setFichaAberta(false)}>
+          <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
+            <div className="bg-areia rounded-2xl w-full max-w-2xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
+                <span className="text-[11px] font-black tracking-widest uppercase">Ficha do cliente · {atual.sales?.nome}</span>
+                <button onClick={() => setFichaAberta(false)} aria-label="Fechar ficha do cliente"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
+              </div>
+              <div className="p-4 sm:p-6">
+                <ResultsDashboard key={atual.sale_id} initialSection="carteira" hideTabs
+                  initialClienteFiltro={atual.sales?.cnpj || atual.sales?.nome} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cadastro completo: reaproveita o formulário de venda do ResultsDashboard,
           já aberto em edição na venda do card. Fechar mantém a fila onde estava. */}
       {cadastroAberto && atual && (
@@ -286,7 +307,7 @@ export default function Carteira() {
   );
 }
 
-function CardFoco({ t, hist, semStaff, onAbrirCadastro, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
+function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
   const s = t.sales, g = GATILHOS[t.gatilho];
   const atraso = diasDe(t.vence_em);
   const campos = [
@@ -306,7 +327,12 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, editando, setEditando, o
         <span className="bg-areia-escura text-navy/60 px-2.5 py-1.5 rounded-md">{g?.rot}</span>
       </div>
 
-      <h2 className="text-[27px] font-black tracking-tight leading-tight text-navy mb-3">{s.nome}</h2>
+      <h2 className="text-[27px] font-black tracking-tight leading-tight text-navy mb-3">
+        <button onClick={onAbrirFicha} title="Abrir a ficha do cliente na Carteira de Clientes"
+          className="text-left hover:underline decoration-dotted decoration-navy/30 underline-offset-4">
+          {s.nome}
+        </button>
+      </h2>
       <p className="text-[17px] leading-relaxed text-navy max-w-[60ch]">{g?.acao(s)}</p>
 
       {g?.perguntar && (

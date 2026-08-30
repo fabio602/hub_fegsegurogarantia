@@ -363,10 +363,13 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string }; initialEditSaleId?: number }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData, initialEditSaleId }) => {
+const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string }; initialEditSaleId?: number; initialClienteFiltro?: string }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData, initialEditSaleId, initialClienteFiltro }) => {
     // Modo embutido (modal "Abrir cadastro completo" da aba Pós-venda):
     // a seção de vendas mostra só o formulário, sem banner, filtros e listagem.
     const somenteFormulario = !!initialEditSaleId;
+    // Modo embutido (modal "ficha do cliente" da aba Pós-venda): a carteira abre
+    // já filtrada num cliente (CNPJ ou nome), sem o cabeçalho de busca.
+    const somenteFicha = !!initialClienteFiltro;
     const { toast, confirm: confirmDialog } = useToast();
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const saleFormRef = useRef<HTMLDivElement>(null);
@@ -470,7 +473,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
     // Filters
     const [salesMonthFilter, setSalesMonthFilter] = useState('');
-    const [salesSearch, setSalesSearch] = useState('');
+    const [salesSearch, setSalesSearch] = useState(initialClienteFiltro ?? '');
     const [salesStatusFilter, setSalesStatusFilter] = useState('');
     const [salesTipoFilter, setSalesTipoFilter] = useState('');
     const [salesVendedorFilter, setSalesVendedorFilter] = useState('');
@@ -3458,6 +3461,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
             {activeSection === 'carteira' && (
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                    {!somenteFicha && (
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-800">Carteira de Clientes</h2>
@@ -3487,6 +3491,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             </div>
                         </div>
                     </div>
+                    )}
 
                     {saveError && (
                         <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-medium">
@@ -3501,7 +3506,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className={somenteFicha ? 'grid grid-cols-1 gap-6' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'}>
                         {(() => {
                             // Define the ClientPortfolioItem type
                             interface ClientPortfolioItem {
