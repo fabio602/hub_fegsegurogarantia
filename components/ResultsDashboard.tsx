@@ -363,7 +363,7 @@ function loadExpiryReminderDismissed(): Set<string> {
 
 type Section = 'sales' | 'prospects' | 'pendencias' | 'goals' | 'annualGoals' | 'carteira' | 'pnpc' | 'licitante' | 'contrato';
 
-const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string } }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData }) => {
+const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean; onVerVendas?: () => void; initialSaleData?: { nome: string; telefone: string }; initialEditSaleId?: number }> = ({ initialSection = 'sales', hideTabs = false, onVerVendas, initialSaleData, initialEditSaleId }) => {
     const { toast, confirm: confirmDialog } = useToast();
     const [activeSection, setActiveSection] = useState<Section>(initialSection);
     const saleFormRef = useRef<HTMLDivElement>(null);
@@ -1457,6 +1457,18 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    // Abre uma venda específica para edição assim que a lista chega do banco
+    // (ex.: "Abrir cadastro completo" na aba Pós-venda). Aplica uma única vez.
+    const editInicialAplicadoRef = React.useRef(false);
+    useEffect(() => {
+        if (!initialEditSaleId || editInicialAplicadoRef.current) return;
+        const alvo = sales.find(s => s.id === initialEditSaleId);
+        if (!alvo) return;
+        editInicialAplicadoRef.current = true;
+        handleEdit(alvo);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialEditSaleId, sales]);
 
     const handleDelete = async (id: number) => {
         if (!(await confirmDialog('Deseja realmente excluir este registro? Esta ação não pode ser desfeita.'))) return;

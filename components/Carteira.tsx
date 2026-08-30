@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ResultsDashboard from './ResultsDashboard';
 
 /**
  * Aba Carteira (pos-venda).
@@ -64,6 +66,7 @@ export default function Carteira() {
   const [carregando, setCarregando] = useState(true);
   const [feitos, setFeitos] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [cadastroAberto, setCadastroAberto] = useState(false);
 
   const atual = toques[i];
 
@@ -158,6 +161,14 @@ export default function Carteira() {
     notificar('Corrigido. Registrado no histórico.');
   }
 
+  async function fecharCadastro() {
+    setCadastroAberto(false);
+    if (!atual) return;
+    // Recarrega só a venda do card, mantendo a fila na mesma posição.
+    const { data } = await supabase.from('sales').select('*').eq('id', atual.sale_id).single();
+    if (data) setToques(ts => ts.map(t => t.sale_id === atual.sale_id ? { ...t, sales: data } : t));
+  }
+
   async function salvarRevisao(r: any, tipo: string, ini: string, fim: string) {
     const dias = Math.round((+new Date(fim) - +new Date(ini)) / 86400000);
     if (dias < 0) return notificar('O fim não pode ser antes do início.');
@@ -173,6 +184,7 @@ export default function Carteira() {
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      if (cadastroAberto) return;
       if (/input|select|textarea/i.test((e.target as HTMLElement).tagName)) return;
       if (e.key.toLowerCase() === 'l') return setVista(v => (v === 'foco' ? 'lista' : 'foco'));
       if (vista !== 'foco' || !atual || painel) return;
@@ -182,7 +194,7 @@ export default function Carteira() {
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [vista, atual, painel]);
+  }, [vista, atual, painel, cadastroAberto]);
 
   if (carregando) return <div className="p-8 text-sm text-navy/50">Carregando a carteira...</div>;
 
@@ -219,7 +231,8 @@ export default function Carteira() {
       </header>
 
       {vista === 'foco' && (atual ? (
-        <CardFoco t={atual} hist={hist} semStaff={!staffId} editando={editando} setEditando={setEditando}
+        <CardFoco t={atual} hist={hist} semStaff={!staffId} onAbrirCadastro={() => setCadastroAberto(true)}
+          editando={editando} setEditando={setEditando}
           onSalvarCampo={salvarCampo} onToque={registrarToque} onDesfecho={d => d === 'nao_renova' ? setPainel('motivo') : concluir(d)}
           painel={painel} setPainel={setPainel} onEscolher={(m: string) =>
             painel === 'erro' ? concluir('encerrada', m) : concluir('nao_renova', m)} />
@@ -250,11 +263,30 @@ export default function Carteira() {
           {aviso}
         </div>
       )}
+
+      {/* Cadastro completo: reaproveita o formulário de venda do ResultsDashboard,
+          já aberto em edição na venda do card. Fechar mantém a fila onde estava. */}
+      {cadastroAberto && atual && (
+        <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={fecharCadastro}>
+          <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
+            <div className="bg-areia rounded-2xl w-full max-w-6xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
+                <span className="text-[11px] font-black tracking-widest uppercase">Cadastro completo · {atual.sales?.nome}</span>
+                <button onClick={fecharCadastro} aria-label="Fechar cadastro completo"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
+              </div>
+              <div className="p-4 sm:p-6">
+                <ResultsDashboard key={atual.sale_id} initialSection="sales" hideTabs initialEditSaleId={atual.sale_id} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function CardFoco({ t, hist, semStaff, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
+function CardFoco({ t, hist, semStaff, onAbrirCadastro, editando, setEditando, onSalvarCampo, onToque, onDesfecho, painel, setPainel, onEscolher }: any) {
   const s = t.sales, g = GATILHOS[t.gatilho];
   const atraso = diasDe(t.vence_em);
   const campos = [
@@ -288,8 +320,8 @@ function CardFoco({ t, hist, semStaff, editando, setEditando, onSalvarCampo, onT
         {campos.map(c => (
           <div key={c.k} className="group -mx-2 px-2 py-1 rounded-md hover:bg-areia cursor-pointer"
             onClick={() => setEditando(c.k)}>
-            <div className="text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1">
-              {c.rot}<span className="ml-1.5 opacity-0 group-hover:opacity-100 normal-case tracking-normal font-semibold">editar</span>
+            <div className="flex items-center gap-1.5 text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1">
+              {c.rot}<Pencil size={10} className="shrink-0 opacity-70 group-hover:opacity-100" aria-hidden />
             </div>
             {editando === c.k ? (
               c.tipo === 'select' ? (
@@ -304,7 +336,7 @@ function CardFoco({ t, hist, semStaff, editando, setEditando, onSalvarCampo, onT
                   onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditando(null); }} />
               )
             ) : (
-              <div className="text-[13px] font-semibold text-navy max-w-[34ch]">
+              <div className="text-[13px] font-semibold text-navy max-w-[34ch] underline decoration-dotted decoration-navy/30 underline-offset-4">
                 {c.tipo === 'date' ? fmt(s[c.k]) : (s[c.k] || <span className="text-navy/30">não informado</span>)}
               </div>
             )}
@@ -357,6 +389,9 @@ function CardFoco({ t, hist, semStaff, editando, setEditando, onSalvarCampo, onT
       <div className="flex gap-5 flex-wrap mt-5 pt-4 border-t border-navy/10">
         <button onClick={() => setPainel('erro')} className="text-xs font-semibold text-navy/50 underline underline-offset-4 hover:text-navy">
           Este registro está errado
+        </button>
+        <button onClick={onAbrirCadastro} className="text-xs font-semibold text-navy/50 underline underline-offset-4 hover:text-navy">
+          Abrir cadastro completo
         </button>
         {s.apolice_url && (
           <a href={s.apolice_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-navy/50 underline underline-offset-4 hover:text-navy">
