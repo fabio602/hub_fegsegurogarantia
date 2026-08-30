@@ -1412,7 +1412,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                             </div>
                             <div className="flex gap-2 mt-3">
                                 <button onClick={() => handleEdit(c)} className="flex-1 py-2 bg-navy text-white text-xs font-bold rounded-xl">Editar</button>
-                                <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-rose-50 text-rose-500 text-xs font-bold rounded-xl border border-rose-100">✕</button>
+                                <button onClick={() => handleDelete(c.id)} className="py-2 px-3 bg-rose-50 text-rose-500 text-xs font-bold rounded-xl border border-rose-100"><X size={14} /></button>
                             </div>
                         </div>
                     ))}

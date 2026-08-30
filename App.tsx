@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Mail,
   Search,
+  Handshake,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
@@ -796,8 +797,8 @@ const App: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
-                      { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: '🤝' },
-                      { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: '🏠' },
+                      { label: 'Portal do Parceiro', desc: 'Acesso dos parceiros comerciais ao relatório de comissões', url: 'https://hub.fegsegurogarantia.com/parceiros-login.html', icon: <Handshake size={20} className="text-gold" /> },
+                      { label: 'Portal da Imobiliária', desc: 'Acesso das imobiliárias parceiras ao portal de clientes', url: 'https://hub.fegsegurogarantia.com/imobiliaria.html', icon: <Home size={20} className="text-gold" /> },
                     ].map((portal, idx) => (
                       <div key={idx} className="bg-white rounded-2xl border border-slate-100 p-4 lg:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">

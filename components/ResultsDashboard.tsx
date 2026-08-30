@@ -2132,7 +2132,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                     </div>
                                     <div>
                                         <p className="font-bold text-amber-800 text-sm">
-                                            ⚠️ {alerts.length} apólice{alerts.length > 1 ? 's' : ''} <span className="text-amber-900">Performance</span>{' '}
+                                            {alerts.length} apólice{alerts.length > 1 ? 's' : ''} <span className="text-amber-900">Performance</span>{' '}
                                             {alerts.length > 1 ? 'vencem' : 'vence'} nos próximos 30 dias
                                         </p>
                                         <p className="text-amber-600 text-xs font-medium">Acione o cliente para renovação (apenas tipo Performance).</p>
@@ -2301,7 +2301,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <p className="text-blue-700 text-xs font-bold flex-1">
                                             E-mail de agradecimento enviado automaticamente para <strong>{partnerThankYou.name}</strong>.
                                         </p>
-                                        <button onClick={() => setPartnerThankYou(null)} className="text-blue-300 hover:text-blue-500 text-xs">✕</button>
+                                        <button onClick={() => setPartnerThankYou(null)} className="text-blue-300 hover:text-blue-500 text-xs"><X size={14} /></button>
                                     </div>
                                 )}
                                 
@@ -2731,9 +2731,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 }
                                             }}
                                                 className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-400/20">
-                                                <option value="Em dia">✅ Em dia</option>
-                                                <option value="A vencer">⚠️ A vencer</option>
-                                                <option value="Vencido">🔴 Vencido</option>
+                                                <option value="Em dia">Em dia</option>
+                                                <option value="A vencer">A vencer</option>
+                                                <option value="Vencido">Vencido</option>
                                                 <option value="Pago">💚 Pago</option>
                                             </select>
                                         </div>
@@ -3070,7 +3070,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             onClick={() => { setShowEmailDispatcher(true); setEmailDispatchStatus('idle'); }}
                             className="flex items-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl shadow transition-all shrink-0"
                         >
-                            🚀 Disparador de Emails
+                            <Send size={15} /> Disparador de Emails
                         </button>
                     </div>
 
@@ -3085,7 +3085,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-black text-slate-800">Disparador de Emails — {activeKanbanProduct}</h3>
-                            <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all">✕</button>
+                            <button onClick={() => setShowEmailDispatcher(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all"><X size={14} /></button>
                         </div>
                         <p className="text-xs text-slate-500">Cole o HTML do email abaixo. Use <code className="bg-slate-100 px-1 rounded-xl">[NOME_CONTATO]</code> e <code className="bg-slate-100 px-1 rounded-xl">[NOME_EMPRESA]</code> como variáveis.</p>
                         <textarea
@@ -3100,13 +3100,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             disabled={emailDispatchStatus === 'sending'}
                             className="w-full py-3 bg-navy hover:bg-navy-light disabled:opacity-60 text-white font-bold text-sm rounded-xl transition-all"
                         >
-                            {emailDispatchStatus === 'sending' ? '⏳ Enviando...' : '🚀 Salvar Template e Iniciar Envios'}
+                            {emailDispatchStatus === 'sending' ? 'Enviando...' : 'Salvar Template e Iniciar Envios'}
                         </button>
                         {emailDispatchStatus === 'success' && (
-                            <p className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 rounded-xl py-3">✅ Comando recebido! O n8n já está enviando os emails.</p>
+                            <p className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 rounded-xl py-3">Comando recebido! O n8n já está enviando os emails.</p>
                         )}
                         {emailDispatchStatus === 'error' && (
-                            <p className="text-center text-sm font-bold text-rose-600 bg-rose-50 rounded-xl py-3">❌ Erro de conexão. Verifique se a automação está ativa.</p>
+                            <p className="text-center text-sm font-bold text-rose-600 bg-rose-50 rounded-xl py-3">Erro de conexão. Verifique se a automação está ativa.</p>
                         )}
                     </div>
                 </div>,
@@ -3122,7 +3122,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 <h3 className="text-lg font-black text-slate-800">Boletos — {boletoModalNome}</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {boletoModalEmail
-                                        ? <>📧 Para <span className="font-bold text-gold">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
+                                        ? <>Para <span className="font-bold text-gold">{boletoModalContato || boletoModalNome}</span> · {boletoModalEmail}</>
                                         : <span className="text-amber-500">⚠ Sem e-mail cadastrado neste registro</span>
                                     }
                                 </p>
@@ -3630,7 +3630,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         {client.telefone && (
                                                             <div className="flex items-center gap-2">
                                                                 <p className="text-xs font-medium text-slate-500 break-all flex flex-wrap items-center gap-1">
-                                                                    <span aria-hidden>📞</span>
+                                                                    
                                                                     <WhatsAppPhoneLink phone={client.telefone} className="text-slate-600" />
                                                                 </p>
                                                                 <CopyButton text={client.telefone} label="Telefone" />

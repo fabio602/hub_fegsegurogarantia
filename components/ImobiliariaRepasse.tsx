@@ -1254,7 +1254,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                                 }}
                                 style={{ marginLeft: '6px', padding: '2px 5px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
                                 title="Excluir"
-                              >✕</button>
+                              ><X size={14} /></button>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px', flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>
