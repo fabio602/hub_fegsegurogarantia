@@ -2878,17 +2878,19 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     {/* Table Card */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                            {/* min-w garante que a tabela transborde o card e o wrapper role na horizontal,
+                                em vez de espremer a coluna Vendedor. */}
+                            <table className="w-full min-w-[1180px] text-left">
+                                <thead className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                                     <tr>
-                                        <th className="px-6 py-5 align-top">Data</th>
-                                        <th className="px-6 py-5 align-top">
-                                            <span className="block">Lead</span>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap w-[92px] text-slate-600">Data</th>
+                                        <th className="px-4 py-3 align-middle w-[220px]">
+                                            <span className="block text-slate-600">Lead</span>
                                             <select
                                                 value={salesLeadNomeFilter}
                                                 onChange={(e) => setSalesLeadNomeFilter(e.target.value)}
                                                 aria-label="Filtrar por cliente"
-                                                className="mt-1 block w-fit max-w-[min(100%,200px)] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1.5 block w-fit max-w-[160px] cursor-pointer rounded-xl border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy outline-none transition-colors hover:border-gold focus:border-gold focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {([...new Set(sales.map((s) => (s.nome ?? '').trim()).filter((x): x is string => Boolean(x)))] as string[]).sort((a, b) =>
@@ -2898,13 +2900,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 ))}
                                             </select>
                                         </th>
-                                        <th className="px-6 py-5 align-top">
-                                            <span className="block">Origem</span>
+                                        <th className="px-4 py-3 align-middle w-[120px]">
+                                            <span className="block text-slate-600">Origem</span>
                                             <select
                                                 value={salesOrigemFilter}
                                                 onChange={(e) => setSalesOrigemFilter(e.target.value)}
                                                 aria-label="Filtrar por origem"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1.5 block w-fit max-w-[100px] cursor-pointer rounded-xl border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy outline-none transition-colors hover:border-gold focus:border-gold focus:ring-0"
                                             >
                                                 <option value="">Todas</option>
                                                 {LIST_DATA.origem.map((o) => (
@@ -2912,13 +2914,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 ))}
                                             </select>
                                         </th>
-                                        <th className="px-6 py-5 align-top">
-                                            <span className="block">Status</span>
+                                        <th className="px-4 py-3 align-middle w-[130px]">
+                                            <span className="block text-slate-600">Status</span>
                                             <select
                                                 value={salesStatusFilter}
                                                 onChange={(e) => setSalesStatusFilter(e.target.value)}
                                                 aria-label="Filtrar por status"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1.5 block w-fit max-w-[100px] cursor-pointer rounded-xl border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy outline-none transition-colors hover:border-gold focus:border-gold focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 <option value="Sim">Sim</option>
@@ -2926,13 +2928,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 <option value="Em andamento">Em andamento</option>
                                             </select>
                                         </th>
-                                        <th className="px-6 py-5 align-top">
-                                            <span className="block">Seguro</span>
+                                        <th className="px-4 py-3 align-middle w-[130px]">
+                                            <span className="block text-slate-600">Seguro</span>
                                             <select
                                                 value={salesTipoFilter}
                                                 onChange={(e) => setSalesTipoFilter(e.target.value)}
                                                 aria-label="Filtrar por tipo de seguro"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1.5 block w-fit max-w-[100px] cursor-pointer rounded-xl border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy outline-none transition-colors hover:border-gold focus:border-gold focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {LIST_DATA.tipoSeguro.map((t) => (
@@ -2940,15 +2942,15 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 ))}
                                             </select>
                                         </th>
-                                        <th className="px-6 py-5 align-top">Prêmio</th>
-                                        <th className="px-6 py-5 align-top">Comissão</th>
-                                        <th className="px-6 py-5 align-top">
-                                            <span className="block">Vendedor</span>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap w-[120px] text-slate-600">Prêmio</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap w-[120px] text-slate-600">Comissão</th>
+                                        <th className="px-4 py-3 align-middle w-[140px]">
+                                            <span className="block text-slate-600">Vendedor</span>
                                             <select
                                                 value={salesVendedorFilter}
                                                 onChange={(e) => setSalesVendedorFilter(e.target.value)}
                                                 aria-label="Filtrar por vendedor"
-                                                className="mt-1 block w-fit max-w-[80px] bg-transparent border-none outline-none cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-400 focus:ring-0"
+                                                className="mt-1.5 block w-fit max-w-[110px] cursor-pointer rounded-xl border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy outline-none transition-colors hover:border-gold focus:border-gold focus:ring-0"
                                             >
                                                 <option value="">Todos</option>
                                                 {vendedorSelectOptions.map((v) => (
@@ -2956,11 +2958,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 ))}
                                             </select>
                                         </th>
-                                        <th className="px-6 py-5 text-center align-top">Apólice</th>
-                                        <th className="px-6 py-5 text-center align-top">Boleto</th>
+                                        <th className="px-4 py-3 text-center align-middle whitespace-nowrap w-[110px] text-slate-600">Apólice</th>
+                                        <th className="px-4 py-3 text-center align-middle whitespace-nowrap w-[130px] text-slate-600">Boleto</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-100">
                                     {sales
                                         .filter((s) => (salesMonthFilter ? s.data.startsWith(salesMonthFilter) : true))
                                         .filter((s) =>
@@ -2978,45 +2980,45 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                             salesLeadNomeFilter ? (s.nome ?? '').trim() === salesLeadNomeFilter : true
                                         )
                                         .map((sale) => (
-                                            <tr key={sale.id} onClick={() => handleEdit(sale)} className={`group transition-all cursor-pointer ${editingId === sale.id ? 'bg-gold/10 border-l-2 border-l-gold' : 'hover:bg-gold/5'}`}>
-                                                <td className="px-6 py-5 text-sm font-medium text-slate-500">{sale.data.split('-').reverse().join('/')}</td>
-                                                <td className="px-6 py-5">
+                                            <tr key={sale.id} onClick={() => handleEdit(sale)} className={`group transition-colors duration-150 cursor-pointer ${editingId === sale.id ? 'bg-gold/10 border-l-2 border-l-gold' : 'hover:bg-slate-50'}`}>
+                                                <td className="px-4 py-3.5 align-middle text-xs font-medium text-slate-500 whitespace-nowrap">{sale.data.split('-').reverse().join('/')}</td>
+                                                <td className="px-4 py-3.5 align-middle max-w-[220px]">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="font-bold text-slate-800 tracking-tight">{sale.nome}</div>
+                                                        <div className="truncate text-sm font-bold text-slate-800 tracking-tight" title={sale.nome}>{sale.nome}</div>
                                                         {(sale as any).survey_score && (
                                                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
                                                                 ⭐ {(sale as any).survey_score}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400 font-bold uppercase">{sale.seguradora || 'S/ Seguradora'}</div>
+                                                    <div className="truncate text-[10px] text-slate-400 font-bold uppercase">{sale.seguradora || 'S/ Seguradora'}</div>
                                                 </td>
-                                                <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.origem}</td>
-                                                <td className="px-6 py-5">
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider ${sale.vendeu === 'Sim' ? 'bg-emerald-50 text-emerald-600' :
-                                                        sale.vendeu === 'Não' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600'
-                                                        }`}>
-                                                        {sale.vendeu === 'Sim' ? <CheckCircle2 size={12} /> :
-                                                            sale.vendeu === 'Não' ? <AlertCircle size={12} /> : <Clock size={12} />}
+                                                <td className="px-4 py-3.5 align-middle text-xs text-slate-600 font-medium">{sale.origem}</td>
+                                                <td className="px-4 py-3.5 align-middle">
+                                                    {/* Badge discreto: o significado fica no ponto colorido, não no fundo inteiro. */}
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-[10px] font-bold uppercase tracking-wider text-slate-600 whitespace-nowrap">
+                                                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sale.vendeu === 'Sim' ? 'bg-emerald-500' :
+                                                            sale.vendeu === 'Não' ? 'bg-rose-400' : 'bg-blue-400'
+                                                            }`} />
                                                         {sale.vendeu}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-5 text-sm text-slate-700 font-bold">{sale.tipo}</td>
-                                                <td className="px-6 py-5 text-sm text-slate-800 font-bold">{sale.premio || '-'}</td>
-                                                <td className="px-6 py-5 text-sm text-gold font-bold">{sale.comissao || '-'}</td>
-                                                <td className="px-6 py-5 text-sm text-slate-600 font-medium">{sale.vendedor}</td>
-                                                <td className="px-6 py-5 text-center">
+                                                <td className="px-4 py-3.5 align-middle text-xs text-slate-700 font-semibold">{sale.tipo}</td>
+                                                <td className="px-4 py-3.5 align-middle text-[15px] text-navy font-bold tabular-nums whitespace-nowrap">{sale.premio || <span className="font-normal text-slate-300">-</span>}</td>
+                                                <td className="px-4 py-3.5 align-middle text-sm text-gold font-bold tabular-nums whitespace-nowrap">{sale.comissao || <span className="font-normal text-slate-300">-</span>}</td>
+                                                <td className="px-4 py-3.5 align-middle text-xs text-slate-600 font-medium whitespace-nowrap">{sale.vendedor}</td>
+                                                <td className="px-4 py-3.5 align-middle text-center">
                                                     {(sale as any).apolice_url ? (
                                                         <a
                                                             href={(sale as any).apolice_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all"
                                                         >
                                                             <Download size={13} /> PDF
                                                         </a>
                                                     ) : (
-                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">
+                                                        <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">
                                                             {uploadingApoliceId === sale.id ? <Loader2 size={13} className="animate-spin" /> : <Shield size={13} />}
                                                             {uploadingApoliceId === sale.id ? '...' : 'Upload'}
                                                             <input
@@ -3032,17 +3034,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         </label>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-5 text-center">
+                                                <td className="px-4 py-3.5 align-middle text-center">
                                                     {(() => {
                                                         const s = boletosSummary[sale.id];
                                                         return (
                                                             <button
                                                                 onClick={() => openBoletoModal(sale.id, sale.nome || '', (sale as any).email || '', (sale as any).decisor || '')}
-                                                                className={`inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                                className={`inline-flex flex-col items-center px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${s && s.emAberto > 0 ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : s && s.total > 0 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                                                             >
-                                                                <span className="inline-flex items-center gap-1"><FileText size={13} /> Boletos</span>
+                                                                <span className="inline-flex items-center gap-1 whitespace-nowrap"><FileText size={13} /> Boletos</span>
                                                                 {s && s.total > 0 && (
-                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl ${s.emAberto > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                    <span className={`text-[10px] font-bold leading-tight whitespace-nowrap ${s.emAberto > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                                                                         {s.emAberto > 0 ? `${s.emAberto} em aberto` : 'Todos pagos'}
                                                                     </span>
                                                                 )}
@@ -4310,17 +4312,17 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="table-scroll-x">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-widest border-b border-slate-200">
                                     <tr>
-                                        <th className="px-6 py-5">Item de Controle</th>
-                                        <th className="px-4 py-5">Semana 1</th>
-                                        <th className="px-4 py-5">Semana 2</th>
-                                        <th className="px-4 py-5">Semana 3</th>
-                                        <th className="px-4 py-5">Semana 4</th>
-                                        <th className="px-6 py-5 bg-slate-100/50">Total Mês</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap">Item de Controle</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap">Semana 1</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap">Semana 2</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap">Semana 3</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap">Semana 4</th>
+                                        <th className="px-4 py-3 align-middle whitespace-nowrap bg-slate-100">Total Mês</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50 text-sm">
+                                <tbody className="divide-y divide-slate-100 text-sm">
                                     {(() => {
                                         const weeks = [
                                             { start: 1, end: 7 },
@@ -4368,10 +4370,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         ];
 
                                         return rows.map((row) => (
-                                            <tr key={row.label} className={row.isKPI ? 'bg-slate-50/30' : ''}>
-                                                <td className={`px-6 py-4 font-bold ${row.isKPI ? 'text-gold' : 'text-slate-700'}`}>{row.label}</td>
+                                            <tr key={row.label} className={`transition-colors duration-150 hover:bg-slate-50 ${row.isKPI ? 'bg-slate-50/60' : ''}`}>
+                                                <td className={`px-4 py-3 align-middle text-sm font-bold ${row.isKPI ? 'text-gold' : 'text-slate-700'}`}>{row.label}</td>
                                                 {row.data.map((val, i) => (
-                                                    <td key={i} className="px-4 py-4">
+                                                    <td key={i} className="px-4 py-3 align-middle">
                                                         {row.isManual ? (
                                                             <input
                                                                 type="number"
@@ -4386,7 +4388,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         )}
                                                     </td>
                                                 ))}
-                                                <td className="px-6 py-4 bg-slate-100/30 font-bold text-slate-800">
+                                                <td className="px-4 py-3 align-middle bg-slate-50 text-sm font-bold text-navy tabular-nums whitespace-nowrap">
                                                     {row.isCurrency ? formatCurrency(row.total) : (row.isPercent ? `${row.total.toFixed(1)}%` : row.total)}
                                                 </td>
                                             </tr>

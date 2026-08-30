@@ -321,8 +321,8 @@ export default function ProspeccaoPncpAuto() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-left text-xs text-slate-400 uppercase tracking-wide">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr className="text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                                     <th className="px-6 py-3">Execução</th>
                                     <th className="px-3 py-3">Referência</th>
                                     <th className="px-3 py-3">Modo</th>

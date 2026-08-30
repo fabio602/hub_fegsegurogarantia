@@ -300,10 +300,10 @@ export default function ProspeccaoEmail() {
           </div>
           <div className="overflow-x-auto max-h-48">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-slate-100">
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Nome</th>
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Empresa</th>
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase text-slate-400">Email</th>
+              <thead className="bg-slate-50 border-b border-slate-200"><tr>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Nome</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Empresa</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Email</th>
               </tr></thead>
               <tbody>
                 {importPreview.slice(0, 10).map((r, i) => (
@@ -340,14 +340,14 @@ export default function ProspeccaoEmail() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Contato</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Empresa</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilha</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Email</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Início</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400" colSpan={5}>Status Emails</th>
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Contato</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Empresa</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Trilha</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Email</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Início</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600" colSpan={5}>Status Emails</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
