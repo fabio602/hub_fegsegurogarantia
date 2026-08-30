@@ -53,6 +53,7 @@ import ProspeccaoPncpAuto from './components/ProspeccaoPncpAuto.tsx';
 import PncpProspection from './components/PncpProspection.tsx';
 import GarimpoAutomatico from './components/GarimpoAutomatico.tsx';
 import EmailTrilhas from './components/EmailTrilhas.tsx';
+import Carteira from './components/Carteira.tsx';
 import EmailFollowUp from './components/EmailFollowUp';
 import GarantiaLocaticia from './components/GarantiaLocaticia';
 import InadimplentesResidencial from './components/InadimplentesResidencial.tsx';
@@ -65,7 +66,7 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg'
-  | 'carteira' | 'prospeccao' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
+  | 'carteira' | 'posvenda' | 'prospeccao' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -77,7 +78,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'posvenda', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
@@ -92,6 +93,7 @@ const VIEW_TITLES: Record<View, string> = {
   calculator: 'Calculadora de Seguros',
   'endosso-allseg': 'Pedido de Endosso · Allseg',
   carteira: 'Carteira de Clientes',
+  posvenda: 'Pós-venda',
   prospeccao: 'Prospecção',
   'prospeccao-email': 'Prospecção Email',
   'email-trilhas': 'Trilhas de E-mail',
@@ -511,6 +513,7 @@ const App: React.FC = () => {
                 </NavSubGroup>
                 <NavSubItem view="goals" label="Registro de Vendas" />
                 <NavSubItem view="carteira" label="Carteira de Clientes" />
+                <NavSubItem view="posvenda" label="Pós-venda" />
                 <NavSubGroup
                   groupKey="prospeccao"
                   label="Prospecção"
@@ -803,6 +806,7 @@ const App: React.FC = () => {
               {/* Seguro Garantia */}
               {vista === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
               {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
+              {vista === 'posvenda' && <Carteira />}
               {vista === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
               {vista === 'prospeccao-email' && <ProspeccaoEmail />}
               {vista === 'email-trilhas' && <EmailTrilhas />}
