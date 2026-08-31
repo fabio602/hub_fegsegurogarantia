@@ -139,6 +139,14 @@ function classificarEmail(email: string, padroesContador: string[], prefixosGene
 
 const ORDEM_TIPO_EMAIL: Record<string, number> = { direto: 0, generico_corporativo: 1, contador: 2 };
 
+// Órgão público nunca é lead, em campanha nenhuma: e-mail institucional e
+// entidades de poder público saem antes de qualquer outra regra (31/08/2026).
+const DOMINIOS_PUBLICOS = ['.gov.br', '.leg.br', '.jus.br', '.mp.br'];
+const TERMOS_PODER_PUBLICO = [
+  'prefeitura', 'governo do estado', 'conselho', 'fundacao',
+  'companhia de desenvolvimento', 'autarquia', 'sindicato', 'federacao',
+];
+
 // ─── Exclusoes ───────────────────────────────────────────────────────────────
 //
 // Regra simples: exclui quando o termo aparece no nome/categoria.
@@ -468,6 +476,7 @@ interface Campanha {
   termos_busca: string[];
   cidades: string[];
   palavras_exclusao: string[];
+  palavras_inclusao: string[] | null;
   trilha: string;
   tipo_prospect: string;
   limite_diario: number;
@@ -627,6 +636,15 @@ async function enriquecer(
       }).eq('id', item.id);
     };
 
+    // Exclusao dura de poder publico/entidade: nome OU endereco. Roda antes
+    // de tudo — orgao publico nao e cliente nem parceiro (revisao 31/08/2026).
+    const nomeEndereco = normalizar(`${item.nome} ${item.endereco ?? ''}`);
+    const termoPublico = TERMOS_PODER_PUBLICO.find((tp) => nomeEndereco.includes(tp));
+    if (termoPublico) {
+      await marcar('descartado', { motivo: `Orgao publico/entidade: "${termoPublico}" no nome ou endereco` });
+      continue;
+    }
+
     // Exclusoes que nao dependem do site.
     const nomeCat = `${item.nome} ${item.categoria ?? ''}`;
     const previa = avaliarExclusoes(c.palavras_exclusao, nomeCat, '');
@@ -646,6 +664,27 @@ async function enriquecer(
     // Exclusoes condicionais agora com o texto do site.
     const total = avaliarExclusoes(c.palavras_exclusao, nomeCat, textoSite);
     if (total.excluido) { await marcar('descartado', { motivo: total.motivo }); continue; }
+
+    // Regra de inclusao positiva (campanhas com palavras_inclusao): quem nao
+    // menciona os termos em nome, categoria ou site nao e aprovado — resolve
+    // advocacia/consultoria generica sem regra caso a caso (31/08/2026).
+    const termosInclusao = (c.palavras_inclusao ?? []).map(normalizar).filter(Boolean);
+    if (termosInclusao.length) {
+      const tudoInclusao = normalizar(nomeCat) + ' ' + normalizar(textoSite);
+      if (!termosInclusao.some((ti) => tudoInclusao.includes(ti))) {
+        await marcar('descartado', { motivo: `Sem menção a ${c.palavras_inclusao![0]}` });
+        continue;
+      }
+    }
+
+    // E-mail em dominio institucional e exclusao dura, mesmo que tudo acima passe.
+    if (email) {
+      const dominioEmail = email.toLowerCase().split('@')[1] ?? '';
+      if (DOMINIOS_PUBLICOS.some((s) => dominioEmail.endsWith(s))) {
+        await marcar('descartado', { email: email.toLowerCase(), motivo: `E-mail institucional (${dominioEmail})` });
+        continue;
+      }
+    }
 
     // CNPJ: valida e traz razao social e socio administrador.
     let extras: Record<string, unknown> = {};
@@ -1145,14 +1184,25 @@ async function conjuntosDedup(supabase: SupabaseClient) {
   return { emails, fones, cnpjs };
 }
 
-function prioridade(a: EstoqueRow, b: EstoqueRow): number {
-  const ta = ORDEM_TIPO_EMAIL[a.tipo_email ?? 'direto'] ?? 0;
-  const tb = ORDEM_TIPO_EMAIL[b.tipo_email ?? 'direto'] ?? 0;
-  if (ta !== tb) return ta - tb;
-  const sa = siteProprio(a.site) ? 0 : 1;
-  const sb = siteProprio(b.site) ? 0 : 1;
-  if (sa !== sb) return sa - sb;
-  return (b.avaliacoes ?? 0) - (a.avaliacoes ?? 0);
+// Avaliacoes do Maps favoreciam orgao publico e escritorio grande; a ordem
+// agora e: termo da campanha no proprio nome, depois e-mail direto, depois
+// site proprio, e so entao avaliacoes (revisao 31/08/2026).
+function prioridadeMaps(termosInclusao: string[] | null): (a: EstoqueRow, b: EstoqueRow) => number {
+  const stems = (termosInclusao ?? []).map(normalizar).filter(Boolean);
+  const relevancia = (r: EstoqueRow) => (stems.some((s) => normalizar(r.nome).includes(s)) ? 0 : 1);
+  return (a, b) => {
+    if (stems.length) {
+      const ra = relevancia(a); const rb = relevancia(b);
+      if (ra !== rb) return ra - rb;
+    }
+    const ta = ORDEM_TIPO_EMAIL[a.tipo_email ?? 'direto'] ?? 0;
+    const tb = ORDEM_TIPO_EMAIL[b.tipo_email ?? 'direto'] ?? 0;
+    if (ta !== tb) return ta - tb;
+    const sa = siteProprio(a.site) ? 0 : 1;
+    const sb = siteProprio(b.site) ? 0 : 1;
+    if (sa !== sb) return sa - sb;
+    return (b.avaliacoes ?? 0) - (a.avaliacoes ?? 0);
+  };
 }
 
 async function enviarDia(
@@ -1183,7 +1233,7 @@ async function enviarDia(
       .not('ultima_execucao_id', 'is', null)
       .neq('ultima_execucao_id', execId)
       .limit(200);
-    const ordenar = c.fonte === 'ccee' ? prioridadeCcee : prioridade;
+    const ordenar = c.fonte === 'ccee' ? prioridadeCcee : prioridadeMaps(c.palavras_inclusao);
     const candidatos = ([...(candidatosRaw ?? []), ...(antigosDry ?? [])] as EstoqueRow[]).sort(ordenar);
 
     for (const cand of candidatos) {
@@ -1345,7 +1395,7 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
   const { data: doDia } = await supabase.from('garimpo_estoque')
     .select('*').eq('ultima_execucao_id', execId);
   const rows = (doDia ?? []) as EstoqueRow[];
-  const enviados = rows.filter((r) => ['enviado', 'dry_run'].includes(String(r.ultimo_resultado))).sort(prioridade);
+  const enviados = rows.filter((r) => ['enviado', 'dry_run'].includes(String(r.ultimo_resultado))).sort(c.fonte === 'ccee' ? prioridadeCcee : prioridadeMaps(c.palavras_inclusao));
   const soWhatsapp = rows.filter((r) => r.ultimo_resultado === 'so_whatsapp');
   const descartados = rows.filter((r) => r.ultimo_resultado === 'descartado');
 
