@@ -4,6 +4,7 @@ import {
   Clock, Building2, User, Calendar, ChevronDown, ChevronUp, Eye, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import EmailModelos from './EmailModelos.tsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ interface StaleProspect {
   email_enviado: boolean;
 }
 
-type Tab = 'vencimentos' | 'prospectos' | 'avulso';
+type Tab = 'vencimentos' | 'prospectos' | 'avulso' | 'modelos';
 type SendKey = string;
 type SendState = 'sending' | 'sent' | 'error';
 
@@ -491,7 +492,7 @@ export default function EmailFollowUp() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-        {(['vencimentos', 'prospectos', 'avulso'] as Tab[]).map(t => (
+        {(['vencimentos', 'prospectos', 'avulso', 'modelos'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -501,7 +502,8 @@ export default function EmailFollowUp() {
           >
             {t === 'vencimentos' ? `Vencimentos${expiring.length > 0 ? ` (${expiring.length})` : ''}` :
              t === 'prospectos'  ? `Prospectos${prospects.length > 0 ? ` (${prospects.length})` : ''}` :
-             'Avulso'}
+             t === 'avulso'      ? 'Avulso' :
+             'Modelos'}
           </button>
         ))}
       </div>
@@ -696,6 +698,9 @@ export default function EmailFollowUp() {
               </div>
             </div>
           )}
+
+          {/* ── Tab: Modelos ───────────────────────────────────── */}
+          {tab === 'modelos' && <EmailModelos />}
         </>
       )}
 

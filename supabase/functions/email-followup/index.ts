@@ -17,6 +17,10 @@ function fmtDate(d: string) {
   return `${day}/${m}/${y}`
 }
 
+// ─── Molde visual ───────────────────────────────────────────────────────────
+// Fica no código de propósito: é a identidade da F&G e vale para todos os
+// modelos. O que muda de e-mail para e-mail mora na tabela email_modelos.
+
 function baseLayout(content: string) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -40,48 +44,90 @@ function baseLayout(content: string) {
 </div></body></html>`
 }
 
-function renewalHtml(nome: string, produto: string, vencimento: string, daysLeft: number, seguradora?: string) {
-  const emoji = daysLeft <= 7 ? '🔴' : daysLeft <= 30 ? '🟠' : '🟡'
-  return baseLayout(`
-    <h1>${emoji} Aviso de vencimento: ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}</h1>
-    <p>Olá, <strong>${nome}</strong>.</p>
-    <p>Sua apólice de <strong>${produto}</strong>${seguradora ? ` (${seguradora})` : ''} está se aproximando do vencimento. Queremos garantir que você não fique sem cobertura.</p>
-    <div class="highlight">
-      <strong>📅 Vencimento:</strong> ${fmtDate(vencimento)}<br/>
-      <strong>⏳ Dias restantes:</strong> ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}
-    </div>
-    <p>Entre em contato conosco agora para iniciar a renovação sem burocracia.</p>
-    <a href="https://wa.me/5515998618659?text=Ol%C3%A1!%20Preciso%20renovar%20minha%20ap%C3%B3lice%20de%20${encodeURIComponent(produto)}." class="btn">Renovar agora via WhatsApp</a>
-  `)
+// ─── Modelos ────────────────────────────────────────────────────────────────
+
+interface Modelo {
+  assunto: string
+  titulo?: string | null
+  corpo_html: string
+  cta_texto?: string | null
+  cta_link?: string | null
 }
 
-function prospectIntroHtml(nome: string, company: string | null) {
-  return baseLayout(`
-    <h1>🛡️ Seguro Garantia para ${company ? company : 'sua empresa'}</h1>
-    <p>Olá, <strong>${nome}</strong>.</p>
-    <p>Sou o <strong>Fábio</strong> da <strong>F&amp;G Corretora de Seguros</strong>. Identificamos que${company ? ` a <strong>${company}</strong>` : ' sua empresa'} pode se beneficiar das nossas soluções em <strong>Seguro Garantia</strong>.</p>
-    <div class="info">
-      <strong>O que é o Seguro Garantia?</strong><br/>
-      É a alternativa inteligente ao capital bloqueado em garantias contratuais, licitações e processos judiciais. Sua empresa mantém o fluxo de caixa livre e garante as obrigações contratuais com um prêmio acessível.
-    </div>
-    <p><strong>✅ Aprovação rápida &nbsp;·&nbsp; Sem burocracia &nbsp;·&nbsp; Melhores seguradoras do mercado</strong></p>
-    <a href="https://wa.me/5515998618659?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20o%20Seguro%20Garantia." class="btn">Solicitar apresentação</a>
-  `)
+/**
+ * Rede de segurança: se a tabela email_modelos não existir ou a linha sumir,
+ * o e-mail sai igualzinho ao que saía antes de o conteúdo ir para o banco.
+ * Nunca deixe de mandar um e-mail por causa de um registro faltando.
+ */
+const FALLBACK: Record<string, Modelo> = {
+  renewal: {
+    assunto: '[EMOJI] Sua apólice de [PRODUTO] vence em [DIAS] (F&G Corretora)',
+    titulo: '[EMOJI] Aviso de vencimento: [DIAS]',
+    corpo_html: `<p>Olá, <strong>[NOME]</strong>.</p>
+<p>Sua apólice de <strong>[PRODUTO]</strong>[SEGURADORA] está se aproximando do vencimento. Queremos garantir que você não fique sem cobertura.</p>
+<div class="highlight">
+  <strong>📅 Vencimento:</strong> [VENCIMENTO]<br/>
+  <strong>⏳ Dias restantes:</strong> [DIAS]
+</div>
+<p>Entre em contato conosco agora para iniciar a renovação sem burocracia.</p>`,
+    cta_texto: 'Renovar agora via WhatsApp',
+    cta_link: 'https://wa.me/5515998618659?text=Ol%C3%A1!%20Preciso%20renovar%20minha%20ap%C3%B3lice%20de%20[PRODUTO_URL].',
+  },
+  prospect_intro: {
+    assunto: '🛡️ Seguro Garantia para [EMPRESA] (F&G Corretora)',
+    titulo: '🛡️ Seguro Garantia para [EMPRESA]',
+    corpo_html: `<p>Olá, <strong>[NOME]</strong>.</p>
+<p>Sou o <strong>Fábio</strong> da <strong>F&amp;G Corretora de Seguros</strong>. Identificamos que a <strong>[EMPRESA]</strong> pode se beneficiar das nossas soluções em <strong>Seguro Garantia</strong>.</p>
+<div class="info">
+  <strong>O que é o Seguro Garantia?</strong><br/>
+  É a alternativa inteligente ao capital bloqueado em garantias contratuais, licitações e processos judiciais. Sua empresa mantém o fluxo de caixa livre e garante as obrigações contratuais com um prêmio acessível.
+</div>
+<p><strong>✅ Aprovação rápida &nbsp;·&nbsp; Sem burocracia &nbsp;·&nbsp; Melhores seguradoras do mercado</strong></p>`,
+    cta_texto: 'Solicitar apresentação',
+    cta_link: 'https://wa.me/5515998618659?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20o%20Seguro%20Garantia.',
+  },
+  prospect_followup: {
+    assunto: '📋 Retomando nosso contato (F&G Corretora)',
+    titulo: '📋 Retomando nosso contato',
+    corpo_html: `<p>Olá, <strong>[NOME]</strong>.</p>
+<p>Recentemente entrei em contato sobre nossas soluções em Seguro Garantia e queria saber se surgiu alguma dúvida ou oportunidade em que possamos ajudar a <strong>[EMPRESA]</strong>.</p>
+<div class="highlight">
+  Estamos prontos para apresentar uma <strong>proposta personalizada</strong> para o seu negócio, sem compromisso.
+</div>
+<p>Basta me responder este e-mail ou chamar no WhatsApp. Será um prazer conversar!</p>`,
+    cta_texto: 'Falar pelo WhatsApp',
+    cta_link: 'https://wa.me/5515998618659?text=Ol%C3%A1%20F%C3%A1bio!%20Gostaria%20de%20retomar%20nossa%20conversa%20sobre%20Seguro%20Garantia.',
+  },
 }
 
-function prospectFollowupHtml(nome: string, company: string | null) {
-  return baseLayout(`
-    <h1>📋 Retomando nosso contato</h1>
-    <p>Olá, <strong>${nome}</strong>.</p>
-    <p>Recentemente entrei em contato sobre nossas soluções em Seguro Garantia e queria saber se surgiu alguma dúvida ou oportunidade em que possamos ajudar${company ? ` a <strong>${company}</strong>` : ''}.</p>
-    <div class="highlight">
-      Estamos prontos para apresentar uma <strong>proposta personalizada</strong> para o seu negócio, sem compromisso.
-    </div>
-    <p>Basta me responder este e-mail ou chamar no WhatsApp. Será um prazer conversar!</p>
-    <a href="https://wa.me/5515998618659?text=Ol%C3%A1%20F%C3%A1bio!%20Gostaria%20de%20retomar%20nossa%20conversa%20sobre%20Seguro%20Garantia." class="btn">Falar pelo WhatsApp</a>
-  `)
+/** Troca [VARIAVEL] pelo valor. O que não conhecer fica como está, para aparecer na prévia. */
+function aplicar(texto: string, vars: Record<string, string>) {
+  return texto.replace(/\[([A-Z_]+)\]/g, (achado, chave) => vars[chave] ?? achado)
 }
 
+async function carregarModelo(db: any, chave: string): Promise<Modelo> {
+  try {
+    const { data } = await db.from('email_modelos').select('*').eq('chave', chave).eq('ativo', true).maybeSingle()
+    if (data?.corpo_html) return data as Modelo
+  } catch (err) {
+    console.error(`[email-followup] Falha ao ler o modelo ${chave}:`, err)
+  }
+  return FALLBACK[chave]
+}
+
+function montar(modelo: Modelo, vars: Record<string, string>) {
+  const titulo = modelo.titulo?.trim() ? `<h1>${aplicar(modelo.titulo, vars)}</h1>` : ''
+  const corpo = aplicar(modelo.corpo_html, vars)
+  const botao = modelo.cta_texto?.trim()
+    ? `<a href="${aplicar(modelo.cta_link || 'https://wa.me/5515998618659', vars)}" class="btn">${aplicar(modelo.cta_texto, vars)}</a>`
+    : ''
+  return {
+    subject: aplicar(modelo.assunto, vars),
+    html: baseLayout(`${titulo}\n${corpo}\n${botao}`),
+  }
+}
+
+/** Avulso é escrito pelo usuário na hora, então não passa pela tabela. */
 function customHtml(nome: string, message: string) {
   const escaped = message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>')
   return baseLayout(`
@@ -101,24 +147,39 @@ serve(async (req) => {
     // No modo prévia o destinatário é opcional: o hub só quer ver assunto e corpo.
     if (!toEmail && !preview) throw new Error('toEmail is required')
 
+    const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const nome = toName || toEmail || 'cliente'
+
     let subject = ''
     let html = ''
 
     if (type === 'renewal') {
       const d = daysLeft ?? 0
-      subject = `${d <= 7 ? '🔴' : d <= 30 ? '🟠' : '🟡'} Sua apólice de ${produto} vence em ${d} dia${d !== 1 ? 's' : ''} (F&G Corretora)`
-      html = renewalHtml(toName || toEmail, produto || 'seguro', vencimento || '', d, seguradora)
+      const prod = produto || 'seguro'
+      const modelo = await carregarModelo(db, 'renewal')
+      const montado = montar(modelo, {
+        NOME: nome,
+        PRODUTO: prod,
+        PRODUTO_URL: encodeURIComponent(prod),
+        VENCIMENTO: vencimento ? fmtDate(vencimento) : '',
+        DIAS: `${d} dia${d !== 1 ? 's' : ''}`,
+        EMOJI: d <= 7 ? '🔴' : d <= 30 ? '🟠' : '🟡',
+        SEGURADORA: seguradora ? ` (${seguradora})` : '',
+      })
+      subject = montado.subject
+      html = montado.html
     } else if (type === 'prospect') {
-      if (template === 'intro') {
-        subject = `🛡️ Seguro Garantia para ${company || 'sua empresa'} (F&G Corretora)`
-        html = prospectIntroHtml(toName || toEmail, company || null)
-      } else {
-        subject = `📋 Retomando nosso contato (F&G Corretora)`
-        html = prospectFollowupHtml(toName || toEmail, company || null)
-      }
+      const chave = template === 'intro' ? 'prospect_intro' : 'prospect_followup'
+      const modelo = await carregarModelo(db, chave)
+      const montado = montar(modelo, {
+        NOME: nome,
+        EMPRESA: company || 'sua empresa',
+      })
+      subject = montado.subject
+      html = montado.html
     } else if (type === 'custom') {
       subject = customSubject || 'Mensagem da F&G Corretora'
-      html = customHtml(toName || toEmail, message || '')
+      html = customHtml(nome, message || '')
     } else {
       throw new Error(`Unknown type: ${type}`)
     }
@@ -146,7 +207,6 @@ serve(async (req) => {
     }
 
     // Log the send
-    const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const today = new Date().toISOString().slice(0, 10)
 
     if (type === 'renewal' && saleId) {
