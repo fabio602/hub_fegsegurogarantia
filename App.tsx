@@ -200,10 +200,6 @@ const App: React.FC = () => {
   }, [modulos]);
 
   const [pendingSale, setPendingSale] = useState<{ nome: string; telefone: string } | null>(null);
-  // Cliente vindo do Repasse Imobiliárias para o cadastro Residencial / Locatícia.
-  // Estado separado de pendingSale de propósito: aquele alimenta a tela de
-  // Garantia (usada pelo WhatsApp Hub) e os dois fluxos não se misturam.
-  const [pendingResidential, setPendingResidential] = useState<{ nome: string; telefone: string } | null>(null);
   const activeViewRef = React.useRef<View>('dashboard');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     garantia: false,
@@ -336,7 +332,6 @@ const App: React.FC = () => {
     setActiveView(view);
     if (view === 'whatsapp') setUnreadWhatsApp(0);
     if (view !== 'goals') setPendingSale(null);
-    if (view !== 'residential') setPendingResidential(null);
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
   };
 
@@ -845,7 +840,7 @@ const App: React.FC = () => {
               )}
 
               {/* Seguro Residencial */}
-              {vista === 'residential' && <ResidentialInsurance prefill={pendingResidential} onPrefillConsumed={() => setPendingResidential(null)} />}
+              {vista === 'residential' && <ResidentialInsurance />}
               {vista === 'residencial-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_residencial"
@@ -866,7 +861,7 @@ const App: React.FC = () => {
               )}
 
               {/* Responsabilidade Civil */}
-              {vista === 'imobiliaria-repasse' && <ImobiliariaRepasse onGoToSale={(data) => { setPendingResidential(data); navigate('residential'); }} />}
+              {vista === 'imobiliaria-repasse' && <ImobiliariaRepasse />}
               {vista === 'garantia-locaticia' && <GarantiaLocaticia />}
               {vista === 'inadimplentes' && <InadimplentesResidencial />}
               {vista === 'rc' && <RCInsurance />}

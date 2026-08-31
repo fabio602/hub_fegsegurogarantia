@@ -150,13 +150,17 @@ const formatCurrency = (value: string) => {
 };
 
 interface ResidentialInsuranceProps {
+    /** Modo embutido (modal do Repasse): renderiza só o formulário, sem
+     *  alertas, header, cards de configuração e tabela. Os handlers não mudam —
+     *  o sync com imobiliaria_clientes continua o mesmo. */
+    embedded?: boolean;
     /** Cliente vindo do Repasse Imobiliárias pelo botão "→ Registro de Venda". */
     prefill?: { nome: string; telefone: string } | null;
     /** Avisa o App que o prefill já foi aplicado, para não reabrir o modal. */
     onPrefillConsumed?: () => void;
 }
 
-const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, onPrefillConsumed }) => {
+const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, prefill, onPrefillConsumed }) => {
     const { toast, confirm: confirmDialog } = useToast();
     const [clients, setClients] = useState<ResidentialClient[]>([]);
     const [loading, setLoading] = useState(true);
@@ -769,15 +773,12 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
 
     const handleDelete = async (id: number) => {
         if (!(await confirmDialog('Deseja excluir este cliente? Esta ação não pode ser desfeita.'))) return;
-        // Busca o cliente antes de deletar para saber o nome e desvinculá-lo do portal
-        const clientToDelete = clients.find(c => c.id === id);
+        // Apaga SÓ a venda. Já houve um desvínculo automático do repasse aqui
+        // (partner_id = null por ilike no nome), removido de propósito em
+        // 31/08/2026: casava homônimos e tirava o cliente do portal e do
+        // lembrete mensal de repasse sem ninguém perceber. Os cadastros do
+        // Repasse têm ciclo próprio; desvincular é decisão do modal Status.
         await supabase.from('residential_clients').delete().eq('id', id);
-        // Remove do portal da imobiliária (partner_id = null)
-        if (clientToDelete?.nome) {
-            await supabase.from('imobiliaria_clientes')
-                .update({ partner_id: null })
-                .ilike('inquilino_nome', clientToDelete.nome.trim());
-        }
         fetchClients();
     };
 
@@ -894,7 +895,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
 
             {/* Expiry Alert */}
-            {expiringAlerts.length > 0 && (
+            {!embedded && expiringAlerts.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
@@ -933,7 +934,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                 </div>
             )}
 
-            {/* Header */}
+            {/* Header, link público e cópias de e-mail — só na tela cheia */}
+            {!embedded && (<>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800">Seguro Residencial / Locatícia</h2>
@@ -1047,6 +1049,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     )}
                 </div>
             </div>
+
+            </>)}
 
             {/* Form */}
             <div ref={formRef} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -1449,6 +1453,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             </div>
 
             {/* Table */}
+            {!embedded && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/40">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
@@ -1769,6 +1774,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     </table>
                 </div>
             </div>
+            )}
         </div>
     );
 };

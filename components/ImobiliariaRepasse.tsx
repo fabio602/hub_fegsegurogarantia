@@ -8,6 +8,7 @@ import {
   XCircle, Mail, Info
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ResidentialInsurance from './ResidentialInsurance.tsx';
 
 interface Cliente {
   id: string;
@@ -297,7 +298,7 @@ function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; fi
   );
 }
 
-export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data: { nome: string; telefone: string }) => void } = {}) {
+export default function ImobiliariaRepasse() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [parceiros, setParceiros] = useState<{id: number; name: string; email?: string}[]>([]);
   const [filterParceiro, setFilterParceiro] = useState<number | null>(null);
@@ -403,8 +404,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     setRepasseSetupModal(null);
   };
 
+  // Registro de Venda aberto em modal por cima desta tela: quem está no meio
+  // de um cadastro de repasse edita a venda, fecha e continua de onde parou —
+  // a tela nunca desmonta (antes o atalho navegava para outra view e perdia tudo).
+  const [vendaModal, setVendaModal] = useState<{ nome: string; telefone: string } | null>(null);
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '' });
 
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
@@ -446,7 +451,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const openEditStatus = (c: Cliente) => {
-    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) };
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12' };
     setEditingStatus(c);
     setEditStatusForm(inicial);
     // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
@@ -496,6 +501,23 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
       return { erro: 'Preencha o Valor Mensal para marcar como repasse.' };
     }
 
+    // Parcelas do repasse: o total é livre por cliente (nem todo pagamento é
+    // 12x). A parcela atual nunca pode passar o total — gravar 3/2 quebraria o
+    // portal e o botão Avançar/Encerrar.
+    const parcAtualEdit = parseInt(form.parcela_atual);
+    const totalParcEdit = parseInt(form.total_parcelas);
+    if (ehRepasse) {
+      if (form.total_parcelas.trim() !== '' && (!Number.isFinite(totalParcEdit) || totalParcEdit < 1)) {
+        return { erro: 'Total de parcelas deve ser 1 ou mais.' };
+      }
+      if (form.parcela_atual.trim() !== '' && (!Number.isFinite(parcAtualEdit) || parcAtualEdit < 1)) {
+        return { erro: 'Parcela atual deve ser 1 ou mais.' };
+      }
+      if (Number.isFinite(parcAtualEdit) && Number.isFinite(totalParcEdit) && parcAtualEdit > totalParcEdit) {
+        return { erro: 'A parcela atual não pode ser maior que o total de parcelas.' };
+      }
+    }
+
     const recadoNovo = form.observacao_imobiliaria.trim();
 
     const payload: Record<string, unknown> = {
@@ -520,15 +542,30 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     };
     if (valorSegEdit !== undefined) payload.valor_seguro = valorSegEdit;
 
+    // Parcelas editadas no modal só entram no payload quando diferem do que o
+    // cadastro já tem — assim quem não mexeu nelas preserva o salto para a 2ª
+    // parcela feito logo abaixo (o form abre com o valor atual do banco).
+    const parcAtualDb = Number((editingStatus as any).parcela_atual) || null;
+    const totalParcDb = Number((editingStatus as any).total_parcelas) || null;
+    if (ehRepasse) {
+      if (Number.isFinite(totalParcEdit) && totalParcEdit >= 1 && totalParcEdit !== totalParcDb) payload.total_parcelas = totalParcEdit;
+      if (Number.isFinite(parcAtualEdit) && parcAtualEdit >= 1 && parcAtualEdit !== parcAtualDb) payload.parcela_atual = parcAtualEdit;
+    }
+
     // A 1ª parcela sempre é paga pelo próprio cliente, então a cobrança da
     // imobiliária começa na 2ª. Vale para quem está virando repasse agora e
     // também para quem já estava marcado como repasse e só agora ganhou valor
     // mensal: sem isso ele ficaria parado em 1/12 e nunca apareceria no portal,
-    // que esconde a 1ª parcela de propósito.
+    // que esconde a 1ª parcela de propósito. Valor digitado no modal tem
+    // prioridade; o salto só cobre o que ficou em branco/intocado, e nunca
+    // acima do total (pagamento em 1x encerra na própria 1ª).
     const ganhouValorAgora = ehRepasse && eraRepasse && !jaTemValor && valorSegEdit !== undefined;
     if ((ehRepasse && !eraRepasse) || ganhouValorAgora) {
-      if (!Number((editingStatus as any).total_parcelas)) payload.total_parcelas = 12;
-      if (!(Number((editingStatus as any).parcela_atual) > 1)) payload.parcela_atual = 2;
+      if (payload.total_parcelas === undefined && !totalParcDb) payload.total_parcelas = 12;
+      const totalEfetivo = Number(payload.total_parcelas ?? totalParcDb ?? 12);
+      if (payload.parcela_atual === undefined && !(parcAtualDb && parcAtualDb > 1)) {
+        payload.parcela_atual = Math.min(2, totalEfetivo);
+      }
     }
 
     return { payload, kanban };
@@ -612,7 +649,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         situacao: 'Ativo',
         parceiro_nome: parceiroNome,
       };
-      if (editStatusForm.seguradora) rcUpdate.seguradora_residencial = editStatusForm.seguradora; // campo extra se existir
+      // ATENÇÃO: não adicione aqui coluna que não exista em residential_clients.
+      // Já houve um `seguradora_residencial` "se existir" — o PostgREST não
+      // ignora coluna desconhecida (PGRST204), ele aborta o UPDATE inteiro, e o
+      // espelho ficou meses sem gravar nada. A seguradora vive no cadastro do
+      // Repasse (imobiliaria_clientes.seguradora), que é de onde portal e
+      // e-mails leem; o Registro de Vendas não tem esse campo.
       if (editStatusForm.numero_apolice) rcUpdate.apolice = editStatusForm.numero_apolice;
       if (editStatusForm.vigencia_fim) rcUpdate.fim_vigencia = editStatusForm.vigencia_fim;
       if (editStatusForm.apolice_residencial_url) rcUpdate.apolice_url = editStatusForm.apolice_residencial_url;
@@ -1131,7 +1173,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   bg: vencido ? '#fecaca' : urgente ? '#fff7ed' : '#f4f1ec',
                   cor: vencido ? '#7f1d1d' : urgente ? '#c2410c' : '#78716c',
                 }}
-                onGoToSale={onGoToSale}
+                onGoToSale={setVendaModal}
                 acaoSecundaria={{ label: 'Não vai renovar', onClick: () => abrirEncerramento(c, 'saiu_imovel') }}
                 acao={{ label: 'Renovada', onClick: () => darBaixaRenovacao(c) }}
               />
@@ -1369,14 +1411,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                             </div>
                             {/* Disponível em todas as etapas: o registro de venda pode ser aberto
                                 a qualquer momento, não só depois da aprovação. */}
-                            {onGoToSale && (
-                              <button
-                                onClick={e => { e.stopPropagation(); onGoToSale({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
-                                className="mt-2 w-full text-[10px] font-bold bg-gold hover:bg-gold-hover text-white py-1.5 rounded-xl transition-colors"
-                              >
-                                → Registro de Venda
-                              </button>
-                            )}
+                            <button
+                              onClick={e => { e.stopPropagation(); setVendaModal({ nome: c.inquilino_nome, telefone: (c as any).telefone || '' }); }}
+                              className="mt-2 w-full text-[10px] font-bold bg-gold hover:bg-gold-hover text-white py-1.5 rounded-xl transition-colors"
+                            >
+                              → Registro de Venda
+                            </button>
                             {col.key === 'aprovado' && temGarantia(c) && (
                               <button
                                 onClick={async e => {
@@ -2040,6 +2080,28 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   />
                 </div>
               </div>
+              {editStatusForm.is_repasse && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Parcela Atual</label>
+                    <input
+                      type="number" min="1" placeholder="Ex: 2"
+                      value={editStatusForm.parcela_atual}
+                      onChange={e => setEditStatusForm(f => ({...f, parcela_atual: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Total de Parcelas</label>
+                    <input
+                      type="number" min="1" placeholder="Ex: 12"
+                      value={editStatusForm.total_parcelas}
+                      onChange={e => setEditStatusForm(f => ({...f, total_parcelas: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
+                    />
+                  </div>
+                </div>
+              )}
               {/* Sem valor o cliente fica de fora dos avisos, senão a imobiliária
                   receberia cobrança de R$ 0,00. Antes isso era um confirm na hora
                   de salvar; com o autosave o aviso precisa ficar aqui, à vista. */}
@@ -2141,24 +2203,47 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             )}
           </div>
 
-          {/* Atalho para o Registro de Venda, disponível em qualquer etapa.
-              Sai da tela, então grava o que está aqui antes de trocar de tela. */}
+          {/* Atalho para o Registro de Venda, aberto em modal por cima desta
+              tela. Grava o autosave e fecha este modal antes de abrir o outro. */}
           <div className="flex gap-3 px-7 pb-7 pt-2">
-            {onGoToSale && (
-              <button
-                onClick={() => {
-                  const nome = editStatusForm.inquilino_nome.trim() || editingStatus.inquilino_nome;
-                  const telefone = (editingStatus as any).telefone || '';
-                  void fecharStatus(() => onGoToSale({ nome, telefone }));
-                }}
-                className="flex-1 py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
-              >
-                → Registro de Venda
-              </button>
-            )}
+            <button
+              onClick={() => {
+                const nome = editStatusForm.inquilino_nome.trim() || editingStatus.inquilino_nome;
+                const telefone = (editingStatus as any).telefone || '';
+                void fecharStatus(() => setVendaModal({ nome, telefone }));
+              }}
+              className="flex-1 py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
+            >
+              → Registro de Venda
+            </button>
             <button onClick={() => void fecharStatus()} className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors">Fechar</button>
           </div>
         </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* Registro de Venda residencial em modal — o componente inteiro em modo
+        embutido (só o formulário). O efeito de prefill dele busca o cliente
+        pelo nome: se existe, abre em edição; se não, começa um cadastro novo. */}
+    {vendaModal && createPortal(
+      <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+        <div className="min-h-full flex items-start justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-4">
+            <div className="flex items-center justify-between px-7 pt-6 pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-black text-slate-800">Registro de Venda — Residencial</h3>
+              <button
+                onClick={() => { setVendaModal(null); load(); }}
+                className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-xs transition-colors"
+              >
+                Fechar e voltar ao Repasse
+              </button>
+            </div>
+            <div className="p-6">
+              <ResidentialInsurance embedded prefill={vendaModal} />
+            </div>
+          </div>
         </div>
       </div>,
       document.body
