@@ -687,12 +687,18 @@ export default function ImobiliariaRepasse() {
       }
     }
 
-    // Email para imobiliária quando apólice é adicionada
-    const apoliceNova = editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (original.apolice_residencial_url || '');
-    if (apoliceNova && (original as any).partner_id) {
-      supabase.functions.invoke('imobiliaria-envia-apolice', {
-        body: { client_id: original.id },
-      }).catch(e => console.warn('Email apólice:', e));
+    // Email para imobiliária quando apólice é adicionada. As duas coberturas
+    // avisam, cada uma com o seu anexo: são apólices diferentes e a imobiliária
+    // precisa das duas em mãos.
+    if ((original as any).partner_id) {
+      const novas: ('residencial' | 'garantia')[] = [];
+      if (editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (original.apolice_residencial_url || '')) novas.push('residencial');
+      if (editStatusForm.apolice_garantia_url && editStatusForm.apolice_garantia_url !== (original.apolice_garantia_url || '')) novas.push('garantia');
+      for (const tipo of novas) {
+        supabase.functions.invoke('imobiliaria-envia-apolice', {
+          body: { client_id: original.id, tipo },
+        }).catch(e => console.warn(`Email apólice ${tipo}:`, e));
+      }
     }
 
     // Recado: decide se a imobiliária precisa ser avisada por e-mail.

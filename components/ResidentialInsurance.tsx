@@ -244,8 +244,45 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             await supabase.from('residential_clients').update({ [field]: url }).eq('id', editingId);
             setFormData(prev => ({ ...prev, [field]: url }));
             toast('Documento enviado com sucesso!', 'success');
+
+            // Espelha no cadastro do Repasse. Sem isso, o documento existia só
+            // aqui: o portal da imobiliária continuava mostrando a pendência e o
+            // e-mail abaixo não teria o que anexar.
+            const campoRepasse = field === 'apolice_garantia_url' ? 'apolice_garantia_url' : 'doc_contrato_url';
+            const repasseId = await sincronizarComRepasse({ [campoRepasse]: url });
+
+            // Só a apólice avisa a imobiliária. O contrato de locação normalmente
+            // vem dela para nós, então devolver por e-mail seria ruído.
+            if (repasseId && field === 'apolice_garantia_url') {
+                const { data: envio, error: envioErr } = await supabase.functions.invoke('imobiliaria-envia-apolice', {
+                    body: { client_id: repasseId, tipo: 'garantia' },
+                });
+                if (envioErr || (envio as any)?.error) {
+                    toast(`Documento salvo, mas o e-mail para a imobiliária não saiu: ${(envio as any)?.error || envioErr?.message || ''}`, 'error');
+                } else {
+                    toast('Apólice da garantia enviada por e-mail para a imobiliária.', 'success');
+                }
+            }
         } catch (err: any) { toast('Erro ao enviar: ' + err.message, 'error'); }
         finally { setUploadingGarantiaDoc(null); e.target.value = ''; }
+    };
+
+    /**
+     * Acha o cadastro deste cliente no Repasse Imobiliárias e aplica o payload.
+     * Procura pelo número da apólice primeiro, que é único, e cai para o nome do
+     * inquilino quando a apólice ainda não foi preenchida.
+     * Devolve o id encontrado, que é o que as funções de e-mail pedem.
+     */
+    const sincronizarComRepasse = async (payload: Record<string, unknown>): Promise<string | null> => {
+        if (!formData.parceiro_nome || !formData.nome) return null;
+        if (formData.apolice) {
+            const { data } = await supabase.from('imobiliaria_clientes')
+                .update(payload).eq('numero_apolice', formData.apolice).select('id');
+            if (data?.length) return data[0].id;
+        }
+        const { data } = await supabase.from('imobiliaria_clientes')
+            .update(payload).ilike('inquilino_nome', formData.nome.trim()).select('id');
+        return data?.[0]?.id ?? null;
     };
     useEffect(() => {
         supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
@@ -265,25 +302,12 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             await supabase.from('residential_clients').update({ apolice_url: url }).eq('id', editingId);
             // Sync to imobiliaria_clientes if client has a partner
             // Guardamos o id encontrado lá porque é ele que a função de e-mail pede.
-            let repasseId: string | null = null;
-            if (formData.parceiro_nome && formData.nome) {
-                const syncPayload = { apolice_residencial_url: url, status_residencial: 'emitido', kanban_status: 'aprovado', numero_apolice: formData.apolice || undefined };
-                // Tenta por apólice primeiro; fallback por nome do inquilino
-                if (formData.apolice) {
-                    const { data: byApolice } = await supabase.from('imobiliaria_clientes')
-                        .update(syncPayload)
-                        .eq('numero_apolice', formData.apolice)
-                        .select('id');
-                    repasseId = byApolice?.[0]?.id ?? null;
-                }
-                if (!repasseId) {
-                    const { data: byNome } = await supabase.from('imobiliaria_clientes')
-                        .update(syncPayload)
-                        .ilike('inquilino_nome', formData.nome.trim())
-                        .select('id');
-                    repasseId = byNome?.[0]?.id ?? null;
-                }
-            }
+            const repasseId = await sincronizarComRepasse({
+                apolice_residencial_url: url,
+                status_residencial: 'emitido',
+                kanban_status: 'aprovado',
+                numero_apolice: formData.apolice || undefined,
+            });
             setFormData(prev => ({ ...prev, apolice_url: url } as any));
             toast('PDF da apólice enviado com sucesso!', 'success');
 
@@ -293,7 +317,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             // na prática o parceiro não recebia nada.
             if (repasseId) {
                 const { data: envio, error: envioErr } = await supabase.functions.invoke('imobiliaria-envia-apolice', {
-                    body: { client_id: repasseId },
+                    body: { client_id: repasseId, tipo: 'residencial' },
                 });
                 if (envioErr || (envio as any)?.error) {
                     toast(`PDF salvo, mas o e-mail para a imobiliária não saiu: ${(envio as any)?.error || envioErr?.message || ''}`, 'error');

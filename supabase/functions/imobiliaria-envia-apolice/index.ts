@@ -2,6 +2,17 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { bccResidencial } from '../_shared/copiasResidencial.ts';
 
+/**
+ * Manda a apólice emitida para a imobiliária, com o arquivo em anexo.
+ *
+ * Aceita dois tipos no corpo da chamada:
+ *   'residencial' (padrão) lê apolice_residencial_url
+ *   'garantia'             lê apolice_garantia_url
+ *
+ * O padrão é residencial de propósito: quem já chamava esta função sem informar
+ * o tipo continua funcionando igual.
+ */
+
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -21,11 +32,22 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * Extensão do arquivo guardado. O nome do anexo era sempre .pdf, e desde que o
+ * hub passou a aceitar Word isso geraria um anexo que não abre.
+ */
+function extensaoDe(url: string): string {
+  const ext = url.split('?')[0].split('.').pop() || '';
+  return /^[a-z0-9]{2,5}$/i.test(ext) ? ext.toLowerCase() : 'pdf';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
-    const { client_id } = await req.json();
+    const { client_id, tipo } = await req.json();
     if (!client_id) throw new Error('client_id obrigatório');
+    const ehGarantia = tipo === 'garantia';
+    const produto = ehGarantia ? 'Garantia Locatícia' : 'Seguro Residencial';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: c } = await supabase
@@ -37,10 +59,11 @@ serve(async (req) => {
     if (!c) throw new Error('Cliente não encontrado');
     const partner = (c as any).partners;
     if (!partner?.email) throw new Error('Parceiro sem email cadastrado');
-    if (!c.apolice_residencial_url) throw new Error('Apólice não encontrada');
+    const arquivoUrl = ehGarantia ? c.apolice_garantia_url : c.apolice_residencial_url;
+    if (!arquivoUrl) throw new Error('Apólice não encontrada');
 
-    // Baixa o PDF em chunks
-    const pdfRes = await fetch(c.apolice_residencial_url);
+    // Baixa o arquivo em chunks
+    const pdfRes = await fetch(arquivoUrl);
     if (!pdfRes.ok) throw new Error('Não foi possível baixar a apólice');
     const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
     const pdfB64 = toBase64(pdfBytes);
@@ -55,7 +78,7 @@ serve(async (req) => {
             <tr><td style="background:#C69C6D;border-radius:12px;padding:10px 20px;"><span style="color:#1B263B;font-weight:900;font-size:18px;">F&amp;G</span></td></tr>
           </table>
           <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">📤 Apólice Emitida</h1>
-          <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">Seguro Residencial</p>
+          <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">${produto}</p>
         </div>
         <div style="padding:28px 32px;background:#fff;">
           <p style="color:#1B263B;font-size:15px;margin:0 0 16px;">Prezados <strong>${partner.name}</strong>,</p>
@@ -63,6 +86,7 @@ serve(async (req) => {
           <div style="background:#f8f5f0;border:2px solid #C69C6D;border-radius:14px;padding:20px;margin:0 0 20px;">
             <p style="margin:0 0 8px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;">Dados da Apólice</p>
             <p style="margin:0 0 6px;font-size:14px;color:#1B263B;">👤 <strong>Inquílino:</strong> ${c.inquilino_nome || '—'}</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#1B263B;">🛡️ <strong>Cobertura:</strong> ${produto}</p>
             <p style="margin:0 0 6px;font-size:14px;color:#1B263B;">📝 <strong>Nº Apólice:</strong> ${c.numero_apolice || '—'}</p>
             <p style="margin:0 0 6px;font-size:14px;color:#1B263B;">🏢 <strong>Seguradora:</strong> ${c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : '—'}</p>
             <p style="margin:0;font-size:14px;color:#1B263B;">📅 <strong>Vigência:</strong> ${fmtData(c.data_inicio)} a ${fmtData(c.vigencia_fim)}</p>
@@ -79,10 +103,10 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'F&G Seguro Garantia <contato@fegsegurogarantia.com.br>',
         to, bcc: await bccResidencial(BCC),
-        subject: `📤 Apólice emitida: ${c.inquilino_nome} — ${partner.name}`,
+        subject: `📤 Apólice emitida (${produto}): ${c.inquilino_nome} - ${partner.name}`,
         html,
         attachments: [{
-          filename: `Apolice_${(c.inquilino_nome||'').replace(/\s/g,'_')}_${c.numero_apolice||'residencial'}.pdf`,
+          filename: `${ehGarantia ? 'Apolice_Garantia' : 'Apolice'}_${(c.inquilino_nome||'').replace(/\s/g,'_')}_${c.numero_apolice||'residencial'}.${extensaoDe(arquivoUrl)}`,
           content: pdfB64,
         }],
       }),
