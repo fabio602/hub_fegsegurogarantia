@@ -290,7 +290,7 @@ function ApoliceUpload({ clienteId, field, onUploaded, rotulo = 'Clique para ane
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
       onUploaded(data.publicUrl);
-    } catch (err: any) { alert('Erro ao enviar PDF: ' + err.message); }
+    } catch (err: any) { alert('Erro ao enviar o arquivo: ' + err.message); }
     finally { setUploading(false); e.target.value = ''; }
   };
   return (
