@@ -68,6 +68,30 @@ serve(async (req) => {
     const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
     const pdfB64 = toBase64(pdfBytes);
 
+    const anexos: { filename: string; content: string }[] = [{
+      filename: `${ehGarantia ? 'Apolice_Garantia' : 'Apolice'}_${(c.inquilino_nome||'').replace(/\s/g,'_')}_${c.numero_apolice||'residencial'}.${extensaoDe(arquivoUrl)}`,
+      content: pdfB64,
+    }];
+
+    // O termo com a cláusula do seguro vai junto da apólice da garantia: é o
+    // documento que a imobiliária precisa incluir no contrato de locação, e
+    // mandar em e-mail separado só faria ela procurar. Se um dia sumir do
+    // storage, o aviso da apólice ainda sai.
+    if (ehGarantia && c.termo_clausula_url) {
+      try {
+        const termoRes = await fetch(c.termo_clausula_url);
+        if (termoRes.ok) {
+          const termoBytes = new Uint8Array(await termoRes.arrayBuffer());
+          anexos.push({
+            filename: `Termo_Clausula_${(c.inquilino_nome||'').replace(/\s/g,'_')}.${extensaoDe(c.termo_clausula_url)}`,
+            content: toBase64(termoBytes),
+          });
+        }
+      } catch (err) {
+        console.error('[imobiliaria-envia-apolice] Falha ao baixar o termo:', err);
+      }
+    }
+
     const to = [partner.email];
     if (partner.email_2) to.push(partner.email_2);
 
@@ -83,6 +107,7 @@ serve(async (req) => {
         <div style="padding:28px 32px;background:#fff;">
           <p style="color:#1B263B;font-size:15px;margin:0 0 16px;">Prezados <strong>${partner.name}</strong>,</p>
           <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 20px;">A apólice do inquílino abaixo foi emitida com sucesso. Segue o documento em anexo.</p>
+          ${ehGarantia && c.termo_clausula_url ? `<p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 20px;">Vai junto o <strong>termo com a cláusula do seguro</strong>, que precisa ser incluída no contrato de locação.</p>` : ''}
           <div style="background:#f8f5f0;border:2px solid #C69C6D;border-radius:14px;padding:20px;margin:0 0 20px;">
             <p style="margin:0 0 8px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;">Dados da Apólice</p>
             <p style="margin:0 0 6px;font-size:14px;color:#1B263B;">👤 <strong>Inquílino:</strong> ${c.inquilino_nome || '—'}</p>
@@ -105,10 +130,7 @@ serve(async (req) => {
         to, bcc: await bccResidencial(BCC),
         subject: `📤 Apólice emitida (${produto}): ${c.inquilino_nome} - ${partner.name}`,
         html,
-        attachments: [{
-          filename: `${ehGarantia ? 'Apolice_Garantia' : 'Apolice'}_${(c.inquilino_nome||'').replace(/\s/g,'_')}_${c.numero_apolice||'residencial'}.${extensaoDe(arquivoUrl)}`,
-          content: pdfB64,
-        }],
+        attachments: anexos,
       }),
     });
 

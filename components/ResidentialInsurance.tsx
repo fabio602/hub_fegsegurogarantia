@@ -248,7 +248,10 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             // Espelha no cadastro do Repasse. Sem isso, o documento existia só
             // aqui: o portal da imobiliária continuava mostrando a pendência e o
             // e-mail abaixo não teria o que anexar.
-            const campoRepasse = field === 'apolice_garantia_url' ? 'apolice_garantia_url' : 'doc_contrato_url';
+            // termo_clausula_url, e não doc_contrato_url: aquele é o contrato
+            // assinado que a imobiliária manda pelo portal, e escrever nele
+            // apagaria a pendência dela sem nada ter chegado.
+            const campoRepasse = field === 'apolice_garantia_url' ? 'apolice_garantia_url' : 'termo_clausula_url';
             const repasseId = await sincronizarComRepasse({ [campoRepasse]: url });
 
             // Só a apólice avisa a imobiliária. O contrato de locação normalmente

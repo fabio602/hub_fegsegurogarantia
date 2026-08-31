@@ -408,12 +408,31 @@ export default function ImobiliariaRepasse() {
     setRepasseSetupModal(null);
   };
 
+  /**
+   * Aprova o card sem mexer no repasse.
+   *
+   * Aprovar quer dizer "a seguradora aceitou o risco", e isso acontece antes de
+   * existir valor de prêmio. Obrigar o valor aqui travava a operação: o card
+   * ficava parado numa etapa que já não era verdade. O cliente sem valor mensal
+   * continua aparecendo no painel "Precisa de atenção" no topo da tela, então
+   * ele não se perde.
+   */
+  const aprovarSemRepasse = async () => {
+    if (!repasseSetupModal) return;
+    const { clienteId, newStatus } = repasseSetupModal;
+    await supabase.from('imobiliaria_clientes')
+      .update({ kanban_status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', clienteId);
+    setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, kanban_status: newStatus } as any : c));
+    setRepasseSetupModal(null);
+  };
+
   // Registro de Venda aberto em modal por cima desta tela: quem está no meio
   // de um cadastro de repasse edita a venda, fecha e continua de onde parou —
   // a tela nunca desmonta (antes o atalho navegava para outra view e perdia tudo).
   const [vendaModal, setVendaModal] = useState<{ nome: string; telefone: string } | null>(null);
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', doc_contrato_url: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', termo_clausula_url: '' });
 
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
@@ -455,7 +474,7 @@ export default function ImobiliariaRepasse() {
   };
 
   const openEditStatus = (c: Cliente) => {
-    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', doc_contrato_url: (c as any).doc_contrato_url || '' };
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', termo_clausula_url: (c as any).termo_clausula_url || '' };
     setEditingStatus(c);
     setEditStatusForm(inicial);
     // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
@@ -532,7 +551,7 @@ export default function ImobiliariaRepasse() {
       apolice_garantia_url: temGarantia(editingStatus) ? form.apolice_garantia_url || null : null,
       // Mesmo campo que a imobiliária preenche pelo portal. Aqui ele existe para
       // quando o contrato chega direto na sua mão e não pelo parceiro.
-      doc_contrato_url: form.doc_contrato_url || null,
+      termo_clausula_url: form.termo_clausula_url || null,
       vigencia_fim: form.vigencia_fim || null,
       status_apolice: form.status_apolice || 'ativo',
       status: form.status_apolice || 'ativo',
@@ -1864,7 +1883,7 @@ export default function ImobiliariaRepasse() {
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
           <div>
             <h3 className="font-black text-slate-800 text-lg">Configurar Repasse</h3>
-            <p className="text-slate-500 text-sm mt-1">Cliente novo do portal. Configure o repasse antes de aprovar.</p>
+            <p className="text-slate-500 text-sm mt-1">Cliente novo do portal. Se já souber o valor mensal, deixe o repasse pronto agora. Se ainda não souber, aprove assim mesmo.</p>
           </div>
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
@@ -1907,14 +1926,20 @@ export default function ImobiliariaRepasse() {
               <p className="text-xs text-slate-400">A 1ª parcela é paga diretamente pela inquilina. As demais entram no repasse mensal.</p>
             </div>
           </div>
-          <div className="flex gap-3 pt-2">
+          <div className="space-y-2 pt-2">
             <button onClick={confirmarRepasseSetup}
               disabled={!((lerValorBRL(repasseSetupForm.valor_seguro) ?? 0) > 0)}
-              className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all">
+              className="w-full py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all">
               ✅ Aprovar e configurar repasse
             </button>
+            {/* Saída para o caso comum: a seguradora aceitou, mas o prêmio ainda
+                não saiu. Sem isso o card ficava preso numa etapa vencida. */}
+            <button onClick={aprovarSemRepasse}
+              className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-sm rounded-xl transition-all">
+              Só aprovar, configuro o repasse depois
+            </button>
             <button onClick={() => setRepasseSetupModal(null)}
-              className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
+              className="w-full py-2 text-slate-400 hover:text-slate-600 font-bold text-sm rounded-xl transition-colors">
               Cancelar
             </button>
           </div>
@@ -2212,21 +2237,25 @@ export default function ImobiliariaRepasse() {
                       />
                   }
                 </div>
-                {/* Contrato de locação. É o mesmo campo que a imobiliária envia
-                    pelo portal, então anexar aqui já apaga a pendência de lá. */}
+                {/* Termo com a cláusula do seguro, que a imobiliária precisa
+                    incluir no contrato de locação. Campo próprio, separado do
+                    contrato assinado que ela envia pelo portal: são documentos
+                    em sentidos opostos e misturá-los apagaria a pendência dela
+                    sem que nada tivesse chegado. Vai anexado no e-mail da
+                    apólice da garantia. */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Contrato de Locação</label>
-                  {editStatusForm.doc_contrato_url
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Termo da Cláusula (vai no contrato)</label>
+                  {editStatusForm.termo_clausula_url
                     ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                        <a href={editStatusForm.doc_contrato_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Contrato anexado, clique para ver</a>
-                        <button onClick={() => setEditStatusForm(f => ({...f, doc_contrato_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                        <a href={editStatusForm.termo_clausula_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Termo anexado, clique para ver</a>
+                        <button onClick={() => setEditStatusForm(f => ({...f, termo_clausula_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
                       </div>
                     : <ApoliceUpload
                         clienteId={editingStatus.id}
-                        field="doc_contrato_url"
-                        rotulo="Clique para anexar o contrato (PDF ou Word)"
-                        onUploaded={(url) => setEditStatusForm(f => ({...f, doc_contrato_url: url}))}
+                        field="termo_clausula_url"
+                        rotulo="Clique para anexar o termo (PDF ou Word)"
+                        onUploaded={(url) => setEditStatusForm(f => ({...f, termo_clausula_url: url}))}
                       />
                   }
                 </div>
