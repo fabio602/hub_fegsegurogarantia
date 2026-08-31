@@ -657,7 +657,8 @@
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="dash-welcome">
-    <h2>Olá, Equipe Bordin e Zanolla! Bem-vinda ao seu portal.</h2>
+    <!-- Preenchida via JS com o nome da sessão — o portal é o mesmo para todas as imobiliárias. -->
+    <h2 id="saudacao-parceiro">Olá! Bem-vinda ao seu portal.</h2>
     <p>Acompanhe seus clientes, apólices e repasses em um só lugar.</p>
   </div>
   <!-- KPI cards -->
@@ -1194,6 +1195,9 @@
   document.getElementById('nome-parceiro').textContent = session?.name || '';
   const cotacaoParceiro = document.getElementById('cotacao-parceiro');
   if (cotacaoParceiro) cotacaoParceiro.textContent = (session?.name || '').replace('Imobiliária ','') || 'Parceiro';
+  const saudacao = document.getElementById('saudacao-parceiro');
+  const nomeEquipe = (session?.name || '').replace('Imobiliária ', '');
+  if (saudacao && nomeEquipe) saudacao.textContent = `Olá, Equipe ${nomeEquipe}! Bem-vinda ao seu portal.`;
 
   function sair() { localStorage.removeItem('parceiro_session'); window.location.href = 'parceiros-login.html'; }
 
