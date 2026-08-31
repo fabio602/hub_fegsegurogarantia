@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Mail, RefreshCw, Send, CheckCircle, AlertCircle, Loader2,
-  Clock, Building2, User, Calendar, ChevronDown, ChevronUp,
+  Clock, Building2, User, Calendar, ChevronDown, ChevronUp, Eye, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -34,6 +34,18 @@ interface StaleProspect {
 type Tab = 'vencimentos' | 'prospectos' | 'avulso';
 type SendKey = string;
 type SendState = 'sending' | 'sent' | 'error';
+
+interface PreviewState {
+  loading: boolean;
+  /** Nome do modelo, ex.: "Aviso de vencimento". */
+  modelo: string;
+  destinatario: string;
+  subject?: string;
+  html?: string;
+  error?: string;
+  /** Permite enviar direto da prévia, sem fechar e procurar a linha de novo. */
+  onSend?: () => void;
+}
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
@@ -85,7 +97,15 @@ const SOURCE_BADGE: Record<string, string> = {
 
 // ─── Call edge function ───────────────────────────────────────────────────────
 
-async function callEmailFn(payload: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
+interface EmailFnResult {
+  success: boolean;
+  error?: string;
+  /** Presentes apenas quando o payload traz preview: true. */
+  subject?: string;
+  html?: string;
+}
+
+async function callEmailFn(payload: Record<string, unknown>): Promise<EmailFnResult> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   const supabaseUrl = (supabase as any).supabaseUrl as string;
@@ -122,6 +142,9 @@ export default function EmailFollowUp() {
 
   // Send state
   const [sends, setSends] = useState<Record<SendKey, SendState>>({});
+
+  // Prévia do e-mail (montada pela própria Edge Function, sem enviar nada)
+  const [preview, setPreview] = useState<PreviewState | null>(null);
 
   // ── Load data ────────────────────────────────────────────────────────────────
 
@@ -229,10 +252,36 @@ export default function EmailFollowUp() {
     setSends(prev => ({ ...prev, [key]: state }));
   }
 
-  async function sendRenewal(client: ExpiringClient) {
-    if (!client.email) return;
-    setSend(client.key, 'sending');
-    const result = await callEmailFn({
+  /**
+   * Abre a prévia pedindo o e-mail montado à própria Edge Function.
+   * Assim o que aparece na tela é exatamente o que sai para o cliente,
+   * sem duplicar os modelos aqui no front.
+   */
+  async function openPreview(modelo: string, destinatario: string, payload: Record<string, unknown>, onSend?: () => void) {
+    setPreview({ loading: true, modelo, destinatario, onSend });
+    const result = await callEmailFn({ ...payload, preview: true });
+    setPreview(
+      result.success && result.html
+        ? { loading: false, modelo, destinatario, onSend, subject: result.subject, html: result.html }
+        : { loading: false, modelo, destinatario, onSend, error: result.error || 'Não foi possível gerar a prévia.' }
+    );
+  }
+
+  function PreviewBtn({ onClick }: { onClick: () => void }) {
+    return (
+      <button
+        onClick={onClick}
+        title="Ver prévia do e-mail"
+        className="flex items-center gap-1 text-[10px] font-bold px-2 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:border-gold hover:text-navy transition-colors"
+      >
+        <Eye size={12} /> Prévia
+      </button>
+    );
+  }
+
+  /** Payload único: a prévia e o envio precisam montar exatamente o mesmo e-mail. */
+  function renewalPayload(client: ExpiringClient) {
+    return {
       type: 'renewal',
       toEmail: client.email,
       toName: client.nome,
@@ -241,7 +290,34 @@ export default function EmailFollowUp() {
       vencimento: client.vencimento,
       daysLeft: client.daysLeft,
       seguradora: client.seguradora,
-    });
+    };
+  }
+
+  function prospectPayload(prospect: StaleProspect) {
+    return {
+      type: 'prospect',
+      toEmail: prospect.email,
+      toName: prospect.nome,
+      company: prospect.company,
+      prospectId: prospect.id,
+      template: prospectTemplate[prospect.id] ?? (prospect.email_enviado ? 'followup' : 'intro'),
+    };
+  }
+
+  function avulsoPayload() {
+    return {
+      type: 'custom',
+      toEmail: avulso.toEmail,
+      toName: avulso.toName || avulso.toEmail,
+      subject: avulso.subject,
+      message: avulso.message,
+    };
+  }
+
+  async function sendRenewal(client: ExpiringClient) {
+    if (!client.email) return;
+    setSend(client.key, 'sending');
+    const result = await callEmailFn(renewalPayload(client));
     setSend(client.key, result.success ? 'sent' : 'error');
     if (result.success) {
       setExpiring(prev => prev.map(c => c.key === client.key ? { ...c, recentlySent: true } : c));
@@ -250,16 +326,8 @@ export default function EmailFollowUp() {
 
   async function sendProspect(prospect: StaleProspect) {
     if (!prospect.email) return;
-    const template = prospectTemplate[prospect.id] ?? (prospect.email_enviado ? 'followup' : 'intro');
     setSend(prospect.id, 'sending');
-    const result = await callEmailFn({
-      type: 'prospect',
-      toEmail: prospect.email,
-      toName: prospect.nome,
-      company: prospect.company,
-      prospectId: prospect.id,
-      template,
-    });
+    const result = await callEmailFn(prospectPayload(prospect));
     setSend(prospect.id, result.success ? 'sent' : 'error');
     if (result.success) {
       setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, email_enviado: true, ult_contato: new Date().toISOString(), daysSince: 0 } : p));
@@ -269,13 +337,7 @@ export default function EmailFollowUp() {
   async function sendAvulso() {
     if (!avulso.toEmail || !avulso.subject || !avulso.message) return;
     setSend('avulso', 'sending');
-    const result = await callEmailFn({
-      type: 'custom',
-      toEmail: avulso.toEmail,
-      toName: avulso.toName || avulso.toEmail,
-      subject: avulso.subject,
-      message: avulso.message,
-    });
+    const result = await callEmailFn(avulsoPayload());
     setSend('avulso', result.success ? 'sent' : 'error');
     if (result.success) setAvulso({ toName: '', toEmail: '', subject: '', message: '' });
   }
@@ -363,14 +425,22 @@ export default function EmailFollowUp() {
                   </div>
                 </div>
 
-                {/* Email + send */}
+                {/* Email + prévia + envio */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  {c.email ? (
-                    <span className="text-[10px] text-slate-400 max-w-[160px] truncate">{c.email}</span>
-                  ) : (
-                    <span className="text-[10px] text-slate-300 italic">sem email</span>
-                  )}
-                  <SendBtn id={c.key} onClick={() => sendRenewal(c)} disabled={!c.email} />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-slate-100 text-slate-600 uppercase">
+                      Aviso de vencimento
+                    </span>
+                    {c.email ? (
+                      <span className="text-[10px] text-slate-400 max-w-[160px] truncate">{c.email}</span>
+                    ) : (
+                      <span className="text-[10px] text-slate-300 italic">sem email</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <PreviewBtn onClick={() => openPreview('Aviso de vencimento', c.email || c.nome, renewalPayload(c), c.email ? () => sendRenewal(c) : undefined)} />
+                    <SendBtn id={c.key} onClick={() => sendRenewal(c)} disabled={!c.email} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -394,9 +464,9 @@ export default function EmailFollowUp() {
   // ── Avulso templates ─────────────────────────────────────────────────────────
 
   const TEMPLATES = [
-    { label: 'Apresentação', subject: 'Seguro Garantia para sua empresa - F&G Corretora', message: 'Olá,\n\nSou o Fábio da F&G Corretora de Seguros. Entramos em contato pois acreditamos que sua empresa pode se beneficiar das nossas soluções em Seguro Garantia.\n\nEstamos à disposição para apresentar uma proposta personalizada. Aguardo seu retorno!' },
-    { label: 'Renovação',    subject: 'Renovação de apólice - F&G Corretora', message: 'Olá,\n\nPassando para avisar que sua apólice está se aproximando do vencimento. Para evitar qualquer interrupção na sua cobertura, entre em contato conosco para iniciarmos o processo de renovação.\n\nContamos com você!' },
-    { label: 'Follow-up',   subject: 'Retomando nosso contato - F&G Corretora', message: 'Olá,\n\nRecentemente entrei em contato e queria verificar se surgiu alguma dúvida ou necessidade que possamos ajudar.\n\nEstou à disposição!' },
+    { label: 'Apresentação', subject: 'Seguro Garantia para sua empresa (F&G Corretora)', message: 'Olá,\n\nSou o Fábio da F&G Corretora de Seguros. Entramos em contato pois acreditamos que sua empresa pode se beneficiar das nossas soluções em Seguro Garantia.\n\nEstamos à disposição para apresentar uma proposta personalizada. Aguardo seu retorno!' },
+    { label: 'Renovação',    subject: 'Renovação de apólice (F&G Corretora)', message: 'Olá,\n\nPassando para avisar que sua apólice está se aproximando do vencimento. Para evitar qualquer interrupção na sua cobertura, entre em contato conosco para iniciarmos o processo de renovação.\n\nContamos com você!' },
+    { label: 'Follow-up',   subject: 'Retomando nosso contato (F&G Corretora)', message: 'Olá,\n\nRecentemente entrei em contato e queria verificar se surgiu alguma dúvida ou necessidade que possamos ajudar.\n\nEstou à disposição!' },
   ];
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -521,6 +591,7 @@ export default function EmailFollowUp() {
                             <option value="intro">Apresentação</option>
                             <option value="followup">Follow-up</option>
                           </select>
+                          <PreviewBtn onClick={() => openPreview(template === 'intro' ? 'Apresentação' : 'Follow-up', p.email || p.nome, prospectPayload(p), p.email ? () => sendProspect(p) : undefined)} />
                           <SendBtn id={p.id} onClick={() => sendProspect(p)} disabled={!p.email} />
                         </div>
                       </div>
@@ -604,19 +675,106 @@ export default function EmailFollowUp() {
                     </span>
                   ) : <span />}
 
-                  <button
-                    onClick={sendAvulso}
-                    disabled={!avulso.toEmail || !avulso.subject || !avulso.message || sends['avulso'] === 'sending'}
-                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-navy text-gold font-bold text-xs disabled:opacity-40 hover:bg-navy-light transition-all"
-                  >
-                    {sends['avulso'] === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                    {sends['avulso'] === 'sending' ? 'Enviando…' : 'Enviar email'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openPreview('Avulso', avulso.toEmail, avulsoPayload(), sendAvulso)}
+                      disabled={!avulso.subject || !avulso.message}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs disabled:opacity-40 hover:border-gold hover:text-navy transition-colors"
+                    >
+                      <Eye size={13} /> Prévia
+                    </button>
+                    <button
+                      onClick={sendAvulso}
+                      disabled={!avulso.toEmail || !avulso.subject || !avulso.message || sends['avulso'] === 'sending'}
+                      className="flex items-center gap-2 px-5 py-2 rounded-xl bg-navy text-gold font-bold text-xs disabled:opacity-40 hover:bg-navy-light transition-all"
+                    >
+                      {sends['avulso'] === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                      {sends['avulso'] === 'sending' ? 'Enviando…' : 'Enviar email'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </>
+      )}
+
+      {/* ── Modal de prévia ─────────────────────────────────── */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-xl animate-in zoom-in-95 duration-150"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Cabeçalho */}
+            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Eye size={13} className="text-gold shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia do e-mail</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-navy/10 text-navy uppercase">{preview.modelo}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 truncate">
+                  Para: <span className="font-bold text-slate-700">{preview.destinatario || 'sem destinatário'}</span>
+                </p>
+                {preview.subject && (
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-navy transition-colors shrink-0" title="Fechar">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Corpo */}
+            <div className="flex-1 overflow-auto bg-slate-50">
+              {preview.loading ? (
+                <div className="flex justify-center py-20">
+                  <Loader2 size={22} className="text-gold animate-spin" />
+                </div>
+              ) : preview.error ? (
+                <div className="flex flex-col items-center gap-2 py-20 px-6 text-center">
+                  <AlertCircle size={22} className="text-rose-500" />
+                  <p className="text-xs font-bold text-slate-600">{preview.error}</p>
+                </div>
+              ) : (
+                /* sandbox vazio: o HTML do e-mail é renderizado sem executar script algum */
+                <iframe
+                  title="Prévia do e-mail"
+                  sandbox=""
+                  srcDoc={preview.html}
+                  className="w-full h-[52vh] border-0 bg-white"
+                />
+              )}
+            </div>
+
+            {/* Rodapé */}
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100">
+              <p className="text-[10px] text-slate-400">Nada foi enviado ainda. Uma cópia oculta chega no seu e-mail a cada envio.</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setPreview(null)}
+                  className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 transition-colors"
+                >
+                  Fechar
+                </button>
+                {preview.onSend && !preview.error && (
+                  <button
+                    onClick={() => { preview.onSend?.(); setPreview(null); }}
+                    className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-navy text-gold hover:bg-navy-light transition-colors"
+                  >
+                    <Send size={12} /> Enviar agora
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
