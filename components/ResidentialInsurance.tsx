@@ -149,6 +149,13 @@ const formatCurrency = (value: string) => {
     return formatted;
 };
 
+/**
+ * Formatos aceitos nos documentos da garantia locatícia. Antes só PDF entrava,
+ * e o contrato de locação quase sempre chega em Word: o arquivo aparecia
+ * apagado na janela de seleção e não dava para anexar.
+ */
+const ACEITA_DOC = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+
 interface ResidentialInsuranceProps {
     /** Modo embutido (modal do Repasse): renderiza só o formulário, sem
      *  alertas, header, cards de configuração e tabela. Os handlers não mudam —
@@ -226,8 +233,12 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         setUploadingGarantiaDoc(field);
         try {
             const label = field === 'apolice_garantia_url' ? 'apolice-garantia' : 'contrato-locacao';
-            const path = `garantia-docs/${editingId}/${label}_${Date.now()}.pdf`;
-            await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+            // O contrato de locação costuma chegar em Word, então guardamos a
+            // extensão e o tipo reais. Forçar .pdf salvava um arquivo que não
+            // abria depois.
+            const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+            const path = `garantia-docs/${editingId}/${label}_${Date.now()}.${ext}`;
+            await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: true });
             const { data: urlData } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
             const url = urlData.publicUrl;
             await supabase.from('residential_clients').update({ [field]: url }).eq('id', editingId);
@@ -1317,9 +1328,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                             </div>
                                         ) : (
                                             <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'apolice_garantia_url' ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/30'}`}>
-                                                <input type="file" accept="application/pdf" className="hidden" onChange={e => handleGarantiaDocUpload(e, 'apolice_garantia_url')} disabled={!!uploadingGarantiaDoc} />
+                                                <input type="file" accept={ACEITA_DOC} className="hidden" onChange={e => handleGarantiaDocUpload(e, 'apolice_garantia_url')} disabled={!!uploadingGarantiaDoc} />
                                                 {uploadingGarantiaDoc === 'apolice_garantia_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-emerald-600" />}
-                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'apolice_garantia_url' ? 'Enviando...' : 'Anexar PDF da apólice'}</span>
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'apolice_garantia_url' ? 'Enviando...' : 'Anexar apólice (PDF ou Word)'}</span>
                                             </label>
                                         )}
                                     </div>
@@ -1334,9 +1345,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                             </div>
                                         ) : (
                                             <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'contrato_locacao_url' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
-                                                <input type="file" accept="application/pdf" className="hidden" onChange={e => handleGarantiaDocUpload(e, 'contrato_locacao_url')} disabled={!!uploadingGarantiaDoc} />
+                                                <input type="file" accept={ACEITA_DOC} className="hidden" onChange={e => handleGarantiaDocUpload(e, 'contrato_locacao_url')} disabled={!!uploadingGarantiaDoc} />
                                                 {uploadingGarantiaDoc === 'contrato_locacao_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-blue-600" />}
-                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_locacao_url' ? 'Enviando...' : 'Anexar PDF do contrato'}</span>
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_locacao_url' ? 'Enviando...' : 'Anexar contrato (PDF ou Word)'}</span>
                                             </label>
                                         )}
                                     </div>

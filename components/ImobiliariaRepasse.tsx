@@ -274,15 +274,19 @@ const EMPTY_FORM = {
   observacoes: '',
 };
 
-function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; field: string; onUploaded: (url: string) => void }) {
+function ApoliceUpload({ clienteId, field, onUploaded, rotulo = 'Clique para anexar a apólice (PDF ou Word)' }: { clienteId: string; field: string; onUploaded: (url: string) => void; rotulo?: string }) {
   const [uploading, setUploading] = React.useState(false);
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const path = `apolices/${clienteId}/${field}_${Date.now()}.pdf`;
-      const { error: upErr } = await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: 'application/pdf', upsert: true });
+      // Guarda a extensão e o tipo reais: a apólice vem em PDF, mas contrato e
+      // documento da garantia costumam chegar em Word. Forçar .pdf gravava um
+      // arquivo que não abria depois.
+      const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+      const path = `apolices/${clienteId}/${field}_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('imobiliaria-docs').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: true });
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
       onUploaded(data.publicUrl);
@@ -291,9 +295,9 @@ function ApoliceUpload({ clienteId, field, onUploaded }: { clienteId: string; fi
   };
   return (
     <label className={`flex items-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-slate-200 bg-slate-50' : 'border-gold/40 hover:border-gold hover:bg-gold/5'}`}>
-      <input type="file" accept="application/pdf" className="hidden" onChange={handleFile} disabled={uploading} />
+      <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={handleFile} disabled={uploading} />
       {uploading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-gold" />}
-      <span className="text-sm font-bold text-slate-600">{uploading ? 'Enviando...' : 'Clique para anexar PDF da apólice'}</span>
+      <span className="text-sm font-bold text-slate-600">{uploading ? 'Enviando...' : rotulo}</span>
     </label>
   );
 }
@@ -409,7 +413,7 @@ export default function ImobiliariaRepasse() {
   // a tela nunca desmonta (antes o atalho navegava para outra view e perdia tudo).
   const [vendaModal, setVendaModal] = useState<{ nome: string; telefone: string } | null>(null);
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', doc_contrato_url: '' });
 
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
@@ -451,7 +455,7 @@ export default function ImobiliariaRepasse() {
   };
 
   const openEditStatus = (c: Cliente) => {
-    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12' };
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', doc_contrato_url: (c as any).doc_contrato_url || '' };
     setEditingStatus(c);
     setEditStatusForm(inicial);
     // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
@@ -526,6 +530,9 @@ export default function ImobiliariaRepasse() {
       status_garantia: temGarantia(editingStatus) ? form.status_garantia : null,
       apolice_residencial_url: form.apolice_residencial_url || null,
       apolice_garantia_url: temGarantia(editingStatus) ? form.apolice_garantia_url || null : null,
+      // Mesmo campo que a imobiliária preenche pelo portal. Aqui ele existe para
+      // quando o contrato chega direto na sua mão e não pelo parceiro.
+      doc_contrato_url: form.doc_contrato_url || null,
       vigencia_fim: form.vigencia_fim || null,
       status_apolice: form.status_apolice || 'ativo',
       status: form.status_apolice || 'ativo',
@@ -2196,6 +2203,24 @@ export default function ImobiliariaRepasse() {
                         clienteId={editingStatus.id}
                         field="apolice_garantia_url"
                         onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_garantia_url: url}))}
+                      />
+                  }
+                </div>
+                {/* Contrato de locação. É o mesmo campo que a imobiliária envia
+                    pelo portal, então anexar aqui já apaga a pendência de lá. */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Contrato de Locação</label>
+                  {editStatusForm.doc_contrato_url
+                    ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                        <a href={editStatusForm.doc_contrato_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Contrato anexado, clique para ver</a>
+                        <button onClick={() => setEditStatusForm(f => ({...f, doc_contrato_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                      </div>
+                    : <ApoliceUpload
+                        clienteId={editingStatus.id}
+                        field="doc_contrato_url"
+                        rotulo="Clique para anexar o contrato (PDF ou Word)"
+                        onUploaded={(url) => setEditStatusForm(f => ({...f, doc_contrato_url: url}))}
                       />
                   }
                 </div>
