@@ -12,6 +12,7 @@
  * usam. Essa divisão também está na política do banco, não só na tela.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Plus, Search, Copy, Download, Trash2, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -207,19 +208,22 @@ export default function Formularios() {
         </div>
       ))}
 
-      {/* Inclusão */}
-      {modal && (
+      {/* Inclusão.
+          Vai por portal no body: dentro da árvore da tela, qualquer ancestral com
+          transform ou backdrop-filter vira o bloco de contenção do position:fixed
+          e o modal aparece cortado, preso à área de conteúdo em vez da janela. */}
+      {modal && createPortal(
         <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="min-h-full flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
                 <h3 className="font-black text-slate-800 text-lg">Novo formulário</h3>
                 <button onClick={() => setModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
                   <X size={18} className="text-slate-400" />
                 </button>
               </div>
 
-              <div className="px-6 py-5 space-y-4">
+              <div className="px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nome</label>
                   <input
@@ -267,7 +271,7 @@ export default function Formularios() {
                 )}
               </div>
 
-              <div className="flex gap-3 px-6 pb-6">
+              <div className="flex gap-3 px-6 pb-6 pt-4 shrink-0 border-t border-slate-100">
                 <button onClick={() => setModal(false)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
                   Cancelar
                 </button>
@@ -282,7 +286,8 @@ export default function Formularios() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
