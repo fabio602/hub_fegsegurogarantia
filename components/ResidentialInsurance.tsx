@@ -212,6 +212,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
             // Save to residential_clients
             await supabase.from('residential_clients').update({ apolice_url: url }).eq('id', editingId);
             // Sync to imobiliaria_clientes if client has a partner
+            // Guardamos o id encontrado lá porque é ele que a função de e-mail pede.
+            let repasseId: string | null = null;
             if (formData.parceiro_nome && formData.nome) {
                 const syncPayload = { apolice_residencial_url: url, status_residencial: 'emitido', kanban_status: 'aprovado', numero_apolice: formData.apolice || undefined };
                 // Tenta por apólice primeiro; fallback por nome do inquilino
@@ -220,19 +222,33 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         .update(syncPayload)
                         .eq('numero_apolice', formData.apolice)
                         .select('id');
-                    if (!byApolice?.length) {
-                        await supabase.from('imobiliaria_clientes')
-                            .update(syncPayload)
-                            .ilike('inquilino_nome', formData.nome.trim());
-                    }
-                } else {
-                    await supabase.from('imobiliaria_clientes')
+                    repasseId = byApolice?.[0]?.id ?? null;
+                }
+                if (!repasseId) {
+                    const { data: byNome } = await supabase.from('imobiliaria_clientes')
                         .update(syncPayload)
-                        .ilike('inquilino_nome', formData.nome.trim());
+                        .ilike('inquilino_nome', formData.nome.trim())
+                        .select('id');
+                    repasseId = byNome?.[0]?.id ?? null;
                 }
             }
             setFormData(prev => ({ ...prev, apolice_url: url } as any));
             toast('PDF da apólice enviado com sucesso!', 'success');
+
+            // Apólice anexada por aqui também avisa a imobiliária, com o PDF em anexo.
+            // Antes esse e-mail só existia no modal do Repasse, e como o espelho acima
+            // já gravava a URL lá, a comparação "apólice nova" nunca era verdadeira:
+            // na prática o parceiro não recebia nada.
+            if (repasseId) {
+                const { data: envio, error: envioErr } = await supabase.functions.invoke('imobiliaria-envia-apolice', {
+                    body: { client_id: repasseId },
+                });
+                if (envioErr || (envio as any)?.error) {
+                    toast(`PDF salvo, mas o e-mail para a imobiliária não saiu: ${(envio as any)?.error || envioErr?.message || ''}`, 'error');
+                } else {
+                    toast('Apólice enviada por e-mail para a imobiliária.', 'success');
+                }
+            }
         } catch (err: any) { toast('Erro ao enviar PDF: ' + err.message, 'error'); }
         finally { setUploadingApolice(false); e.target.value = ''; }
     };
