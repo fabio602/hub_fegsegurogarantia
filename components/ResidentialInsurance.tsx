@@ -169,6 +169,43 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     const [filterProduto, setFilterProduto] = useState('');
     const [filterSituacao, setFilterSituacao] = useState('');
     const [imobParceiros, setImobParceiros] = useState<string[]>([]);
+    // Cópias adicionais (Cco) de todo e-mail do módulo residencial — tabela
+    // residencial_config (migração 044). As Edge Functions leem a mesma linha
+    // na hora do envio; aqui é só a tela de edição. Só o admin salva (RLS).
+    const [copiasEmail, setCopiasEmail] = useState<string[]>([]);
+    const [novaCopia, setNovaCopia] = useState('');
+    const [salvandoCopias, setSalvandoCopias] = useState(false);
+    const [ehAdmin, setEhAdmin] = useState(false);
+
+    useEffect(() => {
+        supabase.from('residencial_config').select('copias_adicionais').eq('id', 1).maybeSingle()
+            .then(({ data }) => { if (data?.copias_adicionais) setCopiasEmail(data.copias_adicionais); });
+        supabase.auth.getSession().then(({ data: { session } }) =>
+            setEhAdmin(session?.user?.email === 'fabio@fegsegurogarantia.com.br'));
+    }, []);
+
+    const salvarCopias = async (lista: string[]) => {
+        setSalvandoCopias(true);
+        const anterior = copiasEmail;
+        setCopiasEmail(lista);
+        const { error } = await supabase.from('residencial_config')
+            .update({ copias_adicionais: lista, updated_at: new Date().toISOString() })
+            .eq('id', 1);
+        setSalvandoCopias(false);
+        if (error) {
+            setCopiasEmail(anterior);
+            toast('Não foi possível salvar as cópias. Só o admin pode alterar esta lista.', 'error');
+        }
+    };
+
+    const adicionarCopia = () => {
+        const email = novaCopia.trim().toLowerCase();
+        if (!email) return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('E-mail inválido.', 'error'); return; }
+        if (copiasEmail.includes(email)) { setNovaCopia(''); return; }
+        setNovaCopia('');
+        salvarCopias([...copiasEmail, email]);
+    };
     const [uploadingApolice, setUploadingApolice] = useState(false);
     const [uploadingGarantiaDoc, setUploadingGarantiaDoc] = useState<string | null>(null);
 
@@ -953,6 +990,61 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     >
                         <Copy size={14} /> {publicFormCopied ? 'Copiado!' : 'Copiar'}
                     </button>
+                </div>
+            </div>
+
+            {/* Cópias adicionais de e-mail (Cco) do módulo */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="min-w-0 sm:w-72 shrink-0">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Mail size={12} /> Cópias adicionais (Cco)
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Recebem cópia oculta de todo e-mail deste módulo (boletos, apólices, repasse, portal). O cliente não vê.
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 flex-1">
+                    {copiasEmail.map(email => (
+                        <span key={email} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl">
+                            {email}
+                            {ehAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => salvarCopias(copiasEmail.filter(e => e !== email))}
+                                    disabled={salvandoCopias}
+                                    className="text-slate-400 hover:text-rose-600 transition-colors"
+                                    title={`Remover ${email}`}
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </span>
+                    ))}
+                    {copiasEmail.length === 0 && (
+                        <span className="text-xs text-slate-400 font-medium">Nenhuma cópia configurada.</span>
+                    )}
+                    {ehAdmin ? (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="email"
+                                placeholder="adicionar e-mail..."
+                                value={novaCopia}
+                                onChange={e => setNovaCopia(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adicionarCopia(); } }}
+                                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none w-52 focus:ring-2 focus:ring-gold/20"
+                            />
+                            <button
+                                type="button"
+                                onClick={adicionarCopia}
+                                disabled={salvandoCopias || !novaCopia.trim()}
+                                className="shrink-0 inline-flex items-center gap-1 bg-navy text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-navy-light transition-all disabled:opacity-40"
+                            >
+                                {salvandoCopias ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Adicionar
+                            </button>
+                        </div>
+                    ) : (
+                        <span className="text-[11px] text-slate-400 font-medium">(só o admin altera)</span>
+                    )}
                 </div>
             </div>
 

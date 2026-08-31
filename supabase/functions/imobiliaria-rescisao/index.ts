@@ -17,6 +17,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { copiasResidencial } from '../_shared/copiasResidencial.ts';
 
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -119,6 +120,8 @@ serve(async (req) => {
         </div>
       </div>`;
 
+    // Cópias adicionais do módulo residencial (residencial_config, migração 044).
+    const copiasCco = await copiasResidencial();
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_KEY}` },

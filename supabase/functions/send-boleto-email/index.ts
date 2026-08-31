@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { bccResidencial } from '../_shared/copiasResidencial.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -162,7 +163,11 @@ serve(async (req) => {
     const emailPayload: Record<string, unknown> = {
       from: 'F&G Seguro Garantia <fabio@fegsegurogarantia.com.br>',
       to: [toEmail],
-      bcc: ['fabio@fegsegurogarantia.com.br'],
+      // Cópias adicionais valem SÓ para o módulo residencial (residencial_config);
+      // RC, AUTO e Garantia continuam com o Cco de sempre.
+      bcc: nomeProduto === 'Seguro Residencial'
+        ? await bccResidencial('fabio@fegsegurogarantia.com.br')
+        : ['fabio@fegsegurogarantia.com.br'],
       subject: `📄 Seu boleto chegou — ${parcela}ª parcela · ${nomeProduto} | F&G`,
       html,
     };

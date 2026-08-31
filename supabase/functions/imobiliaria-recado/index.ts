@@ -10,6 +10,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { bccResidencial } from '../_shared/copiasResidencial.ts';
 
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -97,7 +98,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'F&G Seguro Garantia <contato@fegsegurogarantia.com.br>',
         to,
-        bcc: [BCC],
+        bcc: await bccResidencial(BCC),
         reply_to: BCC,
         subject: `Precisamos de um retorno — ${cliente.inquilino_nome || 'cadastro'}`,
         html,
