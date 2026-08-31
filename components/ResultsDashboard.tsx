@@ -3533,15 +3533,34 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 totalIS: number;
                                 totalComissao: number;
                                 salesIds: number[];
+                                /** Data da venda de onde veio o nome exibido. Só serve para o desempate abaixo. */
+                                nomeData: string;
                             }
 
-                            // Group sales by client name
+                            // O agrupamento é pelo CNPJ; o nome só entra quando não
+                            // há CNPJ. Antes a chave era o nome, e a mesma empresa
+                            // virava dois cards quando ele digitava diferente
+                            // ("LTDA" e "LTDA EPP", "SERVICOS" e "SERVIÇOS").
+                            const soDigitos = (v?: string | null) => (v || '').replace(/\D/g, '');
+
+                            // Venda com o CNPJ em branco herda o do xará de nome.
+                            // Sem isso, registro antigo (de antes do campo existir)
+                            // se separaria do card da própria empresa.
+                            const cnpjPorNome = sales.reduce((mapa, sale) => {
+                                const chaveNome = (sale.nome || '').trim().toUpperCase();
+                                const doc = soDigitos(sale.cnpj);
+                                if (chaveNome && doc && !mapa[chaveNome]) mapa[chaveNome] = doc;
+                                return mapa;
+                            }, {} as Record<string, string>);
+
                             const portfolio = sales.reduce((acc, sale) => {
                                 if (!sale.nome) return acc;
                                 const clientName = sale.nome.trim().toUpperCase();
+                                const doc = soDigitos(sale.cnpj) || cnpjPorNome[clientName] || '';
+                                const chave = doc || clientName;
 
-                                if (!acc[clientName]) {
-                                    acc[clientName] = {
+                                if (!acc[chave]) {
+                                    acc[chave] = {
                                         nome: sale.nome,
                                         cnpj: sale.cnpj || '',
                                         telefone: sale.telefone || '',
@@ -3553,22 +3572,30 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         totalPremio: 0,
                                         totalIS: 0,
                                         totalComissao: 0,
-                                        salesIds: []
+                                        salesIds: [],
+                                        nomeData: '',
                                     };
                                 }
 
-                                acc[clientName].salesIds.push(sale.id);
+                                // Entre as grafias do mesmo CNPJ, exibe a da venda
+                                // mais recente: é a última que ele digitou.
+                                if ((sale.data || '') >= acc[chave].nomeData) {
+                                    acc[chave].nome = sale.nome;
+                                    acc[chave].nomeData = sale.data || '';
+                                }
+
+                                acc[chave].salesIds.push(sale.id);
 
                                 const saleObs = (sale.obs ?? '').trim();
-                                if (saleObs && !acc[clientName].obs) {
-                                    acc[clientName].obs = saleObs;
+                                if (saleObs && !acc[chave].obs) {
+                                    acc[chave].obs = saleObs;
                                 }
 
                                 // Update contact info if missing
-                                if (!acc[clientName].cnpj && sale.cnpj) acc[clientName].cnpj = sale.cnpj;
-                                if (!acc[clientName].telefone && sale.telefone) acc[clientName].telefone = sale.telefone;
-                                if (!acc[clientName].email && sale.email) acc[clientName].email = sale.email;
-                                if (!acc[clientName].decisor && sale.decisor) acc[clientName].decisor = sale.decisor;
+                                if (!acc[chave].cnpj && sale.cnpj) acc[chave].cnpj = sale.cnpj;
+                                if (!acc[chave].telefone && sale.telefone) acc[chave].telefone = sale.telefone;
+                                if (!acc[chave].email && sale.email) acc[chave].email = sale.email;
+                                if (!acc[chave].decisor && sale.decisor) acc[chave].decisor = sale.decisor;
 
                                 // Parse limits
                                 if (sale.limites_seguradoras) {
@@ -3577,8 +3604,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         if (Array.isArray(parsed)) {
                                             parsed.forEach(p => {
                                                 // Avoid adding duplicates
-                                                if (!acc[clientName].limites.some((l: any) => l.seguradora === p.seguradora)) {
-                                                    acc[clientName].limites.push(p);
+                                                if (!acc[chave].limites.some((l: any) => l.seguradora === p.seguradora)) {
+                                                    acc[chave].limites.push(p);
                                                 }
                                             });
                                         }
@@ -3586,7 +3613,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 }
 
                                 if (sale.vendeu === 'Sim') {
-                                    acc[clientName].salesVendidas.push({
+                                    acc[chave].salesVendidas.push({
                                         id: sale.id,
                                         data: sale.data,
                                         tipo: sale.tipo || '',
@@ -3595,9 +3622,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         premio: sale.premio || '',
                                         comissao: sale.comissao || '',
                                     });
-                                    acc[clientName].totalPremio += parseNumber(sale.premio || '0');
-                                    acc[clientName].totalIS += parseNumber(sale.is || '0');
-                                    acc[clientName].totalComissao += parseNumber(sale.comissao || '0');
+                                    acc[chave].totalPremio += parseNumber(sale.premio || '0');
+                                    acc[chave].totalIS += parseNumber(sale.is || '0');
+                                    acc[chave].totalComissao += parseNumber(sale.comissao || '0');
                                 }
 
                                 return acc;
