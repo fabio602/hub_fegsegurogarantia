@@ -2690,31 +2690,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 </div>
                                             );
                                         })()}
-                                        {/* ── Prazo do contrato garantido (informativo, não gera lembrete) ── */}
-                                        <div className="md:col-span-2 lg:col-span-4 -mb-3 flex items-baseline gap-2 px-1">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prazo do contrato garantido</span>
-                                            <span className="text-[10px] font-semibold text-slate-400">Opcional · informativo, não gera lembrete</span>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Início do Contrato</label>
-                                            <input
-                                                type="date"
-                                                id="vigencia_contrato_inicio"
-                                                value={formData.vigencia_contrato_inicio || ''}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">📅 Fim do Contrato</label>
-                                            <input
-                                                type="date"
-                                                id="vigencia_contrato_fim"
-                                                value={formData.vigencia_contrato_fim || ''}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none"
-                                            />
-                                        </div>
+                                        {/* O par "Prazo do contrato garantido" (vigencia_contrato_inicio/fim)
+                                            saiu daqui: na prática as datas eram sempre iguais às da apólice
+                                            e o campo ficou vazio nas 108 vendas. As colunas seguem no banco
+                                            e continuam sendo gravadas em branco, então nada quebra. */}
                                     </>
                                 )}
                                 <div className="space-y-2">
