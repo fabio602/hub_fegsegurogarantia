@@ -1244,9 +1244,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                     {/* Parcelas / Boletos */}
                     {editingId && (
                         <div className="border-t border-slate-100 pt-6">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-1 flex items-center gap-2">
                                 <FileText size={12} /> Parcelas / Boletos
                                 {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">Sem e-mail. Configure para enviar boletos</span>}
+                            </p>
+                            {/* Lembrete de para que serve o quadro. Nada aqui dispara sozinho:
+                                o boleto só sai quando o botão E-mail da parcela é clicado. */}
+                            <p className="text-[11px] text-slate-400 font-semibold mb-4">
+                                Guarde aqui o carnê do cliente. Cada parcela anexada ganha um botão de e-mail, que só envia quando você clica.
                             </p>
 
                             {/* List of boletos */}
