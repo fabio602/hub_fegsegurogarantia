@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
+import ClienteDocumentos, { documentosDoCliente, type DocumentoCliente } from './ClienteDocumentos.tsx';
 import {
     Plus,
     Target,
@@ -455,6 +456,16 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const [currentLimit, setCurrentLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
 
     // Client Portfolio Specific States
+    // Documentos de todos os clientes, buscados de uma vez só. Se cada card
+    // fizesse a própria consulta, abrir a Carteira dispararia uma requisição por
+    // cliente na tela.
+    const [docsClientes, setDocsClientes] = useState<DocumentoCliente[]>([]);
+    const carregarDocsClientes = useCallback(async () => {
+        const { data } = await supabase.from('cliente_documentos').select('*');
+        setDocsClientes((data as DocumentoCliente[]) ?? []);
+    }, []);
+    useEffect(() => { carregarDocsClientes(); }, [carregarDocsClientes]);
+
     const [editingClientLimits, setEditingClientLimits] = useState<string | null>(null);
     const [tempClientLimits, setTempClientLimits] = useState<InsurerLimit[]>([]);
     const [newTempLimit, setNewTempLimit] = useState<InsurerLimit>({ seguradora: '', valor: '' });
@@ -3947,6 +3958,15 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                 )}
                                             </div>
                                         </div>
+                                        </div>
+                                        {/* Documentos do cliente: contrato social, balancetes, DRE */}
+                                        <div className="mt-6 pt-6 border-t border-slate-100">
+                                            <ClienteDocumentos
+                                                nome={client.nome}
+                                                cnpj={client.cnpj}
+                                                documentos={documentosDoCliente(docsClientes, client.nome, client.cnpj)}
+                                                aoMudar={carregarDocsClientes}
+                                            />
                                         </div>
                                         {/* Task Manager for Clients */}
                                         <div className="mt-6 pt-6 border-t border-slate-100">
