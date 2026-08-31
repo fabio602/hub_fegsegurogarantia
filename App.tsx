@@ -42,6 +42,7 @@ import AgendaHub from './components/AgendaHub';
 import ParceiroManager from './components/ParceiroManager';
 import UserManager from './components/UserManager';
 import EndossoAllseg from './components/EndossoAllseg';
+import Formularios from './components/Formularios';
 import RCInsurance from './components/RCInsurance';
 import ChatWidget from './components/ChatWidget';
 import AvisoNovaVersao from './components/AvisoNovaVersao.tsx';
@@ -65,7 +66,7 @@ import { CommandCenter } from './components/CommandCenter.tsx';
 type View =
   | 'dashboard'
   // Seguro Garantia
-  | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg'
+  | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
   | 'carteira' | 'posvenda' | 'prospeccao' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
@@ -78,7 +79,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'carteira', 'posvenda', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
@@ -92,6 +93,7 @@ const VIEW_TITLES: Record<View, string> = {
   letter: 'Gerador de Nomeação',
   calculator: 'Calculadora de Seguros',
   'endosso-allseg': 'Pedido de Endosso · Allseg',
+  formularios: 'Formulários para Clientes',
   carteira: 'Carteira de Clientes',
   posvenda: 'Pós-venda',
   prospeccao: 'Prospecção',
@@ -527,6 +529,7 @@ const App: React.FC = () => {
                 <NavSubItem view="letter" label="Carta de Nomeação" />
                 <NavSubItem view="calculator" label="Cálculo de Garantia" />
                 <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
+                <NavSubItem view="formularios" label="Formulários" />
               </NavGroup>
               )}
 
@@ -826,6 +829,7 @@ const App: React.FC = () => {
               {vista === 'letter' && <NominationLetter />}
               {vista === 'calculator' && <Calculator />}
               {vista === 'endosso-allseg' && <EndossoAllseg />}
+              {vista === 'formularios' && <Formularios />}
 
               {/* Seguro AUTO */}
               {vista === 'auto' && <AutoInsurance />}
