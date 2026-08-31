@@ -385,13 +385,33 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
     const {
         estado: autoSaveState,
         salvarAgora: salvarClienteAgora,
+        rascunho: rascunhoCliente,
         descartarRascunho,
     } = useAutoSave({
         dados: formData,
         ativo: !!editingId,
         identidade: editingId,
         salvar: gravarClienteEmEdicao,
+        // Cadastro novo ainda não tem linha no banco para receber UPDATE, então o
+        // autosave ficava desligado e tudo que era digitado se perdia ao fechar.
+        // Aqui o texto fica guardado no navegador até virar cadastro, igual ao
+        // Registro de Vendas do Seguro Garantia.
+        chaveRascunho: 'residencial-novo',
+        ignorar: ['id', 'created_at'],
     });
+
+    // Repõe uma única vez o que ficou pela metade numa sessão anterior.
+    const rascunhoRestauradoRef = useRef(false);
+    const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
+    useEffect(() => {
+        if (rascunhoRestauradoRef.current || editingId || !rascunhoCliente) return;
+        // Só repõe com o formulário em branco, para nunca passar por cima do que
+        // o usuário está digitando agora nem do que veio pelo atalho do Repasse.
+        if (formData.nome || formData.cpf || formData.apolice) return;
+        rascunhoRestauradoRef.current = true;
+        setFormData(prev => ({ ...prev, ...(rascunhoCliente as any) }));
+        setRascunhoRestaurado(true);
+    }, [rascunhoCliente, editingId, formData.nome, formData.cpf, formData.apolice]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         let { id, value } = e.target;
@@ -617,6 +637,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
 
     const resetForm = () => {
         descartarRascunho();
+        setRascunhoRestaurado(false);
+        rascunhoRestauradoRef.current = false;
         setEditingId(null);
         setFormData(EMPTY_FORM);
         setShowModal(false);
@@ -925,10 +947,23 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         <div className="w-1.5 h-6 bg-gold rounded-full"></div>
                         {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                     </h3>
-                    {editingId && (
-                        <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarClienteAgora} />
-                    )}
+                    {editingId
+                        ? <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarClienteAgora} />
+                        : <span className="text-[11px] font-semibold text-slate-400">Rascunho guardado enquanto você digita</span>}
                 </div>
+
+                {rascunhoRestaurado && !editingId && (
+                    <div className="mb-6 flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl text-xs font-semibold">
+                        <span>Recuperamos o que você tinha começado a preencher aqui.</span>
+                        <button
+                            type="button"
+                            onClick={() => { resetForm(); }}
+                            className="text-slate-400 hover:text-slate-600 underline underline-offset-2"
+                        >
+                            limpar e começar do zero
+                        </button>
+                    </div>
+                )}
 
                 {editingId && (formData.created_at || formData.origem_publica) && (
                     <div className="mb-6 flex flex-wrap gap-3 items-center text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
@@ -1283,7 +1318,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ prefill, on
                         ) : <div />}
                         <div className="flex gap-3">
                             {editingId ? (
-                                <button type="button" onClick={resetForm}
+                                // Grava antes de sair: sem isso, o que foi digitado
+                                // nos últimos segundos ia embora com o formulário.
+                                <button type="button" onClick={async () => { await salvarClienteAgora(); resetForm(); }}
                                     className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
                                     Fechar
                                 </button>

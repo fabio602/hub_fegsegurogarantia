@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAutoSave } from '../hooks/useAutoSave.ts';
+import SaveIndicator from './SaveIndicator.tsx';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
   User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil, Search,
@@ -404,6 +406,22 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
   const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false });
 
+  // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
+  // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
+  const originalRef = useRef<Cliente | null>(null);
+  // Houve gravação nesta abertura do modal? Sem isso, abrir e fechar sem mexer
+  // em nada já mandaria o cadastro para o Residencial de novo, à toa.
+  const mudouAlgoRef = useRef(false);
+  // Motivo pelo qual o autosave está parado (campo obrigatório em branco).
+  // Também em ref, porque `fecharStatus` precisa ler o valor logo depois de
+  // tentar gravar, antes do React repintar a tela.
+  const [bloqueio, setBloqueioState] = useState<string | null>(null);
+  const bloqueioRef = useRef<string | null>(null);
+  const setBloqueio = (motivo: string | null) => {
+    bloqueioRef.current = motivo;
+    setBloqueioState(motivo);
+  };
+
   const STATUS_LABELS: Record<string, string> = { aguardando_cotacao: '⏳ Aguardando', em_analise: '🔍 Em análise', aprovado: '✅ Aprovado', emitido: '📄 Emitido', recusado: '❌ Encerrado' };
   const STATUS_COLORS: Record<string, string> = { aguardando_cotacao: 'bg-yellow-50 text-yellow-800', em_analise: 'bg-blue-50 text-blue-700', aprovado: 'bg-emerald-50 text-emerald-700', emitido: 'bg-emerald-100 text-emerald-800', recusado: 'bg-slate-50 text-slate-600' };
 
@@ -428,90 +446,79 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
   };
 
   const openEditStatus = (c: Cliente) => {
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) };
     setEditingStatus(c);
-    setEditStatusForm({ inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse) });
+    setEditStatusForm(inicial);
+    // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
+    // (e-mail e espelho no Residencial) precisam do "antes" para saber o que
+    // mudou de verdade; o autosave já sobrescreveu o registro do banco.
+    originalRef.current = c;
+    mudouAlgoRef.current = false;
+    setBloqueio(null);
   };
-  const saveStatus = async () => {
-    if (!editingStatus) return;
+
+  /**
+   * Monta o que vai para o banco a partir do formulário.
+   * Fica separado da gravação porque quem chama agora é o autosave: ele roda
+   * sozinho enquanto o corretor digita e não pode abrir alert no meio do
+   * caminho. Faltando campo obrigatório, devolve `erro`, a gravação espera e o
+   * motivo aparece no cabeçalho do modal.
+   */
+  const montarPayloadStatus = (form: typeof editStatusForm): { erro?: string; payload?: Record<string, unknown>; kanban?: string } => {
+    if (!editingStatus) return { erro: 'Nenhum cadastro aberto.' };
 
     // O nome é como o cliente aparece na lista, nos e-mails e no portal da
-    // imobiliária — deixar salvar em branco sumiria com a linha da tela.
-    const nomeEditado = editStatusForm.inquilino_nome.trim();
-    if (!nomeEditado) {
-      alert('O nome do inquilino não pode ficar em branco.');
-      return;
-    }
-    const nomeAntigo = (editingStatus.inquilino_nome || '').trim();
+    // imobiliária — gravar em branco sumiria com a linha da tela.
+    const nomeEditado = form.inquilino_nome.trim();
+    if (!nomeEditado) return { erro: 'Informe o nome do inquilino.' };
 
     // Auto-advance kanban when policy is emitted or approved
-    let kanban = editStatusForm.kanban_status || 'solicitado';
-    if (['emitido','aprovado'].includes(editStatusForm.status_residencial) &&
+    let kanban = form.kanban_status || 'solicitado';
+    if (['emitido','aprovado'].includes(form.status_residencial) &&
         ['solicitado','atendimento_iniciado','aguardando_seguradora'].includes(kanban)) {
       kanban = 'aprovado';
     }
-    if (editStatusForm.status_residencial === 'recusado') kanban = 'recusado';
+    if (form.status_residencial === 'recusado') kanban = 'recusado';
 
-    const diaVencEdit = parseInt(editStatusForm.dia_vencimento_aluguel) || null;
-    const valorSegRaw = lerValorBRL(editStatusForm.valor_seguro);
+    const diaVencEdit = parseInt(form.dia_vencimento_aluguel) || null;
+    const valorSegRaw = lerValorBRL(form.valor_seguro);
     const valorSegEdit = valorSegRaw === null || valorSegRaw === 0 ? undefined : valorSegRaw;
 
-    // Repasse com dia de vencimento mas sem valor é o cadastro que gerava o
-    // e-mail de "R$ 0,00". Avisamos, mas não travamos o salvamento: muitas
-    // vezes o cliente ainda está em cotação e só se quer anotar um recado.
     const jaTemValor = Number((editingStatus as any).valor_seguro) > 0;
-    const ehRepasse = editStatusForm.is_repasse;
+    const ehRepasse = form.is_repasse;
     const eraRepasse = Boolean((editingStatus as any).is_repasse);
 
     // Marcar "É repasse" sem valor mensal não faz sentido: o cliente entraria na
-    // lista de ativos e a imobiliária receberia cobrança de R$ 0,00.
+    // lista de ativos e a imobiliária receberia cobrança de R$ 0,00. O caso
+    // "tem dia de vencimento, falta o valor" virou aviso dentro do quadro de
+    // repasse; era um confirm, que travaria o autosave a cada tecla.
     if (ehRepasse && !eraRepasse && valorSegEdit === undefined && !jaTemValor) {
-      alert('Informe o "Valor Mensal (R$)" antes de marcar este cliente como repasse.');
-      return;
+      return { erro: 'Preencha o Valor Mensal para marcar como repasse.' };
     }
 
-    if (ehRepasse && diaVencEdit && valorSegEdit === undefined && !jaTemValor) {
-      const seguir = confirm(
-        'Este cliente está como repasse, vencimento dia ' + diaVencEdit + ', mas sem "Valor Mensal (R$)".\n\n' +
-        'Pode salvar assim. Ele fica de fora dos avisos de repasse até o valor ser preenchido, ' +
-        'então a imobiliária não recebe cobrança de R$ 0,00.\n\n' +
-        'OK para salvar assim. Cancelar para preencher o valor agora.'
-      );
-      if (!seguir) return;
-    }
+    const recadoNovo = form.observacao_imobiliaria.trim();
 
-    // Recado: decide se a imobiliária precisa ser avisada por e-mail.
-    // Só dispara quando o corretor marcou "preciso de retorno" e o aviso ainda
-    // não saiu para este texto — assim salvar o cadastro de novo não reenvia.
-    const recadoNovo = editStatusForm.observacao_imobiliaria.trim();
-    const recadoAntigo = ((editingStatus as any).observacao_imobiliaria || '').trim();
-    const pedeRetorno = Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno;
-    const avisarRecado = pedeRetorno && (
-      recadoNovo !== recadoAntigo ||
-      !(editingStatus as any).recado_precisa_retorno ||
-      !(editingStatus as any).recado_enviado_em
-    );
-
-    const updatePayload: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       inquilino_nome: nomeEditado,
-      status_residencial: editStatusForm.status_residencial,
-      status_garantia: temGarantia(editingStatus) ? editStatusForm.status_garantia : null,
-      apolice_residencial_url: editStatusForm.apolice_residencial_url || null,
-      apolice_garantia_url: temGarantia(editingStatus) ? editStatusForm.apolice_garantia_url || null : null,
-      vigencia_fim: editStatusForm.vigencia_fim || null,
-      status_apolice: editStatusForm.status_apolice || 'ativo',
-      status: editStatusForm.status_apolice || 'ativo',
+      status_residencial: form.status_residencial,
+      status_garantia: temGarantia(editingStatus) ? form.status_garantia : null,
+      apolice_residencial_url: form.apolice_residencial_url || null,
+      apolice_garantia_url: temGarantia(editingStatus) ? form.apolice_garantia_url || null : null,
+      vigencia_fim: form.vigencia_fim || null,
+      status_apolice: form.status_apolice || 'ativo',
+      status: form.status_apolice || 'ativo',
       kanban_status: kanban,
-      seguradora: editStatusForm.seguradora || null,
-      numero_apolice: editStatusForm.numero_apolice || null,
+      seguradora: form.seguradora || null,
+      numero_apolice: form.numero_apolice || null,
       dia_vencimento_aluguel: diaVencEdit,
       // Recado que a imobiliária lê no portal — não confundir com "observacoes",
       // que é anotação interna e continua invisível para o parceiro.
       observacao_imobiliaria: recadoNovo || null,
-      recado_precisa_retorno: Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno,
+      recado_precisa_retorno: Boolean(recadoNovo) && form.recado_precisa_retorno,
       is_repasse: ehRepasse,
       updated_at: new Date().toISOString(),
     };
-    if (valorSegEdit !== undefined) updatePayload.valor_seguro = valorSegEdit;
+    if (valorSegEdit !== undefined) payload.valor_seguro = valorSegEdit;
 
     // A 1ª parcela sempre é paga pelo próprio cliente, então a cobrança da
     // imobiliária começa na 2ª. Vale para quem está virando repasse agora e
@@ -520,32 +527,75 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     // que esconde a 1ª parcela de propósito.
     const ganhouValorAgora = ehRepasse && eraRepasse && !jaTemValor && valorSegEdit !== undefined;
     if ((ehRepasse && !eraRepasse) || ganhouValorAgora) {
-      if (!Number((editingStatus as any).total_parcelas)) updatePayload.total_parcelas = 12;
-      if (!(Number((editingStatus as any).parcela_atual) > 1)) updatePayload.parcela_atual = 2;
+      if (!Number((editingStatus as any).total_parcelas)) payload.total_parcelas = 12;
+      if (!(Number((editingStatus as any).parcela_atual) > 1)) payload.parcela_atual = 2;
     }
 
-    const { error: updateError } = await supabase
+    return { payload, kanban };
+  };
+
+  /**
+   * Grava o formulário. Silencioso de propósito: sem alert, sem e-mail e sem
+   * fechar o modal, porque roda a cada pausa na digitação. Lança erro quando não
+   * dá para gravar, que é como o useAutoSave entende que precisa tentar de novo.
+   */
+  const gravarStatus = async (form: typeof editStatusForm) => {
+    if (!editingStatus) return;
+    const { erro, payload, kanban } = montarPayloadStatus(form);
+    if (erro || !payload) {
+      setBloqueio(erro ?? 'Não foi possível gravar.');
+      throw new Error(erro);
+    }
+    setBloqueio(null);
+
+    const { error } = await supabase
       .from('imobiliaria_clientes')
-      .update(updatePayload)
+      .update(payload)
       .eq('id', editingStatus.id);
-
-    if (updateError) {
-      console.error('[saveStatus] Erro ao salvar:', updateError);
-      alert(`Erro ao salvar: ${updateError.message}`);
-      return;
+    if (error) {
+      console.error('[gravarStatus] Erro ao salvar:', error);
+      throw error;
     }
 
-    // Atualiza estado local imediatamente (otimista) para evitar flash do valor antigo
+    mudouAlgoRef.current = true;
+
+    // Estado local otimista: a lista atrás do modal já mostra o valor novo.
     setClientes(prev => prev.map(c => c.id === editingStatus.id
-      ? { ...c, ...updatePayload, kanban_status: kanban } as any
+      ? { ...c, ...payload, kanban_status: kanban } as any
       : c
     ));
-    setEditingStatus(null);
+    // O próprio cadastro em edição também acompanha, senão as comparações de
+    // "já tem valor" e "já era repasse" continuariam olhando o estado antigo.
+    setEditingStatus(prev => prev && prev.id === editingStatus.id
+      ? { ...prev, ...payload, kanban_status: kanban } as any
+      : prev
+    );
+  };
+
+  const { estado: estadoSalvamento, salvarAgora: salvarStatusAgora } = useAutoSave({
+    dados: editStatusForm,
+    ativo: !!editingStatus,
+    identidade: editingStatus?.id ?? null,
+    salvar: gravarStatus,
+  });
+
+  /**
+   * O que só faz sentido quando a edição termina: espelhar no Residencial,
+   * avisar a imobiliária da apólice nova e mandar o recado que pede retorno.
+   * Fora do autosave de propósito — a cada tecla digitada sairia um e-mail.
+   */
+  const efeitosDoStatus = async () => {
+    const original = originalRef.current;
+    if (!original || !mudouAlgoRef.current) return;
+
+    const nomeEditado = editStatusForm.inquilino_nome.trim();
+    if (!nomeEditado) return;
+    const nomeAntigo = (original.inquilino_nome || '').trim();
 
     // ── Sync para residential_clients quando emitido ──────────────
     if (editStatusForm.status_residencial === 'emitido') {
-      const parceiroNome = (editingStatus as any).parceiro_nome ||
-        parceiros.find(p => p.id === (editingStatus as any).partner_id)?.name || null;
+      const parceiroNome = (original as any).parceiro_nome ||
+        parceiros.find(p => p.id === (original as any).partner_id)?.name || null;
 
       // Busca o registro correspondente em residential_clients.
       // Procura pelo nome antigo, que é o que está gravado lá; se o nome mudou
@@ -574,9 +624,9 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         // Cria novo registro no Residencial
         await supabase.from('residential_clients').insert({
           nome: nomeEditado,
-          cpf: (editingStatus as any).cpf || null,
-          telefone: (editingStatus as any).telefone || null,
-          email: (editingStatus as any).email_inquilino || null,
+          cpf: (original as any).cpf || null,
+          telefone: (original as any).telefone || null,
+          email: (original as any).email_inquilino || null,
           produto: 'Residencial',
           apolice: editStatusForm.numero_apolice || null,
           fim_vigencia: editStatusForm.vigencia_fim || null,
@@ -589,19 +639,30 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
     }
 
     // Email para imobiliária quando apólice é adicionada
-    const apoliceNova = editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (editingStatus.apolice_residencial_url || '');
-    if (apoliceNova && (editingStatus as any).partner_id) {
+    const apoliceNova = editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (original.apolice_residencial_url || '');
+    if (apoliceNova && (original as any).partner_id) {
       supabase.functions.invoke('imobiliaria-envia-apolice', {
-        body: { client_id: editingStatus.id },
+        body: { client_id: original.id },
       }).catch(e => console.warn('Email apólice:', e));
     }
 
-    // Aviso do recado que pede retorno — aqui esperamos a resposta de propósito:
-    // se o e-mail não sair, o corretor precisa saber na hora, senão fica
-    // esperando um retorno que nunca foi pedido.
+    // Recado: decide se a imobiliária precisa ser avisada por e-mail.
+    // Só dispara quando o corretor marcou "preciso de retorno" e o aviso ainda
+    // não saiu para este texto — assim reabrir o cadastro não reenvia.
+    const recadoNovo = editStatusForm.observacao_imobiliaria.trim();
+    const recadoAntigo = ((original as any).observacao_imobiliaria || '').trim();
+    const pedeRetorno = Boolean(recadoNovo) && editStatusForm.recado_precisa_retorno;
+    const avisarRecado = pedeRetorno && (
+      recadoNovo !== recadoAntigo ||
+      !(original as any).recado_precisa_retorno ||
+      !(original as any).recado_enviado_em
+    );
+
+    // Aqui esperamos a resposta de propósito: se o e-mail não sair, o corretor
+    // precisa saber na hora, senão fica esperando um retorno que nunca foi pedido.
     if (avisarRecado) {
       const { data: aviso, error: avisoErr } = await supabase.functions.invoke('imobiliaria-recado', {
-        body: { client_id: editingStatus.id },
+        body: { client_id: original.id },
       });
       if (avisoErr || (aviso as any)?.error) {
         alert(`Recado salvo, mas o e-mail para a imobiliária não foi enviado.\n\n${(aviso as any)?.error || avisoErr?.message || ''}`);
@@ -609,9 +670,32 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
         alert(`E-mail enviado para ${((aviso as any)?.enviado_para || []).join(', ')} pedindo o retorno.`);
       }
     }
-
-    load();
   };
+
+  /**
+   * Fecha o modal garantindo que o que está na tela já foi para o banco. É por
+   * aqui que passam o X, o botão Fechar e o atalho do Registro de Venda: antes
+   * o atalho descartava tudo que tinha sido digitado.
+   */
+  const fecharStatus = async (aoFechar?: () => void) => {
+    if (!editingStatus) return;
+    await salvarStatusAgora();
+
+    // Só sobra bloqueio quando falta campo obrigatório. Fechar assim perde o que
+    // está na tela, então a decisão é do corretor.
+    if (bloqueioRef.current) {
+      const sair = confirm(`${bloqueioRef.current}\n\nFechar mesmo assim descarta as últimas alterações.`);
+      if (!sair) return;
+    }
+
+    await efeitosDoStatus();
+    setEditingStatus(null);
+    originalRef.current = null;
+    setBloqueio(null);
+    load();
+    aoFechar?.();
+  };
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1846,8 +1930,13 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             <div>
               <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
               <p className="text-sm text-slate-500 mt-0.5">{editStatusForm.inquilino_nome || editingStatus.inquilino_nome}</p>
+              {/* Não existe botão Salvar: o formulário grava sozinho. O indicador
+                  é o que conta isso para quem está usando. */}
+              {bloqueio
+                ? <p className="text-[11px] font-bold text-rose-600 mt-1">{bloqueio}</p>
+                : <SaveIndicator estado={estadoSalvamento} aoTentarNovamente={() => void salvarStatusAgora()} className="mt-1" />}
             </div>
-            <button onClick={() => setEditingStatus(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
+            <button onClick={() => void fecharStatus()} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
           </div>
 
           <div className="px-7 py-5 space-y-4">
@@ -1892,7 +1981,7 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
             {/* Auto-advance hint */}
             {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-700">
-                <CheckCircle2 size={13} /> Ao salvar, o card moverá automaticamente para <strong>Aprovado</strong> no kanban
+                <CheckCircle2 size={13} /> O card foi movido para <strong>Aprovado</strong> no kanban
               </div>
             )}
 
@@ -1951,7 +2040,12 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-amber-600">Aviso enviado 10 dias antes do vencimento</p>
+              {/* Sem valor o cliente fica de fora dos avisos, senão a imobiliária
+                  receberia cobrança de R$ 0,00. Antes isso era um confirm na hora
+                  de salvar; com o autosave o aviso precisa ficar aqui, à vista. */}
+              {editStatusForm.is_repasse && editStatusForm.dia_vencimento_aluguel && !lerValorBRL(editStatusForm.valor_seguro)
+                ? <p className="text-[10px] font-bold text-amber-700">Sem o valor mensal, este cliente fica fora dos avisos de repasse.</p>
+                : <p className="text-[10px] text-amber-600">Aviso enviado 10 dias antes do vencimento</p>}
             </div>
 
             {/* Recado para a imobiliária — aparece no portal do parceiro */}
@@ -2048,30 +2142,21 @@ export default function ImobiliariaRepasse({ onGoToSale }: { onGoToSale?: (data:
           </div>
 
           {/* Atalho para o Registro de Venda, disponível em qualquer etapa.
-              Fica separado dos botões abaixo porque sai da tela: alterações
-              não salvas neste formulário são descartadas, igual ao Cancelar. */}
-          {onGoToSale && (
-            <div className="px-7 pt-2">
+              Sai da tela, então grava o que está aqui antes de trocar de tela. */}
+          <div className="flex gap-3 px-7 pb-7 pt-2">
+            {onGoToSale && (
               <button
                 onClick={() => {
-                  const nome = editingStatus.inquilino_nome;
+                  const nome = editStatusForm.inquilino_nome.trim() || editingStatus.inquilino_nome;
                   const telefone = (editingStatus as any).telefone || '';
-                  setEditingStatus(null);
-                  onGoToSale({ nome, telefone });
+                  void fecharStatus(() => onGoToSale({ nome, telefone }));
                 }}
-                className="w-full py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
+                className="flex-1 py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
               >
                 → Registro de Venda
               </button>
-              <p className="text-[10px] text-slate-400 font-semibold text-center mt-1.5">
-                Sai desta tela sem salvar as alterações acima
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-3 px-7 pb-7 pt-2">
-            <button onClick={() => setEditingStatus(null)} className="flex-1 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
-            <button onClick={saveStatus} className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors">Salvar</button>
+            )}
+            <button onClick={() => void fecharStatus()} className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors">Fechar</button>
           </div>
         </div>
         </div>
