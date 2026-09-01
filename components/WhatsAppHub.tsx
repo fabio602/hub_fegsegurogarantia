@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search, ChevronRight, ChevronDown, Smile, Reply, Check, CheckCheck } from 'lucide-react';
+import { MessageSquare, Send, RefreshCw, User, Users, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search, ChevronRight, ChevronDown, Smile, Reply, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { WhatsAppClientCard } from './WhatsAppClientCard.tsx';
 
@@ -13,6 +13,8 @@ interface Lead {
   updated_at: string;
   /** Foto de perfil do WhatsApp. Pode faltar, e a URL do CDN expira. */
   foto_url?: string | null;
+  /** Conversa é um grupo. O `phone` guarda o id do grupo, não um telefone. */
+  e_grupo?: boolean | null;
 }
 
 /**
@@ -21,12 +23,14 @@ interface Lead {
  * é feita no onError da imagem porque não dá para saber de antemão se a URL
  * ainda vale.
  */
-function FotoContato({ foto, nome, className, tamanhoIcone, corIcone }: {
+function FotoContato({ foto, nome, className, tamanhoIcone, corIcone, grupo }: {
   foto?: string | null;
   nome: string;
   className: string;
   tamanhoIcone: number;
   corIcone: string;
+  /** Grupo cai no ícone de várias pessoas em vez do boneco de uma só. */
+  grupo?: boolean | null;
 }) {
   const [falhou, setFalhou] = useState(false);
   // Uma foto nova precisa de uma tentativa nova, senão o erro da anterior
@@ -34,9 +38,10 @@ function FotoContato({ foto, nome, className, tamanhoIcone, corIcone }: {
   useEffect(() => { setFalhou(false); }, [foto]);
 
   if (!foto || falhou) {
+    const Icone = grupo ? Users : User;
     return (
       <div className={`${className} flex items-center justify-center`}>
-        <User size={tamanhoIcone} className={corIcone} />
+        <Icone size={tamanhoIcone} className={corIcone} />
       </div>
     );
   }
@@ -79,6 +84,9 @@ interface Message {
   /** 'sent' | 'delivered' | 'read' | 'played' nas enviadas, 'received' nas
    *  recebidas. Vem do MessageStatusCallback da Z-API. */
   status?: string | null;
+  /** Quem escreveu, dentro de um grupo. Fora de grupo vem null, porque quem
+   *  escreveu já é o próprio contato da conversa. */
+  autor?: string | null;
   /** Bolha otimista: já está na tela mas ainda não voltou do banco. */
   pendente?: boolean;
   /** O envio deu erro. A bolha fica na tela marcada, sem sumir. */
@@ -1251,6 +1259,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       <FotoContato
                         foto={lead.foto_url}
                         nome={lead.name}
+                        grupo={lead.e_grupo}
                         className="w-10 h-10 rounded-full bg-white/10"
                         tamanhoIcone={15}
                         corIcone="text-slate-400"
@@ -1263,7 +1272,11 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                         <span className={`text-[10px] shrink-0 ${naoLidas[lead.phone] ? 'text-whatsapp font-bold' : 'text-slate-500'}`}>{formatTime(lead.updated_at)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-0.5">
-                        <span className="text-slate-500 text-[10px] truncate">{lead.phone}</span>
+                        {/* Em grupo o `phone` é o id interno (120363...-group),
+                            que não diz nada para quem lê. */}
+                        <span className="text-slate-500 text-[10px] truncate">
+                          {lead.e_grupo ? 'Grupo' : lead.phone}
+                        </span>
                         {naoLidas[lead.phone] > 0 && (
                           <span className="shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-whatsapp text-navy text-[10px] font-extrabold flex items-center justify-center">
                             {naoLidas[lead.phone] > 99 ? '99+' : naoLidas[lead.phone]}
@@ -1281,13 +1294,18 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   </div>
                 </button>
                 <div className="px-4 pb-2.5 flex gap-1.5">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openCrmModal(lead); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-bold transition-colors"
-                    title="Adicionar ao CRM"
-                  >
-                    <Plus size={11} /> Adicionar ao CRM
-                  </button>
+                  {/* Grupo não vira lead do CRM: não existe um decisor único
+                      por trás dele. Só sobra a opção de excluir a conversa. */}
+                  {!lead.e_grupo && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openCrmModal(lead); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-gold/15 hover:bg-gold/30 text-gold text-[10px] font-bold transition-colors"
+                      title="Adicionar ao CRM"
+                    >
+                      <Plus size={11} /> Adicionar ao CRM
+                    </button>
+                  )}
+                  {lead.e_grupo && <div className="flex-1" />}
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeletingConv(lead.phone); }}
                     className="px-2 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 transition-colors"
@@ -1329,6 +1347,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 <FotoContato
                   foto={selectedLead?.foto_url}
                   nome={selectedLead?.name ?? ''}
+                  grupo={selectedLead?.e_grupo}
                   className="w-9 h-9 rounded-full bg-navy shrink-0"
                   tamanhoIcone={14}
                   corIcone="text-gold"
@@ -1340,7 +1359,10 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       {presenca === 'recording' ? 'gravando áudio...' : 'digitando...'}
                     </p>
                   ) : (
-                    <p className="text-slate-400 text-xs mt-0.5">{selectedPhone}</p>
+                    /* O id do grupo (120363...-group) não diz nada na tela. */
+                    <p className="text-slate-400 text-xs mt-0.5">
+                      {selectedLead?.e_grupo ? 'Grupo' : selectedPhone}
+                    </p>
                   )}
                 </div>
               </div>
@@ -1503,6 +1525,14 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                             {msg.responde_a_texto ?? 'Mensagem'}
                           </p>
                         </div>
+                      )}
+                      {/* Autor, só nas recebidas de grupo. Fora de grupo o
+                          `autor` vem null, porque quem escreveu já é o
+                          contato do topo da conversa. */}
+                      {msg.autor && msg.direction === 'inbound' && (
+                        <p className="px-3 pt-2 -mb-1 text-[10px] font-bold text-gold-dark truncate">
+                          {msg.autor}
+                        </p>
                       )}
                       {editingMsg?.id === msg.id ? (
                         /* Inline edit */

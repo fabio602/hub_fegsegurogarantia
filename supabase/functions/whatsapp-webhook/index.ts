@@ -118,10 +118,16 @@ Deno.serve(async (req) => {
     const isFromMe: boolean = body.fromMe === true || body.isMe === true ||
       body.type === 'SentCallback' || body.type === 'SendMsgAction' || body.type === 'SendMsgCallback';
 
-    if (!isFromMe && body.participantPhone) {
-      console.log('[descartado] group_inbound', body.participantPhone);
-      return new Response(JSON.stringify({ ignored: true, reason: 'group_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    // Grupo. A Z-API marca com isGroup e o id do chat termina em "-group".
+    // Antes tudo isso era descartado: a mensagem com participantPhone caía em
+    // "group_inbound" e o id do grupo era barrado pela guarda de telefone.
+    const eGrupo: boolean = body.isGroup === true ||
+      String(body.phone ?? body.chatId ?? '').endsWith('-group');
+    // Num grupo o nome do chat é o nome do grupo, então quem escreveu precisa
+    // vir à parte para a bolha mostrar o autor, como no WhatsApp.
+    const autor: string | null = eGrupo && !isFromMe
+      ? (body.senderName ?? body.participantPhone ?? null)
+      : null;
 
     // ── VISTO ────────────────────────────────────────────────────
     // Precisa vir antes da checagem de telefone. No callback de status a Z-API
@@ -142,19 +148,35 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, reason: 'status' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const rawPhone: string = body.phone ?? body.chatId?.replace('@c.us', '') ?? '';
-    if (!rawPhone || rawPhone.includes('@') || rawPhone.includes('-')) {
+    const rawPhone: string = body.phone ?? body.chatId?.replace(/@(c|g)\.us$/, '') ?? '';
+    // O hífen só é aceito no id de grupo (120363379108469082-group). Fora
+    // disso continua valendo a guarda original, que existe para não gravar
+    // conversa com LID ou com id de transmissão.
+    const idValido = rawPhone && !rawPhone.includes('@') &&
+      (!rawPhone.includes('-') || (eGrupo && rawPhone.endsWith('-group')));
+    if (!idValido) {
       console.log('[descartado] invalid_phone', rawPhone);
       return new Response(JSON.stringify({ ignored: true, reason: 'invalid_phone' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const phone = rawPhone;
-    const name: string = body.chatName ?? body.senderName ?? phone;
+    // Fora de grupo o senderName é quem escreveu, que é o próprio contato.
+    // Dentro do grupo ele é o participante, então o nome tem que ser o do
+    // grupo (chatName), senão a conversa mudaria de nome a cada mensagem.
+    const name: string = eGrupo
+      ? (body.chatName ?? phone)
+      : (body.chatName ?? body.senderName ?? phone);
+    // Espalhado nos upserts de lead, para o hub saber que a linha é grupo.
+    const comGrupo = eGrupo ? { e_grupo: true } : {};
     const zapiId: string | null = body.messageId ?? body.zaapId ?? null;
     // Foto de perfil: senderPhoto é a de quem escreveu, photo é a do chat.
     // Vem em quase todo callback, então a URL se renova sozinha antes de o
     // endereço do CDN do WhatsApp expirar.
-    const fotoUrl: string | null = body.senderPhoto ?? body.photo ?? null;
+    // No grupo a ordem se inverte: senderPhoto é a foto de quem escreveu, e
+    // a que interessa na lista é a do grupo.
+    const fotoUrl: string | null = eGrupo
+      ? (body.photo ?? null)
+      : (body.senderPhoto ?? body.photo ?? null);
     // Espalhar objeto vazio quando não veio foto evita sobrescrever a que já
     // está no banco com null num callback que não trouxe a imagem.
     const comFoto = fotoUrl ? { foto_url: fotoUrl } : {};
@@ -237,7 +259,7 @@ Deno.serve(async (req) => {
           }
           await supabase.from('whatsapp_leads').update(updatePayload).eq('phone', phone);
         } else {
-          await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString(), ...comFoto });
+          await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString(), ...comFoto, ...comGrupo });
         }
         if (messageText) {
           await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId, ...(await citarOriginal()) });
@@ -259,10 +281,10 @@ Deno.serve(async (req) => {
       await supabase.from('whatsapp_messages').insert({
         phone, name, message: '[Áudio]', audio_url: audioUrl || null,
         media_url: audioUrl || null, media_type: 'audio',
-        direction: 'inbound', zapi_id: zapiId,
+        direction: 'inbound', zapi_id: zapiId, autor,
         ...(await citarOriginal()),
       });
-      await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString(), ...comFoto }, { onConflict: 'phone', ignoreDuplicates: false });
+      await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString(), ...comFoto, ...comGrupo }, { onConflict: 'phone', ignoreDuplicates: false });
       return new Response(JSON.stringify({ success: true, bot: false, reason: 'audio_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -307,19 +329,27 @@ Deno.serve(async (req) => {
 
     await supabase.from('whatsapp_messages').insert({
       phone, name, message: messageText, direction: 'inbound', zapi_id: zapiId,
-      media_url: mediaUrl, media_type: mediaType, media_name: mediaName,
+      media_url: mediaUrl, media_type: mediaType, media_name: mediaName, autor,
       ...(await citarOriginal()),
     });
-    await trySaveSurveyScore(supabase, phone, messageText);
+    // Nota da pesquisa de satisfação só faz sentido de um para um. Num grupo
+    // qualquer "5" solto viraria avaliação de uma venda que não é daquela pessoa.
+    if (!eGrupo) await trySaveSurveyScore(supabase, phone, messageText);
 
     const { data: existingLead } = await supabase.from('whatsapp_leads').select('status').eq('phone', phone).maybeSingle();
     if (existingLead) {
-      await supabase.from('whatsapp_leads').update({ name, updated_at: new Date().toISOString(), ...comFoto }).eq('phone', phone);
+      await supabase.from('whatsapp_leads').update({ name, updated_at: new Date().toISOString(), ...comFoto, ...comGrupo }).eq('phone', phone);
       if (existingLead.status !== 'novo') {
         return new Response(JSON.stringify({ success: true, bot: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     } else {
-      await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'novo', updated_at: new Date().toISOString(), ...comFoto });
+      await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'novo', updated_at: new Date().toISOString(), ...comFoto, ...comGrupo });
+    }
+
+    // A assistente nunca responde em grupo: seria um "chamei o Fábio" para uma
+    // dúzia de pessoas que não pediram atendimento.
+    if (eGrupo) {
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'grupo_sem_bot' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     await new Promise(resolve => setTimeout(resolve, 2000));
