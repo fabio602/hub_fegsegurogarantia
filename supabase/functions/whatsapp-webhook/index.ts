@@ -112,15 +112,24 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Rastro de diagnóstico: sem isso não dá para saber por que um recebimento
+    // foi descartado, porque o motivo só volta no corpo da resposta.
+    console.log('[entrada]', body.type, 'fromMe=', body.fromMe, 'phone=', body.phone, 'status=', body.status);
+    if (body.type === 'ReceivedCallback') {
+      console.log('[payload]', JSON.stringify(body).slice(0, 1500));
+    }
+
     const isFromMe: boolean = body.fromMe === true || body.isMe === true ||
       body.type === 'SentCallback' || body.type === 'SendMsgAction' || body.type === 'SendMsgCallback';
 
     if (!isFromMe && body.participantPhone) {
+      console.log('[descartado] group_inbound', body.participantPhone);
       return new Response(JSON.stringify({ ignored: true, reason: 'group_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const rawPhone: string = body.phone ?? body.chatId?.replace('@c.us', '') ?? '';
     if (!rawPhone || rawPhone.includes('@') || rawPhone.includes('-')) {
+      console.log('[descartado] invalid_phone', rawPhone);
       return new Response(JSON.stringify({ ignored: true, reason: 'invalid_phone' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -234,6 +243,7 @@ Deno.serve(async (req) => {
 
     // ── MENSAGENS RECEBIDAS ──────────────────────────────────────
     if (body.type !== 'ReceivedCallback') {
+      console.log('[descartado] unknown_type', body.type);
       return new Response(JSON.stringify({ ignored: true, reason: 'unknown_type' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

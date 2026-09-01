@@ -180,6 +180,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const alturaAntesRef = useRef<number | null>(null);
   /** O canal de Realtime está mesmo conectado? Define se precisamos poll. */
   const realtimeOkRef = useRef(false);
+  /** Mesma ideia, mas para o canal da lista lateral de conversas. */
+  const realtimeLeadsOkRef = useRef(false);
 
   /** 'composing' | 'recording' quando o contato está digitando ou gravando. */
   const [presenca, setPresenca] = useState<string | null>(null);
@@ -341,9 +343,38 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
 
   useEffect(() => {
     loadLeads(true);
-    // Atualiza a lista de contatos sem spinner, só para pegar conversa nova.
-    const poll = setInterval(() => loadLeads(false), 10000);
-    return () => clearInterval(poll);
+
+    // A lista de conversas escuta o Realtime para reordenar no instante em que
+    // a mensagem chega. Sem isso a conversa nova só aparecia no próximo poll,
+    // ou seja, com até 10 segundos de atraso.
+    let agendado: ReturnType<typeof setTimeout> | null = null;
+    // Uma mensagem recebida dispara dois eventos quase juntos (a mensagem e o
+    // updated_at do lead). O debounce curto junta os dois numa recarga só.
+    const recarregar = () => {
+      if (agendado) return;
+      agendado = setTimeout(() => { agendado = null; loadLeads(false); }, 300);
+    };
+
+    const canal = supabase
+      .channel('leads:lista')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_leads' }, recarregar)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, recarregar)
+      .subscribe(status => { realtimeLeadsOkRef.current = status === 'SUBSCRIBED'; });
+
+    // Rede de segurança: se o Realtime cair, o poll volta a ser o único jeito
+    // de a lista se atualizar, então ele nunca é removido, só desacelerado.
+    let tick = 0;
+    const poll = setInterval(() => {
+      tick++;
+      if (realtimeLeadsOkRef.current && tick % 6 !== 0) return;
+      loadLeads(false);
+    }, 10000);
+
+    return () => {
+      if (agendado) clearTimeout(agendado);
+      clearInterval(poll);
+      supabase.removeChannel(canal);
+    };
   }, [loadLeads]);
 
   // Carrega a conversa e assina o Realtime ao selecionar um contato
