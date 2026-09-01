@@ -67,6 +67,46 @@ function diffDias(inicio?: string, fim?: string): number | null {
 /** Valor do `<select>` quando o usuário informa corretor/seguradora manualmente. */
 const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
 
+/** Campo de dinheiro vazio ou zerado. A máscara devolve "R$ 0,00" em vez de
+ *  string vazia, então testar só a ausência deixaria passar prêmio zerado. */
+const semValor = (v?: string | number | null) => !v || parseNumber(String(v)) <= 0;
+
+/** O que ainda falta preencher no registro de venda.
+ *  A régua muda conforme o estágio: enquanto está em andamento cobramos só o
+ *  que identifica o cliente, porque o resto ela ainda não tem. Quando a venda
+ *  é marcada como emitida, cobramos tudo o que alimenta apólice, cobrança,
+ *  renovação e relatório de comissão. */
+function camposPendentes(f: any): { label: string; id: string }[] {
+    const falta: { label: string; id: string }[] = [];
+    const exigir = (cond: boolean, label: string, id: string) => { if (cond) falta.push({ label, id }); };
+
+    // Identificação: vale em qualquer estágio.
+    exigir(!f.nome?.trim(), 'Nome do cliente / tomador', 'nome');
+    exigir(!f.cnpj?.trim(), 'CNPJ / CPF', 'cnpj');
+    exigir(!f.telefone?.trim(), 'Telefone', 'telefone');
+    exigir(!f.email?.trim(), 'E-mail', 'email');
+    exigir(!f.origem, 'Origem', 'origem');
+    exigir(!f.tipo, 'Tipo de seguro', 'tipo');
+
+    // Licitante sem data de pregão não recebe os lembretes automáticos.
+    exigir(f.tipo === 'Licitante' && !f.dataPregao, 'Data do pregão', 'dataPregao');
+
+    if (f.vendeu !== 'Sim') return falta;
+
+    exigir(!f.data, 'Data', 'data');
+    exigir(!f.decisor?.trim(), 'Decisor / responsável', 'decisor');
+    exigir(semValor(f.is), 'IS garantida', 'is');
+    exigir(!f.seguradora?.trim(), 'Seguradora', 'seguradora');
+    exigir(semValor(f.premio), 'Valor do prêmio', 'premio');
+    exigir(!f.vigencia_inicio, 'Início da vigência', 'vigencia_inicio');
+    exigir(!f.vigencia_fim, 'Fim da vigência', 'vigencia_fim');
+    exigir(semValor(f.comissao), 'Comissão', 'comissaoPerc');
+    exigir(!f.vendedor, 'Vendedor', 'vendedor');
+    exigir(!f.vencimento_boleto, 'Vencimento do boleto', 'vencimento_boleto');
+
+    return falta;
+}
+
 /** Caixa baixa e sem acento: "CONSTRUÇÃO" e "construcao" viram a mesma coisa. */
 const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -432,6 +472,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
     };
     const [saveError, setSaveError] = useState<string | null>(null);
+    /** Campos que faltam no registro de venda. Preenchido, abre o popup de pendências. */
+    const [camposFaltando, setCamposFaltando] = useState<{ label: string; id: string }[] | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     // Confirma na tela que a apólice/boleto saíram para o cliente. Existia uma
     // chamada a `setEmailSuccess` sem estado correspondente: todo envio bem-
@@ -1078,19 +1120,13 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setSaveSuccess(false);
         setEmailSuccess(false);
 
-        // Validação: dataPregao obrigatório quando tipo = 'Licitante'
-        if (formData.tipo === 'Licitante' && !formData.dataPregao) {
-            setSaveError('Para vendas do tipo Licitante, é obrigatório informar a data do pregão. Esse campo é necessário para o envio automático dos lembretes ao cliente e ao vendedor.');
+        // Campos obrigatórios. Junta tudo o que falta numa lista só e abre o
+        // popup: antes as checagens eram separadas e ela corrigia um campo,
+        // salvava de novo e descobria o próximo. Agora vê tudo de uma vez.
+        const faltando = camposPendentes(formData);
+        if (faltando.length > 0) {
+            setCamposFaltando(faltando);
             setSaving(false);
-            document.getElementById('dataPregao')?.focus();
-            return;
-        }
-
-        // Validação: vencimento_boleto obrigatório quando vendeu = 'Sim'
-        if (formData.vendeu === 'Sim' && !(formData as any).vencimento_boleto) {
-            setSaveError('Para registrar uma venda como emitida, é necessário informar a data de vencimento do boleto. Esse campo é obrigatório para o envio automático dos lembretes de pagamento.');
-            setSaving(false);
-            document.getElementById('vencimento_boleto')?.focus();
             return;
         }
 
@@ -2158,6 +2194,66 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                     </div>,
                     document.body
                 )}
+            {/* Pendências do registro de venda.
+                Vai por portal no body: o formulário fica dentro de um card com
+                transform, que viraria o bloco de contenção do position:fixed e
+                cortaria o popup. */}
+            {camposFaltando && camposFaltando.length > 0 && createPortal(
+                <div
+                    className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150"
+                    onClick={() => setCamposFaltando(null)}
+                >
+                    <div className="min-h-full flex items-center justify-center p-4">
+                        <div
+                            role="alertdialog"
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150"
+                        >
+                            <div className="flex items-start gap-3 px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+                                <div className="rounded-xl bg-amber-50 p-2 shrink-0">
+                                    <AlertCircle size={20} className="text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-navy leading-tight">
+                                        Falta preencher {camposFaltando.length} {camposFaltando.length === 1 ? 'campo' : 'campos'}
+                                    </h3>
+                                    <p className="text-xs font-semibold text-slate-500 mt-1 leading-relaxed">
+                                        Sem esses dados a apólice, a cobrança e a renovação não saem automaticamente.
+                                    </p>
+                                </div>
+                            </div>
+                            <ul className="px-6 py-5 space-y-2 overflow-y-auto">
+                                {camposFaltando.map((c) => (
+                                    <li key={c.id} className="flex items-center gap-2.5 text-sm font-semibold text-navy">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                                        {c.label}
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="px-6 pb-6 pt-4 shrink-0 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        // Leva direto ao primeiro pendente: a lista costuma
+                                        // começar acima da dobra do formulário.
+                                        const alvo = camposFaltando[0]?.id;
+                                        setCamposFaltando(null);
+                                        if (alvo) {
+                                            const el = document.getElementById(alvo);
+                                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            setTimeout(() => el?.focus(), 300);
+                                        }
+                                    }}
+                                    className="w-full bg-navy hover:bg-navy-light text-white font-bold text-sm rounded-xl px-4 py-3 transition-colors"
+                                >
+                                    Ir para o primeiro campo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto relative">
             {/* Sub-Navigation */}
             {!hideTabs && <div className="bg-navy p-2 rounded-2xl inline-flex gap-1 shadow-xl no-print">
