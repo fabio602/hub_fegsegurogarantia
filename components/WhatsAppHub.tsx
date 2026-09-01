@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Send, RefreshCw, User, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { WhatsAppClientCard } from './WhatsAppClientCard.tsx';
@@ -22,6 +22,26 @@ interface Message {
   created_at: string;
   zapi_id?: string | null;
   audio_url?: string | null;
+  /** Bolha otimista: já está na tela mas ainda não voltou do banco. */
+  pendente?: boolean;
+  /** O envio deu erro. A bolha fica na tela marcada, sem sumir. */
+  falhou?: boolean;
+}
+
+/** Quantas mensagens carregamos de cara ao abrir uma conversa.
+ *  Antes vinha a conversa inteira (a maior tem quase 900 mensagens),
+ *  então abrir um contato antigo travava a tela. */
+const MENSAGENS_POR_PAGINA = 80;
+
+/** Compara duas listas de leads pelos campos que a tela mostra.
+ *  Se nada mudou devolvemos o array antigo, e assim o refresh de 10 em 10
+ *  segundos deixa de re-renderizar a conversa aberta sem necessidade. */
+function mesmaLista(a: Lead[], b: Lead[]) {
+  if (a.length !== b.length) return false;
+  return a.every((l, i) =>
+    l.phone === b[i].phone && l.name === b[i].name &&
+    l.status === b[i].status && l.updated_at === b[i].updated_at
+  );
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -63,9 +83,18 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [matchingPhones, setMatchingPhones] = useState<Set<string> | null>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const listaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const convOpenedAtRef = useRef<string>('');
+  /** Altura da lista antes de emendar mensagens antigas no topo. */
+  const alturaAntesRef = useRef<number | null>(null);
+  /** O canal de Realtime está mesmo conectado? Define se precisamos poll. */
+  const realtimeOkRef = useRef(false);
+
+  // Paginação para trás
+  const [temMaisAntigas, setTemMaisAntigas] = useState(false);
+  const [carregandoAntigas, setCarregandoAntigas] = useState(false);
 
   // Pending file attachments
   const [pendingFiles, setPendingFiles] = useState<{ name: string; type: string; base64: string }[]>([]);
@@ -85,99 +114,75 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
 
   const selectedLead = leads.find(l => l.phone === selectedPhone);
 
-  const loadLeads = useCallback(async () => {
-    setLoading(true);
+  /** `comSpinner` só na primeira carga e no botão de atualizar. O refresh
+   *  automático roda calado, senão a lista de contatos pisca de 10 em 10s. */
+  const loadLeads = useCallback(async (comSpinner = false) => {
+    if (comSpinner) setLoading(true);
     const { data } = await supabase
       .from('whatsapp_leads')
       .select('*')
       .order('updated_at', { ascending: false });
-    setLeads(data ?? []);
+    if (data) setLeads(prev => (mesmaLista(prev, data) ? prev : data));
     setLoading(false);
   }, []);
 
-  const loadMessages = useCallback(async (phone: string) => {
-    setLoadingMessages(true);
+  /** Traz só a última página de mensagens, da mais nova para a mais antiga,
+   *  e devolve invertido para exibir na ordem certa. */
+  const loadMessages = useCallback(async (phone: string, comSpinner = true) => {
+    if (comSpinner) setLoadingMessages(true);
     const { data } = await supabase
       .from('whatsapp_messages')
       .select('*')
       .eq('phone', phone)
-      .order('created_at', { ascending: true });
-    if (data) setMessages(data);
+      .order('created_at', { ascending: false })
+      .limit(MENSAGENS_POR_PAGINA + 1);
+    if (data) {
+      const temMais = data.length > MENSAGENS_POR_PAGINA;
+      setTemMaisAntigas(temMais);
+      setMessages((temMais ? data.slice(0, MENSAGENS_POR_PAGINA) : data).reverse() as Message[]);
+    }
     setLoadingMessages(false);
   }, []);
 
-  const [syncing, setSyncing] = useState(false);
-  // Busca mensagens recentes da Z-API e importa as enviadas pelo celular que estão faltando
-  const syncFromZAPI = useCallback(async (phone: string) => {
-    if (!phone || syncing) return;
-    setSyncing(true);
-    try {
-      const ZAPI_INSTANCE = '3F7C45AF93AD91301C9696FEEDA07377';
-      const ZAPI_TOKEN = '8E9F5BD8488D8591141B0834';
-      const ZAPI_CLIENT = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
-      const res = await fetch(
-        `https://api.z-api.io/instances/${ZAPI_INSTANCE}/token/${ZAPI_TOKEN}/chats/${phone}/messages?page=1&pageSize=40`,
-        { headers: { 'Client-Token': ZAPI_CLIENT } }
-      );
-      if (!res.ok) throw new Error(`Z-API ${res.status}`);
-      const data = await res.json();
-      const msgs: any[] = Array.isArray(data) ? data : (data.messages ?? data.value ?? []);
-
-      // Carrega IDs já salvos para dedup
-      const { data: existing } = await supabase
-        .from('whatsapp_messages')
-        .select('zapi_id')
-        .eq('phone', phone)
-        .not('zapi_id', 'is', null);
-      const savedIds = new Set((existing ?? []).map((m: any) => m.zapi_id));
-
-      let imported = 0;
-      for (const m of msgs) {
-        const mid = m.messageId ?? m.id ?? m.zaapId;
-        if (!mid || savedIds.has(mid)) continue;
-        // Só importa fromMe (enviadas pelo celular)
-        if (!m.fromMe && !m.isFromMe) continue;
-        const text = m.text?.message ?? m.body ?? m.caption ?? m.content ?? '';
-        if (!text) continue;
-        const ts = m.timestamp ? new Date(m.timestamp * 1000).toISOString() : new Date().toISOString();
-        await supabase.from('whatsapp_messages').insert({
-          phone,
-          name: selectedLead?.name ?? phone,
-          message: text,
-          direction: 'outbound',
-          status: 'sent',
-          zapi_id: mid,
-          created_at: ts,
-        });
-        imported++;
-      }
-      if (imported > 0) {
-        await loadMessages(phone);
-      } else {
-        // Reload anyway to catch anything new
-        await loadMessages(phone);
-      }
-    } catch (e) {
-      console.warn('[syncFromZAPI]', e);
-    } finally {
-      setSyncing(false);
+  /** Botão "carregar mensagens anteriores": busca o lote seguinte para trás
+   *  e emenda no topo, preservando a posição do scroll. */
+  const carregarAntigas = useCallback(async () => {
+    const atual = messagesRef.current;
+    if (!selectedPhone || carregandoAntigas || atual.length === 0) return;
+    setCarregandoAntigas(true);
+    const { data } = await supabase
+      .from('whatsapp_messages')
+      .select('*')
+      .eq('phone', selectedPhone)
+      .lt('created_at', atual[0].created_at)
+      .order('created_at', { ascending: false })
+      .limit(MENSAGENS_POR_PAGINA + 1);
+    if (data) {
+      const temMais = data.length > MENSAGENS_POR_PAGINA;
+      setTemMaisAntigas(temMais);
+      const lote = (temMais ? data.slice(0, MENSAGENS_POR_PAGINA) : data).reverse() as Message[];
+      // Guarda a altura de antes para o scroll não pular ao inserir acima.
+      alturaAntesRef.current = listaRef.current?.scrollHeight ?? 0;
+      setMessages(prev => [...lote, ...prev]);
     }
-  }, [syncing, selectedLead, loadMessages]);
+    setCarregandoAntigas(false);
+  }, [selectedPhone, carregandoAntigas]);
 
   useEffect(() => {
-    loadLeads();
-    // Refresh leads every 10s to show new contacts created from phone sends
-    const poll = setInterval(loadLeads, 10000);
+    loadLeads(true);
+    // Atualiza a lista de contatos sem spinner, só para pegar conversa nova.
+    const poll = setInterval(() => loadLeads(false), 10000);
     return () => clearInterval(poll);
   }, [loadLeads]);
 
-  // Load messages + subscribe to realtime + auto-sync Z-API when contact selected
+  // Carrega a conversa e assina o Realtime ao selecionar um contato
   useEffect(() => {
     if (!selectedPhone) { setMessages([]); return; }
 
+    realtimeOkRef.current = false;
     loadMessages(selectedPhone);
 
-    // Realtime: append new messages without replacing existing ones (no flicker)
+    // Realtime: só acrescenta a mensagem nova, sem substituir a lista.
     const channel = supabase
       .channel(`messages:${selectedPhone}`)
       .on('postgres_changes', {
@@ -191,16 +196,28 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           return [...prev, payload.new as Message];
         });
       })
-      .subscribe();
+      .subscribe((status) => {
+        // Se o canal conectou, o poll de segurança fica quase parado.
+        realtimeOkRef.current = status === 'SUBSCRIBED';
+      });
 
     return () => {
+      realtimeOkRef.current = false;
       supabase.removeChannel(channel);
     };
   }, [selectedPhone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  useEffect(() => {
+  // Rola para o fim quando chega mensagem nova. Quando o lote veio de
+  // "carregar anteriores", devolve o scroll ao ponto onde a pessoa estava.
+  useLayoutEffect(() => {
+    const el = listaRef.current;
+    if (el && alturaAntesRef.current !== null) {
+      el.scrollTop = el.scrollHeight - alturaAntesRef.current;
+      alturaAntesRef.current = null;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
 
@@ -209,14 +226,17 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     if (selectedPhone) convOpenedAtRef.current = new Date().toISOString();
   }, [selectedPhone]);
 
-  // Incremental poll: only APPENDS new messages, never replaces state
+  // Rede de segurança: se o Realtime estiver de pé, consulta só a cada 15s.
+  // Se cair, volta a consultar de 3 em 3 segundos.
   useEffect(() => {
     if (!selectedPhone) return;
+    let tick = 0;
     const poll = setInterval(async () => {
+      tick++;
+      if (realtimeOkRef.current && tick % 5 !== 0) return;
       const prev = messagesRef.current;
-      const since = prev.length > 0
-        ? prev[prev.length - 1].created_at
-        : convOpenedAtRef.current;
+      const ultimaReal = [...prev].reverse().find(m => !m.pendente);
+      const since = ultimaReal ? ultimaReal.created_at : convOpenedAtRef.current;
       if (!since) return;
       const { data } = await supabase
         .from('whatsapp_messages')
@@ -233,15 +253,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     return () => clearInterval(poll);
   }, [selectedPhone]);
 
-  // Search messages in DB with debounce
+  // Busca dentro do texto das mensagens, com debounce.
+  // Só a partir de 3 letras: com 1 ou 2 a varredura devolve quase tudo e
+  // custa caro sem ajudar a achar nada.
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!search.trim()) { setMatchingPhones(null); return; }
+    const termo = search.trim();
+    if (termo.length < 3) { setMatchingPhones(null); return; }
     searchTimeoutRef.current = setTimeout(async () => {
       const { data } = await supabase
         .from('whatsapp_messages')
         .select('phone')
-        .ilike('message', `%${search.trim()}%`);
+        .ilike('message', `%${termo}%`)
+        .limit(500);
       if (data) setMatchingPhones(new Set(data.map((r: any) => r.phone)));
     }, 350);
   }, [search]);
@@ -254,15 +278,45 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     setLeads(prev => prev.map(l => l.phone === phone ? { ...l, status } : l));
   };
 
-  const sendMessage = async () => {
-    if ((!newMessage.trim() && !pendingFiles.length) || !selectedPhone || sending) return;
-    setSending(true);
+  const sendMessage = () => {
+    if ((!newMessage.trim() && !pendingFiles.length) || !selectedPhone) return;
+    // Anexo continua um de cada vez (o upload é pesado); texto pode emendar.
+    if (pendingFiles.length && sending) return;
 
+    const phone = selectedPhone;
     const msgText = newMessage.trim();
     const files = [...pendingFiles];
     setNewMessage('');
     setPendingFiles([]);
+    // Só o envio com anexo trava o botão. Texto pode ser mandado em sequência,
+    // porque cada mensagem já aparece na hora com a própria bolha.
+    if (files.length) setSending(true);
 
+    // Bolha otimista: aparece na hora, como no WhatsApp Web. Só depois
+    // trocamos pelo registro que voltou do banco. Antes a bolha só surgia
+    // depois da sessão + Edge Function + insert, e dava a sensação de travado.
+    const idTemp = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    if (!files.length && msgText) {
+      setMessages(prev => [...prev, {
+        id: idTemp,
+        phone,
+        name: selectedLead?.name ?? phone,
+        message: msgText,
+        direction: 'outbound',
+        created_at: new Date().toISOString(),
+        pendente: true,
+      }]);
+    }
+
+    void enviar(phone, msgText, files, idTemp);
+  };
+
+  const enviar = async (
+    selectedPhone: string,
+    msgText: string,
+    files: { name: string; type: string; base64: string }[],
+    idTemp: string,
+  ) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -307,10 +361,16 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           zapi_id: resData?.zapiId ?? null,
         }).select().single();
         if (inserted) {
-          setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
+          // Troca a bolha otimista pelo registro real, sem duplicar caso o
+          // Realtime já tenha entregado a mesma mensagem antes de nós.
+          setMessages(prev => {
+            const semTemp = prev.filter(m => m.id !== idTemp);
+            return semTemp.some(m => m.id === inserted.id)
+              ? semTemp
+              : [...semTemp, inserted as Message];
+          });
         } else {
-          // Fallback: reload if insert returned no data
-          await loadMessages(selectedPhone);
+          setMessages(prev => prev.map(m => m.id === idTemp ? { ...m, pendente: false } : m));
         }
       }
 
@@ -319,6 +379,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
       setLeads(prev => prev.map(l => l.phone === selectedPhone ? { ...l, status: 'em atendimento' } : l));
     } catch (e) {
       console.error('Erro ao enviar:', e);
+      // A bolha fica na tela marcada como falha, para não perder o texto.
+      setMessages(prev => prev.map(m => m.id === idTemp ? { ...m, pendente: false, falhou: true } : m));
     } finally {
       setSending(false);
     }
@@ -432,7 +494,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             <MessageSquare size={15} className="text-gold" />
             <span className="font-bold text-white text-sm">Inbox WhatsApp</span>
           </div>
-          <button onClick={loadLeads} className="text-slate-400 hover:text-gold transition-colors" title="Atualizar">
+          <button onClick={() => loadLeads(true)} className="text-slate-400 hover:text-gold transition-colors" title="Atualizar">
             <RefreshCw size={13} />
           </button>
         </div>
@@ -558,9 +620,6 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
               </div>
 
               <div className="flex items-center gap-2">
-                {syncing && (
-                  <RefreshCw size={12} className="animate-spin text-slate-300" title="Sincronizando mensagens do celular..." />
-                )}
                 <select
                   value={selectedLead?.status ?? 'novo'}
                   onChange={e => updateStatus(selectedPhone, e.target.value)}
@@ -577,7 +636,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             <WhatsAppClientCard phone={selectedLead?.phone ?? ''} leadName={selectedLead?.name ?? ''} />
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
+            <div ref={listaRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
+              {!loadingMessages && temMaisAntigas && (
+                <div className="flex justify-center pb-2">
+                  <button
+                    onClick={carregarAntigas}
+                    disabled={carregandoAntigas}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-navy bg-white border border-slate-200 rounded-xl px-3 py-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {carregandoAntigas && <Loader2 size={11} className="animate-spin" />}
+                    {carregandoAntigas ? 'Carregando...' : 'Carregar mensagens anteriores'}
+                  </button>
+                </div>
+              )}
               {loadingMessages ? (
                 <div className="flex justify-center py-10">
                   <Loader2 size={18} className="text-gold animate-spin" />
@@ -589,8 +660,8 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
               ) : (
                 messages.map(msg => (
                   <div key={msg.id} className={`flex group ${msg.direction === 'inbound' ? 'justify-start' : 'justify-end'}`}>
-                    {/* Edit/delete actions for outbound */}
-                    {msg.direction === 'outbound' && (
+                    {/* Edit/delete actions for outbound (não em bolha otimista) */}
+                    {msg.direction === 'outbound' && !msg.pendente && !msg.falhou && (
                       <div className="flex items-center gap-1 mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {editingMsg?.id !== msg.id && (
                           <>
@@ -608,7 +679,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                       msg.direction === 'inbound'
                         ? 'bg-white text-slate-800 rounded-bl-md'
                         : 'bg-navy text-white rounded-br-md'
-                    }`}>
+                    } ${msg.pendente ? 'opacity-60' : ''} ${msg.falhou ? 'ring-1 ring-rose-400' : ''}`}>
                       {editingMsg?.id === msg.id ? (
                         /* Inline edit */
                         <div className="p-2 space-y-2 min-w-[200px]">
@@ -649,8 +720,15 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                         /* Normal message */
                         <div className="px-4 py-2.5">
                           <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.message}</p>
-                          <p className={`text-[10px] mt-1 text-right ${msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/40'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          <p className={`text-[10px] mt-1 text-right ${
+                            msg.falhou ? 'text-rose-300 font-bold'
+                            : msg.direction === 'inbound' ? 'text-slate-400' : 'text-white/40'
+                          }`}>
+                            {msg.falhou
+                              ? 'não enviada'
+                              : msg.pendente
+                                ? 'enviando...'
+                                : new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       )}
@@ -710,7 +788,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={(!newMessage.trim() && !pendingFiles.length) || sending}
+                  disabled={(!newMessage.trim() && !pendingFiles.length) || (sending && !!pendingFiles.length)}
                   className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-navy text-gold disabled:opacity-30 hover:bg-navy-light transition-all"
                 >
                   {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
