@@ -16,6 +16,26 @@ const corsHeaders = {
 // Qualquer status fora desta lista foi definido manualmente e deve ser preservado.
 const AUTO_ADVANCE_STATUSES = new Set(['novo', 'em atendimento']);
 
+// ── Visto (um risco, dois riscos, dois riscos azuis) ────────────────
+// A Z-API manda o avanço do status num callback à parte, com uma lista de ids.
+// Os nomes dela para os nossos.
+const STATUS_ZAPI: Record<string, string> = {
+  'SENT': 'sent',
+  'RECEIVED': 'delivered',
+  'DELIVERY_ACK': 'delivered',
+  'READ': 'read',
+  'READ-SELF': 'read',
+  'PLAYED': 'played',
+};
+// Status que o novo pode substituir. O callback chega fora de ordem com
+// frequência, e sem isso um "entregue" atrasado apagaria o "lido".
+const STATUS_ANTERIORES: Record<string, string[]> = {
+  'sent': [],
+  'delivered': ['sent'],
+  'read': ['sent', 'delivered'],
+  'played': ['sent', 'delivered', 'read'],
+};
+
 const WELCOME_MESSAGE = `Sou a assistente aqui da F&G Seguro Garantia!\n\nChamei o Fábio Lima, nosso especialista, e ele já vai te responder.\n\nSó um momento, por favor 😊\n\nAh, enquanto isso, se quiser já me conta o que precisa.`;
 
 function startOfDayBrasilia(): string {
@@ -36,19 +56,9 @@ async function sendWhatsApp(phone: string, message: string): Promise<string | nu
     body: JSON.stringify({ phone, message }),
   });
   const data = await res.json();
-  return data?.zaapId ?? data?.messageId ?? null;
-}
-
-async function downloadToBase64(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const buffer = await res.arrayBuffer();
-    const uint8 = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
-    return btoa(binary);
-  } catch { return null; }
+  // messageId primeiro: é o id que o WhatsApp devolve depois no visto e nas
+  // citações. O zaapId é interno da Z-API e não casa com nada.
+  return data?.messageId ?? data?.zaapId ?? null;
 }
 
 function extractText(body: any): string {
@@ -118,6 +128,73 @@ Deno.serve(async (req) => {
     const name: string = body.chatName ?? body.senderName ?? phone;
     const zapiId: string | null = body.messageId ?? body.zaapId ?? null;
 
+    // ── VISTO ────────────────────────────────────────────────────
+    // Não é mensagem: só avança o status das que já estão no banco.
+    if (body.type === 'MessageStatusCallback') {
+      const novo = STATUS_ZAPI[String(body.status ?? '').toUpperCase()];
+      const ids: string[] = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
+      const anteriores = novo ? STATUS_ANTERIORES[novo] : undefined;
+      if (novo && ids.length && anteriores?.length) {
+        await supabase
+          .from('whatsapp_messages')
+          .update({ status: novo })
+          .in('zapi_id', ids)
+          .in('status', anteriores);
+      }
+      return new Response(JSON.stringify({ success: true, reason: 'status' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── DIGITANDO ────────────────────────────────────────────────
+    // Estado momentâneo do contato, guardado numa tabela à parte porque não
+    // pertence a nenhuma mensagem. O hub escuta por Realtime.
+    if (body.type === 'PresenceChatCallback') {
+      const estado = String(body.status ?? 'AVAILABLE').toLowerCase();
+      await supabase.from('whatsapp_presenca').upsert(
+        { phone, estado, atualizado_em: new Date().toISOString() },
+        { onConflict: 'phone' },
+      );
+      return new Response(JSON.stringify({ success: true, reason: 'presenca' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── REAÇÃO ───────────────────────────────────────────────────
+    // Vem antes de tudo porque a reação não é uma mensagem nova: ela altera
+    // uma linha que já existe. Se caísse no fluxo normal viraria uma bolha
+    // solta na conversa. Emoji vazio é retirada de reação.
+    const reactObj = body.reaction ?? null;
+    if (reactObj) {
+      const alvo: string | null = reactObj.referencedMessage?.messageId ?? null;
+      const emoji: string = reactObj.value ?? '';
+      if (alvo) {
+        // reactionBy é quem reagiu. Se for o nosso número, a reação é nossa.
+        const nossa = reactObj.referencedMessage?.fromMe === false
+          ? false
+          : String(reactObj.reactionBy ?? '').replace(/\D/g, '') !== phone;
+        await supabase
+          .from('whatsapp_messages')
+          .update(nossa ? { reacao_nossa: emoji || null } : { reacao_deles: emoji || null })
+          .eq('zapi_id', alvo);
+      }
+      return new Response(JSON.stringify({ success: true, reason: 'reaction' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    /** Quando a mensagem cita outra, a Z-API manda o id da original em
+     *  referenceMessageId. Guardamos o id mais um retrato do texto, para a
+     *  citação continuar legível mesmo se a original não estiver carregada. */
+    const citarOriginal = async () => {
+      const ref: string | null = body.referenceMessageId ?? null;
+      if (!ref) return {};
+      const { data: orig } = await supabase
+        .from('whatsapp_messages')
+        .select('message, direction')
+        .eq('zapi_id', ref)
+        .maybeSingle();
+      return {
+        responde_a: ref,
+        responde_a_texto: orig?.message ?? null,
+        responde_a_de: orig?.direction ?? null,
+      };
+    };
+
     // ── MENSAGENS ENVIADAS ─────────────────────────────────────
     if (isFromMe) {
       const messageText = extractText(body);
@@ -148,7 +225,7 @@ Deno.serve(async (req) => {
           await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString() });
         }
         if (messageText) {
-          await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId });
+          await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId, ...(await citarOriginal()) });
         }
         return new Response(JSON.stringify({ success: true, bot: false, reason: 'human_sent' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -163,24 +240,60 @@ Deno.serve(async (req) => {
     const audioObj = body.audio ?? body.audioMessage ?? null;
     if (audioObj) {
       const audioUrl: string = audioObj.audioUrl ?? audioObj.url ?? '';
-      await supabase.from('whatsapp_messages').insert({ phone, name, message: '[Áudio]', audio_url: audioUrl || null, direction: 'inbound', zapi_id: zapiId });
+      await supabase.from('whatsapp_messages').insert({
+        phone, name, message: '[Áudio]', audio_url: audioUrl || null,
+        media_url: audioUrl || null, media_type: 'audio',
+        direction: 'inbound', zapi_id: zapiId,
+        ...(await citarOriginal()),
+      });
       await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString() }, { onConflict: 'phone', ignoreDuplicates: false });
       return new Response(JSON.stringify({ success: true, bot: false, reason: 'audio_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    let messageText: string = body.text?.message ?? body.image?.caption ?? body.document?.caption ?? '';
+    // Imagem, vídeo, figurinha e documento recebidos. Antes só a legenda era
+    // aproveitada: imagem sem legenda caía em "empty_text" e sumia da conversa.
+    // Agora guardamos o endereço do arquivo para a bolha mostrar a mídia.
+    let mediaUrl: string | null = null;
+    let mediaType: string | null = null;
+    let mediaName: string | null = null;
+
+    const imgObj = body.image ?? body.imageMessage ?? null;
+    const vidObj = body.video ?? body.videoMessage ?? null;
+    const stkObj = body.sticker ?? body.stickerMessage ?? null;
     const docObj = body.documentMessage ?? body.document ?? null;
-    if (docObj) {
-      const docFilename: string = docObj.title ?? docObj.filename ?? docObj.fileName ?? 'arquivo.pdf';
-      let docBase64: string | undefined;
-      if (docObj.url) docBase64 = await downloadToBase64(docObj.url) ?? undefined;
-      if (!messageText) messageText = docBase64 ? `[PDF: ${docFilename}]` : `[PDF recebido: ${docFilename}]`;
+
+    if (imgObj) {
+      mediaUrl = imgObj.imageUrl ?? imgObj.url ?? null;
+      mediaType = 'image';
+    } else if (vidObj) {
+      mediaUrl = vidObj.videoUrl ?? vidObj.url ?? null;
+      mediaType = 'video';
+    } else if (stkObj) {
+      mediaUrl = stkObj.stickerUrl ?? stkObj.url ?? null;
+      mediaType = 'sticker';
+    } else if (docObj) {
+      mediaUrl = docObj.documentUrl ?? docObj.url ?? null;
+      mediaType = 'document';
+      mediaName = docObj.title ?? docObj.fileName ?? docObj.filename ?? 'arquivo';
+    }
+
+    let messageText: string = body.text?.message ?? body.image?.caption ?? body.video?.caption ?? body.document?.caption ?? '';
+    if (!messageText && mediaType) {
+      // Texto de apoio, para a busca e a lista de contatos não ficarem vazias.
+      messageText = mediaType === 'image' ? '[Imagem]'
+        : mediaType === 'video' ? '[Vídeo]'
+        : mediaType === 'sticker' ? '[Figurinha]'
+        : `[Documento: ${mediaName}]`;
     }
     if (!messageText) {
       return new Response(JSON.stringify({ ignored: true, reason: 'empty_text' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'inbound', zapi_id: zapiId });
+    await supabase.from('whatsapp_messages').insert({
+      phone, name, message: messageText, direction: 'inbound', zapi_id: zapiId,
+      media_url: mediaUrl, media_type: mediaType, media_name: mediaName,
+      ...(await citarOriginal()),
+    });
     await trySaveSurveyScore(supabase, phone, messageText);
 
     const { data: existingLead } = await supabase.from('whatsapp_leads').select('status').eq('phone', phone).maybeSingle();
