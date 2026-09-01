@@ -136,6 +136,13 @@ Deno.serve(async (req) => {
     const phone = rawPhone;
     const name: string = body.chatName ?? body.senderName ?? phone;
     const zapiId: string | null = body.messageId ?? body.zaapId ?? null;
+    // Foto de perfil: senderPhoto é a de quem escreveu, photo é a do chat.
+    // Vem em quase todo callback, então a URL se renova sozinha antes de o
+    // endereço do CDN do WhatsApp expirar.
+    const fotoUrl: string | null = body.senderPhoto ?? body.photo ?? null;
+    // Espalhar objeto vazio quando não veio foto evita sobrescrever a que já
+    // está no banco com null num callback que não trouxe a imagem.
+    const comFoto = fotoUrl ? { foto_url: fotoUrl } : {};
 
     // ── VISTO ────────────────────────────────────────────────────
     // Não é mensagem: só avança o status das que já estão no banco.
@@ -225,13 +232,13 @@ Deno.serve(async (req) => {
         const { data: existingLead } = await supabase
           .from('whatsapp_leads').select('id, status').eq('phone', phone).maybeSingle();
         if (existingLead) {
-          const updatePayload: Record<string, string> = { updated_at: new Date().toISOString() };
+          const updatePayload: Record<string, string> = { updated_at: new Date().toISOString(), ...comFoto };
           if (AUTO_ADVANCE_STATUSES.has(existingLead.status)) {
             updatePayload.status = 'em atendimento';
           }
           await supabase.from('whatsapp_leads').update(updatePayload).eq('phone', phone);
         } else {
-          await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString() });
+          await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString(), ...comFoto });
         }
         if (messageText) {
           await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId, ...(await citarOriginal()) });
@@ -256,7 +263,7 @@ Deno.serve(async (req) => {
         direction: 'inbound', zapi_id: zapiId,
         ...(await citarOriginal()),
       });
-      await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString() }, { onConflict: 'phone', ignoreDuplicates: false });
+      await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString(), ...comFoto }, { onConflict: 'phone', ignoreDuplicates: false });
       return new Response(JSON.stringify({ success: true, bot: false, reason: 'audio_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -308,12 +315,12 @@ Deno.serve(async (req) => {
 
     const { data: existingLead } = await supabase.from('whatsapp_leads').select('status').eq('phone', phone).maybeSingle();
     if (existingLead) {
-      await supabase.from('whatsapp_leads').update({ name, updated_at: new Date().toISOString() }).eq('phone', phone);
+      await supabase.from('whatsapp_leads').update({ name, updated_at: new Date().toISOString(), ...comFoto }).eq('phone', phone);
       if (existingLead.status !== 'novo') {
         return new Response(JSON.stringify({ success: true, bot: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     } else {
-      await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'novo', updated_at: new Date().toISOString() });
+      await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'novo', updated_at: new Date().toISOString(), ...comFoto });
     }
 
     await new Promise(resolve => setTimeout(resolve, 2000));

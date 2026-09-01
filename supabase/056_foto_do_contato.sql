@@ -1,0 +1,11 @@
+-- 056: foto de perfil do contato no WhatsApp
+--
+-- A Z-API já manda o endereço da foto em todo callback de mensagem
+-- (senderPhoto para o contato, photo para a foto do chat). Guardar a URL
+-- deixa a lista de conversas parecida com o WhatsApp Web, sem precisar de
+-- uma consulta por contato a cada abertura da tela.
+--
+-- É só o endereço, não o arquivo: a URL do CDN do WhatsApp expira de tempos
+-- em tempos, por isso ela é regravada a cada mensagem recebida e a tela cai
+-- na inicial do nome quando a imagem não carrega.
+alter table public.whatsapp_leads add column if not exists foto_url text;

@@ -11,6 +11,47 @@ interface Lead {
   name: string;
   status: string;
   updated_at: string;
+  /** Foto de perfil do WhatsApp. Pode faltar, e a URL do CDN expira. */
+  foto_url?: string | null;
+}
+
+/**
+ * Avatar do contato. Mostra a foto do WhatsApp quando existe e cai no ícone
+ * genérico quando não existe ou quando o endereço do CDN já expirou. A troca
+ * é feita no onError da imagem porque não dá para saber de antemão se a URL
+ * ainda vale.
+ */
+function FotoContato({ foto, nome, className, tamanhoIcone, corIcone }: {
+  foto?: string | null;
+  nome: string;
+  className: string;
+  tamanhoIcone: number;
+  corIcone: string;
+}) {
+  const [falhou, setFalhou] = useState(false);
+  // Uma foto nova precisa de uma tentativa nova, senão o erro da anterior
+  // continuaria escondendo a imagem depois que a URL for renovada.
+  useEffect(() => { setFalhou(false); }, [foto]);
+
+  if (!foto || falhou) {
+    return (
+      <div className={`${className} flex items-center justify-center`}>
+        <User size={tamanhoIcone} className={corIcone} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={foto}
+      alt={nome}
+      onError={() => setFalhou(true)}
+      className={`${className} object-cover`}
+      loading="lazy"
+      // O CDN do WhatsApp recusa requisição vinda de outro site quando o
+      // navegador manda o referer. Sem referer ele entrega a imagem.
+      referrerPolicy="no-referrer"
+    />
+  );
 }
 
 interface Message {
@@ -1099,9 +1140,13 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                        <User size={15} className="text-slate-400" />
-                      </div>
+                      <FotoContato
+                        foto={lead.foto_url}
+                        nome={lead.name}
+                        className="w-10 h-10 rounded-full bg-white/10"
+                        tamanhoIcone={15}
+                        corIcone="text-slate-400"
+                      />
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-navy ${STATUS_COLORS[lead.status] ?? 'bg-slate-400'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1173,9 +1218,13 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                 >
                   <ChevronRight size={18} className="rotate-180" />
                 </button>
-                <div className="w-9 h-9 rounded-full bg-navy flex items-center justify-center shrink-0">
-                  <User size={14} className="text-gold" />
-                </div>
+                <FotoContato
+                  foto={selectedLead?.foto_url}
+                  nome={selectedLead?.name ?? ''}
+                  className="w-9 h-9 rounded-full bg-navy shrink-0"
+                  tamanhoIcone={14}
+                  corIcone="text-gold"
+                />
                 <div>
                   <p className="font-bold text-slate-800 text-sm leading-none">{selectedLead?.name}</p>
                   {presenca ? (
