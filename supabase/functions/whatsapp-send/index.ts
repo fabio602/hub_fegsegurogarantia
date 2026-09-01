@@ -10,10 +10,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/** Strip data URL prefix → raw base64 */
-function toRawBase64(dataUrl: string): string {
-  const idx = dataUrl.indexOf(',');
-  return idx >= 0 ? dataUrl.slice(idx + 1) : dataUrl;
+/** A Z-API só aceita base64 em forma de data URL ("data:image/png;base64,...").
+ *  Mandar o miolo puro devolve 400 com "Base64/Url could not be read". O leitor
+ *  do navegador já entrega no formato certo; esta função existe para o caso de
+ *  chegar sem o cabeçalho, remontando-o a partir do tipo do arquivo. */
+function paraDataUrl(valor: string, tipo?: string): string {
+  const limpo = valor.trim();
+  // O Chrome grava áudio como "audio/webm;codecs=opus". O parâmetro extra no
+  // cabeçalho do data URL confunde o leitor da Z-API, e ela só olha o mime.
+  if (limpo.startsWith('data:')) return limpo.replace(/;codecs=[^;,]+/i, '');
+  // Link direto também é aceito pela Z-API, então passa sem mexer.
+  if (limpo.startsWith('http://') || limpo.startsWith('https://')) return limpo;
+  return `data:${tipo || 'application/octet-stream'};base64,${limpo}`;
 }
 
 serve(async (req) => {
@@ -37,7 +45,7 @@ serve(async (req) => {
         ? { phone, reaction, messageId: reactionMessageId }
         : { phone, messageId: reactionMessageId };
     } else if (file) {
-      const raw = toRawBase64(file);
+      const raw = paraDataUrl(file, fileType);
       const isImage = (fileType ?? '').startsWith('image/');
       const isAudio = (fileType ?? '').startsWith('audio/');
 
@@ -69,12 +77,17 @@ serve(async (req) => {
       body: JSON.stringify(zapiBody),
     });
 
+    // A Z-API às vezes responde 200 com um campo `error` no corpo, então olhar
+    // só o status HTTP deixava passar recusa como se fosse envio bem-sucedido.
+    const recusou = (r: Response, d: unknown) =>
+      !r.ok || Boolean((d as Record<string, unknown> | null)?.error);
+
     let res = await chamar(zapiUrl);
-    let data = await res.json();
-    if (!res.ok && zapiUrlAlt) {
+    let data = await res.json().catch(() => null);
+    if (recusou(res, data) && zapiUrlAlt) {
       console.log('Z-API recusou', zapiUrl, res.status, JSON.stringify(data), '- tentando', zapiUrlAlt);
       res = await chamar(zapiUrlAlt);
-      data = await res.json();
+      data = await res.json().catch(() => null);
     }
     // messageId primeiro, e não zaapId: é o id do WhatsApp, o mesmo que volta
     // no MessageStatusCallback (visto) e na citação de reação. Guardar o zaapId
@@ -82,7 +95,7 @@ serve(async (req) => {
     const zapiId = data?.messageId ?? data?.zaapId ?? null;
     console.log('Z-API response:', res.status, JSON.stringify(data));
 
-    if (!res.ok) {
+    if (recusou(res, data)) {
       return new Response(
         JSON.stringify({ success: false, error: data?.error ?? data?.value ?? `Z-API ${res.status}`, zapiData: data }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

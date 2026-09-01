@@ -25,6 +25,9 @@ const STATUS_ZAPI: Record<string, string> = {
   'DELIVERY_ACK': 'delivered',
   'READ': 'read',
   'READ-SELF': 'read',
+  // READ_BY_ME é quando a leitura partiu do nosso lado (abrimos a conversa no
+  // celular). Vale como lida do mesmo jeito.
+  'READ_BY_ME': 'read',
   'PLAYED': 'played',
 };
 // Status que o novo pode substituir. O callback chega fora de ordem com
@@ -112,19 +115,31 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Rastro de diagnóstico: sem isso não dá para saber por que um recebimento
-    // foi descartado, porque o motivo só volta no corpo da resposta.
-    console.log('[entrada]', body.type, 'fromMe=', body.fromMe, 'phone=', body.phone, 'status=', body.status);
-    if (body.type === 'ReceivedCallback') {
-      console.log('[payload]', JSON.stringify(body).slice(0, 1500));
-    }
-
     const isFromMe: boolean = body.fromMe === true || body.isMe === true ||
       body.type === 'SentCallback' || body.type === 'SendMsgAction' || body.type === 'SendMsgCallback';
 
     if (!isFromMe && body.participantPhone) {
       console.log('[descartado] group_inbound', body.participantPhone);
       return new Response(JSON.stringify({ ignored: true, reason: 'group_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── VISTO ────────────────────────────────────────────────────
+    // Precisa vir antes da checagem de telefone. No callback de status a Z-API
+    // preenche o campo `phone` com o LID (40257315688657@lid), não com o número,
+    // então a guarda abaixo descartava todo recibo de leitura e o visto nunca
+    // saía de um risco. Aqui o telefone nem é usado: o casamento é pelos ids.
+    if (body.type === 'MessageStatusCallback' || body.type === 'DeliveryCallback') {
+      const novo = STATUS_ZAPI[String(body.status ?? '').toUpperCase()];
+      const ids: string[] = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
+      const anteriores = novo ? STATUS_ANTERIORES[novo] : undefined;
+      if (novo && ids.length && anteriores?.length) {
+        await supabase
+          .from('whatsapp_messages')
+          .update({ status: novo })
+          .in('zapi_id', ids)
+          .in('status', anteriores);
+      }
+      return new Response(JSON.stringify({ success: true, reason: 'status' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const rawPhone: string = body.phone ?? body.chatId?.replace('@c.us', '') ?? '';
@@ -143,22 +158,6 @@ Deno.serve(async (req) => {
     // Espalhar objeto vazio quando não veio foto evita sobrescrever a que já
     // está no banco com null num callback que não trouxe a imagem.
     const comFoto = fotoUrl ? { foto_url: fotoUrl } : {};
-
-    // ── VISTO ────────────────────────────────────────────────────
-    // Não é mensagem: só avança o status das que já estão no banco.
-    if (body.type === 'MessageStatusCallback') {
-      const novo = STATUS_ZAPI[String(body.status ?? '').toUpperCase()];
-      const ids: string[] = Array.isArray(body.ids) ? body.ids.filter(Boolean) : [];
-      const anteriores = novo ? STATUS_ANTERIORES[novo] : undefined;
-      if (novo && ids.length && anteriores?.length) {
-        await supabase
-          .from('whatsapp_messages')
-          .update({ status: novo })
-          .in('zapi_id', ids)
-          .in('status', anteriores);
-      }
-      return new Response(JSON.stringify({ success: true, reason: 'status' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     // ── DIGITANDO ────────────────────────────────────────────────
     // Estado momentâneo do contato, guardado numa tabela à parte porque não

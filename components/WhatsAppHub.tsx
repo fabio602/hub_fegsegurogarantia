@@ -85,6 +85,28 @@ interface Message {
   falhou?: boolean;
 }
 
+/** Coloca a mensagem real na lista e tira a bolha otimista que a representa.
+ *  A mesma mensagem chega por dois caminhos, o insert feito aqui e o Realtime,
+ *  e nem sempre nessa ordem. Antes o descarte olhava só o id do banco: quando o
+ *  insert não devolvia a linha, a otimista ficava na tela ao lado da real e a
+ *  mensagem aparecia duas vezes.
+ *
+ *  O par preferido é o zapi_id, que as duas têm em comum. Quando a Z-API não
+ *  devolve o id, sobra casar pelo conteúdo: mesma direção, mesmo texto e uma
+ *  bolha otimista ainda pendente. É o suficiente porque a otimista vive poucos
+ *  segundos, entre o envio e a resposta do banco. */
+function acrescentar(lista: Message[], nova: Message): Message[] {
+  const mesmaBolha = (m: Message) => {
+    // A bolha de falha também nasce com id temporário, mas ela fica de
+    // propósito: é o registro na tela de que aquele envio não foi.
+    if (!m.id.startsWith('temp-') || m.falhou) return false;
+    if (nova.zapi_id && m.zapi_id) return m.zapi_id === nova.zapi_id;
+    return m.direction === nova.direction && m.message === nova.message;
+  };
+  const semTemp = lista.filter(m => !mesmaBolha(m));
+  return semTemp.some(m => m.id === nova.id) ? semTemp : [...semTemp, nova];
+}
+
 /** Um risco = enviada, dois riscos = entregue, dois riscos azuis = lida.
  *  Só existe nas nossas: no WhatsApp a mensagem recebida não tem visto. */
 function Visto({ msg }: { msg: Message }) {
@@ -201,6 +223,11 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  /** Motivo da última recusa da Z-API. Vira uma faixa acima do campo de texto,
+   *  porque só marcar a bolha não explica por que o anexo não foi. */
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  /** Arquivo sendo arrastado por cima da conversa, para escurecer a área. */
+  const [arrastando, setArrastando] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [search, setSearch] = useState('');
@@ -440,10 +467,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
         table: 'whatsapp_messages',
         filter: `phone=eq.${selectedPhone}`,
       }, (payload) => {
-        setMessages(prev => {
-          if (prev.some(m => m.id === payload.new.id)) return prev;
-          return [...prev, payload.new as Message];
-        });
+        setMessages(prev => acrescentar(prev, payload.new as Message));
         // Chegou com a conversa aberta, então já nasce lida.
         if (payload.new.direction === 'inbound') marcarComoLida(selectedPhone);
       })
@@ -654,6 +678,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     setNewMessage('');
     setPendingFiles([]);
     setRespondendo(null);
+    setErroEnvio(null);
     // Só o envio com anexo trava o botão. Texto pode ser mandado em sequência,
     // porque cada mensagem já aparece na hora com a própria bolha.
     if (files.length) setSending(true);
@@ -738,11 +763,31 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           method: 'POST', headers,
           body: JSON.stringify({ phone: selectedPhone, file: pf.base64, fileName: pf.name, fileType: pf.type, message: caption }),
         });
-        const resData = await res.json();
+        const resData = await res.json().catch(() => null);
         const isAudio = pf.type.startsWith('audio/');
         // Áudio gravado no hub tem nome gerado (audio-1712...webm), que não
         // diz nada. Fica só "[Áudio]", igual ao que o webhook grava no recebido.
         const dbMsg = isAudio ? '[Áudio]' : pf.type.startsWith('image/') ? `[Imagem: ${pf.name}]` : `[Arquivo: ${pf.name}]`;
+
+        // A Z-API pode recusar o anexo (arquivo grande demais, formato que ela
+        // não aceita). Antes o erro passava batido e a conversa gravava a
+        // mensagem como enviada, então o anexo sumia sem ninguém perceber.
+        if (!res.ok || resData?.success === false) {
+          const motivo = resData?.error ?? `erro ${res.status}`;
+          console.error('Anexo recusado pela Z-API:', pf.name, motivo);
+          setMessages(prev => [...prev, {
+            id: `${idTemp}-falha-${files.indexOf(pf)}`,
+            phone: selectedPhone,
+            name: selectedLead?.name ?? selectedPhone,
+            message: caption ? `${dbMsg} - ${caption}` : dbMsg,
+            direction: 'outbound',
+            created_at: new Date().toISOString(),
+            falhou: true,
+          }]);
+          setErroEnvio(`Não foi possível enviar ${pf.name}: ${motivo}`);
+          continue;
+        }
+
         // Guarda uma cópia no bucket para a bolha mostrar o arquivo depois.
         // Antes o base64 ia para a Z-API e não sobrava nada na conversa.
         const midia = await subirMidia(pf);
@@ -755,7 +800,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           media_name: pf.name,
         }).select().single();
         // Realtime will pick it up automatically, but add locally if needed
-        if (inserted) setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
+        if (inserted) setMessages(prev => acrescentar(prev, inserted as Message));
       }
 
       // Send text-only if no files
@@ -765,22 +810,29 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           // replyTo faz a Z-API entregar a mensagem como resposta citada.
           body: JSON.stringify({ phone: selectedPhone, message: msgText, replyTo: citada?.zapi_id ?? undefined }),
         });
-        const resData = await res.json();
+        const resData = await res.json().catch(() => null);
+        if (!res.ok || resData?.success === false) {
+          const motivo = resData?.error ?? `erro ${res.status}`;
+          console.error('Mensagem recusada pela Z-API:', motivo);
+          setErroEnvio(`Não foi possível enviar a mensagem: ${motivo}`);
+          setMessages(prev => prev.map(m => m.id === idTemp ? { ...m, pendente: false, falhou: true } : m));
+          setSending(false);
+          return;
+        }
+        // Carimba o id da Z-API na bolha otimista antes do insert. É por ele
+        // que a bolha real, venha do insert ou do Realtime, reconhece a
+        // otimista e a substitui em vez de aparecer do lado.
+        const zapiIdEnviado: string | null = resData?.zapiId ?? null;
+        setMessages(prev => prev.map(m => m.id === idTemp ? { ...m, zapi_id: zapiIdEnviado } : m));
+
         const { data: inserted } = await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: msgText, direction: 'outbound', status: 'sent',
-          zapi_id: resData?.zapiId ?? null,
+          zapi_id: zapiIdEnviado,
           ...citacao,
         }).select().single();
         if (inserted) {
-          // Troca a bolha otimista pelo registro real, sem duplicar caso o
-          // Realtime já tenha entregado a mesma mensagem antes de nós.
-          setMessages(prev => {
-            const semTemp = prev.filter(m => m.id !== idTemp);
-            return semTemp.some(m => m.id === inserted.id)
-              ? semTemp
-              : [...semTemp, inserted as Message];
-          });
+          setMessages(prev => acrescentar(prev, inserted as Message));
         } else {
           setMessages(prev => prev.map(m => m.id === idTemp ? { ...m, pendente: false } : m));
         }
@@ -827,19 +879,64 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // O `?? []` deixava o TypeScript inferir unknown[] em vez de File[].
-    const files: File[] = e.target.files ? Array.from(e.target.files) : [];
+  /** Põe arquivos na fila de anexos, venham do clipe, de Ctrl+V ou de arrastar.
+   *  Antes só existia o caminho do clipe: colar uma imagem na conversa, que é o
+   *  gesto normal no WhatsApp Web, não fazia nada e parecia que o envio falhou. */
+  const receberArquivos = (files: File[]) => {
     if (!files.length) return;
     const oversized = files.filter(f => f.size > 10 * 1024 * 1024);
-    if (oversized.length) { alert(`Arquivo(s) muito grande(s): ${oversized.map(f => f.name).join(', ')}. Máximo 10 MB cada.`); return; }
-    const readers = files.map(file => new Promise<{ name: string; type: string; base64: string }>(resolve => {
+    if (oversized.length) {
+      setErroEnvio(`Arquivo(s) muito grande(s): ${oversized.map(f => f.name).join(', ')}. Máximo 10 MB cada.`);
+      return;
+    }
+    const readers = files.map(file => new Promise<{ name: string; type: string; base64: string } | null>(resolve => {
       const reader = new FileReader();
-      reader.onload = () => resolve({ name: file.name, type: file.type, base64: reader.result as string });
+      reader.onload = () => resolve({
+        name: file.name,
+        type: file.type,
+        base64: reader.result as string,
+      });
+      // Sem o onerror a promessa nunca resolvia e o anexo sumia calado:
+      // o Promise.all abaixo ficava pendurado para sempre.
+      reader.onerror = () => {
+        console.error('Falha ao ler o arquivo', file.name, reader.error);
+        setErroEnvio(`Não foi possível ler ${file.name}.`);
+        resolve(null);
+      };
       reader.readAsDataURL(file);
     }));
-    Promise.all(readers).then(results => setPendingFiles(prev => [...prev, ...results]));
+    Promise.all(readers).then(results => {
+      const ok = results.filter((r): r is { name: string; type: string; base64: string } => r !== null);
+      if (ok.length) setPendingFiles(prev => [...prev, ...ok]);
+    });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // O `?? []` deixava o TypeScript inferir unknown[] em vez de File[].
+    receberArquivos(e.target.files ? Array.from(e.target.files) : []);
     e.target.value = '';
+  };
+
+  /** Ctrl+V com imagem no clipboard. Só intercepta quando há arquivo de fato,
+   *  senão colar texto normal deixaria de funcionar. */
+  const handlePaste = (e: React.ClipboardEvent) => {
+    // Sem a anotação o `?? []` faz o TypeScript inferir unknown[], igual ao
+    // que acontecia no seletor de arquivo.
+    const arquivos: File[] = e.clipboardData ? Array.from(e.clipboardData.files) : [];
+    if (!arquivos.length) return;
+    e.preventDefault();
+    // Print da tela vem sem nome ("image.png" vazio em alguns navegadores).
+    receberArquivos(arquivos.map(f => f.name
+      ? f
+      : new File([f], `imagem-${Date.now()}.png`, { type: f.type || 'image/png' })));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    const arquivos: File[] = e.dataTransfer ? Array.from(e.dataTransfer.files) : [];
+    if (!arquivos.length) return;
+    e.preventDefault();
+    setArrastando(false);
+    receberArquivos(arquivos);
   };
 
   const getSupabaseHeaders = async () => {
@@ -988,6 +1085,17 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     setSending(true);
     await enviar(phone, '', [arquivo], `temp-${Date.now()}`);
   };
+
+  // A caixa de escrever cresce junto com o texto, até o teto de 100px, e volta
+  // a uma linha quando o campo esvazia. Sem isso a quebra do Shift+Enter até
+  // acontecia, mas a linha de baixo ficava fora da vista: a textarea nascia com
+  // uma linha só e nunca mudava de altura.
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
+  }, [newMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1302,8 +1410,19 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             {/* Client info card */}
             <WhatsAppClientCard phone={selectedLead?.phone ?? ''} leadName={selectedLead?.name ?? ''} />
 
-            {/* Messages area */}
-            <div className="flex-1 relative min-h-0">
+            {/* Messages area. Também é a área de soltar arquivo arrastado: no
+                WhatsApp Web dá para largar a imagem em cima da conversa. */}
+            <div
+              className="flex-1 relative min-h-0"
+              onDragOver={e => { if (e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); setArrastando(true); } }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setArrastando(false); }}
+              onDrop={handleDrop}
+            >
+            {arrastando && (
+              <div className="absolute inset-3 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-gold bg-areia-clara/90 pointer-events-none">
+                <p className="text-xs font-bold text-navy">Solte o arquivo para anexar</p>
+              </div>
+            )}
             <div ref={listaRef} onScroll={aoRolar} className="absolute inset-0 overflow-y-auto px-5 py-4 space-y-2.5">
               {!loadingMessages && temMaisAntigas && (
                 <div className="flex justify-center pb-2">
@@ -1546,6 +1665,17 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   </button>
                 </div>
               )}
+              {/* Aviso de recusa da Z-API. Fica até a pessoa fechar ou mandar
+                  outra mensagem, para não sumir antes de ser lido. */}
+              {erroEnvio && (
+                <div className="flex items-start gap-2 mb-2 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl">
+                  <AlertCircle size={13} className="text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-rose-700 flex-1">{erroEnvio}</p>
+                  <button onClick={() => setErroEnvio(null)} className="shrink-0 text-rose-400 hover:text-rose-600 transition-colors" title="Fechar aviso">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
               {/* File preview strip */}
               {pendingFiles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -1659,9 +1789,10 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={pendingFiles.length ? 'Legenda (opcional)...' : 'Escreva uma mensagem... (Enter para enviar)'}
                   rows={1}
-                  className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
+                  className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none overflow-y-auto focus:outline-none leading-relaxed"
                   style={{ maxHeight: '100px' }}
                 />
                 {/* Campo vazio mostra o microfone; com texto ou anexo vira o
