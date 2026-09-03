@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, AlertCircle, CheckCircle2, GripVertical,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ModalPortal from './ModalPortal.tsx';
 
 /**
  * Editor das trilhas de e-mail da prospecção.
@@ -575,67 +576,71 @@ export default function EmailTrilhas() {
 
       {/* Modal nova trilha */}
       {novaTrilha && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-black text-slate-800 text-lg">Nova Trilha</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada. Ligue quando os e-mails estiverem prontos.</p>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-800 text-lg">Nova Trilha</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">Ela nasce desativada. Ligue quando os e-mails estiverem prontos.</p>
+                </div>
+                <button onClick={() => setNovaTrilha(null)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
               </div>
-              <button onClick={() => setNovaTrilha(null)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-3">
-              <Campo label="Nome" dica={novaTrilha.nome ? `código: ${gerarSlug(novaTrilha.nome)}` : 'Ex: Seguro Garantia Judicial'}>
-                <input autoFocus className={inputCls} value={novaTrilha.nome}
-                  onChange={e => setNovaTrilha({ ...novaTrilha, nome: e.target.value })} />
-              </Campo>
-              <Campo label="Descrição">
-                <input className={inputCls} value={novaTrilha.descricao}
-                  onChange={e => setNovaTrilha({ ...novaTrilha, descricao: e.target.value })} />
-              </Campo>
-              <Campo label="Chapéu do e-mail">
-                <input className={inputCls} value={novaTrilha.eyebrow}
-                  onChange={e => setNovaTrilha({ ...novaTrilha, eyebrow: e.target.value })} />
-              </Campo>
-              <Campo label="Rodapé">
-                <input className={inputCls} value={novaTrilha.rodape}
-                  onChange={e => setNovaTrilha({ ...novaTrilha, rodape: e.target.value })} />
-              </Campo>
-            </div>
-            <div className="flex gap-3 pt-1">
-              <button onClick={criarTrilha} disabled={salvando || !novaTrilha.nome.trim()}
-                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2">
-                {salvando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Criar
-              </button>
-              <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
-                Cancelar
-              </button>
+              <div className="space-y-3">
+                <Campo label="Nome" dica={novaTrilha.nome ? `código: ${gerarSlug(novaTrilha.nome)}` : 'Ex: Seguro Garantia Judicial'}>
+                  <input autoFocus className={inputCls} value={novaTrilha.nome}
+                    onChange={e => setNovaTrilha({ ...novaTrilha, nome: e.target.value })} />
+                </Campo>
+                <Campo label="Descrição">
+                  <input className={inputCls} value={novaTrilha.descricao}
+                    onChange={e => setNovaTrilha({ ...novaTrilha, descricao: e.target.value })} />
+                </Campo>
+                <Campo label="Chapéu do e-mail">
+                  <input className={inputCls} value={novaTrilha.eyebrow}
+                    onChange={e => setNovaTrilha({ ...novaTrilha, eyebrow: e.target.value })} />
+                </Campo>
+                <Campo label="Rodapé">
+                  <input className={inputCls} value={novaTrilha.rodape}
+                    onChange={e => setNovaTrilha({ ...novaTrilha, rodape: e.target.value })} />
+                </Campo>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={criarTrilha} disabled={salvando || !novaTrilha.nome.trim()}
+                  className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2">
+                  {salvando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Criar
+                </button>
+                <button onClick={() => setNovaTrilha(null)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Preview */}
       {preview && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>
-                <p className="font-bold text-slate-800 text-sm truncate">{preview.assunto}</p>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>
+                  <p className="font-bold text-slate-800 text-sm truncate">{preview.assunto}</p>
+                </div>
+                <button onClick={() => setPreview(null)} className="p-2 hover:bg-slate-100 rounded-xl shrink-0">
+                  <X size={18} className="text-slate-400" />
+                </button>
               </div>
-              <button onClick={() => setPreview(null)} className="p-2 hover:bg-slate-100 rounded-xl shrink-0">
-                <X size={18} className="text-slate-400" />
-              </button>
+              <iframe
+                title="Pré-visualização do e-mail"
+                srcDoc={preview.html}
+                sandbox=""
+                className="flex-1 w-full border-0 bg-linha"
+              />
             </div>
-            <iframe
-              title="Pré-visualização do e-mail"
-              srcDoc={preview.html}
-              sandbox=""
-              className="flex-1 w-full border-0 bg-linha"
-            />
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

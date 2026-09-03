@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from
 import { MessageSquare, Send, RefreshCw, User, Users, Loader2, Plus, X, CheckCircle2, Tag, FileText, Paperclip, Image, Trash2, Pencil, Mic, Volume2, AlertCircle, Search, ChevronRight, ChevronDown, Smile, Reply, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { WhatsAppClientCard } from './WhatsAppClientCard.tsx';
+import ModalPortal from './ModalPortal.tsx';
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
 
@@ -1884,132 +1885,138 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
     {/* ── Imagem em tela cheia ── */}
 
     {midiaAberta && (
-      <div
-        onClick={() => setMidiaAberta(null)}
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/85 backdrop-blur-sm p-6 animate-in fade-in duration-150"
-      >
-        <img
-          src={midiaAberta.url}
-          alt="imagem"
-          onClick={e => e.stopPropagation()}
-          className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
-        />
-        <a
-          href={midiaAberta.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] font-bold text-white/70 hover:text-white bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
-        >
-          Abrir original
-        </a>
-        <button
+      <ModalPortal>
+        <div
           onClick={() => setMidiaAberta(null)}
-          className="absolute top-5 right-5 text-white/70 hover:text-white transition-colors"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/85 backdrop-blur-sm p-6 animate-in fade-in duration-150"
         >
-          <X size={22} />
-        </button>
-      </div>
+          <img
+            src={midiaAberta.url}
+            alt="imagem"
+            onClick={e => e.stopPropagation()}
+            className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+          />
+          <a
+            href={midiaAberta.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] font-bold text-white/70 hover:text-white bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
+          >
+            Abrir original
+          </a>
+          <button
+            onClick={() => setMidiaAberta(null)}
+            className="absolute top-5 right-5 text-white/70 hover:text-white transition-colors"
+          >
+            <X size={22} />
+          </button>
+        </div>
+      </ModalPortal>
     )}
 
     {/* ── CRM Modal ── */}
 
     {crmModalLead && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200 overflow-hidden">
-          <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-navy">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Plus size={16} className="text-gold" /> Adicionar ao CRM
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">{crmModalLead.name} · {crmModalLead.phone}</p>
+      <ModalPortal>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-navy">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Plus size={16} className="text-gold" /> Adicionar ao CRM
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">{crmModalLead.name} · {crmModalLead.phone}</p>
+              </div>
+              <button onClick={() => setCrmModalLead(null)} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                <X size={16} />
+              </button>
             </div>
-            <button onClick={() => setCrmModalLead(null)} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-              <X size={16} />
-            </button>
+
+            {crmSuccess ? (
+              <div className="p-10 flex flex-col items-center gap-3 text-center">
+                <CheckCircle2 size={40} className="text-emerald-500" />
+                <p className="font-bold text-slate-800">Adicionado ao CRM!</p>
+                <p className="text-xs text-slate-500">O lead foi criado em <strong>Novos Leads</strong>.</p>
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dados do contato</p>
+                  <p className="text-sm font-bold text-slate-800">{crmModalLead.name}</p>
+                  <p className="text-xs text-slate-500">{crmModalLead.phone}</p>
+                  <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl w-fit">Origem: WhatsApp</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                    <Tag size={13} className="text-gold" /> Foco do Atendimento
+                  </label>
+                  <select
+                    value={crmProductType}
+                    onChange={e => setCrmProductType(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold cursor-pointer"
+                  >
+                    {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                  </select>
+                </div>
+
+                <p className="text-[11px] text-slate-400 text-center">O lead será criado na coluna <strong>Novos Leads</strong>.</p>
+              </div>
+            )}
+
+            {!crmSuccess && (
+              <div className="px-6 pb-6 space-y-2.5">
+                {onGoToSale && (
+                  <button
+                    onClick={() => {
+                      if (!crmModalLead) return;
+                      setCrmModalLead(null);
+                      onGoToSale({ nome: crmModalLead.name, telefone: crmModalLead.phone });
+                    }}
+                    className="w-full py-2.5 bg-gold hover:bg-gold-hover text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    <FileText size={15} /> Ir para Registro de Venda
+                  </button>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => setCrmModalLead(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={saveToCrm}
+                    disabled={crmSaving}
+                    className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                  >
+                    {crmSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                    {crmSaving ? 'Salvando...' : 'Criar no CRM'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {crmSuccess ? (
-            <div className="p-10 flex flex-col items-center gap-3 text-center">
-              <CheckCircle2 size={40} className="text-emerald-500" />
-              <p className="font-bold text-slate-800">Adicionado ao CRM!</p>
-              <p className="text-xs text-slate-500">O lead foi criado em <strong>Novos Leads</strong>.</p>
-            </div>
-          ) : (
-            <div className="p-6 space-y-5">
-              <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dados do contato</p>
-                <p className="text-sm font-bold text-slate-800">{crmModalLead.name}</p>
-                <p className="text-xs text-slate-500">{crmModalLead.phone}</p>
-                <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl w-fit">Origem: WhatsApp</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
-                  <Tag size={13} className="text-gold" /> Foco do Atendimento
-                </label>
-                <select
-                  value={crmProductType}
-                  onChange={e => setCrmProductType(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold cursor-pointer"
-                >
-                  {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                </select>
-              </div>
-
-              <p className="text-[11px] text-slate-400 text-center">O lead será criado na coluna <strong>Novos Leads</strong>.</p>
-            </div>
-          )}
-
-          {!crmSuccess && (
-            <div className="px-6 pb-6 space-y-2.5">
-              {onGoToSale && (
-                <button
-                  onClick={() => {
-                    if (!crmModalLead) return;
-                    setCrmModalLead(null);
-                    onGoToSale({ nome: crmModalLead.name, telefone: crmModalLead.phone });
-                  }}
-                  className="w-full py-2.5 bg-gold hover:bg-gold-hover text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <FileText size={15} /> Ir para Registro de Venda
-                </button>
-              )}
-              <div className="flex gap-3">
-                <button onClick={() => setCrmModalLead(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">
-                  Cancelar
-                </button>
-                <button
-                  onClick={saveToCrm}
-                  disabled={crmSaving}
-                  className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                >
-                  {crmSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                  {crmSaving ? 'Salvando...' : 'Criar no CRM'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      </ModalPortal>
     )}
     {/* ── Delete conversation modal ── */}
     {deletingConv && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto">
-            <Trash2 size={20} className="text-rose-500" />
-          </div>
-          <div>
-            <p className="font-bold text-slate-800">Excluir conversa?</p>
-            <p className="text-sm text-slate-500 mt-1">Todas as mensagens serão apagadas do hub. A conversa no WhatsApp não é afetada.</p>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setDeletingConv(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">Cancelar</button>
-            <button onClick={() => deleteConversation(deletingConv)} className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-colors text-sm">Excluir</button>
+      <ModalPortal>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-7 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto">
+              <Trash2 size={20} className="text-rose-500" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Excluir conversa?</p>
+              <p className="text-sm text-slate-500 mt-1">Todas as mensagens serão apagadas do hub. A conversa no WhatsApp não é afetada.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeletingConv(null)} className="flex-1 py-2.5 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-sm">Cancelar</button>
+              <button onClick={() => deleteConversation(deletingConv)} className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-colors text-sm">Excluir</button>
+            </div>
           </div>
         </div>
-      </div>
+      </ModalPortal>
     )}
     </>
   );

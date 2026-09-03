@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, X, Loader2, ShieldCheck, Key, UserX, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ADMIN_EMAIL, MODULOS } from '../lib/permissoes.ts';
+import ModalPortal from './ModalPortal.tsx';
 
 interface HubUser {
     id: string;
@@ -221,124 +222,128 @@ const UserManager: React.FC = () => {
 
             {/* Change Password Modal */}
             {pwForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-5">
-                        <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                            <Key size={18} className="text-gold" /> Alterar Senha
-                        </h3>
-                        <p className="text-sm text-slate-500 font-medium">{pwForm.email}</p>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nova senha</label>
-                            <input
-                                type="text"
-                                value={pwForm.password}
-                                onChange={e => setPwForm(f => f ? { ...f, password: e.target.value } : f)}
-                                placeholder="Nova senha"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
-                            />
-                        </div>
-                        {pwError && <p className="text-sm text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl">{pwError}</p>}
-                        <div className="flex gap-3 pt-2">
-                            <button
-                                onClick={handleUpdatePassword}
-                                disabled={pwSaving}
-                                className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
-                            >
-                                {pwSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                                {pwSaving ? 'Salvando...' : 'Salvar'}
-                            </button>
-                            <button onClick={() => { setPwForm(null); setPwError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
-                                <X size={15} /> Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-5">
+                          <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                              <Key size={18} className="text-gold" /> Alterar Senha
+                          </h3>
+                          <p className="text-sm text-slate-500 font-medium">{pwForm.email}</p>
+                          <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nova senha</label>
+                              <input
+                                  type="text"
+                                  value={pwForm.password}
+                                  onChange={e => setPwForm(f => f ? { ...f, password: e.target.value } : f)}
+                                  placeholder="Nova senha"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all font-mono"
+                              />
+                          </div>
+                          {pwError && <p className="text-sm text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl">{pwError}</p>}
+                          <div className="flex gap-3 pt-2">
+                              <button
+                                  onClick={handleUpdatePassword}
+                                  disabled={pwSaving}
+                                  className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
+                              >
+                                  {pwSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                                  {pwSaving ? 'Salvando...' : 'Salvar'}
+                              </button>
+                              <button onClick={() => { setPwForm(null); setPwError(null); }} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
+                                  <X size={15} /> Cancelar
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* Permissions Modal */}
             {permForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    {/* Cabeçalho e botões ficam presos; só a lista de módulos rola.
-                        Antes o modal inteiro rolava: em tela de notebook o e-mail de
-                        quem estava sendo editado saía do campo de visão e o Salvar
-                        só aparecia no fim da rolagem. */}
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-                        <div className="shrink-0 p-8 pb-4 space-y-4 border-b border-slate-100">
-                            <div>
-                                <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                                    <Lock size={18} className="text-gold" /> O que este usuário vê
-                                </h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">{permForm.email}</p>
-                            </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                      {/* Cabeçalho e botões ficam presos; só a lista de módulos rola.
+                          Antes o modal inteiro rolava: em tela de notebook o e-mail de
+                          quem estava sendo editado saía do campo de visão e o Salvar
+                          só aparecia no fim da rolagem. */}
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+                          <div className="shrink-0 p-8 pb-4 space-y-4 border-b border-slate-100">
+                              <div>
+                                  <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                                      <Lock size={18} className="text-gold" /> O que este usuário vê
+                                  </h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1">{permForm.email}</p>
+                              </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setPermForm(f => f ? { ...f, modulos: TODOS_MODULOS } : f)}
-                                    className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
-                                >
-                                    Marcar tudo
-                                </button>
-                                <button
-                                    onClick={() => setPermForm(f => f ? { ...f, modulos: [] } : f)}
-                                    className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
-                                >
-                                    Desmarcar tudo
-                                </button>
-                            </div>
-                        </div>
+                              <div className="flex gap-2">
+                                  <button
+                                      onClick={() => setPermForm(f => f ? { ...f, modulos: TODOS_MODULOS } : f)}
+                                      className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                  >
+                                      Marcar tudo
+                                  </button>
+                                  <button
+                                      onClick={() => setPermForm(f => f ? { ...f, modulos: [] } : f)}
+                                      className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                                  >
+                                      Desmarcar tudo
+                                  </button>
+                              </div>
+                          </div>
 
-                        <div className="flex-1 overflow-y-auto px-8 py-4 space-y-1.5">
-                            {MODULOS.map(m => {
-                                const marcado = permForm.modulos.includes(m.key);
-                                return (
-                                    <label
-                                        key={m.key}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border transition-all ${
-                                            marcado ? 'bg-gold/10 border-gold/40' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={marcado}
-                                            onChange={() => setPermForm(f => f ? {
-                                                ...f,
-                                                modulos: marcado ? f.modulos.filter(k => k !== m.key) : [...f.modulos, m.key],
-                                            } : f)}
-                                            className="w-4 h-4 accent-gold"
-                                        />
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-slate-800 text-sm">{m.label}</p>
-                                            <p className="text-[11px] text-slate-400 font-medium">
-                                                {m.views.length} {m.views.length === 1 ? 'tela' : 'telas'}
-                                            </p>
-                                        </div>
-                                    </label>
-                                );
-                            })}
-                        </div>
+                          <div className="flex-1 overflow-y-auto px-8 py-4 space-y-1.5">
+                              {MODULOS.map(m => {
+                                  const marcado = permForm.modulos.includes(m.key);
+                                  return (
+                                      <label
+                                          key={m.key}
+                                          className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border transition-all ${
+                                              marcado ? 'bg-gold/10 border-gold/40' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                          }`}
+                                      >
+                                          <input
+                                              type="checkbox"
+                                              checked={marcado}
+                                              onChange={() => setPermForm(f => f ? {
+                                                  ...f,
+                                                  modulos: marcado ? f.modulos.filter(k => k !== m.key) : [...f.modulos, m.key],
+                                              } : f)}
+                                              className="w-4 h-4 accent-gold"
+                                          />
+                                          <div className="min-w-0">
+                                              <p className="font-bold text-slate-800 text-sm">{m.label}</p>
+                                              <p className="text-[11px] text-slate-400 font-medium">
+                                                  {m.views.length} {m.views.length === 1 ? 'tela' : 'telas'}
+                                              </p>
+                                          </div>
+                                      </label>
+                                  );
+                              })}
+                          </div>
 
-                        <div className="shrink-0 p-8 pt-4 space-y-4 border-t border-slate-100">
-                            <p className="text-[11px] text-slate-500 font-medium bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
-                                A Visão Geral fica sempre visível. Sem ela a pessoa abriria o hub numa tela em branco.
-                                A mudança vale na hora, sem precisar deslogar. Marcar todos os módulos equivale a acesso total.
-                            </p>
+                          <div className="shrink-0 p-8 pt-4 space-y-4 border-t border-slate-100">
+                              <p className="text-[11px] text-slate-500 font-medium bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
+                                  A Visão Geral fica sempre visível. Sem ela a pessoa abriria o hub numa tela em branco.
+                                  A mudança vale na hora, sem precisar deslogar. Marcar todos os módulos equivale a acesso total.
+                              </p>
 
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={salvarPermissoes}
-                                    disabled={permSaving}
-                                    className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
-                                >
-                                    {permSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                                    {permSaving ? 'Salvando...' : 'Salvar'}
-                                </button>
-                                <button onClick={() => setPermForm(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
-                                    <X size={15} /> Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                              <div className="flex gap-3">
+                                  <button
+                                      onClick={salvarPermissoes}
+                                      disabled={permSaving}
+                                      className="flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all"
+                                  >
+                                      {permSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                                      {permSaving ? 'Salvando...' : 'Salvar'}
+                                  </button>
+                                  <button onClick={() => setPermForm(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
+                                      <X size={15} /> Cancelar
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* Users Table */}

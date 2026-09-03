@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail, DollarSign, Calendar, Upload, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ModalPortal from './ModalPortal.tsx';
 
 const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -503,195 +504,199 @@ const ParceiroManager: React.FC = () => {
 
             {/* Modal Repasse */}
             {repasseModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setRepasseModal(null)}>
-                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-4" onClick={e => e.stopPropagation()}>
-                        {/* Header */}
-                        <div className="bg-navy rounded-t-2xl px-6 py-5 flex items-center justify-between">
-                            <div>
-                                <p className="text-gold text-xs font-bold uppercase tracking-widest mb-1">Fechar Repasse</p>
-                                <h3 className="text-white font-black text-lg">{repasseModal.name}</h3>
-                            </div>
-                            <button onClick={() => setRepasseModal(null)} className="p-2 text-white/50 hover:text-white"><X size={20}/></button>
-                        </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setRepasseModal(null)}>
+                      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-4" onClick={e => e.stopPropagation()}>
+                          {/* Header */}
+                          <div className="bg-navy rounded-t-2xl px-6 py-5 flex items-center justify-between">
+                              <div>
+                                  <p className="text-gold text-xs font-bold uppercase tracking-widest mb-1">Fechar Repasse</p>
+                                  <h3 className="text-white font-black text-lg">{repasseModal.name}</h3>
+                              </div>
+                              <button onClick={() => setRepasseModal(null)} className="p-2 text-white/50 hover:text-white"><X size={20}/></button>
+                          </div>
 
-                        <div className="p-6 space-y-5">
-                            {/* Seletor período */}
-                            <div className="flex gap-3">
-                                <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mês</label>
-                                    <select value={repasseMes} onChange={e => { setRepasseMes(+e.target.value); carregarRepasseData(repasseModal, +e.target.value, repasseAno); }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
-                                        {MESES.slice(1).map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
-                                    </select>
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ano</label>
-                                    <select value={repasseAno} onChange={e => { setRepasseAno(+e.target.value); carregarRepasseData(repasseModal, repasseMes, +e.target.value); }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
-                                        {[2024,2025,2026,2027].map(a => <option key={a} value={a}>{a}</option>)}
-                                    </select>
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data do pagamento</label>
-                                    <input type="date" value={repasseDataPag} onChange={e => setRepasseDataPag(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
-                                </div>
-                            </div>
+                          <div className="p-6 space-y-5">
+                              {/* Seletor período */}
+                              <div className="flex gap-3">
+                                  <div className="flex-1 space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mês</label>
+                                      <select value={repasseMes} onChange={e => { setRepasseMes(+e.target.value); carregarRepasseData(repasseModal, +e.target.value, repasseAno); }}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
+                                          {MESES.slice(1).map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+                                      </select>
+                                  </div>
+                                  <div className="flex-1 space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ano</label>
+                                      <select value={repasseAno} onChange={e => { setRepasseAno(+e.target.value); carregarRepasseData(repasseModal, repasseMes, +e.target.value); }}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-gold">
+                                          {[2024,2025,2026,2027].map(a => <option key={a} value={a}>{a}</option>)}
+                                      </select>
+                                  </div>
+                                  <div className="flex-1 space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data do pagamento</label>
+                                      <input type="date" value={repasseDataPag} onChange={e => setRepasseDataPag(e.target.value)}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
+                                  </div>
+                              </div>
 
-                            {/* Status existente */}
-                            {repasseExistente && (
-                                <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-                                    <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0"/>
-                                    <p className="text-emerald-700 text-sm font-bold">
-                                        Repasse já confirmado em {fmtData(repasseExistente.data_pagamento)}: {fmt(repasseExistente.valor_total)}
-                                        {repasseExistente.comprovante_url && <a href={repasseExistente.comprovante_url} target="_blank" className="ml-2 underline">ver comprovante</a>}
-                                    </p>
-                                </div>
-                            )}
+                              {/* Status existente */}
+                              {repasseExistente && (
+                                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                                      <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0"/>
+                                      <p className="text-emerald-700 text-sm font-bold">
+                                          Repasse já confirmado em {fmtData(repasseExistente.data_pagamento)}: {fmt(repasseExistente.valor_total)}
+                                          {repasseExistente.comprovante_url && <a href={repasseExistente.comprovante_url} target="_blank" className="ml-2 underline">ver comprovante</a>}
+                                      </p>
+                                  </div>
+                              )}
 
-                            {/* Vendas do período */}
-                            {loadingRepasse ? (
-                                <div className="flex items-center justify-center py-8 text-slate-400"><Loader2 size={20} className="animate-spin mr-2"/> Carregando...</div>
-                            ) : repasseVendas.length === 0 ? (
-                                <div className="text-center py-8 text-slate-400 text-sm font-semibold bg-slate-50 rounded-xl">Nenhuma venda de {MESES[repasseMes]}/{repasseAno}</div>
-                            ) : (
-                                <div className="border border-slate-100 rounded-xl overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead><tr className="bg-slate-50">
-                                            <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cliente</th>
-                                            <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produto</th>
-                                            <th className="px-4 py-2.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comissão F&G</th>
-                                            <th className="px-4 py-2.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Repasse</th>
-                                        </tr></thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {repasseVendas.map(v => {
-                                                const c = parseFloat(String(v.comissao||'0').replace(/[^0-9.]/g,''))||0;
-                                                const r = c * (repasseModal.commission_pct||20)/100;
-                                                return <tr key={v.id} className="hover:bg-slate-50/50">
-                                                    <td className="px-4 py-3 font-bold text-slate-800">{v.nome}</td>
-                                                    <td className="px-4 py-3 text-slate-500 text-xs">{v.product_type || v.tipo || '—'}</td>
-                                                    <td className="px-4 py-3 text-right text-slate-600">{fmt(c)}</td>
-                                                    <td className="px-4 py-3 text-right font-bold text-gold">{fmt(r)}</td>
-                                                </tr>;
-                                            })}
-                                        </tbody>
-                                        <tfoot><tr className="bg-navy">
-                                            <td colSpan={3} className="px-4 py-3 text-white font-bold text-sm">Total a repassar</td>
-                                            <td className="px-4 py-3 text-right text-gold font-bold text-base">{fmt(totalComissaoRepasse())}</td>
-                                        </tr></tfoot>
-                                    </table>
-                                </div>
-                            )}
+                              {/* Vendas do período */}
+                              {loadingRepasse ? (
+                                  <div className="flex items-center justify-center py-8 text-slate-400"><Loader2 size={20} className="animate-spin mr-2"/> Carregando...</div>
+                              ) : repasseVendas.length === 0 ? (
+                                  <div className="text-center py-8 text-slate-400 text-sm font-semibold bg-slate-50 rounded-xl">Nenhuma venda de {MESES[repasseMes]}/{repasseAno}</div>
+                              ) : (
+                                  <div className="border border-slate-100 rounded-xl overflow-hidden">
+                                      <table className="w-full text-sm">
+                                          <thead><tr className="bg-slate-50">
+                                              <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cliente</th>
+                                              <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produto</th>
+                                              <th className="px-4 py-2.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comissão F&G</th>
+                                              <th className="px-4 py-2.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Repasse</th>
+                                          </tr></thead>
+                                          <tbody className="divide-y divide-slate-50">
+                                              {repasseVendas.map(v => {
+                                                  const c = parseFloat(String(v.comissao||'0').replace(/[^0-9.]/g,''))||0;
+                                                  const r = c * (repasseModal.commission_pct||20)/100;
+                                                  return <tr key={v.id} className="hover:bg-slate-50/50">
+                                                      <td className="px-4 py-3 font-bold text-slate-800">{v.nome}</td>
+                                                      <td className="px-4 py-3 text-slate-500 text-xs">{v.product_type || v.tipo || '—'}</td>
+                                                      <td className="px-4 py-3 text-right text-slate-600">{fmt(c)}</td>
+                                                      <td className="px-4 py-3 text-right font-bold text-gold">{fmt(r)}</td>
+                                                  </tr>;
+                                              })}
+                                          </tbody>
+                                          <tfoot><tr className="bg-navy">
+                                              <td colSpan={3} className="px-4 py-3 text-white font-bold text-sm">Total a repassar</td>
+                                              <td className="px-4 py-3 text-right text-gold font-bold text-base">{fmt(totalComissaoRepasse())}</td>
+                                          </tr></tfoot>
+                                      </table>
+                                  </div>
+                              )}
 
-                            {/* Comprovante + obs */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comprovante PDF</label>
-                                    <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold cursor-pointer transition-all ${repasseComprovante ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-gold'}`}>
-                                        <input type="file" accept=".pdf" className="hidden" onChange={e => setRepasseComprovante(e.target.files?.[0] || null)}/>
-                                        <Upload size={14}/> {repasseComprovante ? repasseComprovante.name.substring(0,20) : 'Anexar comprovante'}
-                                    </label>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observação</label>
-                                    <input value={repasseObs} onChange={e => setRepasseObs(e.target.value)} placeholder="Ex: PIX realizado às 14h"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
-                                </div>
-                            </div>
+                              {/* Comprovante + obs */}
+                              <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comprovante PDF</label>
+                                      <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold cursor-pointer transition-all ${repasseComprovante ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-gold'}`}>
+                                          <input type="file" accept=".pdf" className="hidden" onChange={e => setRepasseComprovante(e.target.files?.[0] || null)}/>
+                                          <Upload size={14}/> {repasseComprovante ? repasseComprovante.name.substring(0,20) : 'Anexar comprovante'}
+                                      </label>
+                                  </div>
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observação</label>
+                                      <input value={repasseObs} onChange={e => setRepasseObs(e.target.value)} placeholder="Ex: PIX realizado às 14h"
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gold"/>
+                                  </div>
+                              </div>
 
-                            {/* Botões */}
-                            <div className="flex gap-3 pt-2">
-                                <button onClick={confirmarRepasse} disabled={savingRepasse || repasseVendas.length === 0}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold text-sm rounded-xl transition-all">
-                                    {savingRepasse ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
-                                    {savingRepasse ? 'Salvando...' : repasseExistente ? 'Atualizar Repasse' : 'Confirmar Repasse'}
-                                </button>
-                                {repasseModal.email && repasseExistente?.status === 'pago' && (
-                                    <a href={`mailto:${repasseModal.email}?subject=${encodeURIComponent(`Repasse de Comissão - ${MESES[repasseMes]}/${repasseAno} — F&G Seguro Garantia`)}&body=${encodeURIComponent(`Prezada ${repasseModal.name},\n\nInformamos que realizamos o repasse de comissão referente a ${MESES[repasseMes]}/${repasseAno} no valor de ${fmt(totalComissaoRepasse())}.\n\nO comprovante está disponível no seu portal de parceiro:\nhub.fegsegurogarantia.com/parceiros-login.html\n\nAgradecemos pela parceria e pela confiança!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
-                                        className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all">
-                                        <Mail size={15}/> Avisar parceiro
-                                    </a>
-                                )}
-                            </div>
+                              {/* Botões */}
+                              <div className="flex gap-3 pt-2">
+                                  <button onClick={confirmarRepasse} disabled={savingRepasse || repasseVendas.length === 0}
+                                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold text-sm rounded-xl transition-all">
+                                      {savingRepasse ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
+                                      {savingRepasse ? 'Salvando...' : repasseExistente ? 'Atualizar Repasse' : 'Confirmar Repasse'}
+                                  </button>
+                                  {repasseModal.email && repasseExistente?.status === 'pago' && (
+                                      <a href={`mailto:${repasseModal.email}?subject=${encodeURIComponent(`Repasse de Comissão - ${MESES[repasseMes]}/${repasseAno} — F&G Seguro Garantia`)}&body=${encodeURIComponent(`Prezada ${repasseModal.name},\n\nInformamos que realizamos o repasse de comissão referente a ${MESES[repasseMes]}/${repasseAno} no valor de ${fmt(totalComissaoRepasse())}.\n\nO comprovante está disponível no seu portal de parceiro:\nhub.fegsegurogarantia.com/parceiros-login.html\n\nAgradecemos pela parceria e pela confiança!\n\nAtenciosamente,\nEquipe F&G Seguro Garantia\nfabio@fegsegurogarantia.com.br`)}`}
+                                          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all">
+                                          <Mail size={15}/> Avisar parceiro
+                                      </a>
+                                  )}
+                              </div>
 
-                            {/* Histórico */}
-                            {repasseHistorico.length > 0 && (
-                                <div className="border-t border-slate-100 pt-4">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Repasses</p>
-                                    <div className="space-y-2">
-                                        {repasseHistorico.map(r => (
-                                            <div key={r.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${r.status === 'pago' ? 'bg-emerald-500' : 'bg-amber-400'}`}/>
-                                                    <div>
-                                                        <p className="font-bold text-slate-800 text-sm">{MESES[r.periodo_mes]}/{r.periodo_ano}</p>
-                                                        <p className="text-xs text-slate-400">{r.status === 'pago' ? `Pago em ${fmtData(r.data_pagamento)}` : 'Pendente'}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-bold text-gold">{fmt(r.valor_total)}</span>
-                                                    {r.comprovante_url && <a href={r.comprovante_url} target="_blank" className="p-1.5 text-slate-400 hover:text-slate-600"><FileText size={14}/></a>}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                              {/* Histórico */}
+                              {repasseHistorico.length > 0 && (
+                                  <div className="border-t border-slate-100 pt-4">
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Repasses</p>
+                                      <div className="space-y-2">
+                                          {repasseHistorico.map(r => (
+                                              <div key={r.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                                                  <div className="flex items-center gap-3">
+                                                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${r.status === 'pago' ? 'bg-emerald-500' : 'bg-amber-400'}`}/>
+                                                      <div>
+                                                          <p className="font-bold text-slate-800 text-sm">{MESES[r.periodo_mes]}/{r.periodo_ano}</p>
+                                                          <p className="text-xs text-slate-400">{r.status === 'pago' ? `Pago em ${fmtData(r.data_pagamento)}` : 'Pendente'}</p>
+                                                      </div>
+                                                  </div>
+                                                  <div className="flex items-center gap-3">
+                                                      <span className="font-bold text-gold">{fmt(r.valor_total)}</span>
+                                                      {r.comprovante_url && <a href={r.comprovante_url} target="_blank" className="p-1.5 text-slate-400 hover:text-slate-600"><FileText size={14}/></a>}
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* Modal boas-vindas */}
             {welcomeModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWelcomeModal(null)}>
-                    <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-black text-slate-800 text-lg flex items-center gap-2"><Mail size={18} className="text-blue-500" /> E-mail de Boas-vindas</h3>
-                            <button onClick={() => setWelcomeModal(null)} className="p-1 text-slate-400 hover:text-slate-600"><X size={18} /></button>
-                        </div>
-                        <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-2 border border-slate-200 font-mono text-xs leading-relaxed">
-                            <p><strong>Para:</strong> {welcomeModal.email || '⚠️ E-mail não cadastrado'}</p>
-                            <p><strong>Assunto:</strong> Bem-vindo ao Portal de Parceiros - F&G Seguro Garantia</p>
-                            <hr className="border-slate-200 my-2" />
-                            <p>Prezados {welcomeModal.name},</p>
-                            <br />
-                            <p>É com prazer que disponibilizamos o seu acesso ao <strong>Portal de Parceiros F&G Seguro Garantia</strong>, onde vocês podem acompanhar em tempo real todas as apólices emitidas através das indicações de vocês e o histórico de comissões.</p>
-                            <br />
-                            <p><strong>Acesso ao portal:</strong><br />
-                            🔗 hub.fegsegurogarantia.com/parceiros-login.html<br />
-                            👤 Login: <strong>{welcomeModal.username}</strong><br />
-                            🔒 Senha: <strong>{welcomeModal.password}</strong></p>
-                            <br />
-                            <p>Recomendamos alterar a senha no primeiro acesso. Há uma opção disponível no portal.</p>
-                            <br />
-                            <p>Qualquer dúvida, estamos à disposição!</p>
-                            <br />
-                            <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong></p>
-                        </div>
-                        {!welcomeModal.email && (
-                            <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-xl">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
-                        )}
-                        <div className="flex gap-3 mt-4">
-                            {welcomeModal.email && (
-                                welcomeSent ? (
-                                    <div className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-700 font-bold text-sm rounded-xl border border-emerald-200">
-                                        <CheckCircle2 size={15}/> E-mail enviado com sucesso!
-                                    </div>
-                                ) : (
-                                    <button onClick={() => enviarBoasVindas(welcomeModal)} disabled={sendingWelcome}
-                                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all">
-                                        {sendingWelcome ? <Loader2 size={15} className="animate-spin"/> : <Mail size={15}/>}
-                                        {sendingWelcome ? 'Enviando...' : 'Enviar e-mail de boas-vindas'}
-                                    </button>
-                                )
-                            )}
-                            <button onClick={() => setWelcomeModal(null)} className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
-                                Fechar
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setWelcomeModal(null)}>
+                      <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between mb-4">
+                              <h3 className="font-black text-slate-800 text-lg flex items-center gap-2"><Mail size={18} className="text-blue-500" /> E-mail de Boas-vindas</h3>
+                              <button onClick={() => setWelcomeModal(null)} className="p-1 text-slate-400 hover:text-slate-600"><X size={18} /></button>
+                          </div>
+                          <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-2 border border-slate-200 font-mono text-xs leading-relaxed">
+                              <p><strong>Para:</strong> {welcomeModal.email || '⚠️ E-mail não cadastrado'}</p>
+                              <p><strong>Assunto:</strong> Bem-vindo ao Portal de Parceiros - F&G Seguro Garantia</p>
+                              <hr className="border-slate-200 my-2" />
+                              <p>Prezados {welcomeModal.name},</p>
+                              <br />
+                              <p>É com prazer que disponibilizamos o seu acesso ao <strong>Portal de Parceiros F&G Seguro Garantia</strong>, onde vocês podem acompanhar em tempo real todas as apólices emitidas através das indicações de vocês e o histórico de comissões.</p>
+                              <br />
+                              <p><strong>Acesso ao portal:</strong><br />
+                              🔗 hub.fegsegurogarantia.com/parceiros-login.html<br />
+                              👤 Login: <strong>{welcomeModal.username}</strong><br />
+                              🔒 Senha: <strong>{welcomeModal.password}</strong></p>
+                              <br />
+                              <p>Recomendamos alterar a senha no primeiro acesso. Há uma opção disponível no portal.</p>
+                              <br />
+                              <p>Qualquer dúvida, estamos à disposição!</p>
+                              <br />
+                              <p>Atenciosamente,<br /><strong>Equipe F&G Seguro Garantia</strong></p>
+                          </div>
+                          {!welcomeModal.email && (
+                              <p className="text-xs text-amber-600 font-bold mt-3 bg-amber-50 px-3 py-2 rounded-xl">⚠️ Cadastre o e-mail deste parceiro antes de enviar.</p>
+                          )}
+                          <div className="flex gap-3 mt-4">
+                              {welcomeModal.email && (
+                                  welcomeSent ? (
+                                      <div className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-700 font-bold text-sm rounded-xl border border-emerald-200">
+                                          <CheckCircle2 size={15}/> E-mail enviado com sucesso!
+                                      </div>
+                                  ) : (
+                                      <button onClick={() => enviarBoasVindas(welcomeModal)} disabled={sendingWelcome}
+                                          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-navy hover:bg-navy-light disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all">
+                                          {sendingWelcome ? <Loader2 size={15} className="animate-spin"/> : <Mail size={15}/>}
+                                          {sendingWelcome ? 'Enviando...' : 'Enviar e-mail de boas-vindas'}
+                                      </button>
+                                  )
+                              )}
+                              <button onClick={() => setWelcomeModal(null)} className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all">
+                                  Fechar
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* Link do portal */}

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAutoSave } from '../hooks/useAutoSave.ts';
 import { SaveIndicator } from './SaveIndicator.tsx';
 import type { Pendencia } from '../types';
+import ModalPortal from './ModalPortal.tsx';
 
 const RESPONSAVEIS = ['Andréia', 'Grace', 'Geisa', 'Fábio'] as const;
 
@@ -403,134 +404,136 @@ const PendenciasHub: React.FC = () => {
             )}
 
             {modalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/55 backdrop-blur-sm">
-                    <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-start mb-6">
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <h4 className="text-xl font-black text-navy">
-                                    {editingId ? 'Editar pendência' : 'Nova pendência'}
-                                </h4>
-                                <SaveIndicator
-                                    estado={autoSaveState}
-                                    aoTentarNovamente={salvarPendenciaAgora}
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                onClick={fecharModal}
-                                className="p-2 rounded-xl hover:bg-white/80 text-slate-600"
-                                aria-label="Fechar"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            {rascunhoRestaurado && !editingId && (
-                                <div className="flex items-center justify-between gap-3 rounded-xl bg-white/70 border border-gold/30 px-4 py-2.5 text-xs text-slate-600">
-                                    <span>Recuperamos o que você tinha começado a preencher aqui.</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            descartarRascunho();
-                                            setForm(emptyForm);
-                                            setRascunhoRestaurado(false);
-                                        }}
-                                        className="font-bold text-gold underline underline-offset-2 whitespace-nowrap"
-                                    >
-                                        limpar
-                                    </button>
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                                    Título *
-                                </label>
-                                <input
-                                    value={form.titulo}
-                                    onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
-                                    placeholder="Resumo da pendência"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                                    Descrição
-                                </label>
-                                <textarea
-                                    value={form.descricao}
-                                    onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-                                    rows={3}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white resize-y"
-                                    placeholder="Detalhes opcionais"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                                    Responsável
-                                </label>
-                                <select
-                                    value={form.responsavel}
-                                    onChange={(e) => setForm((f) => ({ ...f, responsavel: e.target.value }))}
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
-                                >
-                                    <option value="">Selecione...</option>
-                                    {RESPONSAVEIS.map((r) => (
-                                        <option key={r} value={r}>
-                                            {r}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                                        Prazo
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={form.prazo}
-                                        onChange={(e) => setForm((f) => ({ ...f, prazo: e.target.value }))}
-                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
-                                        Prioridade
-                                    </label>
-                                    <select
-                                        value={form.prioridade}
-                                        onChange={(e) =>
-                                            setForm((f) => ({
-                                                ...f,
-                                                prioridade: e.target.value as Pendencia['prioridade'],
-                                            }))
-                                        }
-                                        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
-                                    >
-                                        <option value="alta">Alta</option>
-                                        <option value="media">Média</option>
-                                        <option value="baixa">Baixa</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            disabled={saving}
-                            onClick={handleSalvar}
-                            className="mt-8 w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
-                        >
-                            {saving ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : editingId ? (
-                                <Save size={18} />
-                            ) : (
-                                <Plus size={18} />
-                            )}
-                            {editingId ? 'Salvar alterações' : 'Salvar pendência'}
-                        </button>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/55 backdrop-blur-sm">
+                      <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-gold/30 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                          <div className="flex justify-between items-start mb-6">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                  <h4 className="text-xl font-black text-navy">
+                                      {editingId ? 'Editar pendência' : 'Nova pendência'}
+                                  </h4>
+                                  <SaveIndicator
+                                      estado={autoSaveState}
+                                      aoTentarNovamente={salvarPendenciaAgora}
+                                  />
+                              </div>
+                              <button
+                                  type="button"
+                                  onClick={fecharModal}
+                                  className="p-2 rounded-xl hover:bg-white/80 text-slate-600"
+                                  aria-label="Fechar"
+                              >
+                                  <X size={20} />
+                              </button>
+                          </div>
+                          <div className="space-y-4">
+                              {rascunhoRestaurado && !editingId && (
+                                  <div className="flex items-center justify-between gap-3 rounded-xl bg-white/70 border border-gold/30 px-4 py-2.5 text-xs text-slate-600">
+                                      <span>Recuperamos o que você tinha começado a preencher aqui.</span>
+                                      <button
+                                          type="button"
+                                          onClick={() => {
+                                              descartarRascunho();
+                                              setForm(emptyForm);
+                                              setRascunhoRestaurado(false);
+                                          }}
+                                          className="font-bold text-gold underline underline-offset-2 whitespace-nowrap"
+                                      >
+                                          limpar
+                                      </button>
+                                  </div>
+                              )}
+                              <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                      Título *
+                                  </label>
+                                  <input
+                                      value={form.titulo}
+                                      onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+                                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
+                                      placeholder="Resumo da pendência"
+                                  />
+                              </div>
+                              <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                      Descrição
+                                  </label>
+                                  <textarea
+                                      value={form.descricao}
+                                      onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
+                                      rows={3}
+                                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white resize-y"
+                                      placeholder="Detalhes opcionais"
+                                  />
+                              </div>
+                              <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                      Responsável
+                                  </label>
+                                  <select
+                                      value={form.responsavel}
+                                      onChange={(e) => setForm((f) => ({ ...f, responsavel: e.target.value }))}
+                                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
+                                  >
+                                      <option value="">Selecione...</option>
+                                      {RESPONSAVEIS.map((r) => (
+                                          <option key={r} value={r}>
+                                              {r}
+                                          </option>
+                                      ))}
+                                  </select>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div>
+                                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                          Prazo
+                                      </label>
+                                      <input
+                                          type="date"
+                                          value={form.prazo}
+                                          onChange={(e) => setForm((f) => ({ ...f, prazo: e.target.value }))}
+                                          className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
+                                      />
+                                  </div>
+                                  <div>
+                                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                          Prioridade
+                                      </label>
+                                      <select
+                                          value={form.prioridade}
+                                          onChange={(e) =>
+                                              setForm((f) => ({
+                                                  ...f,
+                                                  prioridade: e.target.value as Pendencia['prioridade'],
+                                              }))
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-gold/30 bg-white"
+                                      >
+                                          <option value="alta">Alta</option>
+                                          <option value="media">Média</option>
+                                          <option value="baixa">Baixa</option>
+                                      </select>
+                                  </div>
+                              </div>
+                          </div>
+                          <button
+                              type="button"
+                              disabled={saving}
+                              onClick={handleSalvar}
+                              className="mt-8 w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60 transition-all"
+                          >
+                              {saving ? (
+                                  <Loader2 size={18} className="animate-spin" />
+                              ) : editingId ? (
+                                  <Save size={18} />
+                              ) : (
+                                  <Plus size={18} />
+                              )}
+                              {editingId ? 'Salvar alterações' : 'Salvar pendência'}
+                          </button>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
         </section>
     );

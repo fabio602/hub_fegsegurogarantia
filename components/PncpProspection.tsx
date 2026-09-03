@@ -27,6 +27,7 @@ import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/formatters';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import type { BrasilApiEmpresa, PncpContratoNormalizado, PncpProbabilidadeSg, PncpTipoLeadEnviado } from '../types';
+import ModalPortal from './ModalPortal.tsx';
 
 const PNCP_API = 'https://pncp.gov.br/api/consulta/v1/contratos';
 const BRASILAPI_CNPJ = 'https://brasilapi.com.br/api/cnpj/v1';
@@ -660,54 +661,56 @@ const PncpProspection: React.FC = () => {
             </div>
 
             {leadModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm">
-                    <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
-                        <div className="flex justify-between items-start mb-4">
-                            <h4 className="text-xl font-black text-navy">Enviar para LEADS</h4>
-                            <button
-                                type="button"
-                                onClick={() => !sendingLead && setLeadModal(null)}
-                                className="p-2 rounded-xl hover:bg-white/80 text-slate-600"
-                                aria-label="Fechar"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <p className="text-sm text-slate-600 font-medium mb-6">
-                            Para qual tipo de lead deseja enviar <strong>{leadModal.nomeRazaoSocialFornecedor}</strong>?
-                        </p>
-                        <div className="space-y-2 mb-6">
-                            {TIPO_LEAD_OPTIONS.map((t) => (
-                                <label
-                                    key={t}
-                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all ${
-                                        leadTipo === t
-                                            ? 'border-gold bg-white'
-                                            : 'border-transparent bg-white/50 hover:bg-white'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="tipoLead"
-                                        checked={leadTipo === t}
-                                        onChange={() => setLeadTipo(t)}
-                                        className="text-gold"
-                                    />
-                                    <span className="font-bold text-slate-800">{t}</span>
-                                </label>
-                            ))}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={confirmSendLead}
-                            disabled={sendingLead}
-                            className="w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60"
-                        >
-                            {sendingLead ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                            Confirmar envio
-                        </button>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm">
+                      <div className="bg-areia-clara rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gold/30 animate-in zoom-in-95">
+                          <div className="flex justify-between items-start mb-4">
+                              <h4 className="text-xl font-black text-navy">Enviar para LEADS</h4>
+                              <button
+                                  type="button"
+                                  onClick={() => !sendingLead && setLeadModal(null)}
+                                  className="p-2 rounded-xl hover:bg-white/80 text-slate-600"
+                                  aria-label="Fechar"
+                              >
+                                  <X size={20} />
+                              </button>
+                          </div>
+                          <p className="text-sm text-slate-600 font-medium mb-6">
+                              Para qual tipo de lead deseja enviar <strong>{leadModal.nomeRazaoSocialFornecedor}</strong>?
+                          </p>
+                          <div className="space-y-2 mb-6">
+                              {TIPO_LEAD_OPTIONS.map((t) => (
+                                  <label
+                                      key={t}
+                                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border-2 transition-all ${
+                                          leadTipo === t
+                                              ? 'border-gold bg-white'
+                                              : 'border-transparent bg-white/50 hover:bg-white'
+                                      }`}
+                                  >
+                                      <input
+                                          type="radio"
+                                          name="tipoLead"
+                                          checked={leadTipo === t}
+                                          onChange={() => setLeadTipo(t)}
+                                          className="text-gold"
+                                      />
+                                      <span className="font-bold text-slate-800">{t}</span>
+                                  </label>
+                              ))}
+                          </div>
+                          <button
+                              type="button"
+                              onClick={confirmSendLead}
+                              disabled={sendingLead}
+                              className="w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3.5 rounded-xl hover:opacity-95 disabled:opacity-60"
+                          >
+                              {sendingLead ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                              Confirmar envio
+                          </button>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
         </section>
     );

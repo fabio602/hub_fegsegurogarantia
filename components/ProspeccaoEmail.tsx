@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Upload, Pause, Play, Loader2, CheckCircle2, Clock, X, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ModalPortal from './ModalPortal.tsx';
 
 interface Contato {
   id: string;
@@ -406,63 +407,65 @@ export default function ProspeccaoEmail() {
 
       {/* Modal Adicionar */}
       {showModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-black text-slate-800 text-lg">Adicionar Contato</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Cadência começa a partir de hoje</p>
-              </div>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
-                <select
-                  value={form.trilha}
-                  onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-gold bg-slate-50"
-                >
-                  {trilhas.map(t => (
-                    <option key={t.slug} value={t.slug}>{t.nome}</option>
-                  ))}
-                </select>
-                {trilhas.find(t => t.slug === form.trilha)?.descricao && (
-                  <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
-                    {trilhas.find(t => t.slug === form.trilha)?.descricao}
-                  </p>
-                )}
-              </div>
-              {[
-                { label: 'Nome do Contato', key: 'nome_contato', placeholder: 'Ex: João Silva' },
-                { label: 'Nome da Empresa', key: 'nome_empresa', placeholder: 'Ex: Construtora ABC Ltda' },
-                { label: 'Email', key: 'email', placeholder: 'joao@empresa.com.br', type: 'email' },
-                { label: 'Cidade (para o [CIDADE] dos e-mails)', key: 'cidade', placeholder: 'Ex: Sorocaba' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
-                  <input
-                    type={f.type || 'text'}
-                    placeholder={f.placeholder}
-                    value={(form as any)[f.key]}
-                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold bg-slate-50"
-                  />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-800 text-lg">Adicionar Contato</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">Cadência começa a partir de hoje</p>
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email || !form.trilha}
-                className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                {saving ? 'Salvando...' : 'Adicionar à Cadência'}
-              </button>
-              <button onClick={() => setShowModal(false)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
-                Cancelar
-              </button>
+                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
+                  <select
+                    value={form.trilha}
+                    onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:border-gold bg-slate-50"
+                  >
+                    {trilhas.map(t => (
+                      <option key={t.slug} value={t.slug}>{t.nome}</option>
+                    ))}
+                  </select>
+                  {trilhas.find(t => t.slug === form.trilha)?.descricao && (
+                    <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
+                      {trilhas.find(t => t.slug === form.trilha)?.descricao}
+                    </p>
+                  )}
+                </div>
+                {[
+                  { label: 'Nome do Contato', key: 'nome_contato', placeholder: 'Ex: João Silva' },
+                  { label: 'Nome da Empresa', key: 'nome_empresa', placeholder: 'Ex: Construtora ABC Ltda' },
+                  { label: 'Email', key: 'email', placeholder: 'joao@empresa.com.br', type: 'email' },
+                  { label: 'Cidade (para o [CIDADE] dos e-mails)', key: 'cidade', placeholder: 'Ex: Sorocaba' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
+                    <input
+                      type={f.type || 'text'}
+                      placeholder={f.placeholder}
+                      value={(form as any)[f.key]}
+                      onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold bg-slate-50"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={handleAdd} disabled={saving || !form.nome_contato || !form.nome_empresa || !form.email || !form.trilha}
+                  className="flex-1 py-3 bg-gold hover:bg-gold-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                  {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                  {saving ? 'Salvando...' : 'Adicionar à Cadência'}
+                </button>
+                <button onClick={() => setShowModal(false)} className="py-3 px-5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

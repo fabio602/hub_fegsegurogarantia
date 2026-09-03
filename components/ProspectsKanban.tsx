@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/formatters';
 import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
+import ModalPortal from './ModalPortal.tsx';
 
 interface KanbanColumn {
     id: string;
@@ -1413,378 +1414,386 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             {/* ── ADD COLUMN MODAL ── */}
             {isAddColumnOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LayoutGrid size={20} className="text-gold" /> Nova Coluna</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">Crie uma nova fase no seu funil de prospecção.</p>
-                            </div>
-                            <button onClick={() => setIsAddColumnOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Nome da Coluna</label>
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    value={newColTitle}
-                                    onChange={(e) => setNewColTitle(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn(); }}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all font-medium"
-                                    placeholder="Ex: Em negociação, Aguardando proposta..."
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><Palette size={15} className="text-slate-400" /> Cor da Coluna</label>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {COLOR_OPTIONS.map(opt => (
-                                        <button
-                                            key={opt.key}
-                                            onClick={() => setNewColColor(opt.key)}
-                                            title={opt.label}
-                                            className={`h-10 rounded-xl ${opt.header} transition-all font-bold text-[10px] flex items-center justify-center ${newColColor === opt.key ? 'ring-4 ring-offset-2 ring-gold scale-105' : 'opacity-70 hover:opacity-100'}`}
-                                        >
-                                            {newColColor === opt.key ? '✓' : ''}
-                                        </button>
-                                    ))}
-                                </div>
-                                <p className="text-xs text-slate-400 font-medium">Selecionado: <strong>{COLOR_OPTIONS.find(c => c.key === newColColor)?.label}</strong></p>
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button onClick={() => setIsAddColumnOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleAddColumn} disabled={!newColTitle.trim()} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-40">
-                                <Plus size={18} /> Criar Coluna
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden">
+                          <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                              <div>
+                                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><LayoutGrid size={20} className="text-gold" /> Nova Coluna</h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1">Crie uma nova fase no seu funil de prospecção.</p>
+                              </div>
+                              <button onClick={() => setIsAddColumnOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm">
+                                  <X size={20} />
+                              </button>
+                          </div>
+                          <div className="p-8 space-y-6">
+                              <div className="space-y-2">
+                                  <label className="text-sm font-bold text-slate-700">Nome da Coluna</label>
+                                  <input
+                                      autoFocus
+                                      type="text"
+                                      value={newColTitle}
+                                      onChange={(e) => setNewColTitle(e.target.value)}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn(); }}
+                                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all font-medium"
+                                      placeholder="Ex: Em negociação, Aguardando proposta..."
+                                  />
+                              </div>
+                              <div className="space-y-3">
+                                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><Palette size={15} className="text-slate-400" /> Cor da Coluna</label>
+                                  <div className="grid grid-cols-5 gap-2">
+                                      {COLOR_OPTIONS.map(opt => (
+                                          <button
+                                              key={opt.key}
+                                              onClick={() => setNewColColor(opt.key)}
+                                              title={opt.label}
+                                              className={`h-10 rounded-xl ${opt.header} transition-all font-bold text-[10px] flex items-center justify-center ${newColColor === opt.key ? 'ring-4 ring-offset-2 ring-gold scale-105' : 'opacity-70 hover:opacity-100'}`}
+                                          >
+                                              {newColColor === opt.key ? '✓' : ''}
+                                          </button>
+                                      ))}
+                                  </div>
+                                  <p className="text-xs text-slate-400 font-medium">Selecionado: <strong>{COLOR_OPTIONS.find(c => c.key === newColColor)?.label}</strong></p>
+                              </div>
+                          </div>
+                          <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                              <button onClick={() => setIsAddColumnOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                              <button onClick={handleAddColumn} disabled={!newColTitle.trim()} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-40">
+                                  <Plus size={18} /> Criar Coluna
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* ── NEW LEAD MODAL ── */}
             {isNewLeadModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800">Criar Novo Lead</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">Cadastre manualmente os dados da prospecção.</p>
-                            </div>
-                            <button onClick={() => setIsNewLeadModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
-                        </div>
-                        <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                                    <form id="new-lead-form" onSubmit={handleCreateNewLead}>
-                                        <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} />
-                            </form>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                              <div>
+                                  <h3 className="text-xl font-black text-slate-800">Criar Novo Lead</h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1">Cadastre manualmente os dados da prospecção.</p>
+                              </div>
+                              <button onClick={() => setIsNewLeadModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                          </div>
+                          <div className="p-8 overflow-y-auto custom-scroll flex-1">
+                                      <form id="new-lead-form" onSubmit={handleCreateNewLead}>
+                                          <LeadFormFields form={newLeadForm} setForm={setNewLeadForm} columns={columns} />
+                              </form>
                             
-                            {/* Insurer Limits Section for New Lead */}
-                            <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
-                                {newLimitesArray.length > 0 && (
-                                    <div className="space-y-2">
-                                        {newLimitesArray.map((lim, i) => (
-                                            <div key={i} className="flex items-center gap-2 bg-gold/10 px-3 py-2 rounded-xl border border-gold/25">
-                                                <span className="flex-1 text-sm font-bold text-navy">{lim.seguradora}</span>
-                                                <span className="text-sm font-bold text-gold-hover">{lim.valor}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setNewLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
-                                                    className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Seguradora"
-                                        value={newCurrentLimit.seguradora}
-                                        onChange={e => setNewCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
-                                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Valor (R$)"
-                                        value={newCurrentLimit.valor}
-                                        onChange={e => {
-                                            let val = e.target.value.replace(/\D/g, '');
-                                            if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
-                                            setNewCurrentLimit(prev => ({ ...prev, valor: val }));
-                                        }}
-                                        className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!newCurrentLimit.seguradora) return;
-                                            setNewLimitesArray(prev => [...prev, newCurrentLimit]);
-                                            setNewCurrentLimit({ seguradora: '', valor: '' });
-                                        }}
-                                        className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
-                                    >
-                                        Adicionar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button type="button" onClick={() => setIsNewLeadModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button type="submit" form="new-lead-form" disabled={savingLead} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
-                                {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                {savingLead ? 'Salvando...' : 'Salvar Lead'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                              {/* Insurer Limits Section for New Lead */}
+                              <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                  {newLimitesArray.length > 0 && (
+                                      <div className="space-y-2">
+                                          {newLimitesArray.map((lim, i) => (
+                                              <div key={i} className="flex items-center gap-2 bg-gold/10 px-3 py-2 rounded-xl border border-gold/25">
+                                                  <span className="flex-1 text-sm font-bold text-navy">{lim.seguradora}</span>
+                                                  <span className="text-sm font-bold text-gold-hover">{lim.valor}</span>
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => setNewLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
+                                                      className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                                                  >
+                                                      <X size={14} />
+                                                  </button>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  )}
+                                  <div className="flex gap-2">
+                                      <input
+                                          type="text"
+                                          placeholder="Seguradora"
+                                          value={newCurrentLimit.seguradora}
+                                          onChange={e => setNewCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
+                                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
+                                      />
+                                      <input
+                                          type="text"
+                                          placeholder="Valor (R$)"
+                                          value={newCurrentLimit.valor}
+                                          onChange={e => {
+                                              let val = e.target.value.replace(/\D/g, '');
+                                              if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
+                                              setNewCurrentLimit(prev => ({ ...prev, valor: val }));
+                                          }}
+                                          className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
+                                      />
+                                      <button
+                                          type="button"
+                                          onClick={() => {
+                                              if (!newCurrentLimit.seguradora) return;
+                                              setNewLimitesArray(prev => [...prev, newCurrentLimit]);
+                                              setNewCurrentLimit({ seguradora: '', valor: '' });
+                                          }}
+                                          className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
+                                      >
+                                          Adicionar
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+                          <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                              <button type="button" onClick={() => setIsNewLeadModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                              <button type="submit" form="new-lead-form" disabled={savingLead} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
+                                  {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                  {savingLead ? 'Salvando...' : 'Salvar Lead'}
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* ── EDIT LEAD MODAL ── */}
             {isEditModalOpen && editingLead && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-gold/20 bg-gold/10">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-gold" />Editar Lead</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
-                                {editObservationEntries.length > 0 && (
-                                    <p className="text-xs text-slate-500 font-bold mt-1 px-1">
-                                        Ultima atualizacao da observacao: {editObservationEntries[editObservationEntries.length - 1].timestamp}
-                                    </p>
-                                )}
-                            </div>
-                            <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
-                        </div>
-                        <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                                <div className="lg:col-span-3">
-                                    <form id="edit-lead-form" onSubmit={handleSaveEdit}>
-                                        <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} hideObservation />
-                                    </form>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="flex justify-between items-center p-6 border-b border-gold/20 bg-gold/10">
+                              <div>
+                                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-gold" />Editar Lead</h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1 px-1">{editLeadForm.company || editLeadForm.name || 'Sem Identificação'}</p>
+                                  {editObservationEntries.length > 0 && (
+                                      <p className="text-xs text-slate-500 font-bold mt-1 px-1">
+                                          Ultima atualizacao da observacao: {editObservationEntries[editObservationEntries.length - 1].timestamp}
+                                      </p>
+                                  )}
+                              </div>
+                              <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                          </div>
+                          <div className="p-8 overflow-y-auto custom-scroll flex-1">
+                              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                                  <div className="lg:col-span-3">
+                                      <form id="edit-lead-form" onSubmit={handleSaveEdit}>
+                                          <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} hideObservation />
+                                      </form>
 
-                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Observacoes do Lead</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                            <div className="md:col-span-1 space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-600">Data da observacao</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={editObservationDateTime}
-                                                    onChange={(e) => setEditObservationDateTime(e.target.value)}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                                />
-                                            </div>
-                                            <div className="md:col-span-2 space-y-1.5">
-                                                <label className="text-xs font-bold text-slate-600">{editingObservationIndex === null ? 'Nova observacao' : 'Editar observacao'}</label>
-                                                <textarea
-                                                    value={editObservationText}
-                                                    onChange={(e) => setEditObservationText(e.target.value)}
-                                                    rows={3}
-                                                    placeholder="Digite a observacao..."
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold resize-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end gap-2">
-                                            {editingObservationIndex !== null && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setEditingObservationIndex(null);
-                                                        setEditObservationText('');
-                                                        setEditObservationDateTime(nowDateTimeLocal());
-                                                    }}
-                                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
-                                                >
-                                                    Cancelar Edicao
-                                                </button>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={handleAddOrUpdateObservation}
-                                                className="px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm hover:bg-navy-light"
-                                            >
-                                                {editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
-                                            </button>
-                                        </div>
+                                      <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                          <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Observacoes do Lead</h4>
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                              <div className="md:col-span-1 space-y-1.5">
+                                                  <label className="text-xs font-bold text-slate-600">Data da observacao</label>
+                                                  <input
+                                                      type="datetime-local"
+                                                      value={editObservationDateTime}
+                                                      onChange={(e) => setEditObservationDateTime(e.target.value)}
+                                                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
+                                                  />
+                                              </div>
+                                              <div className="md:col-span-2 space-y-1.5">
+                                                  <label className="text-xs font-bold text-slate-600">{editingObservationIndex === null ? 'Nova observacao' : 'Editar observacao'}</label>
+                                                  <textarea
+                                                      value={editObservationText}
+                                                      onChange={(e) => setEditObservationText(e.target.value)}
+                                                      rows={3}
+                                                      placeholder="Digite a observacao..."
+                                                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold resize-none"
+                                                  />
+                                              </div>
+                                          </div>
+                                          <div className="flex justify-end gap-2">
+                                              {editingObservationIndex !== null && (
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                          setEditingObservationIndex(null);
+                                                          setEditObservationText('');
+                                                          setEditObservationDateTime(nowDateTimeLocal());
+                                                      }}
+                                                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                                                  >
+                                                      Cancelar Edicao
+                                                  </button>
+                                              )}
+                                              <button
+                                                  type="button"
+                                                  onClick={handleAddOrUpdateObservation}
+                                                  className="px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm hover:bg-navy-light"
+                                              >
+                                                  {editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
+                                              </button>
+                                          </div>
 
-                                        <div className="mt-5">
-                                            <h5 className="text-xs font-bold text-navy uppercase tracking-widest mb-2">Histórico de observações</h5>
-                                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
-                                                {editObservationEntries.length === 0 ? (
-                                                    <div className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                                        Nenhuma observacao registrada ainda.
-                                                    </div>
-                                                ) : editObservationEntries.map((entry, idx) => (
-                                                    <div
-                                                        key={`${entry.timestamp}-${idx}`}
-                                                        className="rounded-xl border border-gold/30 bg-white shadow-sm overflow-hidden"
-                                                    >
-                                                        <div className="flex items-start justify-between gap-2 px-3 py-2 bg-navy">
-                                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-navy-light px-2 py-1 text-[11px] font-bold tabular-nums text-gold ring-1 ring-gold/40">
-                                                                <Clock size={12} className="shrink-0 text-gold/90" aria-hidden />
-                                                                {entry.timestamp}
-                                                            </span>
-                                                            <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEditObservation(idx)}
-                                                                    className="text-[11px] font-bold text-gold hover:text-white transition-colors"
-                                                                >
-                                                                    Editar
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteObservation(idx)}
-                                                                    className="text-[11px] font-bold text-rose-300 hover:text-rose-100 transition-colors"
-                                                                >
-                                                                    Excluir
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words px-3 py-2.5 leading-relaxed">
-                                                            {entry.text}
-                                                        </p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
+                                          <div className="mt-5">
+                                              <h5 className="text-xs font-bold text-navy uppercase tracking-widest mb-2">Histórico de observações</h5>
+                                              <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
+                                                  {editObservationEntries.length === 0 ? (
+                                                      <div className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                                          Nenhuma observacao registrada ainda.
+                                                      </div>
+                                                  ) : editObservationEntries.map((entry, idx) => (
+                                                      <div
+                                                          key={`${entry.timestamp}-${idx}`}
+                                                          className="rounded-xl border border-gold/30 bg-white shadow-sm overflow-hidden"
+                                                      >
+                                                          <div className="flex items-start justify-between gap-2 px-3 py-2 bg-navy">
+                                                              <span className="inline-flex items-center gap-1.5 rounded-xl bg-navy-light px-2 py-1 text-[11px] font-bold tabular-nums text-gold ring-1 ring-gold/40">
+                                                                  <Clock size={12} className="shrink-0 text-gold/90" aria-hidden />
+                                                                  {entry.timestamp}
+                                                              </span>
+                                                              <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                                                                  <button
+                                                                      type="button"
+                                                                      onClick={() => handleEditObservation(idx)}
+                                                                      className="text-[11px] font-bold text-gold hover:text-white transition-colors"
+                                                                  >
+                                                                      Editar
+                                                                  </button>
+                                                                  <button
+                                                                      type="button"
+                                                                      onClick={() => handleDeleteObservation(idx)}
+                                                                      className="text-[11px] font-bold text-rose-300 hover:text-rose-100 transition-colors"
+                                                                  >
+                                                                      Excluir
+                                                                  </button>
+                                                              </div>
+                                                          </div>
+                                                          <p className="text-sm text-slate-700 whitespace-pre-wrap break-words px-3 py-2.5 leading-relaxed">
+                                                              {entry.text}
+                                                          </p>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          </div>
+                                      </div>
 
-                                    {/* Insurer Limits Section */}
-                                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
-                                        {editLimitesArray.length > 0 && (
-                                            <div className="space-y-2">
-                                                {editLimitesArray.map((lim, i) => (
-                                                    <div key={i} className="flex items-center gap-2 bg-gold/10 px-3 py-2 rounded-xl border border-gold/25">
-                                                        <span className="flex-1 text-sm font-bold text-navy">{lim.seguradora}</span>
-                                                        <span className="text-sm font-bold text-gold-hover">{lim.valor}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setEditLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
-                                                            className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                placeholder="Seguradora"
-                                                value={editCurrentLimit.seguradora}
-                                                onChange={e => setEditCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
-                                                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Valor (R$)"
-                                                value={editCurrentLimit.valor}
-                                                onChange={e => {
-                                                    let val = e.target.value.replace(/\D/g, '');
-                                                    if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
-                                                    setEditCurrentLimit(prev => ({ ...prev, valor: val }));
-                                                }}
-                                                className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!editCurrentLimit.seguradora) return;
-                                                    setEditLimitesArray(prev => [...prev, editCurrentLimit]);
-                                                    setEditCurrentLimit({ seguradora: '', valor: '' });
-                                                }}
-                                                className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
-                                            >
-                                                Adicionar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="lg:col-span-2 border-l border-slate-100 pl-8">
-                                    <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button type="submit" form="edit-lead-form" disabled={savingLead} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
-                                {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                {savingLead ? 'Salvando...' : 'Salvar Alterações'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                                      {/* Insurer Limits Section */}
+                                      <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                                          <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                          {editLimitesArray.length > 0 && (
+                                              <div className="space-y-2">
+                                                  {editLimitesArray.map((lim, i) => (
+                                                      <div key={i} className="flex items-center gap-2 bg-gold/10 px-3 py-2 rounded-xl border border-gold/25">
+                                                          <span className="flex-1 text-sm font-bold text-navy">{lim.seguradora}</span>
+                                                          <span className="text-sm font-bold text-gold-hover">{lim.valor}</span>
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => setEditLimitesArray(prev => prev.filter((_, idx) => idx !== i))}
+                                                              className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                                                          >
+                                                              <X size={14} />
+                                                          </button>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          )}
+                                          <div className="flex gap-2">
+                                              <input
+                                                  type="text"
+                                                  placeholder="Seguradora"
+                                                  value={editCurrentLimit.seguradora}
+                                                  onChange={e => setEditCurrentLimit(prev => ({ ...prev, seguradora: e.target.value }))}
+                                                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
+                                              />
+                                              <input
+                                                  type="text"
+                                                  placeholder="Valor (R$)"
+                                                  value={editCurrentLimit.valor}
+                                                  onChange={e => {
+                                                      let val = e.target.value.replace(/\D/g, '');
+                                                      if (val) val = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(val) / 100);
+                                                      setEditCurrentLimit(prev => ({ ...prev, valor: val }));
+                                                  }}
+                                                  className="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
+                                              />
+                                              <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                      if (!editCurrentLimit.seguradora) return;
+                                                      setEditLimitesArray(prev => [...prev, editCurrentLimit]);
+                                                      setEditCurrentLimit({ seguradora: '', valor: '' });
+                                                  }}
+                                                  className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center whitespace-nowrap shadow-md shrink-0"
+                                              >
+                                                  Adicionar
+                                              </button>
+                                          </div>
+                                      </div>
+                                  </div>
+                                  <div className="lg:col-span-2 border-l border-slate-100 pl-8">
+                                      <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />
+                                  </div>
+                              </div>
+                          </div>
+                          <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                              <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                              <button type="submit" form="edit-lead-form" disabled={savingLead} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
+                                  {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                  {savingLead ? 'Salvando...' : 'Salvar Alterações'}
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
 
             {/* ── CSV MAPPING MODAL ── */}
             {isImportModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800">Mapear Colunas do CSV</h3>
-                                <p className="text-sm text-slate-500 font-medium mt-1">Nós encontramos <strong className="text-navy">{csvRows.length}</strong> leads no arquivo.</p>
-                            </div>
-                            <button onClick={() => setIsImportModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
-                        </div>
-                        <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                            <div className="bg-areia border border-gold/25 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-gold shadow-lg"><ArrowRight size={20} /></div>
-                                    <div>
-                                        <h4 className="font-bold text-navy">Coluna de Destino</h4>
-                                        <p className="text-xs text-navy/70 font-medium">Os leads serão importados para qual coluna?</p>
-                                    </div>
-                                </div>
-                                <select value={importStatus} onChange={(e) => setImportStatus(e.target.value)} className="px-4 py-2.5 bg-white border border-gold/30 rounded-xl text-sm font-bold text-navy outline-none focus:ring-4 focus:ring-gold/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
-                                    {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-3">
-                                    <Tag size={18} className="text-gold" />
-                                    <div>
-                                        <p className="text-sm font-bold text-navy">Foco do Atendimento</p>
-                                        <p className="text-xs text-navy/70 font-medium">Qual produto/serviço destes leads?</p>
-                                    </div>
-                                </div>
-                                <select value={csvProductType} onChange={(e) => setCsvProductType(e.target.value)} className="px-4 py-2.5 bg-white border border-gold/30 rounded-xl text-sm font-bold text-navy outline-none focus:ring-4 focus:ring-gold/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
-                                    {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                {DB_FIELDS.map(field => (
-                                    <div key={field.key} className="flex flex-col gap-1.5 p-3 rounded-xl hover:bg-slate-50 border-2 border-transparent hover:border-slate-100 transition-colors">
-                                        <label className="text-sm font-bold text-slate-700">{field.label}</label>
-                                        <div className="relative">
-                                            <select value={csvMapping[field.key] || ''} onChange={(e) => setCsvMapping({ ...csvMapping, [field.key]: e.target.value })} className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all cursor-pointer appearance-none shadow-sm font-medium">
-                                                <option value="">-- Ignorar --</option>
-                                                {csvHeaders.map((h, i) => <option key={i} value={i.toString()}>Coluna: {h}</option>)}
-                                            </select>
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><Tag size={14} /></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button type="button" onClick={() => setIsImportModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                            <button onClick={handleConfirmImport} disabled={importing} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
-                                {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                                {importing ? 'Importando...' : 'Confirmar Importação'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                              <div>
+                                  <h3 className="text-xl font-black text-slate-800">Mapear Colunas do CSV</h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1">Nós encontramos <strong className="text-navy">{csvRows.length}</strong> leads no arquivo.</p>
+                              </div>
+                              <button onClick={() => setIsImportModalOpen(false)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                          </div>
+                          <div className="p-8 overflow-y-auto custom-scroll flex-1">
+                              <div className="bg-areia border border-gold/25 rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-gold shadow-lg"><ArrowRight size={20} /></div>
+                                      <div>
+                                          <h4 className="font-bold text-navy">Coluna de Destino</h4>
+                                          <p className="text-xs text-navy/70 font-medium">Os leads serão importados para qual coluna?</p>
+                                      </div>
+                                  </div>
+                                  <select value={importStatus} onChange={(e) => setImportStatus(e.target.value)} className="px-4 py-2.5 bg-white border border-gold/30 rounded-xl text-sm font-bold text-navy outline-none focus:ring-4 focus:ring-gold/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
+                                      {columns.map(col => <option key={col.id} value={col.id}>{col.title}</option>)}
+                                  </select>
+                              </div>
+                              <div className="flex items-center gap-4 flex-wrap">
+                                  <div className="flex items-center gap-3">
+                                      <Tag size={18} className="text-gold" />
+                                      <div>
+                                          <p className="text-sm font-bold text-navy">Foco do Atendimento</p>
+                                          <p className="text-xs text-navy/70 font-medium">Qual produto/serviço destes leads?</p>
+                                      </div>
+                                  </div>
+                                  <select value={csvProductType} onChange={(e) => setCsvProductType(e.target.value)} className="px-4 py-2.5 bg-white border border-gold/30 rounded-xl text-sm font-bold text-navy outline-none focus:ring-4 focus:ring-gold/15 transition-all cursor-pointer shadow-sm min-w-[200px]">
+                                      {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                                  </select>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                  {DB_FIELDS.map(field => (
+                                      <div key={field.key} className="flex flex-col gap-1.5 p-3 rounded-xl hover:bg-slate-50 border-2 border-transparent hover:border-slate-100 transition-colors">
+                                          <label className="text-sm font-bold text-slate-700">{field.label}</label>
+                                          <div className="relative">
+                                              <select value={csvMapping[field.key] || ''} onChange={(e) => setCsvMapping({ ...csvMapping, [field.key]: e.target.value })} className="w-full px-4 py-2.5 pr-10 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all cursor-pointer appearance-none shadow-sm font-medium">
+                                                  <option value="">-- Ignorar --</option>
+                                                  {csvHeaders.map((h, i) => <option key={i} value={i.toString()}>Coluna: {h}</option>)}
+                                              </select>
+                                              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><Tag size={14} /></div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                          <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                              <button type="button" onClick={() => setIsImportModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                              <button onClick={handleConfirmImport} disabled={importing} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
+                                  {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                                  {importing ? 'Importando...' : 'Confirmar Importação'}
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
             )}
         </div>
     );

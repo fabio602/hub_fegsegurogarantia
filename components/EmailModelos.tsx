@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Save, Eye, X, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ModalPortal from './ModalPortal.tsx';
 
 interface Modelo {
   chave: string;
@@ -283,45 +284,47 @@ export default function EmailModelos() {
 
       {/* Prévia */}
       {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-in fade-in duration-150"
-          onClick={() => setPreview(null)}
-        >
+        <ModalPortal>
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-xl animate-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+            onClick={() => setPreview(null)}
           >
-            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Eye size={13} className="text-gold shrink-0" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia com dados de exemplo</span>
+            <div
+              className="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-xl animate-in zoom-in-95 duration-150"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Eye size={13} className="text-gold shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia com dados de exemplo</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 truncate">
+                    Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 truncate">
-                  Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>
-                </p>
+                <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-navy transition-colors shrink-0" title="Fechar">
+                  <X size={16} />
+                </button>
               </div>
-              <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-navy transition-colors shrink-0" title="Fechar">
-                <X size={16} />
-              </button>
-            </div>
 
-            <div className="flex-1 overflow-auto bg-slate-50">
-              {/* sandbox vazio: o HTML do e-mail é renderizado sem executar script algum */}
-              <iframe title="Prévia do e-mail" sandbox="" srcDoc={preview.html} className="w-full h-[56vh] border-0 bg-white" />
-            </div>
+              <div className="flex-1 overflow-auto bg-slate-50">
+                {/* sandbox vazio: o HTML do e-mail é renderizado sem executar script algum */}
+                <iframe title="Prévia do e-mail" sandbox="" srcDoc={preview.html} className="w-full h-[56vh] border-0 bg-white" />
+              </div>
 
-            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100">
-              <p className="text-[10px] text-slate-400">Nada foi enviado. Os nomes acima são só exemplo.</p>
-              <button
-                onClick={() => setPreview(null)}
-                className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 transition-colors shrink-0"
-              >
-                Fechar
-              </button>
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100">
+                <p className="text-[10px] text-slate-400">Nada foi enviado. Os nomes acima são só exemplo.</p>
+                <button
+                  onClick={() => setPreview(null)}
+                  className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 transition-colors shrink-0"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

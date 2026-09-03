@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ResultsDashboard from './ResultsDashboard';
+import ModalPortal from './ModalPortal.tsx';
 
 /**
  * Aba Carteira (pos-venda).
@@ -272,40 +273,44 @@ export default function Carteira() {
       {/* Ficha do cliente: reaproveita o card da Carteira de Clientes, já filtrado
           pelo CNPJ (ou nome) do cliente do card. Fechar mantém a fila onde estava. */}
       {fichaAberta && atual && (
-        <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={() => setFichaAberta(false)}>
-          <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
-            <div className="bg-areia rounded-2xl w-full max-w-2xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
-              <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
-                <span className="text-[11px] font-black tracking-widest uppercase">Ficha do cliente · {atual.sales?.nome}</span>
-                <button onClick={() => setFichaAberta(false)} aria-label="Fechar ficha do cliente"
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
-              </div>
-              <div className="p-4 sm:p-6">
-                <ResultsDashboard key={atual.sale_id} initialSection="carteira" hideTabs
-                  initialClienteFiltro={atual.sales?.cnpj || atual.sales?.nome} />
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={() => setFichaAberta(false)}>
+            <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
+              <div className="bg-areia rounded-2xl w-full max-w-2xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
+                  <span className="text-[11px] font-black tracking-widest uppercase">Ficha do cliente · {atual.sales?.nome}</span>
+                  <button onClick={() => setFichaAberta(false)} aria-label="Fechar ficha do cliente"
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
+                </div>
+                <div className="p-4 sm:p-6">
+                  <ResultsDashboard key={atual.sale_id} initialSection="carteira" hideTabs
+                    initialClienteFiltro={atual.sales?.cnpj || atual.sales?.nome} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Cadastro completo: reaproveita o formulário de venda do ResultsDashboard,
           já aberto em edição na venda do card. Fechar mantém a fila onde estava. */}
       {cadastroAberto && atual && (
-        <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={fecharCadastro}>
-          <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
-            <div className="bg-areia rounded-2xl w-full max-w-6xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
-              <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
-                <span className="text-[11px] font-black tracking-widest uppercase">Cadastro completo · {atual.sales?.nome}</span>
-                <button onClick={fecharCadastro} aria-label="Fechar cadastro completo"
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
-              </div>
-              <div className="p-4 sm:p-6">
-                <ResultsDashboard key={atual.sale_id} initialSection="sales" hideTabs initialEditSaleId={atual.sale_id} />
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 bg-navy/50 overflow-y-auto" onClick={fecharCadastro}>
+            <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
+              <div className="bg-areia rounded-2xl w-full max-w-6xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
+                  <span className="text-[11px] font-black tracking-widest uppercase">Cadastro completo · {atual.sales?.nome}</span>
+                  <button onClick={fecharCadastro} aria-label="Fechar cadastro completo"
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
+                </div>
+                <div className="p-4 sm:p-6">
+                  <ResultsDashboard key={atual.sale_id} initialSection="sales" hideTabs initialEditSaleId={atual.sale_id} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

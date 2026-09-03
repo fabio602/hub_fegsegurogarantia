@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import EmailModelos from './EmailModelos.tsx';
+import ModalPortal from './ModalPortal.tsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -706,80 +707,82 @@ export default function EmailFollowUp() {
 
       {/* ── Modal de prévia ─────────────────────────────────── */}
       {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-in fade-in duration-150"
-          onClick={() => setPreview(null)}
-        >
+        <ModalPortal>
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-xl animate-in zoom-in-95 duration-150"
-            onClick={e => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+            onClick={() => setPreview(null)}
           >
-            {/* Cabeçalho */}
-            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Eye size={13} className="text-gold shrink-0" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia do e-mail</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-navy/10 text-navy uppercase">{preview.modelo}</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1 truncate">
-                  Para: <span className="font-bold text-slate-700">{preview.destinatario || 'sem destinatário'}</span>
-                </p>
-                {preview.subject && (
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>
+            <div
+              className="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-xl animate-in zoom-in-95 duration-150"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Cabeçalho */}
+              <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-100">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Eye size={13} className="text-gold shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia do e-mail</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-navy/10 text-navy uppercase">{preview.modelo}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 truncate">
+                    Para: <span className="font-bold text-slate-700">{preview.destinatario || 'sem destinatário'}</span>
                   </p>
+                  {preview.subject && (
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-navy transition-colors shrink-0" title="Fechar">
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Corpo */}
+              <div className="flex-1 overflow-auto bg-slate-50">
+                {preview.loading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 size={22} className="text-gold animate-spin" />
+                  </div>
+                ) : preview.error ? (
+                  <div className="flex flex-col items-center gap-2 py-20 px-6 text-center">
+                    <AlertCircle size={22} className="text-rose-500" />
+                    <p className="text-xs font-bold text-slate-600">{preview.error}</p>
+                  </div>
+                ) : (
+                  /* sandbox vazio: o HTML do e-mail é renderizado sem executar script algum */
+                  <iframe
+                    title="Prévia do e-mail"
+                    sandbox=""
+                    srcDoc={preview.html}
+                    className="w-full h-[52vh] border-0 bg-white"
+                  />
                 )}
               </div>
-              <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-navy transition-colors shrink-0" title="Fechar">
-                <X size={16} />
-              </button>
-            </div>
 
-            {/* Corpo */}
-            <div className="flex-1 overflow-auto bg-slate-50">
-              {preview.loading ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 size={22} className="text-gold animate-spin" />
-                </div>
-              ) : preview.error ? (
-                <div className="flex flex-col items-center gap-2 py-20 px-6 text-center">
-                  <AlertCircle size={22} className="text-rose-500" />
-                  <p className="text-xs font-bold text-slate-600">{preview.error}</p>
-                </div>
-              ) : (
-                /* sandbox vazio: o HTML do e-mail é renderizado sem executar script algum */
-                <iframe
-                  title="Prévia do e-mail"
-                  sandbox=""
-                  srcDoc={preview.html}
-                  className="w-full h-[52vh] border-0 bg-white"
-                />
-              )}
-            </div>
-
-            {/* Rodapé */}
-            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100">
-              <p className="text-[10px] text-slate-400">Nada foi enviado ainda. Uma cópia oculta chega no seu e-mail a cada envio.</p>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setPreview(null)}
-                  className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 transition-colors"
-                >
-                  Fechar
-                </button>
-                {preview.onSend && !preview.error && (
+              {/* Rodapé */}
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100">
+                <p className="text-[10px] text-slate-400">Nada foi enviado ainda. Uma cópia oculta chega no seu e-mail a cada envio.</p>
+                <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => { preview.onSend?.(); setPreview(null); }}
-                    className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-navy text-gold hover:bg-navy-light transition-colors"
+                    onClick={() => setPreview(null)}
+                    className="text-xs font-bold px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 transition-colors"
                   >
-                    <Send size={12} /> Enviar agora
+                    Fechar
                   </button>
-                )}
+                  {preview.onSend && !preview.error && (
+                    <button
+                      onClick={() => { preview.onSend?.(); setPreview(null); }}
+                      className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-navy text-gold hover:bg-navy-light transition-colors"
+                    >
+                      <Send size={12} /> Enviar agora
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );
