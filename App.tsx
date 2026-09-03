@@ -58,6 +58,7 @@ import Carteira from './components/Carteira.tsx';
 import EmailFollowUp from './components/EmailFollowUp';
 import GarantiaLocaticia from './components/GarantiaLocaticia';
 import InadimplentesResidencial from './components/InadimplentesResidencial.tsx';
+import MetaComissao from './components/MetaComissao.tsx';
 import { ToastProvider } from './components/Toast.tsx';
 import { FeatureTip } from './components/FeatureTip.tsx';
 import { GlobalSearch } from './components/GlobalSearch.tsx';
@@ -75,7 +76,7 @@ type View =
   // Responsabilidade Civil
   | 'rc' | 'rc-seguradoras'
   // Gestão Financeira
-  | 'metas-mensais' | 'metas-anuais'
+  | 'meta-comissao' | 'metas-mensais' | 'metas-anuais'
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
@@ -83,7 +84,7 @@ const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calcul
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
-const FINANCEIRO_VIEWS: View[] = ['metas-mensais', 'metas-anuais'];
+const FINANCEIRO_VIEWS: View[] = ['meta-comissao', 'metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
@@ -112,6 +113,7 @@ const VIEW_TITLES: Record<View, string> = {
   'residencial-garantidoras': 'Garantidoras',
   rc: 'Responsabilidade Civil',
   'rc-seguradoras': 'Seguradoras · RC',
+  'meta-comissao': 'Meta de Comissão',
   'metas-mensais': 'Metas Mensais',
   'metas-anuais': 'Metas Anuais',
   manual: 'Manual de Procedimentos Internos',
@@ -591,6 +593,7 @@ const App: React.FC = () => {
                 label="Gestão Financeira"
                 isGroupActive={FINANCEIRO_VIEWS.includes(activeView)}
               >
+                <NavSubItem view="meta-comissao" label="Meta de Comissão" />
                 <NavSubItem view="metas-mensais" label="Metas Mensais" />
                 <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
@@ -814,6 +817,7 @@ const App: React.FC = () => {
               {vista === 'pnpc' && <ResultsDashboard key="pnpc" initialSection="pnpc" hideTabs />}
               {vista === 'seg-licitante' && <ResultsDashboard key="seg-licitante" initialSection="licitante" hideTabs onVerVendas={() => navigate('goals')} />}
               {vista === 'seg-contrato' && <ResultsDashboard key="seg-contrato" initialSection="contrato" hideTabs onVerVendas={() => navigate('goals')} />}
+              {vista === 'meta-comissao' && <MetaComissao key="meta-comissao" />}
               {vista === 'metas-mensais' && <ResultsDashboard key="metas-mensais" initialSection="goals" hideTabs />}
               {vista === 'metas-anuais' && <ResultsDashboard key="metas-anuais" initialSection="annualGoals" hideTabs />}
               {vista === 'directory' && (

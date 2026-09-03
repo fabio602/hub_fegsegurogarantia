@@ -1,0 +1,27 @@
+name: Relatório semanal da meta de comissão
+
+on:
+  schedule:
+    # Sábado 08:00 BRT (UTC-3) = 11:00 UTC. Sábado, e não sexta à noite, para
+    # a venda lançada no fim da tarde de sexta entrar no número fechado.
+    - cron: "0 11 * * 6"
+  workflow_dispatch: {}
+
+jobs:
+  relatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Edge Function (weekly-goal-report)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Missing secrets SUPABASE_URL and/or SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          curl --fail-with-body -sS -X POST "$SUPABASE_URL/functions/v1/weekly-goal-report" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{}' | tee /dev/stderr
