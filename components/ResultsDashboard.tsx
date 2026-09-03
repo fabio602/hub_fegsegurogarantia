@@ -30,6 +30,18 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
+
+/**
+ * Percentual de comissão derivado de comissão ÷ prêmio, já como texto para o
+ * input. O percentual não é coluna de `sales`: só o valor em reais persiste.
+ * Devolve '' quando não dá para calcular (prêmio ou comissão em branco).
+ */
+function percentualDaComissao(premio?: string | null, comissao?: string | null): string {
+    const p = parseNumber(premio || '');
+    const c = parseNumber(comissao || '');
+    if (p <= 0 || c <= 0) return '';
+    return String(Math.round((c / p) * 10000) / 100);
+}
 import { Sale, LeadCost, CRMTask, Seller, MonthlyTarget } from '../types';
 import ProspectsKanban from './ProspectsKanban';
 import PendenciasHub from './PendenciasHub';
@@ -906,21 +918,27 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             }
         }
 
-        // C2: Auto-fill comissao = 20% do prêmio (padrão seguro garantia)
+        // C2: ao mudar o prêmio, a comissão só é recalculada se houver um
+        // percentual em tela. Sem percentual, o valor em reais fica como está.
+        // Antes o padrão era 20% fixo e silencioso, e ele sobrescrevia comissões
+        // digitadas à mão (43 vendas no banco ficaram em 20% por causa disso).
         if (id === 'premio' && value) {
             const digits = value.replace(/\D/g, '');
             const num = digits ? parseFloat(digits) / 100 : 0;
             if (num > 0) {
-                const comissao = (num * 0.20).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 const premioFormatted = formatCurrency(num);
-                setFormData(prev => ({ ...prev, premio: premioFormatted, comissao }));
+                setFormData(prev => {
+                    const perc = parseFloat(String(prev.comissaoPerc ?? '').replace(',', '.'));
+                    const comissao = !isNaN(perc) && perc > 0 ? formatCurrency(num * perc / 100) : prev.comissao;
+                    return { ...prev, premio: premioFormatted, comissao };
+                });
                 return;
             }
         }
 
         if (id === 'comissaoPerc') {
             const perc = parseFloat(value.replace(',', '.'));
-            const premioRaw = parseFloat(formData.premio.replace(/[R$\s.]/g, '').replace(',', '.'));
+            const premioRaw = parseNumber(formData.premio || '');
             setFormData(prev => ({
                 ...prev,
                 comissaoPerc: value,
@@ -1149,6 +1167,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             premio: formData.premio || null,
             vendeu: formData.vendeu || null,
             comissao: formData.comissao || null,
+            motivoPerda: formData.motivoPerda || null,
             vendedor: formData.vendedor || null,
             indicacao: formData.indicacao || null,
             limites: formData.limites || null,
@@ -1440,6 +1459,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             data: dados.data || null, nome: dados.nome || null, origem: dados.origem || null,
             tipo: dados.tipo || null, is: dados.is || null, seguradora: dados.seguradora || null,
             premio: dados.premio || null, vendeu: dados.vendeu || null, comissao: dados.comissao || null,
+            motivoPerda: dados.motivoPerda || null,
             vendedor: dados.vendedor || null, indicacao: dados.indicacao || null, limites: dados.limites || null,
             catalogo: dados.catalogo || null, vigencia_inicio: dados.vigencia_inicio || null,
             vigencia_fim: dados.vigencia_fim || null, telefone: dados.telefone || null,
@@ -1475,6 +1495,16 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         ignorar: ['id', 'created_at'],
     });
 
+    /**
+     * Fechar grava o que ainda está pendente antes de sair da edição. Sem isso,
+     * `resetForm` zerava o editingId, o autosave cancelava o timer de 1,2 s e
+     * a última alteração sumia sem aviso.
+     */
+    const fecharEdicao = async () => {
+        await salvarVendaAgora();
+        resetForm();
+    };
+
     // Recupera uma única vez o rascunho de cadastro novo deixado na sessão anterior.
     const rascunhoRestauradoRef = React.useRef(false);
     const [rascunhoRestaurado, setRascunhoRestaurado] = useState(false);
@@ -1495,7 +1525,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setEditingId(sale.id);
         // Guarda o `vendeu` que veio do banco, antes de qualquer alteração no formulário.
         vendeuOriginalRef.current = sale.vendeu ?? null;
-        setFormData(sale);
+        // O percentual não existe no banco: é derivado de comissão ÷ prêmio para
+        // o campo reabrir preenchido em vez de em branco.
+        setFormData({ ...sale, comissaoPerc: percentualDaComissao(sale.premio, sale.comissao) });
         // Reabre mostrando o parcelamento que a venda já tem. Sem isso o campo
         // voltaria em "à vista" e um simples reeditar pareceria uma mudança.
         setQtdParcelas(String(boletosSummary[sale.id]?.total || 1));
@@ -2994,7 +3026,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 ) : <div />}
                                 <div className="flex items-center gap-3">
                                 {editingId && (
-                                    <button type="button" onClick={resetForm} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
+                                    <button type="button" onClick={fecharEdicao} className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all flex items-center gap-2">
                                         <X size={18} /> Fechar
                                     </button>
                                 )}

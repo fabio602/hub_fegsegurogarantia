@@ -65,8 +65,11 @@ export interface Sale {
   premio?: string;
   dataProposta?: string;
   vendeu: string;
+  /** Coluna "motivoPerda" (migração 063). Só faz sentido com vendeu = 'Não'. */
   motivoPerda?: string;
   comissao?: string;
+  /** Só na tela: percentual derivado de comissão ÷ prêmio. Não é coluna de `sales`. */
+  comissaoPerc?: string;
   vendedor: string;
   indicacao: string;
   limites: string;
