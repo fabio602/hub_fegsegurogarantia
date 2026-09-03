@@ -232,9 +232,72 @@ Deno.serve(async (req) => {
       };
     };
 
+    // ── ANEXO ────────────────────────────────────────────────────
+    // Fica antes do desvio entre enviada e recebida de propósito. O anexo que
+    // sai do hub volta pelo webhook como fromMe, e antes só a legenda era
+    // guardada: a bolha da mensagem enviada aparecia sem a imagem nem o
+    // arquivo. Vale também para o que é mandado pelo celular.
+    const audioObj = body.audio ?? body.audioMessage ?? null;
+    const imgObj = body.image ?? body.imageMessage ?? null;
+    const vidObj = body.video ?? body.videoMessage ?? null;
+    const stkObj = body.sticker ?? body.stickerMessage ?? null;
+    const docObj = body.documentMessage ?? body.document ?? null;
+
+    let mediaUrl: string | null = null;
+    let mediaType: string | null = null;
+    let mediaName: string | null = null;
+
+    if (audioObj) {
+      mediaUrl = audioObj.audioUrl ?? audioObj.url ?? null;
+      mediaType = 'audio';
+    } else if (imgObj) {
+      mediaUrl = imgObj.imageUrl ?? imgObj.url ?? null;
+      mediaType = 'image';
+    } else if (vidObj) {
+      mediaUrl = vidObj.videoUrl ?? vidObj.url ?? null;
+      mediaType = 'video';
+    } else if (stkObj) {
+      mediaUrl = stkObj.stickerUrl ?? stkObj.url ?? null;
+      mediaType = 'sticker';
+    } else if (docObj) {
+      mediaUrl = docObj.documentUrl ?? docObj.url ?? null;
+      mediaType = 'document';
+      mediaName = docObj.title ?? docObj.fileName ?? docObj.filename ?? 'arquivo';
+    }
+
+    // Texto de apoio do anexo sem legenda. Sem ele a lista de conversas e a
+    // busca ficariam com a linha em branco.
+    const rotuloMidia = mediaType === 'audio' ? '[Áudio]'
+      : mediaType === 'image' ? '[Imagem]'
+      : mediaType === 'video' ? '[Vídeo]'
+      : mediaType === 'sticker' ? '[Figurinha]'
+      : mediaType === 'document' ? `[Documento: ${mediaName}]`
+      : '';
+    // O player de voz do hub lê audio_url; media_url serve para todo o resto.
+    const comMidia = mediaType
+      ? {
+          media_url: mediaUrl,
+          media_type: mediaType,
+          media_name: mediaName,
+          ...(mediaType === 'audio' ? { audio_url: mediaUrl } : {}),
+        }
+      : {};
+
     // ── MENSAGENS ENVIADAS ─────────────────────────────────────
     if (isFromMe) {
-      const messageText = extractText(body);
+      // O hub grava a própria mensagem assim que a Z-API confirma o envio.
+      // Quando essa linha já existe, o eco não pode virar uma segunda bolha.
+      // A comparação é pelo id da Z-API, e não pelo texto: com anexo os dois
+      // textos são diferentes ("[Imagem: foto.png] - legenda" contra a legenda
+      // pura), e a mensagem acabava duplicada ou perdia o arquivo.
+      if (zapiId) {
+        const { data: jaGravada } = await supabase
+          .from('whatsapp_messages').select('id').eq('zapi_id', zapiId).limit(1);
+        if (jaGravada && jaGravada.length > 0) {
+          return new Response(JSON.stringify({ success: true, bot: false, reason: 'ja_registrado' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+      const messageText = extractText(body) || rotuloMidia;
       if (!messageText) {
         await supabase.from('whatsapp_messages').insert({
           phone, name, message: '[DEBUG fromMe] payload: ' + JSON.stringify(body).slice(0, 500),
@@ -262,7 +325,7 @@ Deno.serve(async (req) => {
           await supabase.from('whatsapp_leads').insert({ phone, name, source: 'whatsapp', status: 'em atendimento', updated_at: new Date().toISOString(), ...comFoto, ...comGrupo });
         }
         if (messageText) {
-          await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId, ...(await citarOriginal()) });
+          await supabase.from('whatsapp_messages').insert({ phone, name, message: messageText, direction: 'outbound', status: 'sent', zapi_id: zapiId, ...comMidia, ...(await citarOriginal()) });
         }
         return new Response(JSON.stringify({ success: true, bot: false, reason: 'human_sent' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -275,61 +338,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ignored: true, reason: 'unknown_type' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const audioObj = body.audio ?? body.audioMessage ?? null;
     if (audioObj) {
-      const audioUrl: string = audioObj.audioUrl ?? audioObj.url ?? '';
       await supabase.from('whatsapp_messages').insert({
-        phone, name, message: '[Áudio]', audio_url: audioUrl || null,
-        media_url: audioUrl || null, media_type: 'audio',
+        phone, name, message: '[Áudio]',
         direction: 'inbound', zapi_id: zapiId, autor,
+        ...comMidia,
         ...(await citarOriginal()),
       });
       await supabase.from('whatsapp_leads').upsert({ phone, name, source: 'whatsapp', updated_at: new Date().toISOString(), ...comFoto, ...comGrupo }, { onConflict: 'phone', ignoreDuplicates: false });
       return new Response(JSON.stringify({ success: true, bot: false, reason: 'audio_inbound' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Imagem, vídeo, figurinha e documento recebidos. Antes só a legenda era
-    // aproveitada: imagem sem legenda caía em "empty_text" e sumia da conversa.
-    // Agora guardamos o endereço do arquivo para a bolha mostrar a mídia.
-    let mediaUrl: string | null = null;
-    let mediaType: string | null = null;
-    let mediaName: string | null = null;
-
-    const imgObj = body.image ?? body.imageMessage ?? null;
-    const vidObj = body.video ?? body.videoMessage ?? null;
-    const stkObj = body.sticker ?? body.stickerMessage ?? null;
-    const docObj = body.documentMessage ?? body.document ?? null;
-
-    if (imgObj) {
-      mediaUrl = imgObj.imageUrl ?? imgObj.url ?? null;
-      mediaType = 'image';
-    } else if (vidObj) {
-      mediaUrl = vidObj.videoUrl ?? vidObj.url ?? null;
-      mediaType = 'video';
-    } else if (stkObj) {
-      mediaUrl = stkObj.stickerUrl ?? stkObj.url ?? null;
-      mediaType = 'sticker';
-    } else if (docObj) {
-      mediaUrl = docObj.documentUrl ?? docObj.url ?? null;
-      mediaType = 'document';
-      mediaName = docObj.title ?? docObj.fileName ?? docObj.filename ?? 'arquivo';
-    }
-
-    let messageText: string = body.text?.message ?? body.image?.caption ?? body.video?.caption ?? body.document?.caption ?? '';
-    if (!messageText && mediaType) {
-      // Texto de apoio, para a busca e a lista de contatos não ficarem vazias.
-      messageText = mediaType === 'image' ? '[Imagem]'
-        : mediaType === 'video' ? '[Vídeo]'
-        : mediaType === 'sticker' ? '[Figurinha]'
-        : `[Documento: ${mediaName}]`;
-    }
+    // Imagem, vídeo, figurinha e documento recebidos saem do mesmo bloco de
+    // anexo lá de cima. Antes só a legenda era aproveitada: imagem sem legenda
+    // caía em "empty_text" e sumia da conversa.
+    const messageText: string = body.text?.message ?? body.image?.caption
+      ?? body.video?.caption ?? body.document?.caption ?? rotuloMidia;
     if (!messageText) {
       return new Response(JSON.stringify({ ignored: true, reason: 'empty_text' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     await supabase.from('whatsapp_messages').insert({
       phone, name, message: messageText, direction: 'inbound', zapi_id: zapiId,
-      media_url: mediaUrl, media_type: mediaType, media_name: mediaName, autor,
+      autor, ...comMidia,
       ...(await citarOriginal()),
     });
     // Nota da pesquisa de satisfação só faz sentido de um para um. Num grupo
@@ -350,6 +381,16 @@ Deno.serve(async (req) => {
     // dúzia de pessoas que não pediram atendimento.
     if (eGrupo) {
       return new Response(JSON.stringify({ success: true, bot: false, reason: 'grupo_sem_bot' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── LIGA/DESLIGA DA BOAS-VINDAS ──────────────────────────────
+    // Secret BOT_WHATSAPP no dashboard do Supabase. Com valor "off" a
+    // assistente não manda a boas-vindas; qualquer outro valor (ou a ausência
+    // do secret) mantém o comportamento de sempre. Desliga SÓ a boas-vindas:
+    // gravação de mensagens, leads, visto, presença e o agradecimento da
+    // pesquisa (trySaveSurveyScore, acima) continuam funcionando.
+    if (Deno.env.get('BOT_WHATSAPP') === 'off') {
+      return new Response(JSON.stringify({ success: true, bot: false, reason: 'bot_desligado' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     await new Promise(resolve => setTimeout(resolve, 2000));

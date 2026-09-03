@@ -796,19 +796,46 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
           continue;
         }
 
-        // Guarda uma cópia no bucket para a bolha mostrar o arquivo depois.
-        // Antes o base64 ia para a Z-API e não sobrava nada na conversa.
-        const midia = await subirMidia(pf);
-        const { data: inserted } = await supabase.from('whatsapp_messages').insert({
+        const tipoMidia = pf.type.startsWith('image/') ? 'image'
+          : pf.type.startsWith('video/') ? 'video'
+          : isAudio ? 'audio'
+          : 'document';
+
+        // A linha entra no banco antes de subir o arquivo, de propósito. O
+        // webhook devolve o eco da mensagem enviada em poucos segundos e usa o
+        // zapi_id para não duplicar; se a gravação esperasse o upload de um PDF
+        // grande terminar, o eco chegaria primeiro e a conversa ficaria com
+        // duas bolhas do mesmo anexo.
+        const { data: inserted, error: erroInsert } = await supabase.from('whatsapp_messages').insert({
           phone: selectedPhone, name: selectedLead?.name ?? selectedPhone,
           message: caption ? `${dbMsg} - ${caption}` : dbMsg, direction: 'outbound', status: 'sent',
           zapi_id: resData?.zapiId ?? null,
-          media_url: midia?.url ?? null,
-          media_type: midia?.tipo ?? null,
+          media_type: tipoMidia,
           media_name: pf.name,
         }).select().single();
+        // O anexo já saiu no WhatsApp neste ponto, então falha aqui não é
+        // envio que deu errado, e sim bolha que não vai aparecer. Antes o erro
+        // era descartado e o arquivo simplesmente sumia da conversa.
+        if (erroInsert) {
+          console.error('Falha ao gravar o anexo na conversa:', pf.name, erroInsert);
+          setErroEnvio(`${pf.name} foi entregue no WhatsApp, mas não apareceu na conversa: ${erroInsert.message}`);
+        }
         // Realtime will pick it up automatically, but add locally if needed
         if (inserted) setMessages(prev => acrescentar(prev, inserted as Message));
+
+        // Guarda uma cópia no bucket para a bolha mostrar o arquivo depois.
+        // Antes o base64 ia para a Z-API e não sobrava nada na conversa.
+        const midia = await subirMidia(pf);
+        if (inserted && midia) {
+          const patch = { media_url: midia.url, media_type: midia.tipo };
+          const { error: erroUpdate } = await supabase.from('whatsapp_messages')
+            .update(patch).eq('id', (inserted as Message).id);
+          if (erroUpdate) console.error('Falha ao anexar a mídia à mensagem:', pf.name, erroUpdate);
+          else setMessages(prev => prev.map(m => m.id === (inserted as Message).id ? { ...m, ...patch } : m));
+        } else if (inserted && !midia) {
+          console.error('Falha ao subir o anexo para o bucket:', pf.name);
+          setErroEnvio(`${pf.name} foi entregue no WhatsApp, mas a cópia não subiu: a bolha fica sem a prévia.`);
+        }
       }
 
       // Send text-only if no files
