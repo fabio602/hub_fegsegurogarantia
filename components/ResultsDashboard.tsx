@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
+import { normalizarSeguradora, seguradoraNoPainel } from '../utils/seguradoras';
 
 /**
  * Percentual de comissão derivado de comissão ÷ prêmio, já como texto para o
@@ -1069,7 +1070,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             if (data.nome) { updates.nome = data.nome; filled.push('nome'); }
             if (data.cnpj) { updates.cnpj = data.cnpj; filled.push('cnpj'); }
             if (data.orgao_licitante) { updates.orgaoLicitante = data.orgao_licitante; filled.push('orgao_licitante'); }
-            if (data.seguradora) { updates.seguradora = data.seguradora; filled.push('seguradora'); }
+            if (data.seguradora) { updates.seguradora = normalizarSeguradora(data.seguradora, insurers.map(i => i.nome)); filled.push('seguradora'); }
             if (data.premio) { updates.premio = data.premio; filled.push('premio'); }
             if (data.valor_garantia) { updates.is = data.valor_garantia; filled.push('is'); }
             const vi = toISO(data.vigencia_inicio);
@@ -2691,7 +2692,18 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Seguradora</label>
-                                    <input type="text" id="seguradora" value={formData.seguradora} onChange={handleInputChange} placeholder="Nome" className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                    {/* Lista fechada com os nomes do painel (migração 064). Venda antiga com
+                                        nome fora da lista continua visível como "(nome antigo)" até alguém
+                                        escolher um da lista; nada some da tela nem do banco. */}
+                                    <select id="seguradora" value={formData.seguradora || ''} onChange={handleInputChange} className="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none">
+                                        <option value="">Selecione</option>
+                                        {formData.seguradora && !seguradoraNoPainel(formData.seguradora, insurers.map(i => i.nome)) && (
+                                            <option value={formData.seguradora}>{formData.seguradora} (nome antigo)</option>
+                                        )}
+                                        {[...insurers].sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR')).map(i => (
+                                            <option key={i.id} value={i.nome}>{i.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Valor Prêmio</label>

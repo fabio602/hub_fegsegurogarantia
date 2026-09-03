@@ -5,6 +5,7 @@ import {
   MessageSquare, Copy, Check, TrendingUp, PartyPopper, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { normalizarSeguradora } from '../utils/seguradoras';
 
 export interface ValidationItem {
   campo: string;
@@ -257,12 +258,17 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
     try {
       const d = result.minuta_dados;
       const { inicio, fim } = parseVigencia(d.vigencia || '');
+      // A IA lê o nome da seguradora como está na minuta ("Pottencial Seguradora
+      // S/A", "Tókio"...). Casa com o nome do painel antes de gravar, para a
+      // venda nascer com o mesmo padrão da lista fechada do formulário.
+      const { data: painel } = await supabase.from('insurers').select('nome');
+      const seguradoraPadrao = normalizarSeguradora(d.seguradora, (painel || []).map(i => i.nome));
 
       const salePayload: Record<string, unknown> = {
         data: vendaForm.data,
         vendedor: vendaForm.vendedor,
         nome: d.tomador || '',
-        seguradora: d.seguradora || '',
+        seguradora: seguradoraPadrao,
         premio: d.custo_seguro || '',
         comissao: vendaForm.comissao || '',
         tipo: 'Seguro Garantia',
