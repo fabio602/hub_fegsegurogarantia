@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Loader2, Play, Save, Download, AlertTriangle, CheckCircle2,
     FlaskConical, Pickaxe, Plus, ShieldAlert, ShieldCheck,
@@ -7,6 +7,14 @@ import { supabase } from '../lib/supabase';
 import type { CampanhaGarimpo, GarimpoExecucao, ReputacaoEnvio } from '../types';
 
 interface TrilhaOption { slug: string; nome: string; }
+
+/** Interruptores da campanha que gravam no banco assim que mudam. */
+type Interruptor = 'ativo' | 'dry_run' | 'exigir_cnpj';
+const ROTULO_INTERRUPTOR: Record<Interruptor, string> = {
+    ativo: 'Campanha ligada',
+    dry_run: 'Modo de teste (dry run)',
+    exigir_cnpj: 'Exigir CNPJ no site',
+};
 
 interface ResumoReputacao {
     limitePncp: number;
@@ -41,6 +49,12 @@ export default function GarimpoAutomatico() {
     const [cidadesText, setCidadesText] = useState('');
     const [exclusoesText, setExclusoesText] = useState('');
     const [form, setForm] = useState<CampanhaGarimpo | null>(null);
+    // Edição em andamento no formulário (ainda não salva). O ref é lido pelo
+    // efeito de carga da aba, que roda de novo a cada load() em segundo plano.
+    const [sujo, setSujo] = useState(false);
+    const sujoRef = useRef(false);
+    const [salvandoInterruptor, setSalvandoInterruptor] = useState<Interruptor | null>(null);
+    const [interruptorSalvo, setInterruptorSalvo] = useState<Interruptor | null>(null);
 
     const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
@@ -85,10 +99,26 @@ export default function GarimpoAutomatico() {
     useEffect(() => {
         const camp = campanhas.find(c => c.slug === abaAtiva);
         if (!camp) { setForm(null); return; }
-        setForm(camp);
-        setTermosText((camp.termos_busca ?? []).join(', '));
-        setCidadesText((camp.cidades ?? []).join('; '));
-        setExclusoesText((camp.palavras_exclusao ?? []).join('; '));
+        if (form?.id === camp.id && sujoRef.current) {
+            // Os tiques agendam load() em segundo plano (30/90/180 s). Enquanto
+            // houver edição não salva, só refletimos o que o motor escreve na
+            // linha; senão o recarregamento descartaria o que o usuário digitou.
+            setForm(prev => prev ? {
+                ...prev,
+                garimpo_cursor: camp.garimpo_cursor,
+                garimpo_ciclo_iniciado: camp.garimpo_ciclo_iniciado,
+                apify_run_id: camp.apify_run_id,
+                apify_cidade: camp.apify_cidade,
+                fonte_config: camp.fonte_config,
+            } : camp);
+        } else {
+            setForm(camp);
+            setTermosText((camp.termos_busca ?? []).join(', '));
+            setCidadesText((camp.cidades ?? []).join('; '));
+            setExclusoesText((camp.palavras_exclusao ?? []).join('; '));
+            sujoRef.current = false;
+            setSujo(false);
+        }
         (async () => {
             const [{ data: execs }, { data: est }] = await Promise.all([
                 supabase.from('garimpo_execucoes').select('*')
@@ -105,11 +135,49 @@ export default function GarimpoAutomatico() {
     const parseVirgula = (t: string) => t.split(',').map(s => s.trim()).filter(Boolean);
     const parsePontoVirgula = (t: string) => t.split(';').map(s => s.trim()).filter(Boolean);
 
+    const marcarSujo = () => { sujoRef.current = true; setSujo(true); };
+    const editar = (patch: Partial<CampanhaGarimpo>) => {
+        setForm(f => (f ? { ...f, ...patch } : f));
+        marcarSujo();
+    };
+
+    // Grava um único campo e devolve o erro; sem linha afetada também é erro
+    // (RLS bloqueando não gera erro no PostgREST, só retorna vazio).
+    const gravarCampos = async (id: string, campos: Partial<CampanhaGarimpo>) => {
+        const { data, error } = await supabase.from('campanhas_garimpo')
+            .update({ ...campos, updated_at: new Date().toISOString() })
+            .eq('id', id).select('id');
+        if (error) return error.message;
+        if (!data?.length) return 'nenhuma linha foi atualizada (sem permissão?)';
+        return null;
+    };
+
+    // Os interruptores gravam na hora: checkbox que só muda o estado local e
+    // depende do "Salvar campanha" era lido como "não persistiu".
+    const alternar = async (campo: Interruptor, valor: boolean) => {
+        if (!form) return;
+        const id = form.id;
+        const anterior = form[campo];
+        setForm(f => (f ? { ...f, [campo]: valor } : f));
+        setSalvandoInterruptor(campo);
+        setInterruptorSalvo(null);
+        const erro = await gravarCampos(id, { [campo]: valor });
+        setSalvandoInterruptor(null);
+        if (erro) {
+            setForm(f => (f ? { ...f, [campo]: anterior } : f));
+            setFeedback({ tipo: 'erro', texto: `Falha ao salvar "${ROTULO_INTERRUPTOR[campo]}": ${erro}` });
+            return;
+        }
+        setCampanhas(cs => cs.map(c => (c.id === id ? { ...c, [campo]: valor } : c)));
+        setInterruptorSalvo(campo);
+        setTimeout(() => setInterruptorSalvo(atual => (atual === campo ? null : atual)), 2500);
+    };
+
     const salvar = async () => {
         if (!form) return;
         setSaving(true);
         setFeedback(null);
-        const { error } = await supabase.from('campanhas_garimpo').update({
+        const erro = await gravarCampos(form.id, {
             nome: form.nome,
             ativo: form.ativo,
             dry_run: form.dry_run,
@@ -121,13 +189,16 @@ export default function GarimpoAutomatico() {
             limite_diario: form.limite_diario,
             cadencia_garimpo_dias: form.cadencia_garimpo_dias,
             exigir_cnpj: form.exigir_cnpj,
-            updated_at: new Date().toISOString(),
-        }).eq('id', form.id);
+        });
         setSaving(false);
-        setFeedback(error
-            ? { tipo: 'erro', texto: `Falha ao salvar: ${error.message}` }
+        setFeedback(erro
+            ? { tipo: 'erro', texto: `Falha ao salvar: ${erro}` }
             : { tipo: 'ok', texto: 'Campanha salva.' });
-        if (!error) load();
+        if (!erro) {
+            sujoRef.current = false;
+            setSujo(false);
+            load();
+        }
     };
 
     const novaCampanha = async () => {
@@ -339,24 +410,23 @@ export default function GarimpoAutomatico() {
                 <>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
                         <div className="flex flex-wrap items-center gap-6">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={form.ativo}
-                                    onChange={e => setForm({ ...form, ativo: e.target.checked })}
-                                    className="w-4 h-4 accent-navy" />
-                                <span className="text-sm font-bold text-slate-700">Campanha ligada</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={form.dry_run}
-                                    onChange={e => setForm({ ...form, dry_run: e.target.checked })}
-                                    className="w-4 h-4 accent-navy" />
-                                <span className="text-sm font-bold text-slate-700">Modo de teste (dry run)</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={form.exigir_cnpj}
-                                    onChange={e => setForm({ ...form, exigir_cnpj: e.target.checked })}
-                                    className="w-4 h-4 accent-navy" />
-                                <span className="text-sm font-bold text-slate-700">Exigir CNPJ no site</span>
-                            </label>
+                            {(Object.keys(ROTULO_INTERRUPTOR) as Interruptor[]).map(campo => (
+                                <label key={campo} className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={form[campo]}
+                                        disabled={salvandoInterruptor === campo}
+                                        onChange={e => alternar(campo, e.target.checked)}
+                                        className="w-4 h-4 accent-navy" />
+                                    <span className="text-sm font-bold text-slate-700">{ROTULO_INTERRUPTOR[campo]}</span>
+                                    {salvandoInterruptor === campo && (
+                                        <Loader2 size={12} className="animate-spin text-slate-400" />
+                                    )}
+                                    {interruptorSalvo === campo && (
+                                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-in fade-in-0">
+                                            <CheckCircle2 size={12} /> Salvo
+                                        </span>
+                                    )}
+                                </label>
+                            ))}
                             {form.apify_run_id && (
                                 <span className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-bold">
                                     <FlaskConical size={13} /> Garimpando {form.apify_cidade}
@@ -368,7 +438,7 @@ export default function GarimpoAutomatico() {
                             <div>
                                 <label className={rotulo}>Nome</label>
                                 <input className={campo} value={form.nome}
-                                    onChange={e => setForm({ ...form, nome: e.target.value })} />
+                                    onChange={e => editar({ nome: e.target.value })} />
                             </div>
                             {form.fonte === 'ccee' ? (
                                 <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500 leading-relaxed">
@@ -379,42 +449,42 @@ export default function GarimpoAutomatico() {
                             ) : (
                                 <div className="md:col-span-2">
                                     <label className={rotulo}>Termos de busca no Maps (separados por vírgula)</label>
-                                    <input className={campo} value={termosText} onChange={e => setTermosText(e.target.value)} />
+                                    <input className={campo} value={termosText} onChange={e => { setTermosText(e.target.value); marcarSujo(); }} />
                                 </div>
                             )}
                             {form.fonte !== 'ccee' && (
                                 <div className="md:col-span-3">
                                     <label className={rotulo}>Cidades (separadas por ponto e vírgula) · cursor do ciclo: {form.garimpo_cursor}/{(form.cidades ?? []).length}</label>
-                                    <textarea className={`${campo} h-24`} value={cidadesText} onChange={e => setCidadesText(e.target.value)} />
+                                    <textarea className={`${campo} h-24`} value={cidadesText} onChange={e => { setCidadesText(e.target.value); marcarSujo(); }} />
                                 </div>
                             )}
                             {form.fonte !== 'ccee' && (
                                 <div className="md:col-span-3">
                                     <label className={rotulo}>Palavras de exclusão (ponto e vírgula; aceita "X sem menção a Y")</label>
-                                    <input className={campo} value={exclusoesText} onChange={e => setExclusoesText(e.target.value)} />
+                                    <input className={campo} value={exclusoesText} onChange={e => { setExclusoesText(e.target.value); marcarSujo(); }} />
                                 </div>
                             )}
                             <div>
                                 <label className={rotulo}>Trilha de e-mail</label>
                                 <select className={`${campo} cursor-pointer`} value={form.trilha}
-                                    onChange={e => setForm({ ...form, trilha: e.target.value })}>
+                                    onChange={e => editar({ trilha: e.target.value })}>
                                     {trilhas.map(t => <option key={t.slug} value={t.slug}>{t.nome}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className={rotulo}>Tipo de prospect (Kanban)</label>
                                 <input className={campo} value={form.tipo_prospect}
-                                    onChange={e => setForm({ ...form, tipo_prospect: e.target.value })} />
+                                    onChange={e => editar({ tipo_prospect: e.target.value })} />
                             </div>
                             <div>
                                 <label className={rotulo}>Limite diário de envios</label>
                                 <input className={campo} type="number" min={1} value={form.limite_diario}
-                                    onChange={e => setForm({ ...form, limite_diario: Number(e.target.value) })} />
+                                    onChange={e => editar({ limite_diario: Number(e.target.value) })} />
                             </div>
                             <div>
                                 <label className={rotulo}>{form.fonte === 'ccee' ? 'Cadência da baixa da lista (dias)' : 'Cadência do garimpo (dias)'}</label>
                                 <input className={campo} type="number" min={1} value={form.cadencia_garimpo_dias}
-                                    onChange={e => setForm({ ...form, cadencia_garimpo_dias: Number(e.target.value) })} />
+                                    onChange={e => editar({ cadencia_garimpo_dias: Number(e.target.value) })} />
                             </div>
                         </div>
 
@@ -427,6 +497,11 @@ export default function GarimpoAutomatico() {
                                 className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-gold text-slate-700 text-sm font-bold rounded-xl transition-all disabled:opacity-50">
                                 {running ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />} Rodar um tique agora
                             </button>
+                            {sujo && (
+                                <span className="flex items-center gap-1.5 self-center text-xs font-bold text-amber-700">
+                                    <AlertTriangle size={13} /> Alterações não salvas
+                                </span>
+                            )}
                         </div>
                     </div>
 
