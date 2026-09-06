@@ -68,6 +68,15 @@ async function assinaturaValida(req: Request, corpo: string): Promise<boolean> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Toda gravacao deste webhook e idempotente, entao qualquer erro de banco
+ * vira excecao: o handler responde 500 e o Resend reentrega o evento. Engolir
+ * o erro e responder ok descartava o evento para sempre.
+ */
+function exigir(r: { error: { message: string } | null }, contexto: string): void {
+  if (r.error) throw new Error(`${contexto}: ${r.error.message}`);
+}
+
 function hojeBRT(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 }
@@ -80,7 +89,7 @@ function destinatario(data: Record<string, unknown>): string {
 
 async function avisarPausa(para: string, motivo: string) {
   try {
-    await fetch('https://api.resend.com/emails', {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
       body: JSON.stringify({
@@ -95,6 +104,7 @@ async function avisarPausa(para: string, motivo: string) {
         </div>`,
       }),
     });
+    if (!r.ok) console.error('[avisarPausa] Resend recusou o aviso de pausa:', r.status, await r.text());
   } catch (e) {
     console.error('[avisarPausa]', e);
   }
@@ -107,7 +117,9 @@ async function avisarPausa(para: string, motivo: string) {
  * max(bounce_min_quantidade, bounce_max_percentual% dos envios), pausa tudo.
  */
 async function checarTaxaBounce(supabase: SupabaseClient) {
-  const { data: rep } = await supabase.from('reputacao_envio').select('*').limit(1).maybeSingle();
+  const repRes = await supabase.from('reputacao_envio').select('*').limit(1).maybeSingle();
+  exigir(repRes, 'Falha ao ler reputacao_envio');
+  const rep = repRes.data;
   if (!rep || rep.pausado) return;
 
   const hoje = hojeBRT();
@@ -115,25 +127,31 @@ async function checarTaxaBounce(supabase: SupabaseClient) {
   const fim = `${hoje}T23:59:59-03:00`;
 
   // PNCP: envios e bounces do dia.
-  const { data: pncpHoje } = await supabase
+  const pncpRes = await supabase
     .from('prospeccao_pncp_leads')
     .select('resend_status')
     .eq('resultado', 'enviado')
     .gte('enviado_em', inicio).lte('enviado_em', fim);
+  exigir(pncpRes, 'Falha ao contar envios do PNCP');
+  const pncpHoje = pncpRes.data;
   const pncpTotal = pncpHoje?.length ?? 0;
   const pncpBounces = (pncpHoje ?? []).filter((r) =>
     ['bounced_permanent', 'complained'].includes(String(r.resend_status))).length;
 
   // Garimpo: envios do dia e bounces do dia (estado muda para 'bounce').
-  const { count: garimpoTotal } = await supabase
+  const gTotalRes = await supabase
     .from('garimpo_estoque')
     .select('id', { count: 'exact', head: true })
     .gte('enviado_em', inicio).lte('enviado_em', fim);
-  const { count: garimpoBounces } = await supabase
+  exigir(gTotalRes, 'Falha ao contar envios do garimpo');
+  const garimpoTotal = gTotalRes.count;
+  const gBounceRes = await supabase
     .from('garimpo_estoque')
     .select('id', { count: 'exact', head: true })
     .eq('estado', 'bounce')
     .gte('atualizado_em', inicio).lte('atualizado_em', fim);
+  exigir(gBounceRes, 'Falha ao contar bounces do garimpo');
+  const garimpoBounces = gBounceRes.count;
 
   const total = pncpTotal + Number(garimpoTotal ?? 0);
   if (!total) return;
@@ -148,13 +166,15 @@ async function checarTaxaBounce(supabase: SupabaseClient) {
     const motivo = `${bounces} bounce(s) em ${total} envio(s) automatico(s) em ${hoje}, somando PNCP e campanhas de garimpo ` +
       `(limite: ${limite}, regra: o maior entre ${rep.bounce_min_quantidade} bounces e ${rep.bounce_max_percentual}% dos envios).`;
     const agora = new Date().toISOString();
-    await supabase.from('reputacao_envio').update({
+    // Se a pausa nao gravar, nao avisar: o aviso diria "pausado" e a
+    // automacao continuaria enviando. A excecao faz o Resend reentregar.
+    exigir(await supabase.from('reputacao_envio').update({
       pausado: true, pausado_motivo: motivo, pausado_em: agora, updated_at: agora,
-    }).eq('dominio', rep.dominio);
+    }).eq('dominio', rep.dominio), 'Falha ao pausar reputacao_envio');
     // Redundancia: a pausa antiga do PNCP tambem e acionada.
-    await supabase.from('prospeccao_pncp_config').update({
+    exigir(await supabase.from('prospeccao_pncp_config').update({
       pausado: true, pausado_motivo: motivo, pausado_em: agora,
-    }).eq('id', 1);
+    }).eq('id', 1), 'Falha ao pausar prospeccao_pncp_config');
     const { data: cfg } = await supabase.from('prospeccao_pncp_config').select('email_relatorio').eq('id', 1).maybeSingle();
     await avisarPausa(String(cfg?.email_relatorio ?? 'fabio@fegsegurogarantia.com.br'), motivo);
     console.log('[bounce-guard] TODAS as automacoes pausadas:', motivo);
@@ -168,7 +188,8 @@ async function checarTaxaBounce(supabase: SupabaseClient) {
     .order('executado_em', { ascending: false })
     .limit(1);
   if (execs?.length) {
-    await supabase.from('prospeccao_pncp_execucoes').update({ bounces: pncpBounces }).eq('id', execs[0].id);
+    const { error } = await supabase.from('prospeccao_pncp_execucoes').update({ bounces: pncpBounces }).eq('id', execs[0].id);
+    if (error) console.error('[bounce-guard] falha ao gravar bounces na execucao:', error.message);
   }
 }
 
@@ -192,10 +213,12 @@ async function tratarBloqueio(
   if (blErr) throw new Error(`Falha ao gravar ${email} na blocklist: ${blErr.message}`);
 
   // 2. Sai da trilha, com o motivo registrado.
-  const { data: contatos } = await supabase
+  const contatosRes = await supabase
     .from('email_cadencia')
     .select('id, prospect_id')
     .eq('email', email);
+  exigir(contatosRes, `Falha ao ler os contatos de ${email}`);
+  const contatos = contatosRes.data;
   const { error: cadErr } = await supabase.from('email_cadencia').update({
     ativo: false,
     bounce_status: status,
@@ -209,22 +232,23 @@ async function tratarBloqueio(
   // mexer em lead que alguem ja trabalhou).
   const prospectIds = (contatos ?? []).map((c) => c.prospect_id).filter(Boolean);
   if (prospectIds.length) {
-    await supabase.from('prospects').update({ status: 'Sem e-mail válido' }).in('id', prospectIds);
+    exigir(await supabase.from('prospects').update({ status: 'Sem e-mail válido' }).in('id', prospectIds),
+      'Falha ao mover o lead para Sem e-mail válido');
   }
-  await supabase.from('prospects')
+  exigir(await supabase.from('prospects')
     .update({ status: 'Sem e-mail válido' })
     .eq('email', email)
-    .eq('status', 'Novos Leads');
+    .eq('status', 'Novos Leads'), 'Falha ao mover o lead (por e-mail) para Sem e-mail válido');
 
   // 4. Espelha nos registros das automacoes (relatorios).
-  await supabase.from('prospeccao_pncp_leads')
+  exigir(await supabase.from('prospeccao_pncp_leads')
     .update({ resend_status: status, motivo })
     .eq('email', email)
-    .eq('resultado', 'enviado');
-  await supabase.from('garimpo_estoque')
+    .eq('resultado', 'enviado'), 'Falha ao espelhar o bounce no PNCP');
+  exigir(await supabase.from('garimpo_estoque')
     .update({ estado: 'bounce', motivo, atualizado_em: new Date().toISOString() })
     .eq('email', email)
-    .eq('estado', 'enviado');
+    .eq('estado', 'enviado'), 'Falha ao espelhar o bounce no garimpo');
 
   // 5. Protecao de reputacao (global, por dominio).
   await checarTaxaBounce(supabase);
@@ -232,46 +256,48 @@ async function tratarBloqueio(
 
 async function tratarClique(supabase: SupabaseClient, email: string) {
   // Interrompe a trilha: o lead respondeu com interesse.
-  const { data: contatos } = await supabase
+  const contatosRes = await supabase
     .from('email_cadencia')
     .select('id, prospect_id')
     .eq('email', email)
     .eq('ativo', true);
+  exigir(contatosRes, `Falha ao ler os contatos ativos de ${email}`);
+  const contatos = contatosRes.data;
   if (contatos?.length) {
-    await supabase.from('email_cadencia').update({
+    exigir(await supabase.from('email_cadencia').update({
       ativo: false,
       bounce_status: 'clicked',
       bounce_motivo: 'Clicou no link do e-mail; trilha interrompida',
       bounce_em: new Date().toISOString(),
-    }).in('id', contatos.map((c) => c.id));
+    }).in('id', contatos.map((c) => c.id)), 'Falha ao interromper a trilha apos o clique');
   }
 
   // Kanban: "Em contato". So avanca lead que ainda esta em Novos Leads ou que
   // tinha caido em Sem e-mail válido; status definido a mao e preservado.
   const prospectIds = (contatos ?? []).map((c) => c.prospect_id).filter(Boolean);
   if (prospectIds.length) {
-    await supabase.from('prospects')
+    exigir(await supabase.from('prospects')
       .update({ status: 'Em contato' })
       .in('id', prospectIds)
-      .in('status', ['Novos Leads', 'Sem e-mail válido']);
+      .in('status', ['Novos Leads', 'Sem e-mail válido']), 'Falha ao mover o lead para Em contato');
   }
-  await supabase.from('prospects')
+  exigir(await supabase.from('prospects')
     .update({ status: 'Em contato' })
     .eq('email', email)
-    .eq('status', 'Novos Leads');
+    .eq('status', 'Novos Leads'), 'Falha ao mover o lead (por e-mail) para Em contato');
 
-  await supabase.from('prospeccao_pncp_leads')
+  exigir(await supabase.from('prospeccao_pncp_leads')
     .update({ resend_status: 'clicked' })
     .eq('email', email)
-    .eq('resultado', 'enviado');
+    .eq('resultado', 'enviado'), 'Falha ao espelhar o clique no PNCP');
 }
 
 async function registrarStatus(supabase: SupabaseClient, email: string, status: string) {
-  await supabase.from('prospeccao_pncp_leads')
+  exigir(await supabase.from('prospeccao_pncp_leads')
     .update({ resend_status: status })
     .eq('email', email)
     .eq('resultado', 'enviado')
-    .neq('resend_status', 'clicked');
+    .neq('resend_status', 'clicked'), `Falha ao registrar status ${status}`);
 }
 
 // ─── Entrada ─────────────────────────────────────────────────────────────────

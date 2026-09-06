@@ -1221,6 +1221,42 @@ async function enviarDia(
   let erros = 0;
   const falhas = new Map<string, string[]>();
 
+  // Itens presos: reivindicados ('enviado') por um tique que morreu nos 150 s
+  // antes de gravar o carimbo (ultima_execucao_id nulo). Sem isto o lead
+  // sumia do funil e do relatorio. Se a cadencia do e-mail existe, o lead
+  // chegou a entrar: so completa o carimbo. Senao, volta a fila. Os 10 min
+  // de folga evitam disputar com um tique concorrente em andamento.
+  const { data: presos } = await supabase.from('garimpo_estoque')
+    .select('id, email, nome').eq('campanha_id', c.id).eq('estado', 'enviado')
+    .is('ultima_execucao_id', null)
+    .lt('atualizado_em', new Date(Date.now() - 10 * 60_000).toISOString());
+  let devolvidos = 0, completados = 0;
+  for (const p of (presos ?? [])) {
+    const email = String(p.email ?? '').toLowerCase();
+    const { data: cad } = email
+      ? await supabase.from('email_cadencia').select('id, prospect_id')
+          .eq('email', email).eq('origem', `garimpo_${c.slug}`).limit(1).maybeSingle()
+      : { data: null };
+    if (cad) {
+      await supabase.from('garimpo_estoque').update({
+        prospect_id: cad.prospect_id ?? null, contato_id: cad.id,
+        enviado_em: new Date().toISOString(), ultima_execucao_id: execId, ultimo_resultado: 'enviado',
+        motivo: 'Carimbo completado: o tique anterior morreu depois de criar a cadencia',
+        atualizado_em: new Date().toISOString(),
+      }).eq('id', p.id);
+      completados++;
+    } else {
+      await supabase.from('garimpo_estoque').update({
+        estado: 'enriquecido', motivo: 'Devolvido a fila: o tique anterior morreu antes de concluir o envio',
+        atualizado_em: new Date().toISOString(),
+      }).eq('id', p.id);
+      devolvidos++;
+    }
+  }
+  if (devolvidos || completados) {
+    avisos.push(`${devolvidos + completados} item(ns) presos por tique interrompido: ${devolvidos} devolvido(s) a fila, ${completados} com carimbo completado.`);
+  }
+
   // Quantos ja foram marcados hoje.
   const { data: marcados } = await supabase.from('garimpo_estoque')
     .select('ultimo_resultado').eq('ultima_execucao_id', execId);
@@ -1389,7 +1425,7 @@ async function enviarDia(
         waHoje++;
         continue;
       }
-      const { data: prospect } = await supabase.from('prospects').insert({
+      const { data: prospect, error: wErr } = await supabase.from('prospects').insert({
         name: w.socio || w.nome,
         company: w.nome,
         cnpj: w.cnpj ? formatCnpj(cleanCnpj(w.cnpj)) : null,
@@ -1406,8 +1442,18 @@ async function enviarDia(
         description: `Garimpo Google Maps (${c.nome}), sem e-mail no site: contato por WhatsApp\nCategoria: ${w.categoria ?? ''}\nAvaliacoes: ${w.avaliacoes ?? 0} (nota ${w.nota ?? 0})`,
         tags: ['garimpo', c.slug, 'whatsapp'],
       }).select('id').single();
+      if (wErr || !prospect) {
+        // Sem carimbo o item continua candidato no proximo tique; o motivo
+        // fica no item e no relatorio, e nada conta como "so WhatsApp".
+        const motivo = `Kanban (so WhatsApp): ${wErr?.message ?? 'insert sem retorno'}`;
+        await supabase.from('garimpo_estoque').update({ motivo, atualizado_em: new Date().toISOString() }).eq('id', w.id);
+        erros++;
+        falhas.set(motivo, [...(falhas.get(motivo) ?? []), w.nome]);
+        console.error(`[garimpo/${c.slug}] so WhatsApp de "${w.nome}" falhou: ${motivo}`);
+        continue;
+      }
       await supabase.from('garimpo_estoque').update({
-        prospect_id: prospect?.id ?? null,
+        prospect_id: prospect.id,
         ultima_execucao_id: execId,
         ultimo_resultado: 'so_whatsapp',
         atualizado_em: new Date().toISOString(),
@@ -1419,7 +1465,7 @@ async function enviarDia(
 
   for (const [motivo, nomes] of falhas) {
     const lista = nomes.slice(0, 5).join(', ') + (nomes.length > 5 ? ` e mais ${nomes.length - 5}` : '');
-    avisos.push(`${nomes.length} lead(s) nao entraram na trilha e foram removidos do Kanban (${motivo}): ${lista}. Voltam a fila no proximo tique.`);
+    avisos.push(`${nomes.length} lead(s) com falha de envio (${motivo}): ${lista}. Nada foi contado como enviado; voltam a fila no proximo tique.`);
   }
   return erros;
 }

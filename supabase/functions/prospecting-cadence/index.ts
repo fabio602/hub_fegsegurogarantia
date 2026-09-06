@@ -219,6 +219,27 @@ async function registrarEnvio(supabase: SupabaseClient, contatoId: string, ordem
 
 interface EnvioSemRegistro { contatoId: string; email: string; ordem: number; erro: string; }
 
+interface ResumoExecucao {
+  contatos_elegiveis?: number; enviados?: number; erros?: number; sem_registro?: number;
+  abortada?: boolean; detalhes?: Record<string, unknown>;
+}
+
+/**
+ * Registro da rodada do cron em email_cadencia_execucoes (migracao 068).
+ * Antes os contadores morriam na resposta HTTP, que o cron descarta.
+ */
+async function registrarExecucao(supabase: SupabaseClient, r: ResumoExecucao): Promise<void> {
+  const { error } = await supabase.from('email_cadencia_execucoes').insert({
+    contatos_elegiveis: r.contatos_elegiveis ?? 0,
+    enviados: r.enviados ?? 0,
+    erros: r.erros ?? 0,
+    sem_registro: r.sem_registro ?? 0,
+    abortada: r.abortada ?? false,
+    detalhes: r.detalhes ?? null,
+  });
+  if (error) console.error('[cadencia] falha ao registrar a execucao:', error.message);
+}
+
 /**
  * E-mail curto para o Fabio quando um envio saiu mas nao foi registrado.
  * A cadencia nao tem tabela de execucao; sem este aviso o caso ficaria
@@ -354,14 +375,19 @@ Deno.serve(async (req) => {
       .from('email_trilhas')
       .select('slug, nome, eyebrow, rodape')
       .eq('ativo', true);
-    if (errTrilhas) return json({ success: false, error: `Falha ao ler as trilhas: ${errTrilhas.message}` }, 500);
+    // Aborto registrado na tabela de execucoes antes do 500.
+    const abortar = async (erro: string) => {
+      await registrarExecucao(supabase, { abortada: true, detalhes: { erro } });
+      return json({ success: false, error: erro }, 500);
+    };
+    if (errTrilhas) return abortar(`Falha ao ler as trilhas: ${errTrilhas.message}`);
 
     const { data: etapasRaw, error: errEtapas } = await supabase
       .from('email_trilha_etapas')
       .select('trilha, ordem, dia, assunto, tagline, titulo, corpo_html, cta_texto, cta_link, html_completo')
       .eq('ativo', true)
       .order('ordem');
-    if (errEtapas) return json({ success: false, error: `Falha ao ler as etapas: ${errEtapas.message}` }, 500);
+    if (errEtapas) return abortar(`Falha ao ler as etapas: ${errEtapas.message}`);
 
     const trilhas = new Map<string, Trilha>();
     for (const t of (trilhasRaw ?? [])) trilhas.set(t.slug, t as Trilha);
@@ -375,7 +401,10 @@ Deno.serve(async (req) => {
       if (e.dia > maiorDia) maiorDia = e.dia;
     }
 
-    if (!trilhas.size) return json({ success: true, sent: 0, errors: 0, info: 'nenhuma trilha ativa' });
+    if (!trilhas.size) {
+      await registrarExecucao(supabase, { detalhes: { info: 'nenhuma trilha ativa' } });
+      return json({ success: true, sent: 0, errors: 0, info: 'nenhuma trilha ativa' });
+    }
 
     // Só interessam contatos cuja cadência ainda pode ter etapa pendente.
     const limiteInicio = new Date(Date.parse(today + 'T00:00:00Z') - maiorDia * 86400000)
@@ -388,8 +417,11 @@ Deno.serve(async (req) => {
       .gte('data_inicio', limiteInicio)
       .lte('data_inicio', today);
 
-    if (errContatos) return json({ success: false, error: errContatos.message }, 500);
-    if (!contatos?.length) return json({ success: true, sent: 0, errors: 0 });
+    if (errContatos) return abortar(`Falha ao ler os contatos: ${errContatos.message}`);
+    if (!contatos?.length) {
+      await registrarExecucao(supabase, { contatos_elegiveis: 0 });
+      return json({ success: true, sent: 0, errors: 0 });
+    }
 
     // Envios já feitos, em uma consulta só.
     // Esta leitura e a trava contra reenvio: em erro, abortar e a unica
@@ -398,7 +430,7 @@ Deno.serve(async (req) => {
       .from('email_envios')
       .select('contato_id, ordem, enviado_em')
       .in('contato_id', contatos.map(c => c.id));
-    if (errEnvios) return json({ success: false, error: `Falha ao ler os envios: ${errEnvios.message}` }, 500);
+    if (errEnvios) return abortar(`Falha ao ler os envios: ${errEnvios.message}`);
 
     const jaEnviado = new Set((envios ?? []).map(e => `${e.contato_id}:${e.ordem}`));
 
@@ -447,6 +479,10 @@ Deno.serve(async (req) => {
     }
 
     await avisarEnvioSemRegistro(semRegistro);
+    await registrarExecucao(supabase, {
+      contatos_elegiveis: contatos.length, enviados: totalSent, erros: totalErrors, sem_registro: semRegistro.length,
+      detalhes: semRegistro.length ? { sem_registro: semRegistro } : undefined,
+    });
     return json({ success: true, sent: totalSent, errors: totalErrors, sem_registro: semRegistro.length });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
