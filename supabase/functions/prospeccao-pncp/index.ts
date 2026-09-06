@@ -709,8 +709,13 @@ async function processarFila(
 
   // Contadores acumulados da execucao.
   const { data: execRow } = await supabase.from('prospeccao_pncp_execucoes')
-    .select('enriquecidos').eq('id', execId).single();
+    .select('enriquecidos, erros, detalhes').eq('id', execId).single();
   let consultasBrasilTotal = Number(execRow?.enriquecidos ?? 0);
+  let erros = Number(execRow?.erros ?? 0);
+
+  // Falhas de envio agrupadas por motivo, para o relatorio nao repetir a
+  // mesma linha dezenas de vezes quando a causa e uma so (ex.: constraint).
+  const falhasEnvio = new Map<string, string[]>();
 
   const { count: enviadosCount } = await supabase.from('prospeccao_pncp_leads')
     .select('id', { count: 'exact', head: true })
@@ -847,8 +852,19 @@ async function processarFila(
         continue;
       }
 
-      const ids = await enviarLead(supabase, config, contrato, empresa);
-      if (!ids) { continue; }
+      const falha = { motivo: '' };
+      const ids = await enviarLead(supabase, config, contrato, empresa, falha);
+      if (!ids) {
+        // O prospect ja foi desfeito em enviarLead; o item volta a pendente
+        // e vira sobra amanha (barato: cadastro e e-mail ja estao no cache).
+        // Se a causa for permanente, expira pela validade da fila.
+        erros++;
+        const motivo = falha.motivo || 'erro desconhecido';
+        falhasEnvio.set(motivo, [...(falhasEnvio.get(motivo) ?? []), formatCnpj(contrato.cnpj)]);
+        console.error(`[envio] ${contrato.cnpj}: ${motivo}`);
+        await devolver();
+        continue;
+      }
       await inserirLead(supabase, execId, config, contrato, empresa, 'enviado',
         ids.okEnvio ? '' : 'Primeiro e-mail falhou; o cron da cadencia tenta amanha',
         ids.prospectId, ids.contatoId, ids.okEnvio ? 'enviado' : 'falha_envio_1');
@@ -862,11 +878,25 @@ async function processarFila(
     const { data: contagens } = await supabase.from('prospeccao_pncp_leads')
       .select('resultado').eq('execucao_id', execId);
     const conta = (r: string) => (contagens ?? []).filter((x) => x.resultado === r).length;
+
+    for (const [motivo, cnpjs] of falhasEnvio) {
+      const lista = cnpjs.slice(0, 5).join(', ') + (cnpjs.length > 5 ? ` e mais ${cnpjs.length - 5}` : '');
+      avisos.push(`${cnpjs.length} lead(s) nao entraram na trilha e foram removidos do Kanban (${motivo}): ${lista}. Voltam como sobra amanha.`);
+    }
+
+    // Os avisos deste tique ficam persistidos na execucao: so o tique que
+    // finaliza o dia chega ao relatorio, e este pode nao ser ele.
+    const detalhes = (execRow?.detalhes ?? {}) as Record<string, unknown>;
+    const avisosAntigos = Array.isArray(detalhes.avisos) ? (detalhes.avisos as string[]) : [];
+    const avisosPersistidos = [...new Set([...avisosAntigos, ...avisos])];
+
     await supabase.from('prospeccao_pncp_execucoes').update({
       enriquecidos: consultasBrasilTotal,
       enviados: conta('enviado') + conta('dry_run'),
       sem_email: conta('sem_email'),
       fora_do_perfil: conta('fora_do_perfil'),
+      erros,
+      detalhes: { ...detalhes, avisos: avisosPersistidos },
     }).eq('id', execId);
   }
 }
@@ -932,12 +962,17 @@ async function inserirLead(
   if (error) console.error('[lead]', error.message);
 }
 
-/** Insere no Kanban e na trilha e dispara o primeiro e-mail. */
+/**
+ * Insere no Kanban e na trilha e dispara o primeiro e-mail.
+ * Em falha retorna null e preenche falha.motivo; o prospect recem-criado e
+ * apagado para o CNPJ nao ficar como "conhecido" na dedup do dia seguinte.
+ */
 async function enviarLead(
   supabase: SupabaseClient,
   config: Config,
   contrato: Contrato,
   empresa: Empresa,
+  falha: { motivo: string },
 ): Promise<{ prospectId: string; contatoId: string; okEnvio: boolean } | null> {
   const { data: prospect, error: pErr } = await supabase.from('prospects').insert({
     name: empresa.socio || empresa.razao_social,
@@ -962,7 +997,11 @@ async function enviarLead(
     valor_contrato: contrato.valor,
     numero_licitacao: contrato.numeroLicitacao,
   }).select('id').single();
-  if (pErr || !prospect) { console.error('[prospect]', pErr?.message); return null; }
+  if (pErr || !prospect) {
+    falha.motivo = `Kanban: ${pErr?.message ?? 'insert sem retorno'}`;
+    console.error('[prospect]', falha.motivo);
+    return null;
+  }
 
   const { data: contato, error: cErr } = await supabase.from('email_cadencia').insert({
     nome_contato: primeiroNome(empresa.socio) || empresa.nome_fantasia || empresa.razao_social,
@@ -974,7 +1013,13 @@ async function enviarLead(
     ativo: true,
     prospect_id: prospect.id,
   }).select('id').single();
-  if (cErr || !contato) { console.error('[cadencia]', cErr?.message); return null; }
+  if (cErr || !contato) {
+    falha.motivo = `trilha de e-mail: ${cErr?.message ?? 'insert sem retorno'}`;
+    console.error('[cadencia]', falha.motivo);
+    const { error: dErr } = await supabase.from('prospects').delete().eq('id', prospect.id);
+    if (dErr) console.error('[prospect] falha ao desfazer', prospect.id, dErr.message);
+    return null;
+  }
 
   // Primeiro e-mail agora, pela funcao que ja existe. Templates e cadencia
   // continuam morando la; o pregao nao e citado em nenhum e-mail.
