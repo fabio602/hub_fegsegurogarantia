@@ -28,6 +28,8 @@ interface Cliente {
   observacoes?: string;
   created_at: string;
   dia_vencimento_aluguel?: number | null;
+  // Data completa do próximo vencimento ('YYYY-MM-DD'). Avança um mês a cada parcela.
+  proximo_vencimento?: string | null;
   repasse_pago_em?: string | null;
 }
 
@@ -40,6 +42,10 @@ const parseDataLocal = (s: string) => {
   const [a, m, d] = s.slice(0, 10).split('-').map(Number);
   return new Date(a, m - 1, d);
 };
+
+// 'YYYY-MM-DD' -> 'dd/MM/yyyy' quebrando a string. Nunca com new Date: a string ISO
+// é lida como UTC e, no fuso de Brasília, "volta" um dia.
+const fmtDataISO = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
 
 const diasAte = (s: string) => {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -985,13 +991,15 @@ export default function ImobiliariaRepasse() {
     load();
   };
 
+  // A regra de avançar (parcela + 1, próximo vencimento um mês à frente,
+  // encerrar quando passa do total) vive na RPC avancar_parcela_repasse, no
+  // banco. Assim hub e portal não divergem e a data nunca é calculada aqui.
   const avancarParcela = async (c: Cliente) => {
-    const proxima = c.parcela_atual + 1;
-    if (proxima > c.total_parcelas) {
-      // Grava os dois campos: o portal lê status_apolice e continuaria exibindo "Ativo".
-      await supabase.from('imobiliaria_clientes').update({ status: 'encerrado', status_apolice: 'encerrado', updated_at: new Date().toISOString() }).eq('id', c.id);
-    } else {
-      await supabase.from('imobiliaria_clientes').update({ parcela_atual: proxima, updated_at: new Date().toISOString() }).eq('id', c.id);
+    const { data, error } = await supabase.rpc('avancar_parcela_repasse', { p_id: c.id });
+    if (error) { alert(`Erro ao avançar a parcela: ${error.message}`); return; }
+    const r = data as { parcela_atual: number; total_parcelas: number; proximo_vencimento: string | null; encerrado: boolean } | null;
+    if (r?.encerrado) {
+      alert(`Contrato de ${c.inquilino_nome} encerrado: as ${r.total_parcelas} parcelas foram repassadas. O cadastro sai da lista de cobrança.`);
     }
     load();
   };
@@ -1626,8 +1634,12 @@ export default function ImobiliariaRepasse() {
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
                     <td className="px-5 py-4 text-center">
-                      {c.dia_vencimento_aluguel ? (
+                      {c.proximo_vencimento ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          {fmtDataISO(c.proximo_vencimento)}
+                        </span>
+                      ) : c.dia_vencimento_aluguel ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Sem data completa calculada; mostrando só o dia">
                           dia {c.dia_vencimento_aluguel}
                         </span>
                       ) : (
