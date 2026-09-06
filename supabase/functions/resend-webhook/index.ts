@@ -180,24 +180,29 @@ async function tratarBloqueio(
   status: 'bounced_permanent' | 'complained',
   motivo: string,
 ) {
+  // Os passos 1 e 2 sao a unica defesa contra continuar enviando para um
+  // endereco morto. Se falharem, lancar: o handler responde 500, o Resend
+  // reentrega o evento e as duas gravacoes sao idempotentes.
   // 1. Blocklist: nunca reenviar.
-  await supabase.from('email_blocklist').upsert({
+  const { error: blErr } = await supabase.from('email_blocklist').upsert({
     email,
     motivo,
     origem: status === 'complained' ? 'spam' : 'bounce',
   }, { onConflict: 'email' });
+  if (blErr) throw new Error(`Falha ao gravar ${email} na blocklist: ${blErr.message}`);
 
   // 2. Sai da trilha, com o motivo registrado.
   const { data: contatos } = await supabase
     .from('email_cadencia')
     .select('id, prospect_id')
     .eq('email', email);
-  await supabase.from('email_cadencia').update({
+  const { error: cadErr } = await supabase.from('email_cadencia').update({
     ativo: false,
     bounce_status: status,
     bounce_motivo: motivo,
     bounce_em: new Date().toISOString(),
   }).eq('email', email);
+  if (cadErr) throw new Error(`Falha ao tirar ${email} da trilha: ${cadErr.message}`);
 
   // 3. Kanban: move para "Sem e-mail válido". Pelo vinculo direto quando
   // existir; senao, pelo e-mail (so leads ainda em Novos Leads, para nao
@@ -289,8 +294,11 @@ Deno.serve(async (req) => {
 
     // So interessam e-mails da trilha de prospeccao. O restante (boletos,
     // avisos de repasse etc.) passa direto.
-    const { data: naTrilha } = await supabase
+    const { data: naTrilha, error: errTrilha } = await supabase
       .from('email_cadencia').select('id').eq('email', email).limit(1);
+    // Erro de leitura nao pode virar "fora da trilha": o evento seria
+    // descartado para sempre. Com 500 o Resend reentrega.
+    if (errTrilha) throw new Error(`Falha ao consultar a trilha para ${email}: ${errTrilha.message}`);
     if (!naTrilha?.length) return json({ ok: true, skipped: 'fora da trilha' });
 
     switch (tipo) {

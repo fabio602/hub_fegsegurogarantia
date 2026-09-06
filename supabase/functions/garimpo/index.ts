@@ -440,10 +440,11 @@ function montarXlsx(o: {
 }): string {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-    [...CABECALHO, 'Data do envio', 'Status'],
+    [...CABECALHO, 'Data do envio', 'Status', 'Motivo'],
     ...o.enviados.map((r) => [...linha(r),
       r.enviado_em ? r.enviado_em.slice(0, 16).replace('T', ' ') : (o.dryRun ? 'dry run (nao enviado)' : ''),
-      o.dryRun ? 'dry run' : 'enviado']),
+      o.dryRun ? 'dry run' : 'enviado',
+      r.motivo ?? '']),
   ]), o.dryRun ? 'Enviados (dry run)' : 'Enviados');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     CABECALHO, ...o.soWhatsapp.map(linha),
@@ -1210,9 +1211,15 @@ async function enviarDia(
   c: Campanha,
   execId: string,
   fimTarefaMs: number,
-): Promise<void> {
+  avisos: string[],
+): Promise<number> {
   const pausadoGlobal = await reputacaoPausada(supabase);
   const dedup = await conjuntosDedup(supabase);
+
+  // Falhas de envio deste tique, agrupadas por motivo para o relatorio nao
+  // repetir a mesma linha dezenas de vezes quando a causa e uma so.
+  let erros = 0;
+  const falhas = new Map<string, string[]>();
 
   // Quantos ja foram marcados hoje.
   const { data: marcados } = await supabase.from('garimpo_estoque')
@@ -1269,7 +1276,23 @@ async function enviarDia(
       const descricao = c.fonte === 'ccee'
         ? `Agente CCEE (${cand.classe ?? ''}${cand.submercado ? ', submercado ' + cand.submercado : ''})${cand.lote_diff === 'novo' ? ', ADESAO RECENTE' : ''}\nCNAE: ${cand.cnae_descricao ?? ''}`
         : `Garimpo Google Maps (${c.nome})\nCategoria: ${cand.categoria ?? ''}\nAvaliacoes: ${cand.avaliacoes ?? 0} (nota ${cand.nota ?? 0})`;
-      const { data: prospect } = await supabase.from('prospects').insert({
+      // Falha em qualquer passo: desfaz o que ja foi gravado e devolve o item
+      // a 'enriquecido' sem execucao, para ser candidato de novo no proximo
+      // tique. Nada e contado como enviado e o motivo vai para o relatorio.
+      const desfazer = async (motivo: string, prospectId?: string) => {
+        if (prospectId) {
+          const { error: dErr } = await supabase.from('prospects').delete().eq('id', prospectId);
+          if (dErr) console.error(`[garimpo/${c.slug}] falha ao desfazer prospect ${prospectId}: ${dErr.message}`);
+        }
+        await supabase.from('garimpo_estoque').update({
+          estado: 'enriquecido', motivo, atualizado_em: new Date().toISOString(),
+        }).eq('id', cand.id);
+        erros++;
+        falhas.set(motivo, [...(falhas.get(motivo) ?? []), cand.nome]);
+        console.error(`[garimpo/${c.slug}] envio de "${cand.nome}" falhou: ${motivo}`);
+      };
+
+      const { data: prospect, error: pErr } = await supabase.from('prospects').insert({
         name: cand.socio || cand.nome,
         company: cand.nome,
         cnpj: cnpjD.length === 14 ? formatCnpj(cnpjD) : null,
@@ -1287,9 +1310,13 @@ async function enviarDia(
         description: descricao,
         tags: ['garimpo', c.slug],
       }).select('id').single();
+      if (pErr || !prospect) {
+        await desfazer(`Kanban: ${pErr?.message ?? 'insert sem retorno'}`);
+        continue;
+      }
 
       const primeiroNome = (cand.socio || '').trim().split(/\s+/)[0] || '';
-      const { data: contato } = await supabase.from('email_cadencia').insert({
+      const { data: contato, error: cErr } = await supabase.from('email_cadencia').insert({
         nome_contato: primeiroNome ? primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase() : cand.nome,
         nome_empresa: cand.nome,
         email,
@@ -1297,16 +1324,20 @@ async function enviarDia(
         trilha: c.trilha,
         data_inicio: hojeBRT(),
         ativo: true,
-        prospect_id: prospect?.id ?? null,
+        prospect_id: prospect.id,
         cidade: cidade || null,
         site: cand.site || null,
         // [GANCHO_ADESAO]: so os leads novos do diff recebem o paragrafo.
         gancho_adesao: (c.fonte === 'ccee' && cand.lote_diff === 'novo' && c.gancho_adesao_texto)
           ? c.gancho_adesao_texto : null,
       }).select('id').single();
+      if (cErr || !contato) {
+        await desfazer(`trilha de e-mail: ${cErr?.message ?? 'insert sem retorno'}`, prospect.id as string);
+        continue;
+      }
 
       let okEnvio = false;
-      if (contato?.id) {
+      {
         try {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/prospecting-cadence`, {
             method: 'POST',
@@ -1320,8 +1351,8 @@ async function enviarDia(
 
       await supabase.from('garimpo_estoque').update({
         enviado_em: new Date().toISOString(),
-        prospect_id: prospect?.id ?? null,
-        contato_id: contato?.id ?? null,
+        prospect_id: prospect.id,
+        contato_id: contato.id,
         ultima_execucao_id: execId,
         ultimo_resultado: 'enviado',
         motivo: okEnvio ? null : 'Primeiro e-mail falhou; o cron da cadencia tenta amanha',
@@ -1385,12 +1416,27 @@ async function enviarDia(
       waHoje++;
     }
   }
+
+  for (const [motivo, nomes] of falhas) {
+    const lista = nomes.slice(0, 5).join(', ') + (nomes.length > 5 ? ` e mais ${nomes.length - 5}` : '');
+    avisos.push(`${nomes.length} lead(s) nao entraram na trilha e foram removidos do Kanban (${motivo}): ${lista}. Voltam a fila no proximo tique.`);
+  }
+  return erros;
 }
 
 // ─── Fase 5: finalizacao e relatorio ─────────────────────────────────────────
 
-async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, avisos: string[]): Promise<void> {
+async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, avisosTique: string[]): Promise<void> {
   const hoje = hojeBRT();
+
+  // Avisos e erros dos tiques anteriores ficam persistidos na execucao;
+  // o tique que finaliza raramente e o que gerou o problema.
+  const { data: execAtual } = await supabase.from('garimpo_execucoes')
+    .select('erros, detalhes').eq('id', execId).single();
+  const detalhesAntigos = (execAtual?.detalhes ?? {}) as Record<string, unknown>;
+  const avisosAntigos = Array.isArray(detalhesAntigos.avisos) ? (detalhesAntigos.avisos as string[]) : [];
+  const avisos = [...new Set([...avisosAntigos, ...avisosTique])];
+  const errosDia = Number(execAtual?.erros ?? 0);
 
   const { data: doDia } = await supabase.from('garimpo_estoque')
     .select('*').eq('ultima_execucao_id', execId);
@@ -1457,6 +1503,7 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
               ${linhaHtml(c.dry_run ? 'Seriam enviados' : 'Enviados para a trilha', enviados.length)}
               ${linhaHtml('So WhatsApp (para a Bruna)', soWhatsapp.length)}
               ${linhaHtml('Bounces hoje', bounces.length)}
+              ${linhaHtml('Falhas de envio (lead removido, volta a fila)', errosDia)}
               ${linhaHtml('Descartados hoje', descartados.length)}
               ${linhaHtml('Estoque aguardando enriquecimento', Number(novoCount ?? 0))}
               ${linhaHtml('Estoque pronto para envio', Number(prontoCount ?? 0))}
@@ -1481,7 +1528,7 @@ async function finalizar(supabase: SupabaseClient, c: Campanha, execId: string, 
     descartados: descartados.length,
     bounces: bounces.length,
     arquivo_relatorio: upErr ? null : caminho,
-    detalhes: { avisos, estoque_novo: Number(novoCount ?? 0), estoque_pronto: Number(prontoCount ?? 0), cidades_pendentes: cidadesPendentes.length, novos_semana: novosSemana },
+    detalhes: { ...detalhesAntigos, avisos, estoque_novo: Number(novoCount ?? 0), estoque_pronto: Number(prontoCount ?? 0), cidades_pendentes: cidadesPendentes.length, novos_semana: novosSemana },
   }).eq('id', execId);
 
   console.log(`[garimpo/${c.slug}] dia ${hoje} finalizado: ${enviados.length} enviados, ${soWhatsapp.length} so WhatsApp`);
@@ -1570,17 +1617,27 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
     }
 
     console.log(`[garimpo/${campanha.slug}] fase enriquecimento concluida`);
+    let errosEnvio = 0;
     if (!finalizadaHoje && Date.now() < fimTarefaMs) {
-      await enviarDia(supabase, campanha, execId, fimTarefaMs);
+      errosEnvio = await enviarDia(supabase, campanha, execId, fimTarefaMs, avisos);
     }
-    console.log(`[garimpo/${campanha.slug}] fase envio concluida`);
+    console.log(`[garimpo/${campanha.slug}] fase envio concluida (erros: ${errosEnvio})`);
 
-    // Contagens parciais.
+    // Contagens parciais. Erros acumulam entre tiques e os avisos do tique
+    // ficam persistidos em detalhes.avisos: so assim chegam ao relatorio
+    // quando o tique que finaliza o dia e outro.
     const { count: enriquecidosTotal } = await supabase.from('garimpo_estoque')
       .select('id', { count: 'exact', head: true })
       .eq('campanha_id', campanha.id).in('estado', ['enriquecido', 'enviado', 'so_whatsapp']);
-    await supabase.from('garimpo_execucoes')
-      .update({ enriquecidos: Number(enriquecidosTotal ?? 0) }).eq('id', execId);
+    const { data: execParcial } = await supabase.from('garimpo_execucoes')
+      .select('erros, detalhes').eq('id', execId).single();
+    const detalhesParcial = (execParcial?.detalhes ?? {}) as Record<string, unknown>;
+    const avisosPersistidos = Array.isArray(detalhesParcial.avisos) ? (detalhesParcial.avisos as string[]) : [];
+    await supabase.from('garimpo_execucoes').update({
+      enriquecidos: Number(enriquecidosTotal ?? 0),
+      erros: Number(execParcial?.erros ?? 0) + errosEnvio,
+      detalhes: { ...detalhesParcial, avisos: [...new Set([...avisosPersistidos, ...avisos])] },
+    }).eq('id', execId);
 
     if (!finalizadaHoje) {
       const { data: marcados } = await supabase.from('garimpo_estoque')

@@ -142,19 +142,23 @@ async function carregarTrilha(
   supabase: SupabaseClient,
   slug: string,
 ): Promise<{ trilha: Trilha; etapas: Etapa[] } | null> {
-  const { data: t } = await supabase
+  const { data: t, error: tErr } = await supabase
     .from('email_trilhas')
     .select('slug, nome, eyebrow, rodape')
     .eq('slug', slug)
     .maybeSingle();
+  // Erro de leitura nao pode virar "trilha nao encontrada": o chamador
+  // trataria como cadastro faltando e o contato seria pulado sem registro.
+  if (tErr) throw new Error(`Falha ao ler a trilha "${slug}": ${tErr.message}`);
   if (!t) return null;
 
-  const { data: etapas } = await supabase
+  const { data: etapas, error: eErr } = await supabase
     .from('email_trilha_etapas')
     .select('ordem, dia, assunto, tagline, titulo, corpo_html, cta_texto, cta_link, html_completo')
     .eq('trilha', slug)
     .eq('ativo', true)
     .order('ordem');
+  if (eErr) throw new Error(`Falha ao ler as etapas da trilha "${slug}": ${eErr.message}`);
 
   return { trilha: t as Trilha, etapas: (etapas ?? []) as Etapa[] };
 }
@@ -184,17 +188,69 @@ function diasEntre(de: string, ate: string): number {
  * Registra o envio. Grava sempre em `email_envios` (sem limite de etapas) e,
  * enquanto a ordem for de 1 a 5, também nas colunas antigas email_N_sent —
  * assim as telas que ainda leem essas colunas continuam funcionando.
+ *
+ * Devolve null quando gravou, ou a mensagem de erro. O e-mail JA SAIU quando
+ * isto roda: se a gravacao falhar, o cron acha a etapa pendente no dia
+ * seguinte e reenvia. Por isso tenta duas vezes e o chamador avisa o Fabio.
  */
-async function registrarEnvio(supabase: SupabaseClient, contatoId: string, ordem: number) {
+async function registrarEnvio(supabase: SupabaseClient, contatoId: string, ordem: number): Promise<string | null> {
   const agora = new Date().toISOString();
-  await supabase.from('email_envios')
-    .upsert({ contato_id: contatoId, ordem, enviado_em: agora }, { onConflict: 'contato_id,ordem' });
+  const gravar = async (): Promise<string | null> => {
+    const { error: e1 } = await supabase.from('email_envios')
+      .upsert({ contato_id: contatoId, ordem, enviado_em: agora }, { onConflict: 'contato_id,ordem' });
+    if (e1) return `email_envios: ${e1.message}`;
+    if (ordem >= 1 && ordem <= 5) {
+      const { error: e2 } = await supabase.from('email_cadencia').update({
+        [`email_${ordem}_sent`]: true,
+        [`email_${ordem}_sent_at`]: agora,
+      }).eq('id', contatoId);
+      if (e2) return `email_cadencia: ${e2.message}`;
+    }
+    return null;
+  };
+  let erro = await gravar();
+  if (erro) {
+    await new Promise(r => setTimeout(r, 1000));
+    erro = await gravar();
+  }
+  if (erro) console.error(`[cadencia] E${ordem} enviado para o contato ${contatoId} mas NAO registrado: ${erro}`);
+  return erro;
+}
 
-  if (ordem >= 1 && ordem <= 5) {
-    await supabase.from('email_cadencia').update({
-      [`email_${ordem}_sent`]: true,
-      [`email_${ordem}_sent_at`]: agora,
-    }).eq('id', contatoId);
+interface EnvioSemRegistro { contatoId: string; email: string; ordem: number; erro: string; }
+
+/**
+ * E-mail curto para o Fabio quando um envio saiu mas nao foi registrado.
+ * A cadencia nao tem tabela de execucao; sem este aviso o caso ficaria
+ * invisivel e o contato receberia a mesma etapa de novo amanha.
+ */
+async function avisarEnvioSemRegistro(casos: EnvioSemRegistro[]): Promise<void> {
+  if (!casos.length) return;
+  const linhas = casos.map(c =>
+    `<li><b>${c.email}</b> (contato ${c.contatoId}), etapa ${c.ordem}: ${c.erro}</li>`).join('');
+  const html = `
+    <div style="font-family:system-ui,-apple-system,sans-serif;color:#1B263B;max-width:560px">
+      <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#C69C6D;margin:0 0 6px">Trilhas de e-mail</p>
+      <h2 style="font-size:18px;margin:0 0 14px">${casos.length} e-mail(s) enviados sem registro</h2>
+      <p style="font-size:14px;line-height:1.6">O Resend aceitou o envio, mas a gravacao em <code>email_envios</code> falhou duas vezes.
+      Sem o registro, o cron de amanha vai considerar a etapa pendente e reenviar o mesmo e-mail.
+      Para evitar a duplicata, insira a linha em <code>email_envios</code> (contato_id, ordem, enviado_em) ou desative o contato.</p>
+      <ul style="font-size:13px;line-height:1.7">${linhas}</ul>
+    </div>`;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
+      body: JSON.stringify({
+        from: `F&G Seguro Garantia <${FROM_EMAIL}>`,
+        to: [FROM_EMAIL],
+        subject: `Cadencia: ${casos.length} e-mail(s) enviados sem registro`,
+        html,
+      }),
+    });
+    if (!r.ok) console.error('[cadencia] aviso de envio sem registro falhou:', r.status, await r.text());
+  } catch (e) {
+    console.error('[cadencia] aviso de envio sem registro falhou:', e);
   }
 }
 
@@ -273,8 +329,14 @@ Deno.serve(async (req) => {
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
-        await registrarEnvio(supabase, c.id, primeira.ordem);
+        const erroRegistro = await registrarEnvio(supabase, c.id, primeira.ordem);
         console.log(`[cadencia/${slug}] ✅ E${primeira.ordem} imediato -> ${c.email}`);
+        if (erroRegistro) {
+          // O e-mail saiu: responder success:false faria o chamador marcar
+          // falha de envio e a etapa 1 sairia de novo amanha.
+          await avisarEnvioSemRegistro([{ contatoId: c.id, email: c.email, ordem: primeira.ordem, erro: erroRegistro }]);
+          return json({ success: true, email: c.email, trilha: slug, registro_falhou: erroRegistro });
+        }
       }
       return json({ success: ok, email: c.email, trilha: slug });
     }
@@ -286,16 +348,20 @@ Deno.serve(async (req) => {
     const today = todayBRT();
 
     // Todas as trilhas ativas, carregadas de uma vez.
-    const { data: trilhasRaw } = await supabase
+    // Qualquer erro de leitura aborta a rodada com 500. Tratar como lista
+    // vazia responderia "0 enviados, 0 erros" com a trilha quebrada.
+    const { data: trilhasRaw, error: errTrilhas } = await supabase
       .from('email_trilhas')
       .select('slug, nome, eyebrow, rodape')
       .eq('ativo', true);
+    if (errTrilhas) return json({ success: false, error: `Falha ao ler as trilhas: ${errTrilhas.message}` }, 500);
 
-    const { data: etapasRaw } = await supabase
+    const { data: etapasRaw, error: errEtapas } = await supabase
       .from('email_trilha_etapas')
       .select('trilha, ordem, dia, assunto, tagline, titulo, corpo_html, cta_texto, cta_link, html_completo')
       .eq('ativo', true)
       .order('ordem');
+    if (errEtapas) return json({ success: false, error: `Falha ao ler as etapas: ${errEtapas.message}` }, 500);
 
     const trilhas = new Map<string, Trilha>();
     for (const t of (trilhasRaw ?? [])) trilhas.set(t.slug, t as Trilha);
@@ -326,10 +392,13 @@ Deno.serve(async (req) => {
     if (!contatos?.length) return json({ success: true, sent: 0, errors: 0 });
 
     // Envios já feitos, em uma consulta só.
-    const { data: envios } = await supabase
+    // Esta leitura e a trava contra reenvio: em erro, abortar e a unica
+    // saida segura (lista vazia reenviaria a etapa 1 para todo mundo).
+    const { data: envios, error: errEnvios } = await supabase
       .from('email_envios')
       .select('contato_id, ordem, enviado_em')
       .in('contato_id', contatos.map(c => c.id));
+    if (errEnvios) return json({ success: false, error: `Falha ao ler os envios: ${errEnvios.message}` }, 500);
 
     const jaEnviado = new Set((envios ?? []).map(e => `${e.contato_id}:${e.ordem}`));
 
@@ -342,6 +411,7 @@ Deno.serve(async (req) => {
     }
 
     let totalSent = 0, totalErrors = 0;
+    const semRegistro: EnvioSemRegistro[] = [];
 
     for (const c of contatos) {
       const slug = String((c as any).trilha ?? 'garantia');
@@ -367,15 +437,17 @@ Deno.serve(async (req) => {
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
-        await registrarEnvio(supabase, c.id, pendente.ordem);
+        const erroRegistro = await registrarEnvio(supabase, c.id, pendente.ordem);
         console.log(`[cadencia/${slug}] ✅ E${pendente.ordem} -> ${c.email}`);
         totalSent++;
+        if (erroRegistro) semRegistro.push({ contatoId: c.id, email: c.email, ordem: pendente.ordem, erro: erroRegistro });
       } else totalErrors++;
 
       await new Promise(r => setTimeout(r, 500));
     }
 
-    return json({ success: true, sent: totalSent, errors: totalErrors });
+    await avisarEnvioSemRegistro(semRegistro);
+    return json({ success: true, sent: totalSent, errors: totalErrors, sem_registro: semRegistro.length });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[prospecting-cadence]', msg);
