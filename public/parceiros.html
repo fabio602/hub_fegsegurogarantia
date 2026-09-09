@@ -121,6 +121,26 @@
     .stat-card.gold .value { color: var(--gold); }
     .stat-card .change { font-size: 12.5px; font-weight: 400; color: var(--muted); margin-top: 6px; }
 
+    /* Extrato da comissão: os três estados do dinheiro do parceiro.
+       Fica logo abaixo dos cards porque responde a pergunta que vem depois de
+       "quanto eu ganhei": quanto já caiu na conta e quanto ainda vem. */
+    .extrato {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+      box-shadow: var(--shadow-sm); padding: 20px 22px; margin-bottom: 26px;
+    }
+    .extrato-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .extrato-titulo { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .extrato-escopo { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .extrato-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .extrato-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fcfbf9; }
+    .extrato-label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 7px; }
+    .extrato-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+    .dot-repassada { background: #10b981; }
+    .dot-liberada  { background: #2563eb; }
+    .dot-arealizar { background: #94a3b8; }
+    .extrato-valor { font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; line-height: 1.15; }
+    .extrato-nota { font-size: 11.5px; line-height: 1.65; color: var(--muted); margin: 14px 0 0; }
+
     /* ── ABAS: segmento com pílula deslizante ── */
     .nav {
       position: relative; display: inline-flex; gap: 4px; background: var(--surface);
@@ -422,6 +442,29 @@
       </div>
     </div>
 
+    <!-- EXTRATO DA COMISSÃO -->
+    <div class="extrato" id="extrato">
+      <div class="extrato-topo">
+        <span class="extrato-titulo">Extrato da sua comissão</span>
+        <span class="extrato-escopo">Considera todas as suas indicações, sem o filtro de período acima</span>
+      </div>
+      <div class="extrato-grid">
+        <div class="extrato-item">
+          <div class="extrato-label"><span class="extrato-dot dot-repassada"></span> Já repassada a você</div>
+          <div class="extrato-valor" id="extrato-repassada">—</div>
+        </div>
+        <div class="extrato-item">
+          <div class="extrato-label"><span class="extrato-dot dot-liberada"></span> Liberada, aguardando repasse</div>
+          <div class="extrato-valor" id="extrato-liberada">—</div>
+        </div>
+        <div class="extrato-item">
+          <div class="extrato-label"><span class="extrato-dot dot-arealizar"></span> A realizar</div>
+          <div class="extrato-valor" id="extrato-arealizar">—</div>
+        </div>
+      </div>
+      <p class="extrato-nota" id="extrato-nota"></p>
+    </div>
+
     <!-- ABAS -->
     <div class="nav" id="nav">
       <div class="nav-pill" id="nav-pill"></div>
@@ -628,6 +671,30 @@
       };
     }
 
+    /**
+     * Separa a comissão do parceiro de UMA venda entre o que já se realizou,
+     * ou seja, a parte cujo prêmio o tomador já pagou, e o resto.
+     *
+     * O rateio é por valor quando as parcelas têm valor cadastrado, porque elas
+     * não são iguais entre si. Sem valor, cai no rateio por quantidade, que é
+     * aproximado mas melhor do que jogar tudo em "a realizar". Sem boleto
+     * nenhum não há como saber, e o valor inteiro fica como a realizar.
+     */
+    function realizadoDaVenda(venda, comissaoParceiro) {
+      const boletos = venda._boletos || [];
+      if (comissaoParceiro <= 0 || boletos.length === 0) return 0;
+
+      const comValor = boletos.filter(b => parseVal(b.valor) > 0);
+      if (comValor.length > 0) {
+        const soma = comValor.reduce((s, b) => s + parseVal(b.valor), 0);
+        if (soma <= 0) return 0;
+        const pago = comValor.filter(b => b.pago).reduce((s, b) => s + parseVal(b.valor), 0);
+        return comissaoParceiro * (pago / soma);
+      }
+      const pagas = boletos.filter(b => b.pago).length;
+      return comissaoParceiro * (pagas / boletos.length);
+    }
+
     // ── ESTADO ───────────────────────────────────────────────
     let todasVendas = [];
     let vendasFiltradas = [];
@@ -729,8 +796,56 @@
       const temParcelada = emitidos.some(v => comissaoPorParcela(v, parseVal(v.comissao) * PCT));
       document.getElementById('card-parceiro-nota').style.display = temParcelada ? 'block' : 'none';
 
+      atualizarExtrato();
       renderPipeline(todasVendas);
       renderZeroState();
+    }
+
+    // ── EXTRATO DA COMISSÃO ──────────────────────────────────
+    /**
+     * Os três estados do dinheiro do parceiro. O card "Sua comissão" mostra o
+     * total prometido, que é o número grande e otimista; aqui embaixo fica a
+     * resposta da pergunta seguinte, que é quanto já caiu na conta.
+     *
+     * Sempre sobre todas as indicações, e não sobre vendasFiltradas: o repasse
+     * é fechado por mês inteiro, então respeitar o filtro de período dos cards
+     * misturaria duas contagens diferentes na mesma tela.
+     */
+    function atualizarExtrato() {
+      const emitidos = todasVendas.filter(v => v.vendeu === 'Sim');
+
+      let total = 0;
+      let realizada = 0;
+      emitidos.forEach(v => {
+        const parceiro = parseVal(v.comissao) * PCT;
+        if (parceiro <= 0) return;
+        total += parceiro;
+        realizada += realizadoDaVenda(v, parceiro);
+      });
+
+      const repassada = repassesData
+        .filter(r => r.status === 'pago')
+        .reduce((s, r) => s + parseVal(r.valor_total), 0);
+
+      // O repasse é fechado por mês e não por apólice, então não dá para casar
+      // um a um. Descontar o que já saiu evita mostrar o mesmo dinheiro duas
+      // vezes, e o piso em zero cobre repasse lançado antes da baixa da parcela.
+      const liberada = Math.max(0, realizada - repassada);
+      const aRealizar = Math.max(0, total - realizada);
+
+      // O fmt troca zero por travessão, o que serve para célula de tabela mas
+      // não aqui: no extrato o zero é informação, e não ausência de dado.
+      const moeda = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      document.getElementById('extrato-repassada').textContent = moeda(repassada);
+      document.getElementById('extrato-liberada').textContent = moeda(liberada);
+      document.getElementById('extrato-arealizar').textContent = moeda(aRealizar);
+
+      // Sem nenhuma parcela quitada o extrato mostraria dois zeros sem
+      // explicação, o que parece defeito. A nota diz de onde vem cada número.
+      document.getElementById('extrato-nota').textContent =
+        (realizada <= 0 && repassada <= 0)
+          ? 'Sua comissão se realiza conforme o tomador paga cada parcela do prêmio. Enquanto as parcelas seguem em aberto, o valor todo aparece como a realizar.'
+          : 'Já repassada: comissão que a F&G pagou a você. Liberada: o tomador quitou a parcela e o valor entra no próximo fechamento. A realizar: apólice emitida com prêmio ainda em aberto.';
     }
 
     // ── PIPELINE ─────────────────────────────────────────────
