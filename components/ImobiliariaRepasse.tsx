@@ -1011,6 +1011,15 @@ export default function ImobiliariaRepasse() {
   };
 
   const enviarRelatorio = async () => {
+    // Manda e-mail de cobrança para a imobiliária: não tem desfazer.
+    const alvo = filterParceiro
+      ? parceiros.find(p => p.id === filterParceiro)?.name ?? 'a imobiliária selecionada'
+      : 'TODAS as imobiliárias parceiras';
+    if (!confirm(
+      `Enviar o relatório de repasse para ${alvo}?\n\n` +
+      `O e-mail vai direto para o parceiro, com cópia oculta para você. Só entram os repasses em aberto (não pagos).`
+    )) return;
+
     setSending(true);
     setSendError('');
     setSendSuccess(false);
@@ -1025,7 +1034,9 @@ export default function ImobiliariaRepasse() {
           'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({}),
+        // Respeita o filtro da tela — sem isso o relatório de um parceiro
+        // poderia sair com dados de outro.
+        body: JSON.stringify(filterParceiro ? { partner_id: filterParceiro } : {}),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao enviar');
