@@ -102,3 +102,7 @@ O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in
 **Atenção à escala global:** o `index.css` define `html { font-size: 80% }` para o hub ficar equivalente a um zoom de 80%. Isso significa que **1rem vale 12,8px e não 16px**, e que todo espaçamento em `rem` (`p-4`, `gap-6`, `w-80`, `text-xl`) já vem reduzido. Os tamanhos em px arbitrário (`text-[10px]` e irmãos) têm override explícito com `!important` no mesmo arquivo para acompanhar a escala. Ao criar componente novo, lembre que o espaçamento vai parecer menor do que o número sugere. É intencional e foi mantido de propósito; se um dia for removido, o hub inteiro precisa ser reescalado junto.
 
 Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS puro, com os tokens declarados em `:root` dentro de cada arquivo.
+
+## Módulo Radar (PGFN)
+
+Prospecção de seguro garantia judicial a partir da base pública de devedores da PGFN. Leia `docs/radar/README.md` antes de mexer: o módulo tem três peças que precisam andar juntas, a migração `supabase/075_radar_fase1.sql` (tabelas `radar_*`, score, consolidação e cron), o script local `scripts/radar/pgfn_ingest.py` (roda no Mac, numa venv, com a service role no `.env`) e a Edge Function `radar-enrich-cnpj` (BrasilAPI, de hora em hora). A tela fica em `src/views/Radar/` (view `radar` do `App.tsx`), única pasta fora de `components/`; por isso o `content` do Tailwind inclui `src/`. Decisões que fogem da especificação estão em `docs/radar/DECISOES.md`. Fases 2 e 3 (PJe e Datajud) não começaram.
