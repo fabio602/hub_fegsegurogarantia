@@ -5,7 +5,7 @@
 // BrasilAPI (https://brasilapi.com.br/api/cnpj/v1/{cnpj}, publica, sem chave).
 //
 // Por execucao (cron radar-enrich-hourly, a cada hora das 08h as 22h BRT):
-//   - pega ate 60 empresas com enriquecido_em nulo e status 'novo', na ordem
+//   - pega ate 70 empresas com enriquecido_em nulo e status 'novo', na ordem
 //     de score (desempate por valor_total);
 //   - uma requisicao por vez, 1200 ms de pausa, timeout de 10 s;
 //   - sucesso: preenche cadastro, socios, e-mail e telefone, aplica as
@@ -21,7 +21,7 @@
 // Corpo opcional (chamada manual):
 //   { "cnpjs": ["33000167000101", ...] }  enriquece so esses, mesmo que ja
 //                                          enriquecidos ou fora de 'novo'
-//   { "limite": 20 }                       muda o teto de 60
+//   { "limite": 20 }                       muda o teto de 70
 //
 // Especificacao: docs/radar/RADAR-FASE1.md (E3).
 // ============================================================================
@@ -33,7 +33,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const BRASILAPI_CNPJ = "https://brasilapi.com.br/api/cnpj/v1";
-const LIMITE_PADRAO = 60;
+// 70 por rodada: medido em 12/09/2026, cada CNPJ custa ~1,5 s (1,2 s de pausa
+// + BrasilAPI, com as gravacoes em paralelo). 70 x 1,5 = ~105 s, abaixo do
+// orcamento de 120 s e com folga para o teto de 150 s do plano Free.
+// 200 nao cabe (~300 s) sem reduzir a pausa.
+const LIMITE_PADRAO = 70;
 const PAUSA_MS = 1200;
 const TIMEOUT_MS = 10_000;
 const ORCAMENTO_MS = 120_000;
@@ -162,15 +166,20 @@ Deno.serve(async (req) => {
     segundos: 0,
   };
 
+  let pausa: Promise<unknown> | null = null;
   for (const emp of (empresas ?? []) as Empresa[]) {
     if (Date.now() - inicio > ORCAMENTO_MS) {
       resumo.parou_em = "orcamento_de_tempo";
       break;
     }
-    if (resumo.processadas > 0) await dormir(PAUSA_MS);
+    // A pausa de 1200 ms entre consultas corre em paralelo com as gravacoes
+    // no banco (update + rpc), que levam meio segundo: sem isso cada CNPJ
+    // custava ~1,9 s e o teto de 120 s parava em ~60.
+    if (pausa) await pausa;
     resumo.processadas++;
 
     const r = await consultarBrasilApi(emp.cnpj);
+    pausa = dormir(PAUSA_MS);
 
     // 429 / 5xx / rede: registra e encerra. Nao marca enriquecido_em.
     if (r.status === 429 || r.status >= 500 || r.status === 0) {

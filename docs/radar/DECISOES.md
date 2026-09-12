@@ -144,3 +144,9 @@ jeito que não batia com o repositório) e como foram resolvidos. Data: 12/09/20
     devedor é quem reteve, não quem gerou a receita.
 40. **`--dry-run`** aplica todos os filtros e imprime as contagens sem gravar
     e sem precisar de `.env`.
+41. **Lote do enriquecimento: 70, não 200.** O plano do projeto é Free e a
+    Edge Function é encerrada aos 150 s. Com a pausa fixa de 1200 ms, cada CNPJ
+    custa ~1,5 s mesmo com as gravações no banco correndo em paralelo com a
+    pausa (medido em 12/09/2026: 79 CNPJs em 121 s). 200 CNPJs levariam ~300 s;
+    70 levam ~105 s, dentro do orçamento de 120 s e com folga para o teto.
+    O cron continua de hora em hora (70 x 15 rodadas = ~1.050 CNPJs por dia).

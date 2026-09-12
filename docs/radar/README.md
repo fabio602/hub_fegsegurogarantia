@@ -88,7 +88,7 @@ demais.
 
 O job `radar-enrich-hourly` do pg_cron chama a Edge Function
 `radar-enrich-cnpj` a cada hora cheia, das 08h às 22h de Brasília. Cada rodada
-pega até 60 empresas ainda não enriquecidas com status `novo`, da maior para a
+pega até 70 empresas ainda não enriquecidas com status `novo`, da maior para a
 menor pontuação, e consulta a BrasilAPI (pública, sem chave) uma por vez com
 pausa de 1,2 s.
 
