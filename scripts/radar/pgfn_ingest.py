@@ -12,9 +12,14 @@ Uso:
     python scripts/radar/pgfn_ingest.py --competencia 202506 --uf SP
 
     --uf         opcional. Restringe aos arquivos cujo nome contém a UF e, em
-                 todo caso, às linhas cuja UF_UNIDADE_RESPONSAVEL é a UF.
+                 todo caso, às linhas cuja UF do devedor é a UF.
     --pasta      opcional. Pasta dos CSVs (padrão: data/pgfn/<competencia>).
     --chunk      opcional. Linhas por chunk do pandas (padrão: 200000).
+    --dry-run    aplica todos os filtros e imprime as contagens sem gravar
+                 nada no banco (não precisa de .env).
+
+A base real (SIDA) traz a coluna UF_DEVEDOR no lugar de UF_UNIDADE_RESPONSAVEL;
+as duas são aceitas e viram `uf` (a UF do devedor, não a da unidade da PGFN).
 
 Lê .env na raiz do repo com SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.
 Especificação: docs/radar/RADAR-FASE1.md.
@@ -44,7 +49,15 @@ COLUNAS = [
     "DATA_INSCRICAO", "INDICADOR_AJUIZADO", "VALOR_CONSOLIDADO",
 ]
 
+# Nomes alternativos que a base real usa para colunas esperadas.
+ALIASES = {
+    "UF_UNIDADE_RESPONSAVEL": ["UF_DEVEDOR", "UF"],
+}
+
 RECEITAS_ACEITAS = ("PIS", "COFINS", "IPI")
+# Variantes de retenção na fonte de PIS/COFINS não interessam: o devedor é
+# quem reteve, não quem gerou a receita.
+RECEITAS_RETENCAO = ("RETEN", "RETID", "FONTE")
 DATA_MINIMA = pd.Timestamp("2021-01-01")
 
 NOMES_EXCLUIDOS = [
@@ -59,8 +72,10 @@ LOTE_UPSERT = 1000
 # Ordem em que os filtros são aplicados; o log mostra o descarte de cada um.
 FILTROS = [
     ("pessoa_fisica", "TIPO_PESSOA diferente de pessoa jurídica"),
+    ("corresponsavel", "TIPO_DEVEDOR diferente de PRINCIPAL (a inscrição entra pelo devedor principal)"),
     ("cnpj_invalido", "CPF_CNPJ sem 14 dígitos"),
     ("receita_simples", "RECEITA_PRINCIPAL contém SIMPLES"),
+    ("receita_retencao", "RECEITA_PRINCIPAL contém RETEN, RETID ou FONTE (retenção na fonte)"),
     ("receita_fora", "RECEITA_PRINCIPAL sem PIS, COFINS ou IPI"),
     ("nao_ajuizado", "INDICADOR_AJUIZADO diferente de SIM"),
     ("data_antiga", "DATA_INSCRICAO anterior a 2021-01-01 ou inválida"),
@@ -86,8 +101,10 @@ def mapear_colunas(colunas_arquivo) -> dict[str, str]:
     por_normalizado = {normalizar_nome_coluna(c): c for c in colunas_arquivo}
     mapa, faltando = {}, []
     for esperada in COLUNAS:
-        if esperada in por_normalizado:
-            mapa[esperada] = por_normalizado[esperada]
+        candidatos = [esperada, *ALIASES.get(esperada, [])]
+        achou = next((c for c in candidatos if c in por_normalizado), None)
+        if achou:
+            mapa[esperada] = por_normalizado[achou]
         else:
             faltando.append(esperada)
     if faltando:
@@ -189,6 +206,22 @@ class Supabase:
         return int(r.json())
 
 
+class SupabaseDryRun:
+    """Mesma interface da classe Supabase, mas não toca no banco."""
+
+    def inserir_ingestao(self, competencia: str, arquivo: str) -> int:
+        return 0
+
+    def atualizar_ingestao(self, ingestao_id: int, campos: dict):
+        pass
+
+    def upsert_inscricoes(self, linhas: list[dict]):
+        pass
+
+    def consolidar(self, competencia: str) -> int:
+        return 0
+
+
 # ---------------------------------------------------------------------------
 # Pipeline por arquivo
 # ---------------------------------------------------------------------------
@@ -208,6 +241,13 @@ def filtrar_chunk(df: pd.DataFrame, mapa: dict[str, str], uf: str | None, descar
     if df.empty:
         return df
 
+    # Uma mesma inscrição aparece uma vez por devedor (PRINCIPAL e cada
+    # CORRESPONSAVEL). A chave é o numero_inscricao, então fica só o principal.
+    tipo_dev = sem_acento_upper(df["TIPO_DEVEDOR"])
+    aplicar("corresponsavel", tipo_dev == "PRINCIPAL")
+    if df.empty:
+        return df
+
     # 3. cnpj só dígitos, 14 caracteres
     df["cnpj"] = df["CPF_CNPJ"].fillna("").astype(str).str.replace(r"\D", "", regex=True)
     aplicar("cnpj_invalido", df["cnpj"].str.len() == 14)
@@ -215,9 +255,14 @@ def filtrar_chunk(df: pd.DataFrame, mapa: dict[str, str], uf: str | None, descar
         return df
     df["valor_consolidado"] = parse_valor(df["VALOR_CONSOLIDADO"])
 
-    # 4. receita: descarta SIMPLES, mantém PIS/COFINS/IPI
+    # 4. receita: descarta SIMPLES e retenção na fonte, mantém PIS/COFINS/IPI
     receita = df["RECEITA_PRINCIPAL"].fillna("").astype(str).str.upper()
     aplicar("receita_simples", ~receita.str.contains("SIMPLES", regex=False))
+    receita = receita[df.index]
+    retencao = pd.Series(False, index=df.index)
+    for termo in RECEITAS_RETENCAO:
+        retencao |= receita.str.contains(termo, regex=False)
+    aplicar("receita_retencao", ~retencao)
     receita = receita[df.index]
     aceita = pd.Series(False, index=df.index)
     for termo in RECEITAS_ACEITAS:
@@ -279,7 +324,7 @@ def linhas_para_upsert(df: pd.DataFrame, competencia: str, ingestao_id: int) -> 
     return saida
 
 
-def processar_arquivo(sb: Supabase, caminho: Path, competencia: str, uf: str | None, chunk: int) -> tuple[int, int]:
+def processar_arquivo(sb: "Supabase | SupabaseDryRun", caminho: Path, competencia: str, uf: str | None, chunk: int) -> tuple[int, int]:
     inicio = time.time()
     print(f"\n== {caminho.name}")
     ingestao_id = sb.inserir_ingestao(competencia, caminho.name)
@@ -347,6 +392,7 @@ def main() -> int:
     ap.add_argument("--uf", help="UF, ex: SP (opcional)")
     ap.add_argument("--pasta", help="pasta dos CSVs (padrão: data/pgfn/<competencia>)")
     ap.add_argument("--chunk", type=int, default=200_000, help="linhas por chunk (padrão 200000)")
+    ap.add_argument("--dry-run", action="store_true", help="só filtra e conta; não grava no banco")
     args = ap.parse_args()
 
     if not re.fullmatch(r"\d{6}", args.competencia):
@@ -358,7 +404,7 @@ def main() -> int:
     load_dotenv(RAIZ / ".env")
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    if not url or not key:
+    if not args.dry_run and (not url or not key):
         print("faltam SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY no .env da raiz (veja .env.example)", file=sys.stderr)
         return 2
 
@@ -371,16 +417,22 @@ def main() -> int:
         print(f"nenhum .csv em {pasta}", file=sys.stderr)
         return 2
 
-    print(f"Radar · ingestão PGFN · competência {args.competencia}" + (f" · UF {uf}" if uf else ""))
+    print(f"Radar · ingestão PGFN · competência {args.competencia}" + (f" · UF {uf}" if uf else "")
+          + ("  [DRY-RUN: nada é gravado no banco]" if args.dry_run else ""))
     print(f"pasta: {pasta} | arquivos: {len(arquivos)} | chunk: {args.chunk}")
 
-    sb = Supabase(url, key)
+    sb = SupabaseDryRun() if args.dry_run else Supabase(url, key)
     inicio = time.time()
     total_lidas = total_aceitas = 0
     for caminho in arquivos:
         lidas, aceitas = processar_arquivo(sb, caminho, args.competencia, uf, args.chunk)
         total_lidas += lidas
         total_aceitas += aceitas
+
+    if args.dry_run:
+        print(f"\n== dry-run: {total_aceitas} linhas seriam gravadas em radar_inscricoes; a consolidação não roda")
+        print(f"\ntotal: {total_lidas} lidas | {total_aceitas} aceitas | {time.time() - inicio:.1f}s")
+        return 0
 
     print(f"\n== consolidando radar_empresas ({args.competencia})")
     try:

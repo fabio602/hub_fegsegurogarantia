@@ -123,3 +123,24 @@ jeito que não batia com o repositório) e como foram resolvidos. Data: 12/09/20
     ingestão real:
     `delete from radar_inscricoes; delete from radar_empresas; delete from radar_ingestoes;`
     e apagar do Kanban o lead de teste da Higident (origem `radar`).
+
+## Ingestão da base real (13/09/2026, competência 202606)
+
+36. **A base SIDA não vem separada por UF.** O ZIP "Dados abertos Não
+    Previdenciário" traz 6 partições (`arquivo_lai_SIDA_1..6_202606.csv`, 9 GB)
+    com todas as UFs misturadas. O CSV de SP em `data/pgfn/202606/` é gerado
+    por partição da coluna `UF_DEVEDOR` numa passada pelos 6 arquivos
+    (`awk -F';' '$5=="SP"'`, com o cabeçalho do primeiro). Os originais ficam
+    fora do repo.
+37. **A coluna de UF chama `UF_DEVEDOR`**, não `UF_UNIDADE_RESPONSAVEL`. O
+    script aceita as duas (alias) e grava como `uf` a UF do devedor, que é a
+    que interessa: a unidade responsável da PGFN pode ser de outro estado.
+38. **Só o devedor PRINCIPAL entra.** Cada inscrição aparece uma vez por
+    devedor (PRINCIPAL e cada CORRESPONSAVEL); como a chave é o número da
+    inscrição, corresponsáveis são descartados (`corresponsavel` no log) para a
+    empresa devedora não ser substituída por um sócio ou coobrigado.
+39. **Retenção na fonte fica de fora.** Receitas com RETEN, RETID ou FONTE
+    (PIS/COFINS retidos na fonte) são descartadas (`receita_retencao`): o
+    devedor é quem reteve, não quem gerou a receita.
+40. **`--dry-run`** aplica todos os filtros e imprime as contagens sem gravar
+    e sem precisar de `.env`.
