@@ -168,3 +168,8 @@ jeito que não batia com o repositório) e como foram resolvidos. Data: 12/09/20
     para 31 mil empresas. Em 429/5xx/timeout espera 60 s e tenta de novo até 5
     vezes, depois pula (a empresa volta na próxima rodada). Pode rodar junto
     com o cron: seleção igual (`enriquecido_em is null`) e gravações idempotentes.
+46. **Recuperação judicial exclui** (migração 078): nome da PGFN ou razão
+    social com "RECUPERACAO JUDICIAL" ou "EM RECUPERACAO" (sem acento) vira
+    `excluido / recuperacao_judicial`, na consolidação, na Edge Function e no
+    `enrich_local.py` (checagem antes das outras exclusões). Quem já foi ao
+    Kanban ou foi descartado não muda. Aplicada na base de 202606 em 12/09/2026.

@@ -45,6 +45,7 @@ const ORCAMENTO_MS = 120_000;
 interface Empresa {
   cnpj: string;
   status: string;
+  nome_devedor: string | null;
 }
 
 interface Socio {
@@ -92,13 +93,25 @@ function montarSocios(qsa: CadastroBrasilApi["qsa"]): Socio[] {
     .filter((s) => s.nome);
 }
 
+const semAcento = (s: string) =>
+  s.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Nome da PGFN ou razao social com "RECUPERACAO JUDICIAL" / "EM RECUPERACAO" (migracao 078). */
+function emRecuperacao(...nomes: Array<string | null | undefined>): boolean {
+  const t = semAcento(nomes.map((n) => n ?? "").join(" | "));
+  return t.includes("RECUPERACAO JUDICIAL") || t.includes("EM RECUPERACAO");
+}
+
 /** Motivo de exclusao pos-enriquecimento, na ordem da especificacao. */
 function motivoExclusao(c: {
   optante_simples: boolean | null;
   optante_mei: boolean | null;
   cnae_principal: string | null;
   situacao_cadastral: string | null;
+  razao_social: string | null;
+  nome_devedor: string | null;
 }): string | null {
+  if (emRecuperacao(c.nome_devedor, c.razao_social)) return "recuperacao_judicial";
   if (c.optante_simples === true || c.optante_mei === true) return "simples_nacional";
   const cnae = (c.cnae_principal ?? "").replace(/\D/g, "").padStart(7, "0");
   if (cnae.startsWith("64") || cnae.startsWith("65")) return "financeiro";
@@ -141,7 +154,7 @@ Deno.serve(async (req) => {
     : LIMITE_PADRAO;
 
   // Selecao
-  let consulta = supabase.from("radar_empresas").select("cnpj, status");
+  let consulta = supabase.from("radar_empresas").select("cnpj, status, nome_devedor");
   consulta = cnpjsPedidos
     ? consulta.in("cnpj", cnpjsPedidos)
     : consulta.is("enriquecido_em", null).eq("status", "novo");
@@ -231,7 +244,7 @@ Deno.serve(async (req) => {
 
     // Exclusoes pos-enriquecimento. Quem ja saiu de 'novo' pela mao de alguem
     // (enviado ao Kanban, descartado) nao e mexido; so recebe o cadastro.
-    const motivo = motivoExclusao(cadastro);
+    const motivo = motivoExclusao({ ...cadastro, nome_devedor: emp.nome_devedor });
     const mudaStatus = motivo && emp.status === "novo";
     const { error } = await supabase.from("radar_empresas")
       .update(mudaStatus ? { ...cadastro, status: "excluido", motivo_exclusao: motivo } : cadastro)

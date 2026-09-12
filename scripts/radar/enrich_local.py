@@ -82,8 +82,21 @@ def montar_socios(qsa) -> list[dict]:
     return saida
 
 
+def sem_acento(s: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", s.upper()).encode("ascii", "ignore").decode()
+
+
+def em_recuperacao(*nomes) -> bool:
+    """Nome da PGFN ou razão social com RECUPERACAO JUDICIAL / EM RECUPERACAO (migração 078)."""
+    t = sem_acento(" | ".join(n or "" for n in nomes))
+    return "RECUPERACAO JUDICIAL" in t or "EM RECUPERACAO" in t
+
+
 def motivo_exclusao(c: dict) -> str | None:
-    """Na ordem da especificação: Simples/MEI, CNAE 64/65, cadastro não ativo."""
+    """Recuperação judicial e, na ordem da especificação: Simples/MEI, CNAE 64/65, cadastro não ativo."""
+    if em_recuperacao(c.get("nome_devedor"), c.get("razao_social")):
+        return "recuperacao_judicial"
     if c["optante_simples"] is True or c["optante_mei"] is True:
         return "simples_nacional"
     cnae = re.sub(r"\D", "", c["cnae_principal"] or "").rjust(7, "0")
@@ -109,7 +122,7 @@ class Supabase:
         """Próximo lote sem enriquecimento, por score, e quantos faltam no total."""
         r = self.sess.get(
             f"{self.base}/radar_empresas",
-            params={"select": "cnpj,status", "enriquecido_em": "is.null", "status": "eq.novo",
+            params={"select": "cnpj,status,nome_devedor", "enriquecido_em": "is.null", "status": "eq.novo",
                     "order": "score.desc,valor_total.desc", "limit": LOTE_SELECAO},
             headers={"Prefer": "count=exact"}, timeout=60,
         )
@@ -161,7 +174,7 @@ def main() -> int:
     pausa_s = args.pausa / 1000
     inicio = time.time()
     pulados: set[str] = set()
-    st = {"processadas": 0, "enriquecidas": 0, "mantidas_novo": 0, "simples_nacional": 0, "financeiro": 0,
+    st = {"processadas": 0, "enriquecidas": 0, "mantidas_novo": 0, "recuperacao_judicial": 0, "simples_nacional": 0, "financeiro": 0,
           "cadastro_inativo": 0, "cnpj_nao_encontrado": 0, "esperas": 0, "pulados": 0, "erros_gravacao": 0}
 
     lote, faltam = sb.pendentes(pulados)
@@ -235,7 +248,7 @@ def main() -> int:
                         "enriquecimento_erro": None,
                         "atualizado_em": agora_iso(),
                     }
-                    motivo = motivo_exclusao(cadastro)
+                    motivo = motivo_exclusao({**cadastro, "nome_devedor": emp.get("nome_devedor")})
                     muda_status = bool(motivo) and emp["status"] == "novo"
                     if muda_status:
                         cadastro.update({"status": "excluido", "motivo_exclusao": motivo})

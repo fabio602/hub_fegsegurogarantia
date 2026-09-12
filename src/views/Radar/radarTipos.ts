@@ -112,6 +112,7 @@ export const MOTIVO_LABEL: Record<string, string> = {
   financeiro: 'Atividade financeira (CNAE 64/65)',
   cadastro_inativo: 'Cadastro não ativo na Receita',
   cnpj_nao_encontrado: 'CNPJ não encontrado na BrasilAPI',
+  recuperacao_judicial: 'Empresa em recuperação judicial',
 };
 
 export const formatCnpj = (cnpj: string): string => {
