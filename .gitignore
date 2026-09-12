@@ -33,3 +33,8 @@ regressao/minutas/
 
 # Prévias estáticas de conferência (trilhas de e-mail, portais)
 previas/
+
+# Radar (módulo PGFN): CSVs baixados manualmente, segredos do script e venv do Python
+data/pgfn/
+.env
+.venv/
