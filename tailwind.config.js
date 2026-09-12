@@ -18,6 +18,7 @@ export default {
     './index.tsx',
     './App.tsx',
     './components/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
     './hooks/**/*.{ts,tsx}',
     './lib/**/*.{ts,tsx}',
     './utils/**/*.{ts,tsx}',
