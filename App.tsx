@@ -25,6 +25,7 @@ import {
   Mail,
   Search,
   Handshake,
+  Radar,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
@@ -52,6 +53,7 @@ import WhatsAppBlast from './components/WhatsAppBlast';
 import ProspeccaoEmail from './components/ProspeccaoEmail.tsx';
 import ProspeccaoPncpAuto from './components/ProspeccaoPncpAuto.tsx';
 import PncpProspection from './components/PncpProspection.tsx';
+import RadarView from './src/views/Radar/RadarView.tsx';
 import GarimpoAutomatico from './components/GarimpoAutomatico.tsx';
 import EmailTrilhas from './components/EmailTrilhas.tsx';
 import Carteira from './components/Carteira.tsx';
@@ -68,7 +70,7 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
-  | 'carteira' | 'posvenda' | 'prospeccao' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
+  | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -80,7 +82,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
@@ -98,6 +100,7 @@ const VIEW_TITLES: Record<View, string> = {
   carteira: 'Carteira de Clientes',
   posvenda: 'Pós-venda',
   prospeccao: 'Prospecção',
+  radar: 'Radar PGFN',
   'prospeccao-email': 'Prospecção Email',
   'email-trilhas': 'Trilhas de E-mail',
   'pncp-prospeccao': 'Prospecção PNCP',
@@ -302,7 +305,7 @@ const App: React.FC = () => {
   // Auto-expand the group that contains the active view
   useEffect(() => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
-    if (['prospeccao', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
+    if (['prospeccao', 'radar', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
     if (['seg-licitante', 'seg-contrato'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
     if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
@@ -423,7 +426,7 @@ const App: React.FC = () => {
   };
 
   // ── Sub-item inside a group ──────────────────────────────────────
-  const NavSubItem: React.FC<{ view: View; label: string; badge?: number }> = ({ view, label, badge }) => (
+  const NavSubItem: React.FC<{ view: View; label: string; badge?: number; icon?: React.ReactNode }> = ({ view, label, badge, icon }) => (
     <button
       onClick={() => navigate(view)}
       className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
@@ -432,7 +435,7 @@ const App: React.FC = () => {
           : 'text-slate-400 hover:text-areia hover:bg-navy-light'
       }`}
     >
-      <span>{label}</span>
+      <span className="flex items-center gap-1.5">{icon}{label}</span>
       {badge != null && badge > 0 && <BadgeDot count={badge} />}
     </button>
   );
@@ -516,9 +519,10 @@ const App: React.FC = () => {
                 <NavSubGroup
                   groupKey="prospeccao"
                   label="Prospecção"
-                  isGroupActive={['prospeccao', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)}
+                  isGroupActive={['prospeccao', 'radar', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)}
                 >
                   <NavSubItem view="prospeccao" label="Prospecção Ativa" />
+                  <NavSubItem view="radar" label="Radar" icon={<Radar size={12} aria-hidden="true" />} />
                   <NavSubItem view="prospeccao-email" label="Prospecção Email" />
                   <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
                   <NavSubItem view="pncp-prospeccao" label="Prospecção PNCP" />
@@ -809,6 +813,7 @@ const App: React.FC = () => {
               {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {vista === 'posvenda' && <Carteira />}
               {vista === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
+              {vista === 'radar' && <RadarView onAbrirKanban={() => navigate('prospeccao')} />}
               {vista === 'prospeccao-email' && <ProspeccaoEmail />}
               {vista === 'email-trilhas' && <EmailTrilhas />}
               {vista === 'pncp-prospeccao' && <PncpProspection />}
