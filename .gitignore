@@ -38,3 +38,6 @@ previas/
 data/pgfn/
 .env
 .venv/
+
+# Python
+__pycache__/

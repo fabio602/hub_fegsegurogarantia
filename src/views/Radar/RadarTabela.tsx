@@ -19,7 +19,7 @@ interface Props {
 /** Badge do score: gold só no número, sem cor de estado. */
 export function ScoreBadge({ score }: { score: number }) {
   return (
-    <span className="inline-flex items-center justify-center min-w-[2.6rem] px-2 py-0.5 rounded-lg bg-areia-escura text-gold-dark font-black text-[12px] tabular-nums">
+    <span className="inline-flex items-center justify-center min-w-[2.6rem] px-2 py-0.5 rounded-lg bg-white border border-linha text-gold-dark font-black text-[12px] tabular-nums">
       {score}
     </span>
   );
