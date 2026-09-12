@@ -150,3 +150,21 @@ jeito que não batia com o repositório) e como foram resolvidos. Data: 12/09/20
     pausa (medido em 12/09/2026: 79 CNPJs em 121 s). 200 CNPJs levariam ~300 s;
     70 levam ~105 s, dentro do orçamento de 120 s e com folga para o teto.
     O cron continua de hora em hora (70 x 15 rodadas = ~1.050 CNPJs por dia).
+
+## Score v2 e enriquecimento local (12/09/2026)
+
+42. **Score v2** (migração 077) recalibrado com a base real: valor em faixa
+    útil pontua mais que valor gigante, inscrição "Em cobrança" pontua (garantia
+    por apresentar) e quem só tem benefício fiscal ou negociação perde 25;
+    CNAE 05 a 33 ganha 10. Tabela completa no README. As contagens
+    `qtd_em_cobranca` e `qtd_beneficio` entram em `radar_empresas`.
+43. **Sem acento por `translate`.** O projeto não tem a extensão `unaccent`;
+    `radar_sem_acento(text)` faz a comparação de `tipo_situacao` ("Em cobrança",
+    "Benefício Fiscal") em maiúsculas e sem acento.
+44. **CNAE com zero à esquerda.** A BrasilAPI devolve `cnae_fiscal` como número
+    (0600001 vira 600001); o score faz `lpad` para 7 dígitos antes de ler a divisão.
+45. **`scripts/radar/enrich_local.py`** repete a lógica da Edge Function no Mac,
+    sem limite de lote, porque o cron (70 por hora, plano Free) levaria semanas
+    para 31 mil empresas. Em 429/5xx/timeout espera 60 s e tenta de novo até 5
+    vezes, depois pula (a empresa volta na próxima rodada). Pode rodar junto
+    com o cron: seleção igual (`enriquecido_em is null`) e gravações idempotentes.

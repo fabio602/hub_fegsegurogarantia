@@ -116,19 +116,38 @@ curl -X POST https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/radar-enrich-
 
 Deploy da function: `npx supabase functions deploy radar-enrich-cnpj`.
 
+**Enriquecimento local (fila inteira de uma vez).** O cron faz 70 CNPJs por
+hora; para uma base nova de dezenas de milhares de empresas, rode no Mac:
+
+```bash
+nohup .venv/bin/python scripts/radar/enrich_local.py > data/pgfn/enrich_202606.log 2>&1 &
+tail -f data/pgfn/enrich_202606.log        # acompanhar
+pkill -f enrich_local.py                   # interromper (retomável: basta rodar de novo)
+```
+
+Mesma lógica da function (campos, exclusões, 404), pausa de 1200 ms, log a
+cada 100 CNPJs; em 429 ou 5xx espera 60 s e tenta de novo. Pode rodar com o
+cron ligado.
+
 ## 4. Score
 
-`radar_calcular_score(cnpj)` devolve um inteiro de 0 a 100 (teto 100):
+`radar_calcular_score(cnpj)` devolve um inteiro de 0 a 100 (versão 2, migração 077,
+recalibrada com a base real de 06/2026):
 
 | Critério | Pontos |
 | --- | --- |
-| Alguma inscrição com garantia | +35 |
-| Valor total ≥ R$ 5 milhões | +25 |
-| Valor total entre R$ 1 milhão e R$ 4.999.999 | +18 |
-| Valor total entre R$ 300 mil e R$ 999.999 | +10 |
-| 3 inscrições ou mais | +10 |
+| Alguma inscrição com garantia | +30 |
+| Valor total entre R$ 300 mil e R$ 1 milhão | +10 |
+| Valor total entre R$ 1 milhão e R$ 5 milhões | +20 |
+| Valor total entre R$ 5 milhões e R$ 50 milhões | +25 |
+| Valor total entre R$ 50 milhões e R$ 300 milhões | +12 |
+| Valor total acima de R$ 300 milhões | +3 |
+| Pelo menos uma inscrição "Em cobrança" | +15 |
+| Nenhuma em cobrança e todas em benefício fiscal ou negociação | -25 |
+| 3 inscrições ou mais | +5 |
 | Inscrição mais recente nos últimos 24 meses | +10 |
-| Porte acima de EPP (DEMAIS ou MÉDIA) | +10 |
+| CNAE principal nas divisões 05 a 33 (extrativa e indústria de transformação) | +10 |
+| Porte DEMAIS | +5 |
 | E-mail preenchido | +5 |
 | Telefone preenchido | +5 |
 
