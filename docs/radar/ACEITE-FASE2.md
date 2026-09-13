@@ -18,31 +18,32 @@ Rodado em 13/09/2026 contra o projeto real `hfjvwibucplyhsvnwfor`, na branch
 
 ## 2. Worker com --cnpj da Convenção
 
-CNPJ localizado em `radar_empresas` pelo nome: `56199714000710`.
+CNPJ localizado em `radar_empresas` pelo nome: `56199714000710`. Rodado duas
+vezes: primeiro com a busca por nome (versão inicial do worker) e depois, em
+13/09/2026 às 17h40, com a busca principal pelo CNPJ (decisão 66):
 
 ```
 .venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710 --detalhes 30
 ```
 
 `--detalhes 30` abre o detalhe de todos os processos: o 5002050-64.2023 do
-gabarito não está entre os 8 mais recentes (decisão 54). Trecho do log:
+gabarito não está entre os 8 mais recentes (decisão 54). Trecho do log da
+rodada por CNPJ:
 
 ```
 -> 56199714000710 CONVENCAO SAO PAULO INDUSTRIA DE BEBIDAS E CONEXOS LTDA
-   busca: "CONVENCAO SAO PAULO INDUSTRIA DE BEBIDAS E CONEXOS LTDA"
-   pausa 14s (abrir consulta)
-   pausa 19s (pesquisar)
+   busca por cnpj: "56199714000710" (01/01/2021)
    22 resultados, 20 das classes 1116/1118
    listagem: 20 processos das classes 1116/1118
-   pausa 26s (detalhe 5018946-80.2026.4.03.6182)
    ...
    5002050-64.2023.4.03.6182: 2ª Vara de Execuções Fiscais Federal de São Paulo | dist. 2023-06-07 | 3 adv | 15 mov gravadas de 44
    ...
-<- 56199714000710 CONVENCAO SAO PAULO ... | processos 20 | detalhes 20 | homônimos 0 | 557s
+<- 56199714000710 CONVENCAO SAO PAULO ... | processos 20 | detalhes 20 | homônimos 0 | 556s
 ```
 
 Sem bloqueio (nenhum `!! BLOQUEIO` no log), intervalos respeitados (pausas de
-12 a 27 s entre requisições, 20 s ± 8 s). Gravado no banco:
+12 a 27 s entre requisições, 20 s ± 8 s). A busca por CNPJ devolveu a mesma
+listagem da busca pelo nome exato. Gravado no banco:
 
 | Critério | Esperado | Gravado |
 | --- | --- | --- |
@@ -54,45 +55,83 @@ Sem bloqueio (nenhum `!! BLOQUEIO` no log), intervalos respeitados (pausas de
 | 5002050-64.2023 · advogados | SP182592, SP384275, SP490636 | **3: SP182592, SP384275, SP490636** (polo passivo) |
 | 5002050-64.2023 · movimentações gravadas | 15 | **15** (de 44 no PJe, `qtd_movimentacoes = 44`) |
 
-A busca do PJe devolve hoje 22 resultados (20 das duas classes mais um
-mandado de segurança e um procedimento comum). A divisão 12/8 é o que a
-listagem mostra linha a linha (a especificação dizia 13/7; decisão 62). Há
-uma execução nova de 04/09/2026 (5018946-80.2026). Assunto do 5002050:
-Cofins e PIS. CNPJ mascarado conferido em todos os 20 detalhes (`56.1XX`).
+A busca devolve hoje 22 resultados (20 das duas classes mais um mandado de
+segurança e um procedimento comum). A divisão 12/8 é o que a listagem mostra
+linha a linha (a especificação dizia 13/7; decisão 62). Há uma execução nova
+de 04/09/2026 (5018946-80.2026). CNPJ mascarado conferido em todos os 20
+detalhes (`56.1XX`).
+
+Varas (20 processos): 2ª Vara de Execuções Fiscais Federal de São Paulo é a
+mais frequente, com 4; depois 10ª e 7ª com 3 cada; 13ª, 5ª e 9ª com 2; 12ª,
+1ª e 4ª com 1; e um embargos (5006308-88.2021) em "Rede de Apoio 4.0 - Plano
+29", como o PJe mostra.
+
+Advogados do executado (polo passivo, deduplicados):
+
+| Advogado | OAB | Processos |
+| --- | --- | --- |
+| FREDERICO SANTIAGO LOUREIRO DE OLIVEIRA | SP182592 | 17 |
+| LUIZ GUSTAVO RODELLI SIMIONATO | SP223795 | 11 |
+| HELENA CASTRO GONZALEZ | SP490636 | 1 |
+| TAIS BARBOSA DE OLIVEIRA | SP384275 | 1 |
 
 ## 3. Segunda empresa do topo: Larru's
 
 CNPJ `43606714000150` (LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS LTDA., Jandira/SP,
 score 100, R$ 27,8 milhões inscritos, com garantia).
 
+**Pelo nome: zero.** Na primeira versão do worker, as cinco variantes do nome
+("LARRU'S ... LTDA.", sem o ponto, "LARRUS ...", e a forma tolerante), com
+data desde 2021 e depois sem data, devolveram 0 resultados. Um diagnóstico à
+parte, pelo campo CPF/CNPJ do formulário, achou 30 resultados (teto) com 11
+execuções fiscais: o índice de nome do PJe não casa nomes com apóstrofo. Por
+isso a busca principal passou a ser pelo CNPJ (decisão 66).
+
+**Pelo CNPJ** (13/09/2026, 17h30):
+
 ```
-.venv/bin/python scripts/radar/pje_worker.py --cnpj 43606714000150 --debug
+.venv/bin/python scripts/radar/pje_worker.py --cnpj 43606714000150 --detalhes 30
 ```
 
 ```
-   busca: "LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS LTDA."   → 0 resultados
-   busca: "LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS LTDA"    → 0 resultados
-   busca: "LARRUS INDUSTRIA E COMERCIO DE COSMETICOS LTDA"     → 0 resultados
-   busca: "LARRUS INDUSTRIA E COMERCIO DE COSMETICOS LTDA."    → 0 resultados
-   busca: "LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS"         → 0 resultados
-<- 43606714000150 ... | processos 0 | detalhes 0 | homônimos 0 | 252s
+-> 43606714000150 LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS LTDA.
+   busca por cnpj: "43606714000150" (01/01/2021)
+   23 resultados, 12 das classes 1116/1118
+   listagem: 12 processos das classes 1116/1118
+   ...
+<- 43606714000150 LARRU'S ... | processos 12 | detalhes 12 | homônimos 0 | 342s
 ```
 
-Nenhum processo das classes 1116/1118 com autuação desde 01/01/2021 no PJe
-TRF3 1º grau para nenhuma das cinco variantes do nome. Sem bloqueio.
-Resultado: `dossie_status = 'sem_processos'`, fila `sem_processos`. Possíveis
-causas (não verificadas): execuções autuadas antes de 2021 ou nome diferente
-no PJe.
+Sem bloqueio. Gravado: **12 execuções fiscais (1116) e 0 embargos (1118)**,
+todas com autuação desde 2021 (sete de 2025 e cinco de 2021 a 2024 na
+subseção de Barueri, redistribuídas em 09/01/2025 para as varas de execuções
+fiscais de São Paulo). CNPJ mascarado `43.6XX` conferido nos 12 detalhes.
+`dossie_status = 'pronto'`, fila `concluido`.
+
+Varas: 13ª e 4ª Varas de Execuções Fiscais Federal de São Paulo, com 3
+processos cada, são as mais frequentes; 2ª com 2; 1ª, 3ª, 9ª e 10ª com 1.
+
+Advogados do executado (polo passivo, deduplicados):
+
+| Advogado | OAB | Processos |
+| --- | --- | --- |
+| LUIZ GUSTAVO ANTONIO SILVA BICHARA | SP303020 | 7 |
+| PATRICIA CAMPOS LIMA | MG102096 | 4 |
+| ANA CAROLINA MARTINS MARCONDES | SP462112 | 1 |
+| EDUARDO OLIVEIRA GONCALVES | SP284974 | 1 |
+
+Leitura automática na tela: "Execução em curso sem embargos localizados:
+risco de penhora ou bloqueio. Oferecer seguro garantia para garantir o juízo."
 
 ## 4. Dossiê, contagens e score das duas empresas
 
 | Empresa | dossie_status | qtd_execucoes | qtd_embargos | score |
 | --- | --- | --- | --- | --- |
 | Convenção (56199714000710) | pronto (13/09/2026 16:57) | 12 | 8 | 100 (já era 100; +10 dos embargos fica no teto) |
-| Larru's (43606714000150) | sem_processos (13/09/2026 17:05) | 0 | 0 | 100 |
+| Larru's (43606714000150) | pronto (13/09/2026 17:36) | 12 | 0 | 100 |
 
 `radar_calcular_score` recalculado confere com a coluna `score` nas duas.
-Fila: 706 pendentes, 1 concluído (Convenção), 1 sem_processos (Larru's).
+Fila: 706 pendentes, 2 concluídos (Convenção e Larru's).
 
 ## 5. Tela
 
@@ -100,10 +139,9 @@ Fila: 706 pendentes, 1 concluído (Convenção), 1 sem_processos (Larru's).
   botão Buscar processos/Atualizar, leitura automática, processos com
   movimentações expansíveis, advogados do executado, garantia informada), a
   coluna e o filtro "Dossiê" e a view "Radar · Advogados".
-- `vw_radar_advogados` lista os advogados da Convenção no banco:
-  FREDERICO SANTIAGO LOUREIRO DE OLIVEIRA (SP182592, 17 processos), LUIZ
-  GUSTAVO RODELLI SIMIONATO (SP223795, 11), HELENA CASTRO GONZALEZ (SP490636, 1)
-  e TAIS BARBOSA DE OLIVEIRA (SP384275, 1), todos com 1 empresa.
+- `vw_radar_advogados` lista os 8 advogados das duas empresas (4 da
+  Convenção, 4 da Larru's), cada um com 1 empresa, ordenados por processos:
+  SP182592 (17), SP223795 (11), SP303020 (7), MG102096 (4) e quatro com 1.
 - **Não verificado no navegador:** salvar a garantia, o botão "Buscar
   processos" (upsert em `radar_pje_fila` com prioridade 100) e o filtro
   "Dossiê" dependem de uma sessão logada no hub, e o Claude Code não pode
@@ -130,8 +168,8 @@ instalar: `~/Library/LaunchAgents` não tem `com.fg.radar-pje.plist`.
 
 ## Observações
 
-- A busca do PJe é por nome exato (decisões 48 e 64); a forma tolerante da
-  especificação devolve zero.
-- Total gravado no banco ao final: 20 processos, 283 movimentações, 34
-  linhas de advogados (por processo).
+- A busca principal é pelo CNPJ (decisão 66); o nome exato fica como
+  fallback e não acha nomes com apóstrofo (decisões 48 e 64).
+- Total gravado no banco ao final: 32 processos (20 da Convenção, 12 da
+  Larru's), com movimentações e advogados de todos os 32 detalhes.
 - Fase 3 (Datajud) não foi iniciada.

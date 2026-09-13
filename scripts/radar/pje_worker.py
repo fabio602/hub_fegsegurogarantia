@@ -342,15 +342,30 @@ class ConsultaPje:
         if atual != valor:
             self.page.locator(f'[id="{id_input}"]').fill(valor)
 
-    def preencher(self, nome: str, data_de: str | None, data_ate: str | None = None) -> None:
-        """data_de None = sem filtro de data (os campos ficam em branco)."""
-        id_nome = self._id_input("nomeParte")
-        if id_nome:
-            campo = self.page.locator(f'[id="{id_nome}"]')
+    def preencher(self, criterio: tuple[str, str], data_de: str | None, data_ate: str | None = None) -> None:
+        """criterio = ('cnpj', 14 dígitos) ou ('nome', nome exato da parte).
+        data_de None = sem filtro de data (os campos ficam em branco)."""
+        tipo, valor = criterio
+        if tipo == "cnpj":
+            # radio CNPJ (o segundo de tipoMascaraDocumento) e o campo documentoParte;
+            # a máscara é aplicada pelo próprio formulário, então vão só os dígitos, tecla a tecla
+            radios = self.page.locator('input[name="tipoMascaraDocumento"]')
+            if radios.count() < 2:
+                raise RuntimeError("radio de CNPJ não encontrado")
+            radios.nth(1).click()
+            self.page.wait_for_timeout(500)
+            campo = self.page.locator('[id="fPP:dpDec:documentoParte"]')
+            campo.click()
+            campo.fill("")
+            self.page.keyboard.type(re.sub(r"\D", "", valor), delay=40)
         else:
-            campo = self.page.get_by_label(re.compile("Nome da parte", re.I))
-        campo.fill("")
-        campo.fill(nome)
+            id_nome = self._id_input("nomeParte")
+            if id_nome:
+                campo = self.page.locator(f'[id="{id_nome}"]')
+            else:
+                campo = self.page.get_by_label(re.compile("Nome da parte", re.I))
+            campo.fill("")
+            campo.fill(valor)
 
         # Só os inputs visíveis do calendário (InputDate). O hidden InputCurrentDate
         # ("mm/aaaa" do calendário) não pode ser mexido: zerá-lo faz o servidor
@@ -706,50 +721,60 @@ def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: b
     log(f"-> {cnpj} {emp.get('razao_social') or emp['nome_devedor']}")
     encontrados: dict[str, dict] = {}
 
-    def buscar(n: str, de: str | None, ate: str | None = None) -> tuple[int, list[dict]]:
+    busca_atual: list = [None]  # (crit, de, ate) da listagem que está na tela
+
+    def buscar(crit: tuple[str, str], de: str | None, ate: str | None = None) -> tuple[int, list[dict]]:
         periodo = f"{de or 'sem data'}{(' a ' + ate) if ate else ''}"
-        log(f"   busca: \"{n}\" ({periodo})")
+        log(f"   busca por {crit[0]}: \"{crit[1]}\" ({periodo})")
         consulta.abrir()
-        consulta.preencher(n, de, ate)
+        consulta.preencher(crit, de, ate)
         total = consulta.pesquisar() or 0
         brutas = consulta.linhas()
+        busca_atual[0] = (crit, de, ate)
+        for b in brutas:
+            b["busca"] = (crit, de, ate)
         log(f"   {total} resultados, {len(brutas)} das classes 1116/1118")
         return total, brutas
 
-    def por_ano(n: str, ano_inicial: int) -> None:
+    def guardar(brutas: list[dict]) -> None:
+        for l in brutas:
+            encontrados[l["numero_cnj"]] = l
+
+    def acima_de_30(total: int) -> bool:
+        return consulta.aviso_30() or total > 30
+
+    def por_ano(crit: tuple[str, str], ano_inicial: int) -> None:
         log(f"   mais de 30 resultados: repetindo por ano de {ano_inicial} a {agora().year}")
         for ano in range(ano_inicial, agora().year + 1):
-            _, brutas = buscar(n, f"01/01/{ano}", f"31/12/{ano}")
-            for l in brutas:
-                encontrados[l["numero_cnj"]] = l
+            _, brutas = buscar(crit, f"01/01/{ano}", f"31/12/{ano}")
+            guardar(brutas)
             if consulta.aviso_30():
                 log(f"   ano {ano} ainda com mais de 30 resultados; ficam os 30 primeiros")
 
-    # 1) autuação desde 2021, uma variante do nome por vez
-    nome = candidatos[0]
-    melhor = None  # primeira variante que devolveu algum resultado, de qualquer classe
-    for nome in candidatos:
-        total, brutas = buscar(nome, DATA_AUTUACAO_DE)
-        if total and melhor is None:
-            melhor = nome
+    def desde_2021_e_sem_data(crit: tuple[str, str]) -> int:
+        """Busca desde 2021; sem linha das classes, repete sem data. Devolve o maior total visto."""
+        total, brutas = buscar(crit, DATA_AUTUACAO_DE)
         if brutas:
-            for l in brutas:
-                encontrados[l["numero_cnj"]] = l
-            break
-    if encontrados and (consulta.aviso_30() or (consulta.total_resultados() or 0) > 30):
-        por_ano(nome, ANO_INICIAL)
-
-    # 2) nada das classes desde 2021: repete sem filtro de data (decisão 65)
-    if not encontrados:
+            guardar(brutas)
+            if acima_de_30(total):
+                por_ano(crit, ANO_INICIAL)
+            return total
         log("   nenhum processo 1116/1118 desde 2021: repetindo sem filtro de data")
-        ordem = ([melhor] if melhor else []) + [c for c in candidatos if c != melhor]
-        for nome in ordem:
-            total, brutas = buscar(nome, None)
-            for l in brutas:
-                encontrados[l["numero_cnj"]] = l
-            if total or brutas:
-                if consulta.aviso_30() or total > 30:
-                    por_ano(nome, ANO_INICIAL_SEM_FILTRO)
+        total2, brutas = buscar(crit, None)
+        guardar(brutas)
+        if brutas and acima_de_30(total2):
+            por_ano(crit, ANO_INICIAL_SEM_FILTRO)
+        return max(total, total2)
+
+    # 1) busca principal pelo CNPJ (decisão 66)
+    total_cnpj = desde_2021_e_sem_data(("cnpj", cnpj))
+
+    # 2) fallback pelo nome exato, só se o CNPJ não devolveu nada (de classe nenhuma)
+    if total_cnpj == 0 and not encontrados:
+        log("   CNPJ sem resultado no PJe: tentando pelo nome")
+        for nome in candidatos:
+            total_nome = desde_2021_e_sem_data(("nome", nome))
+            if total_nome or encontrados:
                 break
 
     linhas = list(encontrados.values())
@@ -758,14 +783,21 @@ def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: b
 
     detalhes, homonimos = 0, 0
     if linhas:
-        ordem = sorted(linhas, key=lambda l: chave_recencia(l["numero_cnj"]), reverse=True)
-        for l in ordem[:max_detalhes]:
+        # os N mais recentes, agrupados pela busca que os listou para refazer
+        # cada listagem uma vez só (a quebra por ano deixa só o último ano na tela)
+        escolhidos = sorted(linhas, key=lambda l: chave_recencia(l["numero_cnj"]), reverse=True)[:max_detalhes]
+        escolhidos.sort(key=lambda l: (str(l.get("busca")), -chave_recencia(l["numero_cnj"])[0], -chave_recencia(l["numero_cnj"])[1]))
+        for l in escolhidos:
             if not l["token"]:
                 continue
-            # a listagem atual pode ser a de um ano; garante que a linha está na tela
-            if page.locator(f'a[onclick*="{l["token"]}"]').count() == 0:
-                log(f"   {l['numero_cnj']}: link do detalhe fora da listagem atual, pulando")
-                continue
+            if l.get("busca") != busca_atual[0] or page.locator(f'a[onclick*="{l["token"]}"]').count() == 0:
+                crit, de, ate = l["busca"]
+                _, brutas = buscar(crit, de, ate)
+                novo = next((b["token"] for b in brutas if b["numero_cnj"] == l["numero_cnj"]), None)
+                if not novo:
+                    log(f"   {l['numero_cnj']}: não reapareceu na listagem, pulando o detalhe")
+                    continue
+                l["token"] = novo
             texto = consulta.abrir_detalhe(l["token"], l["numero_cnj"])
             parsed = parse_detalhe(texto)
             confere = cnpj_confere(cnpj, parsed)

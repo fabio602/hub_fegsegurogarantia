@@ -267,3 +267,15 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     `data_distribuicao` continua vindo só do detalhe (real), nunca do número
     CNJ, então processos antigos sem detalhe aberto ficam sem data. Pedido em
     13/09/2026 depois da Larru's ficar `sem_processos`.
+66. **Busca principal pelo CNPJ.** O índice de nome do PJe não casa nomes
+    com apóstrofo: a Larru's ("LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS
+    LTDA.") devolveu zero por nome em todas as variantes, com e sem data, mas
+    pelo campo CPF/CNPJ (radio CNPJ + `fPP:dpDec:documentoParte`, só dígitos
+    digitados tecla a tecla; a máscara é do formulário) apareceram 30
+    resultados, 11 execuções fiscais. Desde 13/09/2026 o worker busca pelo
+    CNPJ (desde 2021; sem data se vier zero das classes; por ano acima de 30)
+    e só cai para o nome exato, com a mesma lógica, se o CNPJ não devolver
+    resultado nenhum. A conferência dos 3 primeiros dígitos do CNPJ mascarado
+    continua no detalhe. Como a quebra por ano deixa na tela só a listagem do
+    último ano, o worker refaz a listagem de origem antes de abrir o detalhe
+    de um processo que não está na tela (agrupando os detalhes por listagem).
