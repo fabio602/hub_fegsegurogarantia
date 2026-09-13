@@ -56,7 +56,8 @@ export default function RadarView({ onAbrirKanban }: Props) {
     status: filtros.status,
     receitas: filtros.receitas,
     mostrarExcluidos: filtros.mostrarExcluidos,
-  }), [buscaAplicada, filtros.uf, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos]);
+    dossie: filtros.dossie,
+  }), [buscaAplicada, filtros.uf, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos, filtros.dossie]);
 
   // Qualquer filtro novo volta para a primeira página.
   useEffect(() => { setPagina(0); }, [filtrosServidor]);
@@ -96,6 +97,9 @@ export default function RadarView({ onAbrirKanban }: Props) {
     if (f.somenteGarantia) q = q.eq('tem_garantia', true);
     // Coluna computada receitas_tipos (migração 076): PIS/COFINS/IPI a partir dos textos da PGFN.
     if (f.receitas.length > 0) q = q.overlaps('receitas_tipos', f.receitas);
+    // Fase 2: dossiê do PJe
+    if (f.dossie === 'com_embargos') q = q.gt('qtd_embargos', 0);
+    else if (f.dossie) q = q.eq('dossie_status', f.dossie);
     if (f.busca) {
       const digitos = f.busca.replace(/\D/g, '');
       q = digitos.length >= 4 && digitos.length === f.busca.replace(/[.\-\/\s]/g, '').length
@@ -104,8 +108,10 @@ export default function RadarView({ onAbrirKanban }: Props) {
     }
 
     const de = pagina * POR_PAGINA;
+    // Empate no score: quem já tem dossiê (dossie_em preenchido) vem antes de quem não tem.
     const { data, count, error } = await q
       .order('score', { ascending: false })
+      .order('dossie_em', { ascending: false, nullsFirst: false })
       .order('valor_total', { ascending: false })
       .range(de, de + POR_PAGINA - 1);
 

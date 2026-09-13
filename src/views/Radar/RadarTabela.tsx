@@ -1,8 +1,8 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Gavel, Clock, FileSearch, CircleAlert, Minus } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import {
-  POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao,
+  DOSSIE_LABEL, POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao,
   type RadarEmpresa,
 } from './radarTipos.ts';
 
@@ -33,6 +33,30 @@ export function StatusBadge({ status }: { status: RadarEmpresa['status'] }) {
   );
 }
 
+/**
+ * Ícone do dossiê do PJe (Fase 2). Cores pelo mapa semântico: emerald pronto,
+ * blue na fila, amber erro, cinza sem processos ou sem dossiê.
+ */
+export function DossieIcone({ empresa }: { empresa: Pick<RadarEmpresa, 'dossie_status' | 'qtd_execucoes' | 'qtd_embargos'> }) {
+  const s = empresa.dossie_status;
+  const titulo = s === 'pronto'
+    ? `${DOSSIE_LABEL[s]}: ${empresa.qtd_execucoes} execução(ões), ${empresa.qtd_embargos} embargo(s)`
+    : DOSSIE_LABEL[s];
+  const base = 'inline-flex items-center gap-1 text-[11px] font-bold';
+  if (s === 'pronto') {
+    return (
+      <span className={`${base} text-emerald-700`} title={titulo} aria-label={titulo}>
+        <Gavel size={13} aria-hidden="true" />
+        <span className="tabular-nums">{empresa.qtd_execucoes}/{empresa.qtd_embargos}</span>
+      </span>
+    );
+  }
+  if (s === 'fila') return <span className={`${base} text-blue-700`} title={titulo} aria-label={titulo}><Clock size={13} aria-hidden="true" /></span>;
+  if (s === 'erro') return <span className={`${base} text-amber-800`} title={titulo} aria-label={titulo}><CircleAlert size={13} aria-hidden="true" /></span>;
+  if (s === 'sem_processos') return <span className={`${base} text-slate-500`} title={titulo} aria-label={titulo}><FileSearch size={13} aria-hidden="true" /></span>;
+  return <span className={`${base} text-slate-400`} title={titulo} aria-label={titulo}><Minus size={13} aria-hidden="true" /></span>;
+}
+
 const th = 'px-3 py-3 whitespace-nowrap';
 const td = 'px-3 py-2.5 align-middle';
 
@@ -57,13 +81,14 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
               <th scope="col" className={`${th} text-center`}>Garantia</th>
               <th scope="col" className={th}>Mais recente</th>
               <th scope="col" className={th}>Porte</th>
+              <th scope="col" className={`${th} text-center`} title="Dossiê do PJe TRF3: execuções/embargos">Dossiê</th>
               <th scope="col" className={`${th} pr-5`}>Status</th>
             </tr>
           </thead>
           <tbody>
             {carregando && empresas.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-5 py-12 text-center text-slate-600">
+                <td colSpan={12} className="px-5 py-12 text-center text-slate-600">
                   <Loader2 size={18} aria-hidden="true" className="inline animate-spin mr-2 text-gold-dark" />
                   Carregando empresas...
                 </td>
@@ -71,7 +96,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
             )}
             {!carregando && empresas.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-5 py-12 text-center text-slate-600 text-sm">
+                <td colSpan={12} className="px-5 py-12 text-center text-slate-600 text-sm">
                   Nenhuma empresa com esses filtros.
                 </td>
               </tr>
@@ -112,6 +137,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
                   </td>
                   <td className={`${td} tabular-nums text-slate-700 whitespace-nowrap`}>{formatDataBr(e.data_inscricao_mais_recente)}</td>
                   <td className={`${td} text-[11px] text-slate-700 whitespace-nowrap`}>{e.porte ?? ''}</td>
+                  <td className={`${td} text-center`}><DossieIcone empresa={e} /></td>
                   <td className={`${td} pr-5`}><StatusBadge status={e.status} /></td>
                 </tr>
               );

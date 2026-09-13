@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import ModalPortal from '../../../components/ModalPortal.tsx';
 import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
 import {
-  MOTIVO_LABEL, formatCnpj, formatCompetencia, formatDataBr, nomeExibicao, receitasResumo,
-  type RadarEmpresa, type RadarInscricao,
+  DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
+  formatDataBr, formatDataHoraBr, leituraDossie, nomeExibicao, receitasResumo,
+  type GarantiaInformada, type RadarAdvogadoProcesso, type RadarEmpresa, type RadarInscricao, type RadarMovimento, type RadarProcesso,
 } from './radarTipos.ts';
 
 interface Props {
@@ -19,6 +20,28 @@ interface Props {
 }
 
 const secao = 'text-[10px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5';
+const botaoCopiar = 'p-1 rounded-md text-slate-600 hover:text-navy hover:bg-slate-100 transition-colors';
+
+interface AdvogadoAgrupado {
+  nome: string;
+  oab: string | null;
+  processos: number;
+}
+
+/** Deduplica advogados do polo passivo entre os processos da empresa, contando em quantos aparecem. */
+const agruparAdvogados = (lista: RadarAdvogadoProcesso[]): AdvogadoAgrupado[] => {
+  const mapa = new Map<string, AdvogadoAgrupado & { ids: Set<number> }>();
+  for (const a of lista) {
+    if (a.polo !== 'passivo') continue;
+    const chave = `${a.nome}|${a.oab ?? ''}`;
+    const atual = mapa.get(chave) ?? { nome: a.nome, oab: a.oab, processos: 0, ids: new Set<number>() };
+    atual.ids.add(a.processo_id);
+    mapa.set(chave, atual);
+  }
+  return Array.from(mapa.values())
+    .map(a => ({ nome: a.nome, oab: a.oab, processos: a.ids.size }))
+    .sort((a, b) => b.processos - a.processos || a.nome.localeCompare(b.nome));
+};
 const dado = (rotulo: string, valor: React.ReactNode) => (
   <div>
     <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{rotulo}</dt>
@@ -38,6 +61,16 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
   const [salvando, setSalvando] = useState<'kanban' | 'descartar' | 'reverter' | null>(null);
   const [pedindoMotivo, setPedindoMotivo] = useState(false);
   const [motivo, setMotivo] = useState('');
+  // Fase 2: dossiê do PJe
+  const [processos, setProcessos] = useState<RadarProcesso[] | null>(null);
+  const [movimentos, setMovimentos] = useState<RadarMovimento[]>([]);
+  const [advogadosProc, setAdvogadosProc] = useState<RadarAdvogadoProcesso[]>([]);
+  const [expandido, setExpandido] = useState<number | null>(null);
+  const [enfileirando, setEnfileirando] = useState(false);
+  const [garantia, setGarantia] = useState<GarantiaInformada | ''>(empresa.garantia_informada ?? '');
+  const [garantiaObs, setGarantiaObs] = useState(empresa.garantia_obs ?? '');
+  const [salvandoGarantia, setSalvandoGarantia] = useState(false);
+  const advogados = useMemo(() => agruparAdvogados(advogadosProc), [advogadosProc]);
 
   useEffect(() => {
     let vivo = true;
@@ -57,6 +90,39 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
       });
     return () => { vivo = false; };
   }, [empresa.cnpj, empresa.competencia_ultima]);
+
+  // Processos do PJe, movimentações e advogados (Fase 2). Recarrega quando o dossiê muda.
+  useEffect(() => {
+    let vivo = true;
+    setProcessos(null);
+    setMovimentos([]);
+    setAdvogadosProc([]);
+    setExpandido(null);
+    setGarantia(empresa.garantia_informada ?? '');
+    setGarantiaObs(empresa.garantia_obs ?? '');
+    (async () => {
+      const { data, error } = await supabase
+        .from('radar_processos')
+        .select('id, numero_cnj, classe_codigo, classe_nome, assunto, jurisdicao, orgao_julgador, data_distribuicao, polo_passivo_nome, cnpj_mascarado, ultima_movimentacao_texto, ultima_movimentacao_em, qtd_movimentacoes, capturado_em')
+        .eq('cnpj', empresa.cnpj)
+        .order('data_distribuicao', { ascending: false, nullsFirst: false })
+        .order('numero_cnj', { ascending: false });
+      if (!vivo) return;
+      if (error) { toast('Não foi possível carregar os processos.', 'error'); setProcessos([]); return; }
+      const lista = (data ?? []) as RadarProcesso[];
+      setProcessos(lista);
+      if (lista.length === 0) return;
+      const ids = lista.map(p => p.id);
+      const [movs, advs] = await Promise.all([
+        supabase.from('radar_processo_movimentos').select('id, processo_id, ocorrido_em, texto').in('processo_id', ids).order('ocorrido_em', { ascending: false }),
+        supabase.from('radar_processo_advogados').select('id, processo_id, nome, oab, polo').in('processo_id', ids).order('nome'),
+      ]);
+      if (!vivo) return;
+      setMovimentos((movs.data ?? []) as RadarMovimento[]);
+      setAdvogadosProc((advs.data ?? []) as RadarAdvogadoProcesso[]);
+    })();
+    return () => { vivo = false; };
+  }, [empresa.cnpj, empresa.dossie_em, empresa.dossie_status]);
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
@@ -95,6 +161,11 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
         empresa.cnae_descricao ? `CNAE: ${empresa.cnae_principal} - ${empresa.cnae_descricao}` : '',
         empresa.porte ? `Porte: ${empresa.porte}` : '',
         `Score Radar: ${empresa.score}`,
+        // Fase 2: dossiê do PJe, quando houver
+        (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos')
+          ? `Execuções fiscais: ${empresa.qtd_execucoes}, Embargos: ${empresa.qtd_embargos}` : '',
+        advogados.length > 0
+          ? `Advogados: ${advogados.map(a => `${a.nome}${a.oab ? ` (${a.oab})` : ''}`).join(', ')}` : '',
       ].filter(Boolean).join('\n');
 
       // Mesmo mecanismo da Edge Function lead-cotacao: insert direto em
@@ -155,8 +226,45 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
     setSalvando(null);
   };
 
+  /** Coloca (ou recoloca) a empresa na fila do PJe com prioridade 100. */
+  const buscarProcessos = async () => {
+    setEnfileirando(true);
+    const agoraIso = new Date().toISOString();
+    const { error } = await supabase.from('radar_pje_fila').upsert({
+      cnpj: empresa.cnpj, prioridade: 100, status: 'pendente', tentativas: 0,
+      erro: null, iniciado_em: null, finalizado_em: null, criado_em: agoraIso,
+    }, { onConflict: 'cnpj' });
+    if (error) {
+      toast(`Falha ao enfileirar: ${error.message}`, 'error');
+    } else {
+      const { error: eErr } = await supabase.from('radar_empresas')
+        .update({ dossie_status: 'fila', atualizado_em: agoraIso }).eq('cnpj', empresa.cnpj);
+      if (eErr) toast(`Falha ao marcar a fila: ${eErr.message}`, 'error');
+      else { await recarregar(); toast('Empresa na fila do PJe com prioridade máxima. O worker roda das 07h às 23h.', 'success'); }
+    }
+    setEnfileirando(false);
+  };
+
+  const salvarGarantia = async () => {
+    if (!garantia) { toast('Escolha a garantia informada.', 'warning'); return; }
+    setSalvandoGarantia(true);
+    const agoraIso = new Date().toISOString();
+    const { error } = await supabase.from('radar_empresas').update({
+      garantia_informada: garantia, garantia_obs: garantiaObs.trim().slice(0, 300) || null,
+      garantia_informada_em: agoraIso, atualizado_em: agoraIso,
+    }).eq('cnpj', empresa.cnpj);
+    if (error) toast(`Falha ao salvar a garantia: ${error.message}`, 'error');
+    else { await recarregar(); toast('Garantia informada salva.', 'success'); }
+    setSalvandoGarantia(false);
+  };
+
   const enviada = empresa.status === 'enviado_kanban';
   const ocupado = salvando !== null;
+  const leitura = leituraDossie(empresa);
+  const naFila = empresa.dossie_status === 'fila';
+  const prontoRecente = (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos') && !dossieAntigo(empresa.dossie_em);
+  const rotuloBusca = naFila ? 'Na fila' : (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos') ? 'Atualizar' : 'Buscar processos';
+  const movimentosDo = (processoId: number) => movimentos.filter(m => m.processo_id === processoId).slice(0, 15);
 
   return (
     <ModalPortal>
@@ -264,6 +372,149 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                 </ul>
               </section>
             )}
+
+            {/* Processos no TRF3 (Fase 2) */}
+            <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4" aria-labelledby="radar-dossie-titulo">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 id="radar-dossie-titulo" className={secao}><Gavel size={12} aria-hidden="true" /> Processos no TRF3 (PJe)</h3>
+                  <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${DOSSIE_CLASSES[empresa.dossie_status]}`}>
+                    {DOSSIE_LABEL[empresa.dossie_status]}
+                  </span>
+                  {empresa.dossie_em && <span className="text-[11px] text-slate-600">em {formatDataHoraBr(empresa.dossie_em)}</span>}
+                </div>
+                <button type="button" onClick={buscarProcessos} disabled={naFila || prontoRecente || enfileirando}
+                  title={naFila ? 'Já está na fila do worker' : prontoRecente ? 'Dossiê atualizado há menos de 30 dias' : 'Coloca a empresa na fila do PJe com prioridade máxima'}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  {enfileirando ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Search size={13} aria-hidden="true" />}
+                  {rotuloBusca}
+                </button>
+              </div>
+
+              {leitura && (
+                <p className={`rounded-xl px-4 py-3 text-[12px] font-medium border ${
+                  empresa.qtd_embargos > 0 ? 'bg-blue-50 border-blue-200 text-blue-800'
+                    : empresa.qtd_execucoes > 0 ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'
+                }`}>
+                  {leitura}
+                </p>
+              )}
+
+              {processos === null ? (
+                <p className="text-sm text-slate-600"><Loader2 size={14} aria-hidden="true" className="inline animate-spin mr-1" /> Carregando processos...</p>
+              ) : processos.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  {empresa.dossie_status === 'nenhum' && 'Ainda não consultado. Use "Buscar processos" para colocar na fila do worker.'}
+                  {empresa.dossie_status === 'fila' && 'Na fila do worker do PJe. O resultado aparece aqui quando a consulta terminar.'}
+                  {empresa.dossie_status === 'erro' && 'A consulta falhou três vezes. Tente de novo com "Buscar processos".'}
+                  {empresa.dossie_status === 'sem_processos' && 'Nenhum processo das classes Execução Fiscal ou Embargos localizado.'}
+                  {empresa.dossie_status === 'pronto' && 'Nenhum processo gravado.'}
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 -mx-2">
+                  {processos.map(p => {
+                    const aberto = expandido === p.id;
+                    const movs = movimentosDo(p.id);
+                    return (
+                      <li key={p.id} className="px-2">
+                        <button type="button" onClick={() => setExpandido(aberto ? null : p.id)} aria-expanded={aberto}
+                          className="w-full text-left py-3 flex items-start gap-2 hover:bg-slate-50/70 rounded-lg transition-colors">
+                          <span className="mt-0.5 text-slate-500" aria-hidden="true">{aberto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+                          <span className="flex-1 min-w-0 space-y-1">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${
+                                p.classe_codigo === 1118 ? 'bg-areia-escura text-navy border-linha' : 'bg-white text-navy border-linha'
+                              }`}>{classeCurta(p.classe_codigo)}</span>
+                              <span className="font-mono text-[12px] font-bold text-navy">{p.numero_cnj}</span>
+                              <span role="presentation" onClick={ev => { ev.stopPropagation(); copiar(p.numero_cnj, 'Número'); }}
+                                className={botaoCopiar} title="Copiar número"><Copy size={12} aria-hidden="true" /></span>
+                              {p.data_distribuicao && <span className="text-[11px] text-slate-600">dist. {formatDataBr(p.data_distribuicao)}</span>}
+                            </span>
+                            {p.orgao_julgador && <span className="block text-[12px] text-slate-800 font-medium">{p.orgao_julgador}</span>}
+                            {p.assunto && <span className="block text-[11px] text-slate-600 line-clamp-2">{p.assunto}</span>}
+                            {p.ultima_movimentacao_texto && (
+                              <span className="block text-[11px] text-slate-700">
+                                <span className="font-bold">Última:</span> {p.ultima_movimentacao_texto}
+                                {p.ultima_movimentacao_em && <span className="text-slate-500"> ({formatDataHoraBr(p.ultima_movimentacao_em)})</span>}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                        {aberto && (
+                          <div className="ml-6 mb-3 rounded-xl bg-areia-clara border border-linha px-4 py-3 animate-in fade-in duration-200">
+                            {movs.length === 0 ? (
+                              <p className="text-[11px] text-slate-600">Sem movimentações gravadas (só os dados da listagem foram capturados).</p>
+                            ) : (
+                              <ol className="space-y-1.5">
+                                {movs.map(m => (
+                                  <li key={m.id} className="text-[11px] text-slate-800 flex gap-2">
+                                    <span className="tabular-nums text-slate-500 whitespace-nowrap">{formatDataHoraBr(m.ocorrido_em)}</span>
+                                    <span>{m.texto}</span>
+                                  </li>
+                                ))}
+                              </ol>
+                            )}
+                            {p.qtd_movimentacoes != null && p.qtd_movimentacoes > movs.length && (
+                              <p className="mt-2 text-[10px] text-slate-500">{p.qtd_movimentacoes} movimentações no PJe; as {movs.length} mais recentes estão aqui.</p>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {/* Advogados do executado */}
+              {advogados.length > 0 && (
+                <div className="pt-3 border-t border-slate-100">
+                  <h4 className={secao}><Scale size={12} aria-hidden="true" /> Advogados do executado ({advogados.length})</h4>
+                  <ul className="mt-2 space-y-1">
+                    {advogados.map(a => {
+                      const texto = a.oab ? `${a.nome} (OAB ${a.oab})` : a.nome;
+                      return (
+                        <li key={`${a.nome}|${a.oab}`} className="text-sm text-slate-800 flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{a.nome}</span>
+                          {a.oab && <span className="font-mono text-[11px] text-slate-600">OAB {a.oab}</span>}
+                          <span className="text-[11px] text-slate-500">{a.processos} processo{a.processos === 1 ? '' : 's'}</span>
+                          <button type="button" onClick={() => copiar(texto, 'Advogado')} aria-label={`Copiar ${texto}`} className={botaoCopiar}><Copy size={12} /></button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Garantia informada */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className={secao}><ShieldCheck size={12} aria-hidden="true" /> Garantia informada</h4>
+                <p className="text-[11px] text-slate-600 mt-1">Preencha depois de conversar com o advogado ou a empresa.</p>
+                <form onSubmit={e => { e.preventDefault(); salvarGarantia(); }} className="mt-2 grid grid-cols-1 md:grid-cols-[12rem_1fr_auto] gap-2 items-end">
+                  <div>
+                    <label htmlFor="radar-garantia" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Garantia</label>
+                    <select id="radar-garantia" value={garantia} onChange={e => setGarantia(e.target.value as GarantiaInformada | '')}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white cursor-pointer">
+                      <option value="">Selecione</option>
+                      {GARANTIA_OPCOES.map(o => <option key={o.valor} value={o.valor}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="radar-garantia-obs" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Observação</label>
+                    <input id="radar-garantia-obs" maxLength={300} value={garantiaObs} onChange={e => setGarantiaObs(e.target.value)}
+                      placeholder="Ex.: seguro da Junto vence em 03/2027"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white" />
+                  </div>
+                  <button type="submit" disabled={salvandoGarantia || !garantia}
+                    className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-light text-areia border border-gold/35 text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    {salvandoGarantia ? <Loader2 size={14} className="animate-spin" aria-label="Salvando" /> : 'Salvar'}
+                  </button>
+                </form>
+                {empresa.garantia_informada_em && (
+                  <p className="text-[10px] text-slate-500 mt-1">Informada em {formatDataHoraBr(empresa.garantia_informada_em)}.</p>
+                )}
+              </div>
+            </section>
 
             {/* Inscrições */}
             <section className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
