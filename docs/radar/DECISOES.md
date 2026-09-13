@@ -257,3 +257,13 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     apóstrofo (LARRU'S → LARRUS). A Larru's devolveu zero nas cinco
     variantes em 13/09/2026: ficou `sem_processos` (sem gabarito para
     conferir; pode ser autuação anterior a 2021 ou nome diferente no PJe).
+65. **Sem processo desde 2021, a busca é repetida sem filtro de data.** Se
+    nenhuma variante do nome devolver linha das classes 1116/1118 com
+    autuação a partir de 01/01/2021, o worker repete a busca com os campos de
+    data em branco, começando pela "melhor" variante (a primeira que devolveu
+    algum resultado de qualquer classe; se nenhuma devolveu, na ordem normal)
+    e parando na primeira que traz resultado. Acima de 30 resultados, quebra
+    por ano de 2010 até o ano atual. Tudo que for 1116/1118 é gravado; a
+    `data_distribuicao` continua vindo só do detalhe (real), nunca do número
+    CNJ, então processos antigos sem detalhe aberto ficam sem data. Pedido em
+    13/09/2026 depois da Larru's ficar `sem_processos`.

@@ -59,6 +59,9 @@ BLOQUEIOS_MAX_DIA = 3
 MAX_TENTATIVAS_EMPRESA = 3
 DATA_AUTUACAO_DE = "01/01/2021"
 ANO_INICIAL = 2021
+# sem nada desde 2021, a busca é repetida sem filtro de data; acima de 30
+# resultados, quebra por ano a partir daqui
+ANO_INICIAL_SEM_FILTRO = 2010
 
 RAIZ = Path(__file__).resolve().parents[2]
 PASTA_DADOS = RAIZ / "data" / "radar"
@@ -339,7 +342,8 @@ class ConsultaPje:
         if atual != valor:
             self.page.locator(f'[id="{id_input}"]').fill(valor)
 
-    def preencher(self, nome: str, data_de: str, data_ate: str | None = None) -> None:
+    def preencher(self, nome: str, data_de: str | None, data_ate: str | None = None) -> None:
+        """data_de None = sem filtro de data (os campos ficam em branco)."""
         id_nome = self._id_input("nomeParte")
         if id_nome:
             campo = self.page.locator(f'[id="{id_nome}"]')
@@ -355,7 +359,8 @@ class ConsultaPje:
         id_ate = self._id_input("autuacaoFimInputDate$")
         if not id_de:
             raise RuntimeError("campo Data de Autuação não encontrado")
-        self._preencher_por_valor(id_de, data_de)
+        if data_de:
+            self._preencher_por_valor(id_de, data_de)
         if data_ate:
             if not id_ate:
                 raise RuntimeError("campo Data de Autuação (até) não encontrado")
@@ -700,29 +705,52 @@ def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: b
 
     log(f"-> {cnpj} {emp.get('razao_social') or emp['nome_devedor']}")
     encontrados: dict[str, dict] = {}
-    nome = candidatos[0]
-    for nome in candidatos:
-        log(f"   busca: \"{nome}\"")
-        consulta.abrir()
-        consulta.preencher(nome, DATA_AUTUACAO_DE)
-        total = consulta.pesquisar()
-        brutas = consulta.linhas()
-        log(f"   {total if total is not None else 0} resultados, {len(brutas)} das classes 1116/1118")
-        if total or brutas:
-            for l in brutas:
-                encontrados[l["numero_cnj"]] = l
-            break
 
-    if consulta.aviso_30() or (consulta.total_resultados() or 0) > 30:
-        log(f"   mais de 30 resultados: repetindo por ano de {ANO_INICIAL} a {agora().year}")
-        for ano in range(ANO_INICIAL, agora().year + 1):
-            consulta.abrir()
-            consulta.preencher(nome, f"01/01/{ano}", f"31/12/{ano}")
-            consulta.pesquisar()
-            for l in consulta.linhas():
+    def buscar(n: str, de: str | None, ate: str | None = None) -> tuple[int, list[dict]]:
+        periodo = f"{de or 'sem data'}{(' a ' + ate) if ate else ''}"
+        log(f"   busca: \"{n}\" ({periodo})")
+        consulta.abrir()
+        consulta.preencher(n, de, ate)
+        total = consulta.pesquisar() or 0
+        brutas = consulta.linhas()
+        log(f"   {total} resultados, {len(brutas)} das classes 1116/1118")
+        return total, brutas
+
+    def por_ano(n: str, ano_inicial: int) -> None:
+        log(f"   mais de 30 resultados: repetindo por ano de {ano_inicial} a {agora().year}")
+        for ano in range(ano_inicial, agora().year + 1):
+            _, brutas = buscar(n, f"01/01/{ano}", f"31/12/{ano}")
+            for l in brutas:
                 encontrados[l["numero_cnj"]] = l
             if consulta.aviso_30():
                 log(f"   ano {ano} ainda com mais de 30 resultados; ficam os 30 primeiros")
+
+    # 1) autuação desde 2021, uma variante do nome por vez
+    nome = candidatos[0]
+    melhor = None  # primeira variante que devolveu algum resultado, de qualquer classe
+    for nome in candidatos:
+        total, brutas = buscar(nome, DATA_AUTUACAO_DE)
+        if total and melhor is None:
+            melhor = nome
+        if brutas:
+            for l in brutas:
+                encontrados[l["numero_cnj"]] = l
+            break
+    if encontrados and (consulta.aviso_30() or (consulta.total_resultados() or 0) > 30):
+        por_ano(nome, ANO_INICIAL)
+
+    # 2) nada das classes desde 2021: repete sem filtro de data (decisão 65)
+    if not encontrados:
+        log("   nenhum processo 1116/1118 desde 2021: repetindo sem filtro de data")
+        ordem = ([melhor] if melhor else []) + [c for c in candidatos if c != melhor]
+        for nome in ordem:
+            total, brutas = buscar(nome, None)
+            for l in brutas:
+                encontrados[l["numero_cnj"]] = l
+            if total or brutas:
+                if consulta.aviso_30() or total > 30:
+                    por_ano(nome, ANO_INICIAL_SEM_FILTRO)
+                break
 
     linhas = list(encontrados.values())
     log(f"   listagem: {len(linhas)} processos das classes 1116/1118")
