@@ -135,13 +135,20 @@ def nomes_de_busca(razao_social: str | None, nome_devedor: str) -> list[str]:
     nome exato (verificado em 13/09/2026: sem o "LTDA" a Convenção devolve zero),
     então o primeiro candidato é a razão social como está; depois o nome da PGFN;
     por último a forma sem pontuação e sem sufixo, prevista na especificação."""
-    candidatos = []
-    for n in ((razao_social or "").strip(), (nome_devedor or "").strip()):
+    candidatos: list[str] = []
+
+    def add(n: str | None) -> None:
+        n = re.sub(r"\s+", " ", (n or "")).strip()
         if n and n.upper() not in [c.upper() for c in candidatos]:
             candidatos.append(n)
-    tolerante = nome_de_busca(razao_social, nome_devedor)
-    if tolerante and tolerante.upper() not in [c.upper() for c in candidatos]:
-        candidatos.append(tolerante)
+
+    for n in (razao_social, nome_devedor):
+        add(n)
+        # "LTDA." vs "LTDA": o ponto final muda o resultado numa busca exata
+        add(re.sub(r"[.\s]+$", "", n or ""))
+        # sem o apóstrofo (LARRU'S -> LARRUS) e com apóstrofo curvo
+        add(re.sub(r"[.\s]+$", "", (n or "").replace("'", "")))
+    add(nome_de_busca(razao_social, nome_devedor))
     return candidatos
 
 

@@ -252,3 +252,8 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
 63. **Perfil do navegador** em `data/radar/pje-profile/` (git-ignorado junto
     com `data/`). `--headless` usa o modo headless novo do Chrome; o padrão
     abre janela, como a especificação pediu.
+64. **Variantes do nome na busca exata.** Como a busca é exata, o worker
+    tenta também cada nome sem o ponto final ("LTDA." → "LTDA") e sem o
+    apóstrofo (LARRU'S → LARRUS). A Larru's devolveu zero nas cinco
+    variantes em 13/09/2026: ficou `sem_processos` (sem gabarito para
+    conferir; pode ser autuação anterior a 2021 ou nome diferente no PJe).
