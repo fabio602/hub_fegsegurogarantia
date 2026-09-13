@@ -279,3 +279,11 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     continua no detalhe. Como a quebra por ano deixa na tela só a listagem do
     último ano, o worker refaz a listagem de origem antes de abrir o detalhe
     de um processo que não está na tela (agrupando os detalhes por listagem).
+67. **O launchd roda o worker com janela, não headless.** Ao instalar o
+    LaunchAgent (13/09/2026, 19h20) o Chrome headless recebeu
+    `net::ERR_HTTP2_PROTOCOL_ERROR` do PJe em todas as tentativas, e um teste
+    direto confirmou: headless falha, com janela abre. É o Akamai barrando a
+    assinatura do Chrome headless. O plist ficou sem `--headless`; a flag
+    continua no worker para testes, mas não funciona contra o PJe hoje. Como
+    o LaunchAgent roda na sessão gráfica do usuário, a janela do Chrome abre
+    no Mac (e some quando a empresa termina, porque o contexto é fechado).

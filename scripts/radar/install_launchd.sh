@@ -43,7 +43,7 @@ fi
 
 echo "Repositório: $RAIZ"
 echo "Plist:       $DESTINO"
-echo "Comando:     $RAIZ/.venv/bin/python $RAIZ/scripts/radar/pje_worker.py --headless"
+echo "Comando:     $RAIZ/.venv/bin/python $RAIZ/scripts/radar/pje_worker.py (com janela; o PJe rejeita headless)"
 echo "Logs:        $RAIZ/data/radar/launchd.out.log e launchd.err.log (worker: data/radar/pje_worker.log)"
 
 run mkdir -p "$RAIZ/data/radar" "$HOME/Library/LaunchAgents"

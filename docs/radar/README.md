@@ -262,8 +262,11 @@ conta tentativa: na 3ª a fila fica `erro` e a empresa `dossie_status = 'erro'`.
 .venv/bin/pip install -r scripts/radar/requirements.txt   # playwright entrou aqui
 .venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710              # uma empresa, com janela
 .venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710 --detalhes 30 # abrindo todos os detalhes
-.venv/bin/python scripts/radar/pje_worker.py --headless                          # fila inteira, sem janela
+.venv/bin/python scripts/radar/pje_worker.py                                     # fila inteira, com janela
 ```
+
+`--headless` existe, mas o PJe responde `ERR_HTTP2_PROTOCOL_ERROR` ao Chrome
+headless (decisão 67); use com janela.
 
 O worker usa o Google Chrome instalado no Mac (`channel="chrome"`) com perfil
 persistente em `data/radar/pje-profile/` (cookies mantidos entre execuções).
@@ -281,7 +284,8 @@ scripts/radar/install_launchd.sh --unload    # parar (launchctl unload) e remove
 ```
 
 O plist (`com.fg.radar-pje`) tem `KeepAlive` e `RunAtLoad`: o worker sobe no
-login e volta sozinho se cair. Saída e erro do processo ficam em
+login e volta sozinho se cair. Roda com janela (o PJe rejeita headless): a
+janela do Chrome aparece enquanto uma empresa está sendo consultada. Saída e erro do processo ficam em
 `data/radar/launchd.out.log` e `launchd.err.log`. O modelo em
 `scripts/radar/com.fg.radar-pje.plist` usa `__RAIZ__` no lugar da pasta do
 repositório; se o repo mudar de pasta, rode o install de novo.

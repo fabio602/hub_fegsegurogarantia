@@ -16,8 +16,10 @@
   <array>
     <string>__RAIZ__/.venv/bin/python</string>
     <string>__RAIZ__/scripts/radar/pje_worker.py</string>
-    <string>--headless</string>
   </array>
+  <!-- sem --headless: o PJe (Akamai) responde ERR_HTTP2_PROTOCOL_ERROR ao Chrome
+       headless e aceita o Chrome com janela (decisão 67). O LaunchAgent roda na
+       sessão gráfica do usuário, então a janela abre normalmente. -->
 
   <key>WorkingDirectory</key>
   <string>__RAIZ__</string>
