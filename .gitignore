@@ -41,3 +41,6 @@ data/pgfn/
 
 # Python
 __pycache__/
+
+# Claude Code: overrides pessoais
+.claude/settings.local.json
