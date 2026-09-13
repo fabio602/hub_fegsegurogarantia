@@ -1,4 +1,4 @@
-# Radar · Fase 1
+# Radar
 
 Módulo do Hub que transforma a base pública de devedores da PGFN em uma lista
 de indústrias com dívida federal ajuizada, enriquecida com o cadastro da
@@ -8,8 +8,10 @@ A ideia: empresa com PIS, COFINS ou IPI ajuizado precisa garantir a execução
 fiscal (penhora, depósito ou seguro garantia judicial). É prospecção de seguro
 garantia judicial com o gatilho certo.
 
-Especificação completa: [RADAR-FASE1.md](RADAR-FASE1.md). Decisões tomadas
-durante a implementação: [DECISOES.md](DECISOES.md).
+Especificações: [RADAR-FASE1.md](RADAR-FASE1.md) (PGFN) e
+[RADAR-FASE2.md](RADAR-FASE2.md) (PJe TRF3). Decisões tomadas durante a
+implementação: [DECISOES.md](DECISOES.md). Aceite: [ACEITE-FASE1.md](ACEITE-FASE1.md)
+e [ACEITE-FASE2.md](ACEITE-FASE2.md).
 
 ## Peças
 
@@ -19,6 +21,9 @@ durante a implementação: [DECISOES.md](DECISOES.md).
 | Script de ingestão | `scripts/radar/pgfn_ingest.py` | Lê os CSVs da PGFN, filtra, grava as inscrições e consolida por CNPJ |
 | Edge Function | `supabase/functions/radar-enrich-cnpj` | Enriquece as empresas pela BrasilAPI, de hora em hora |
 | Tela | `src/views/Radar/` | View `radar` do Hub (menu Seguro Garantia > Prospecção > Radar) |
+| Migração 079 (Fase 2) | `supabase/079_radar_fase2_pje.sql` | Fila do PJe, processos, movimentações, advogados, `vw_radar_advogados`, dossiê e score v3 |
+| Worker do PJe (Fase 2) | `scripts/radar/pje_worker.py` | Chrome real via Playwright consultando o PJe TRF3 em ritmo humano |
+| launchd (Fase 2) | `scripts/radar/com.fg.radar-pje.plist`, `install_launchd.sh` | Mantém o worker rodando no Mac |
 
 ## 1. Baixar a base da PGFN
 
@@ -131,8 +136,8 @@ cron ligado.
 
 ## 4. Score
 
-`radar_calcular_score(cnpj)` devolve um inteiro de 0 a 100 (versão 2, migração 077,
-recalibrada com a base real de 06/2026):
+`radar_calcular_score(cnpj)` devolve um inteiro de 0 a 100 (versão 3: migração 077
+recalibrada com a base real de 06/2026, mais o critério da Fase 2 na 079):
 
 | Critério | Pontos |
 | --- | --- |
@@ -150,6 +155,7 @@ recalibrada com a base real de 06/2026):
 | Porte DEMAIS | +5 |
 | E-mail preenchido | +5 |
 | Telefone preenchido | +5 |
+| Embargos à execução fiscal localizados no PJe (Fase 2) | +10 |
 
 Empresa com status `excluido` fica com score 0. O score é recalculado na
 consolidação, no enriquecimento e quando o status muda na tela.
@@ -176,10 +182,134 @@ telefone (com botão copiar) e as inscrições. Ações:
 Status na tela: novo em azul, no Kanban em verde (emerald), descartado em
 âmbar, excluído em cinza.
 
+## 6. Fase 2 · dossiê judicial (PJe TRF3)
+
+Para cada empresa do Radar com garantia, um worker no Mac localiza as
+execuções fiscais (classe 1116) e os embargos à execução fiscal (1118) na
+consulta pública do PJe TRF3 1º grau e grava vara, advogados e as 15
+movimentações mais recentes. O drawer da empresa mostra tudo isso na seção
+"Processos no TRF3", com uma leitura automática em uma frase e o campo
+"Garantia informada" para anotar o que o advogado ou a empresa disser.
+
+### Fluxo
+
+1. `radar_enfileirar_dossies()` (cron `radar-fila-daily`, 06h de Brasília)
+   coloca em `radar_pje_fila` toda empresa `novo`, com garantia e sem dossiê,
+   com prioridade igual ao score. O botão "Buscar processos" do drawer
+   enfileira com prioridade 100.
+2. O worker pega a próxima da fila (prioridade maior, mais antiga primeiro),
+   abre a consulta pública com um Chrome real, preenche "Nome da parte" com a
+   razão social exata e "Data de Autuação" a partir de 01/01/2021, pesquisa e
+   fica só com as linhas das duas classes. Se o PJe avisar que há mais de 30
+   resultados, repete a pesquisa ano a ano.
+3. Grava todos os processos da listagem em `radar_processos` (número CNJ,
+   classe, assunto, partes, última movimentação) e abre o detalhe dos 8 mais
+   recentes, em popup, clicando em "Ver Detalhes": vara, jurisdição, data de
+   distribuição, polos, advogados (`radar_processo_advogados`) e as 15
+   movimentações da primeira página (`radar_processo_movimentos`). Confere os
+   3 primeiros dígitos do CNPJ mascarado; homônimo é apagado e vai para o log.
+4. `radar_consolidar_dossie(cnpj)` recalcula `qtd_execucoes`, `qtd_embargos`,
+   `dossie_status` (`pronto` ou `sem_processos`), `dossie_em` e o score
+   (embargos localizados valem +10).
+
+### Fatos verificados sobre o PJe TRF3 (13/09/2026)
+
+- URL: `https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam`. Sem
+  login e sem captcha (o hCaptcha existe na página, mas está desligado).
+- Campos: `fPP:dnp:nomeParte` (nome exato da parte), `fPP:dataAutuacaoDecoration:
+  dataAutuacaoInicioInputDate` e `...FimInputDate` (dd/mm/aaaa, preencher pelo
+  valor do input), botão `fPP:searchProcessos`. Não mexer nos hidden
+  `...InputCurrentDate` do calendário: zerá-los faz o servidor ignorar o
+  formulário e devolver a base inteira.
+- Resultado: tabela `fPP:processosTable`, uma linha por processo, com classe,
+  "ExFis 5002050-64.2023.4.03.6182 - PIS", partes "A X B" e última
+  movimentação "(dd/mm/aaaa hh:mm:ss)". Rodapé "N resultados encontrados".
+  Teto de 30 linhas; acima disso aparece o aviso "somente os 30 primeiros".
+- "Ver Detalhes" abre um popup (`openPopUp(...)`); o worker captura o popup
+  com `expect_popup` e nunca navega direto para a URL do detalhe.
+- Detalhe: "Número Processo", "Data da Distribuição", "Classe Judicial
+  (1116)", "Assunto", "Jurisdição", "Órgão Julgador", "Polo ativo", "Polo
+  Passivo" (participante " - CNPJ: 56.1XX.XXX/XXXX-XX (EXECUTADO)", advogado
+  " - OAB SP182592 - CPF: ... (ADVOGADO)"), "Movimentações do Processo"
+  (15 por página, "dd/mm/aaaa hh:mm:ss - texto", linha de Documento indentada
+  por tabulação) e "Documentos juntados ao processo" (ignorado). Nos embargos a
+  empresa é EMBARGANTE no polo ativo; o worker grava os lados em relação à
+  empresa.
+
+### Ritmo e bloqueio (Akamai)
+
+O PJe fica atrás do Akamai: cerca de 10 requisições em sequência rápida
+(menos de 2 s) geram "Access Denied" (`errors.edgesuite.net`), bloqueio
+temporário por IP. Por isso o worker, configurado no topo de
+`scripts/radar/pje_worker.py`:
+
+| Parâmetro | Valor |
+| --- | --- |
+| Janela de trabalho | 07h às 23h (hora do Mac) |
+| Intervalo entre empresas | 5 min ± 60 s |
+| Intervalo entre requisições (pesquisa, cada detalhe, cada ano) | 20 s ± 8 s |
+| Detalhes abertos por empresa | 8 (os mais recentes) |
+| Teto diário | 60 empresas |
+| Bloqueio | empresa vira `bloqueado`, worker dorme 60 min e tenta a mesma empresa; no 3º bloqueio do dia para até a próxima janela |
+
+Uma empresa com 8 detalhes leva uns 5 minutos; com o intervalo entre
+empresas, o teto de 60 por dia cabe na janela. Erro inesperado (não bloqueio)
+conta tentativa: na 3ª a fila fica `erro` e a empresa `dossie_status = 'erro'`.
+
+### Rodar o worker
+
+```bash
+.venv/bin/pip install -r scripts/radar/requirements.txt   # playwright entrou aqui
+.venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710              # uma empresa, com janela
+.venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710 --detalhes 30 # abrindo todos os detalhes
+.venv/bin/python scripts/radar/pje_worker.py --headless                          # fila inteira, sem janela
+```
+
+O worker usa o Google Chrome instalado no Mac (`channel="chrome"`) com perfil
+persistente em `data/radar/pje-profile/` (cookies mantidos entre execuções).
+`--debug` salva o HTML e o texto de cada página em `data/radar/debug/`. Log:
+`data/radar/pje_worker.log`, uma linha por empresa (processos, detalhes,
+homônimos, tempo) e uma por bloqueio.
+
+### Deixar rodando (launchd)
+
+```bash
+scripts/radar/install_launchd.sh --dry-run   # mostra o que faria
+scripts/radar/install_launchd.sh             # copia o plist para ~/Library/LaunchAgents e carrega
+tail -f data/radar/pje_worker.log            # acompanhar
+scripts/radar/install_launchd.sh --unload    # parar (launchctl unload) e remover
+```
+
+O plist (`com.fg.radar-pje`) tem `KeepAlive` e `RunAtLoad`: o worker sobe no
+login e volta sozinho se cair. Saída e erro do processo ficam em
+`data/radar/launchd.out.log` e `launchd.err.log`. O modelo em
+`scripts/radar/com.fg.radar-pje.plist` usa `__RAIZ__` no lugar da pasta do
+repositório; se o repo mudar de pasta, rode o install de novo.
+
+### Se o bloqueio virar frequente
+
+Bloqueio é por IP. Se o log mostrar `!! BLOQUEIO` todo dia, mova o worker
+para outra máquina ou outra rede: copie a pasta do repositório (ou só
+`scripts/radar/`, `requirements.txt` e a venv recriada), o `.env` da raiz e a
+pasta `data/radar/pje-profile/` (o perfil do navegador, com os cookies do
+Akamai) e instale o launchd lá. Antes disso, aumentar
+`INTERVALO_ENTRE_REQUISICOES_S` no topo do worker costuma bastar.
+
+### Tela
+
+- Drawer: seção "Processos no TRF3" com badge do dossiê, data, botão "Buscar
+  processos"/"Atualizar", leitura automática, lista de processos (clicar
+  expande as movimentações), "Advogados do executado" (deduplicados, com
+  contagem e botão copiar) e "Garantia informada" (select + observação).
+- Tabela: coluna "Dossiê" (execuções/embargos quando pronto) e filtro "Dossiê"
+  (todos, pronto, com embargos, na fila, sem processos).
+- "Enviar ao Kanban" acrescenta "Execuções fiscais: N, Embargos: M" e
+  "Advogados: nome (OAB), ..." à observação do lead.
+- Menu Prospecção > "Radar · Advogados": `vw_radar_advogados`, os escritórios
+  que mais defendem executados fiscais (canal de parceria).
+
 ## Roadmap
 
-- **Fase 2 · descoberta do processo (PJe)**: para cada empresa, achar a
-  execução fiscal correspondente e o momento da citação, quando a garantia
-  precisa ser apresentada.
 - **Fase 3 · monitoramento (Datajud)**: acompanhar as movimentações dos
   processos encontrados e avisar quando surgir a janela do seguro garantia.
+  Não começou.
