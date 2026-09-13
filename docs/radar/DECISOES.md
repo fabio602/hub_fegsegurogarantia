@@ -173,3 +173,109 @@ jeito que não batia com o repositório) e como foram resolvidos. Data: 12/09/20
     `excluido / recuperacao_judicial`, na consolidação, na Edge Function e no
     `enrich_local.py` (checagem antes das outras exclusões). Quem já foi ao
     Kanban ou foi descartado não muda. Aplicada na base de 202606 em 12/09/2026.
+
+## Fase 2 · dossiê judicial via PJe TRF3 (13/09/2026)
+
+Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
+`supabase/079_radar_fase2_pje.sql`, worker `scripts/radar/pje_worker.py`.
+
+47. **Runtime do worker: Python, na venv do Radar.** A regra 6 mandava usar
+    "a mesma instalação de Playwright do scraper do PNCP", mas o repo não
+    tinha Playwright nenhum: o scraper do PNCP é uma Edge Function em Deno
+    que usa `fetch`. Os scripts locais do Radar já são Python na `.venv/`,
+    então o worker é Python (`playwright` entrou no `requirements.txt`).
+    Usa o Google Chrome instalado no Mac (`channel="chrome"`), sem baixar
+    navegador do Playwright.
+48. **Busca por nome é exata.** O campo "Nome da parte" do PJe TRF3 só
+    devolve resultado com o nome completo: a forma tolerante da especificação
+    (sem pontuação e sem LTDA) devolveu zero para a Convenção. O worker tenta,
+    nesta ordem, a razão social como está, o nome da PGFN e por último a forma
+    tolerante, parando na primeira que devolve algo. Apóstrofo fica no nome
+    (LARRU'S).
+49. **Só o input visível da data pode ser preenchido.** O calendário do
+    RichFaces tem um hidden `...InputCurrentDate` ("mm/aaaa") ao lado de
+    `...InputDate`; o primeiro rascunho do worker zerava esse hidden ao tentar
+    limpar "Até" e o servidor passou a ignorar o formulário inteiro (17,7
+    milhões de resultados). O worker agora só toca `dataAutuacaoInicioInputDate`
+    e `dataAutuacaoFimInputDate`, e trata pesquisa com mais de 500 resultados
+    como erro ("critério não aplicado"), para nunca gravar processos de outra
+    empresa.
+50. **Espera do resultado.** O botão Pesquisar chama `executarReCaptcha()`
+    (o hCaptcha está desligado no código da página) e um `a4j:jsFunction`;
+    o worker espera a resposta do POST e o indicador `_viewRoot:status` sumir
+    antes de ler a tabela.
+51. **Recência pelo número CNJ.** A listagem não mostra a data de autuação;
+    "os 8 mais recentes" são ordenados pelo ano e pelo sequencial do próprio
+    número (NNNNNNN-DD.AAAA), que é a ordem de autuação.
+52. **Embargos invertem os polos.** Nos embargos a empresa é EMBARGANTE e
+    aparece no "Polo ativo" da página, com seus advogados. O worker grava
+    `polo` em relação à empresa: `passivo` = lado do executado (empresa e
+    seus advogados), `ativo` = lado da Fazenda. Assim `vw_radar_advogados`
+    (polo passivo) e o bloco "Advogados do executado" funcionam para as duas
+    classes. Na listagem, o `polo_passivo_nome` dos embargos é a parte antes
+    do "X".
+53. **Movimentações.** A coluna "Documento" vem como linha indentada por
+    tabulação logo abaixo do movimento, no mesmo formato de data; o parser
+    ignora linhas com tabulação. A primeira página traz até 15 movimentos e
+    `qtd_movimentacoes` vem do rodapé "N resultados encontrados" da seção.
+54. **`--detalhes N` no modo `--cnpj`.** O critério de aceite 2 pede os
+    advogados e as 15 movimentações do processo 5002050-64.2023, que não está
+    entre os 8 mais recentes da Convenção (há 5 de 2025/2026 e 4 de 2024). O
+    aceite rodou com `--detalhes 30` (abre todos); a fila continua com 8.
+55. **Homônimo só é conferível com detalhe aberto.** Processos gravados só
+    pela listagem não têm CNPJ; ficam. Nos detalhes, participante EXECUTADO
+    ou EMBARGANTE sem CNPJ (só CPF) também não descarta.
+56. **Ordenação secundária** da tabela é `dossie_em desc nulls last` depois
+    do score: pronto e sem_processos (que têm `dossie_em`) vêm antes de
+    nenhum e fila quando o score empata.
+57. **Botão "Buscar processos"** faz upsert em `radar_pje_fila` (prioridade
+    100, status pendente, tentativas 0) e marca `dossie_status = 'fila'`.
+    Fica desabilitado na fila e quando o dossiê tem menos de 30 dias; com mais
+    de 30 dias vira "Atualizar".
+58. **PostgREST do plano Free devolve 504 de vez em quando**; o worker
+    repete até 3 vezes (5, 15 e 30 s) em 5xx, 429, timeout ou erro de rede.
+59. **Teto diário** é contado por `finalizado_em` do dia em `radar_pje_fila`,
+    então sobrevive a reinício do worker. A empresa que estava `processando`
+    quando o worker caiu fica assim até alguém rodar `--cnpj` ou o botão da
+    tela (que recoloca em pendente).
+60. **Plist com `__RAIZ__`.** O repositório mudou de pasta durante a fase
+    (`Documents/fg-corretora-hub` → `Documents/FG/hub`); o plist modelo tem
+    `__RAIZ__` e o `install_launchd.sh` substitui pela pasta real na hora de
+    instalar. Mover o repo = reinstalar.
+61. **`radar_enfileirar_dossies()` marcou `fila` só em quem entrou** (a
+    inserção é `on conflict do nothing`). Na base real entraram 708 empresas
+    (a especificação estimava ~800).
+62. **Gabarito da Convenção mudou.** Em 13/09/2026 a busca devolve 22
+    resultados, 20 das classes 1116/1118: 12 execuções e 8 embargos (a
+    especificação dizia 13 e 7). Há uma execução nova de 04/09/2026
+    (5018946-80.2026). As contagens gravadas são as reais.
+63. **Perfil do navegador** em `data/radar/pje-profile/` (git-ignorado junto
+    com `data/`). `--headless` usa o modo headless novo do Chrome; o padrão
+    abre janela, como a especificação pediu.
+64. **Variantes do nome na busca exata.** Como a busca é exata, o worker
+    tenta também cada nome sem o ponto final ("LTDA." → "LTDA") e sem o
+    apóstrofo (LARRU'S → LARRUS). A Larru's devolveu zero nas cinco
+    variantes em 13/09/2026: ficou `sem_processos` (sem gabarito para
+    conferir; pode ser autuação anterior a 2021 ou nome diferente no PJe).
+65. **Sem processo desde 2021, a busca é repetida sem filtro de data.** Se
+    nenhuma variante do nome devolver linha das classes 1116/1118 com
+    autuação a partir de 01/01/2021, o worker repete a busca com os campos de
+    data em branco, começando pela "melhor" variante (a primeira que devolveu
+    algum resultado de qualquer classe; se nenhuma devolveu, na ordem normal)
+    e parando na primeira que traz resultado. Acima de 30 resultados, quebra
+    por ano de 2010 até o ano atual. Tudo que for 1116/1118 é gravado; a
+    `data_distribuicao` continua vindo só do detalhe (real), nunca do número
+    CNJ, então processos antigos sem detalhe aberto ficam sem data. Pedido em
+    13/09/2026 depois da Larru's ficar `sem_processos`.
+66. **Busca principal pelo CNPJ.** O índice de nome do PJe não casa nomes
+    com apóstrofo: a Larru's ("LARRU'S INDUSTRIA E COMERCIO DE COSMETICOS
+    LTDA.") devolveu zero por nome em todas as variantes, com e sem data, mas
+    pelo campo CPF/CNPJ (radio CNPJ + `fPP:dpDec:documentoParte`, só dígitos
+    digitados tecla a tecla; a máscara é do formulário) apareceram 30
+    resultados, 11 execuções fiscais. Desde 13/09/2026 o worker busca pelo
+    CNPJ (desde 2021; sem data se vier zero das classes; por ano acima de 30)
+    e só cai para o nome exato, com a mesma lógica, se o CNPJ não devolver
+    resultado nenhum. A conferência dos 3 primeiros dígitos do CNPJ mascarado
+    continua no detalhe. Como a quebra por ano deixa na tela só a listagem do
+    último ano, o worker refaz a listagem de origem antes de abrir o detalhe
+    de um processo que não está na tela (agrupando os detalhes por listagem).

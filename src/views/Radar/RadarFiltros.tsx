@@ -1,8 +1,8 @@
 import React from 'react';
 import { Search, ShieldCheck, RotateCcw } from 'lucide-react';
 import {
-  FILTROS_INICIAIS, RECEITAS, STATUS_FILTRAVEIS, STATUS_LABEL, UFS,
-  type RadarFiltros as Filtros, type RadarStatus,
+  DOSSIE_FILTRO_LABEL, FILTROS_INICIAIS, RECEITAS, STATUS_FILTRAVEIS, STATUS_LABEL, UFS,
+  type DossieFiltro, type RadarFiltros as Filtros, type RadarStatus,
 } from './radarTipos.ts';
 
 interface Props {
@@ -103,6 +103,16 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
               {r}
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="radar-dossie" className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Dossiê</label>
+          <select id="radar-dossie" value={filtros.dossie} onChange={e => set('dossie', e.target.value as DossieFiltro)}
+            className={`${campo} py-1.5 text-[11px] font-bold cursor-pointer`}>
+            {(Object.keys(DOSSIE_FILTRO_LABEL) as DossieFiltro[]).map(d => (
+              <option key={d || 'todos'} value={d}>{DOSSIE_FILTRO_LABEL[d]}</option>
+            ))}
+          </select>
         </div>
 
         <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer select-none">

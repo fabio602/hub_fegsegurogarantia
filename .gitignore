@@ -36,6 +36,7 @@ previas/
 
 # Radar (módulo PGFN): CSVs baixados manualmente, segredos do script e venv do Python
 data/pgfn/
+data/radar/
 .env
 .venv/
 

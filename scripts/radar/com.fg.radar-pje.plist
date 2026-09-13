@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Radar · Fase 2 · worker do PJe TRF3 como LaunchAgent do macOS.
+
+  Os caminhos __RAIZ__ são substituídos por scripts/radar/install_launchd.sh
+  pela pasta real do repositório na hora de instalar. Não edite à mão a cópia
+  em ~/Library/LaunchAgents; reinstale.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fg.radar-pje</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__RAIZ__/.venv/bin/python</string>
+    <string>__RAIZ__/scripts/radar/pje_worker.py</string>
+    <string>--headless</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__RAIZ__</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>LANG</key>
+    <string>pt_BR.UTF-8</string>
+  </dict>
+
+  <!-- mantém o worker vivo: se cair, o launchd sobe de novo -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
+  <key>StandardOutPath</key>
+  <string>__RAIZ__/data/radar/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__RAIZ__/data/radar/launchd.err.log</string>
+</dict>
+</plist>
