@@ -7,7 +7,7 @@ import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
 import {
   DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, alertaSemAdvogado, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
-  formatDataBr, formatDataHoraBr, formatTelefone, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo,
+  emailEfetivo, formatDataBr, formatDataHoraBr, formatTelefone, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo, telefoneEfetivo,
   type GarantiaInformada, type RadarAdvogadoProcesso, type RadarEmpresa, type RadarInscricao, type RadarMovimento, type RadarProcesso,
 } from './radarTipos.ts';
 
@@ -257,8 +257,8 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
         name: socio || nomeEmpresa,
         company: nomeEmpresa,
         cnpj: formatCnpj(empresa.cnpj),
-        email: empresa.email,
-        phonenumber: empresa.telefone,
+        email: emailEfetivo(empresa),
+        phonenumber: telefoneEfetivo(empresa),
         city: empresa.municipio,
         state: empresa.uf,
         status: 'Novos Leads',
