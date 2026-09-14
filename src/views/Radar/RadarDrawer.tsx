@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck } from 'lucide-react';
+import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck, CircleAlert } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import ModalPortal from '../../../components/ModalPortal.tsx';
 import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
 import {
-  DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
+  DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, alertaSemAdvogado, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
   formatDataBr, formatDataHoraBr, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo,
   type GarantiaInformada, type RadarAdvogadoProcesso, type RadarEmpresa, type RadarInscricao, type RadarMovimento, type RadarProcesso,
 } from './radarTipos.ts';
@@ -395,6 +395,13 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                   {rotuloBusca}
                 </button>
               </div>
+
+              {alertaSemAdvogado(empresa.qtd_execucoes_sem_advogado) && (
+                <p role="alert" className="rounded-xl px-4 py-3 text-[12px] font-bold border bg-amber-50 border-amber-200 text-amber-800 flex items-start gap-2">
+                  <CircleAlert size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  <span>{alertaSemAdvogado(empresa.qtd_execucoes_sem_advogado)}</span>
+                </p>
+              )}
 
               {leitura && (
                 <p className={`rounded-xl px-4 py-3 text-[12px] font-medium border ${

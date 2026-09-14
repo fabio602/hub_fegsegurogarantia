@@ -37,10 +37,11 @@ export function StatusBadge({ status }: { status: RadarEmpresa['status'] }) {
  * Ícone do dossiê do PJe (Fase 2). Cores pelo mapa semântico: emerald pronto,
  * blue na fila, amber erro, cinza sem processos ou sem dossiê.
  */
-export function DossieIcone({ empresa }: { empresa: Pick<RadarEmpresa, 'dossie_status' | 'qtd_execucoes' | 'qtd_embargos'> }) {
+export function DossieIcone({ empresa }: { empresa: Pick<RadarEmpresa, 'dossie_status' | 'qtd_execucoes' | 'qtd_embargos' | 'qtd_execucoes_sem_advogado'> }) {
   const s = empresa.dossie_status;
+  const semAdv = empresa.qtd_execucoes_sem_advogado ?? 0;
   const titulo = s === 'pronto'
-    ? `${DOSSIE_LABEL[s]}: ${empresa.qtd_execucoes} execução(ões), ${empresa.qtd_embargos} embargo(s)`
+    ? `${DOSSIE_LABEL[s]}: ${empresa.qtd_execucoes} execução(ões), ${empresa.qtd_embargos} embargo(s)${semAdv > 0 ? `, ${semAdv} sem advogado constituído` : ''}`
     : DOSSIE_LABEL[s];
   const base = 'inline-flex items-center gap-1 text-[11px] font-bold';
   if (s === 'pronto') {
@@ -48,6 +49,7 @@ export function DossieIcone({ empresa }: { empresa: Pick<RadarEmpresa, 'dossie_s
       <span className={`${base} text-emerald-700`} title={titulo} aria-label={titulo}>
         <Gavel size={13} aria-hidden="true" />
         <span className="tabular-nums">{empresa.qtd_execucoes}/{empresa.qtd_embargos}</span>
+        {semAdv > 0 && <CircleAlert size={13} aria-hidden="true" className="text-amber-700" />}
       </span>
     );
   }

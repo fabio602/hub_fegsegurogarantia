@@ -52,6 +52,8 @@ export interface RadarEmpresa {
   dossie_em: string | null;
   qtd_execucoes: number;
   qtd_embargos: number;
+  /** Execuções 1116 com detalhe capturado e nenhum advogado no polo passivo (migração 081). */
+  qtd_execucoes_sem_advogado: number;
   garantia_informada: GarantiaInformada | null;
   garantia_obs: string | null;
   garantia_informada_em: string | null;
@@ -97,7 +99,7 @@ export interface RadarAdvogadoResumo {
   empresas: number;
 }
 
-export type DossieFiltro = '' | 'pronto' | 'com_embargos' | 'fila' | 'sem_processos';
+export type DossieFiltro = '' | 'pronto' | 'com_embargos' | 'sem_advogado' | 'fila' | 'sem_processos';
 
 export interface RadarInscricao {
   id: number;
@@ -143,6 +145,7 @@ export const DOSSIE_FILTRO_LABEL: Record<DossieFiltro, string> = {
   '': 'Todos',
   pronto: 'Pronto',
   com_embargos: 'Com embargos',
+  sem_advogado: 'Sem advogado',
   fila: 'Na fila',
   sem_processos: 'Sem processos',
 };
@@ -197,6 +200,12 @@ export const leituraDossie = (e: Pick<RadarEmpresa, 'dossie_status' | 'qtd_execu
   }
   return null;
 };
+
+/** Alerta de execuções sem advogado constituído, em uma frase. */
+export const alertaSemAdvogado = (n: number | null | undefined): string | null =>
+  n && n > 0
+    ? `${n} ${n === 1 ? 'execução' : 'execuções'} sem advogado constituído: empresa ainda não se defendeu, risco imediato de bloqueio. Contato direto com a empresa.`
+    : null;
 
 /** Dossiê pronto há mais de 30 dias pode ser atualizado. */
 export const dossieAntigo = (dossieEm: string | null): boolean =>

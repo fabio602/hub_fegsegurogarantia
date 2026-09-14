@@ -332,3 +332,12 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     `src/views/Radar/radarRegioes.ts` com os nomes acentuados; a comparação
     normaliza. Escolher uma região define a UF e os chips; editar os chips faz
     o seletor mostrar "Seleção própria". Trocar a UF limpa os chips.
+72. **Execuções sem advogado constituído** (migração 081, 14/09/2026).
+    `qtd_execucoes_sem_advogado` conta execuções 1116 com detalhe capturado
+    (órgão julgador ou data de distribuição preenchidos; linha só da listagem
+    não tem polo) e nenhum advogado no polo passivo. Calculada em
+    `radar_consolidar_dossie` e recalculada na migração para os dossiês
+    prontos (22 prontos, 17 com pelo menos uma). Drawer mostra alerta em
+    amber, tabela põe o ícone de alerta na coluna Dossiê, filtro Dossiê ganha
+    "Sem advogado". Só vale para os processos com detalhe aberto (8 por
+    empresa na fila).

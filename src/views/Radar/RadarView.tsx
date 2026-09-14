@@ -101,6 +101,7 @@ export default function RadarView({ onAbrirKanban }: Props) {
     if (f.receitas.length > 0) q = q.overlaps('receitas_tipos', f.receitas);
     // Fase 2: dossiê do PJe
     if (f.dossie === 'com_embargos') q = q.gt('qtd_embargos', 0);
+    else if (f.dossie === 'sem_advogado') q = q.gt('qtd_execucoes_sem_advogado', 0);
     else if (f.dossie) q = q.eq('dossie_status', f.dossie);
     if (f.busca) {
       const digitos = f.busca.replace(/\D/g, '');
