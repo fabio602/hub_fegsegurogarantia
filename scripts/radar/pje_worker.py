@@ -73,6 +73,12 @@ PASTA_DEBUG = PASTA_DADOS / "debug"
 URL_CONSULTA = "https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam"
 VIEWPORT = {"width": 1366, "height": 800}
 JANELA_POSICAO = "-2400,-2400"   # fora da área visível; headless não passa pelo Akamai
+# Detalhe em aba nova do mesmo contexto (page.goto com Referer da listagem) em
+# vez do popup do "Ver Detalhes": não ativa o Chrome. Se algum detalhe vier
+# com Access Denied, o worker desliga isto em tempo de execução e volta ao
+# clique com popup pelo resto da sessão (decisão 70).
+ABRIR_DETALHE_EM_ABA = True
+URL_BASE = "https://pje1g.trf3.jus.br"
 LOCALE = "pt-BR"
 FUSO = "America/Sao_Paulo"
 TZ = ZoneInfo(FUSO)
@@ -434,8 +440,10 @@ class ConsultaPje:
                 const a = tr.querySelector('a[onclick*="openPopUp"]');
                 const onclick = a ? (a.getAttribute('onclick') || '') : '';
                 const m = onclick.match(/ca=([^'"&)]+)/);
+                const u = onclick.match(/openPopUp\\([^,]*,\\s*['"]([^'"]+)['"]/);
                 return {
                     token: m ? m[1] : null,
+                    url: u ? u[1] : null,
                     cells: Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()),
                 };
             })""")
@@ -474,7 +482,7 @@ class ConsultaPje:
                     ultima_data = d.group(1) if d else None
             saida.append({
                 "numero_cnj": numero, "classe_codigo": classe[0], "classe_nome": classe[1],
-                "assunto": assunto, "partes": partes, "token": b["token"],
+                "assunto": assunto, "partes": partes, "token": b["token"], "url": b["url"],
                 "ultima_movimentacao_texto": ultima_texto, "ultima_movimentacao_data": ultima_data,
                 "ultima_movimentacao_hora": ultima_hora,
             })
@@ -482,9 +490,42 @@ class ConsultaPje:
 
     # --- detalhe ------------------------------------------------------------
 
-    def abrir_detalhe(self, token: str, numero: str) -> str:
-        """Clica em Ver Detalhes, captura o popup e devolve o texto da página."""
+    def abrir_detalhe(self, token: str, numero: str, url: str | None = None) -> str:
+        """Abre o detalhe do processo e devolve o texto da página.
+        Com ABRIR_DETALHE_EM_ABA ligado: aba nova do mesmo contexto, page.goto na
+        URL do onclick com Referer da listagem. Senão: clica em Ver Detalhes e
+        captura o popup. Nunca usa fetch."""
+        global ABRIR_DETALHE_EM_ABA
         pausa_requisicao(f"detalhe {numero}")
+        if ABRIR_DETALHE_EM_ABA and url:
+            paginas = self.page.context.pages
+            aba = next((p for p in paginas if p is not self.page and not p.is_closed()), None)
+            if aba is None:
+                aba = self.page.context.new_page()
+                esconder_navegador(self.app_anterior)
+            try:
+                aba.goto(URL_BASE + url if url.startswith("/") else url, referer=self.page.url,
+                         wait_until="domcontentloaded", timeout=60_000)
+                try:
+                    aba.wait_for_load_state("networkidle", timeout=30_000)
+                except PwTimeout:
+                    pass
+                verificar_bloqueio(aba)
+                return self._ler_detalhe(aba, numero)
+            except Bloqueado:
+                ABRIR_DETALHE_EM_ABA = False
+                log(f"!! detalhe em aba respondeu Access Denied ({numero}): voltando ao clique com popup "
+                    "pelo resto da sessão")
+                # o bloqueio pode ser da sessão inteira; se a listagem também estiver barrada, propaga
+                verificar_bloqueio(self.page)
+                pausa_requisicao(f"detalhe {numero} (popup)")
+            finally:
+                # a aba fica aberta (fechar traria o Chrome para a frente); só limpa o conteúdo
+                try:
+                    aba.goto("about:blank", timeout=10_000)
+                except Exception:
+                    pass
+
         link = self.page.locator(f'a[onclick*="{token}"]').first
         with self.page.expect_popup(timeout=60_000) as info:
             link.click()
@@ -497,23 +538,26 @@ class ConsultaPje:
             except PwTimeout:
                 pass
             verificar_bloqueio(popup)
-            # espera o corpo ter as movimentações (ou pelo menos o número do processo)
-            limite = time.time() + 30
-            texto = ""
-            while time.time() < limite:
-                texto = popup.locator("body").inner_text()
-                if "Movimenta" in texto or "Documentos" in texto:
-                    break
-                time.sleep(1)
-            if self.debug:
-                salvar_debug(f"detalhe_{numero}.html", popup.content())
-                salvar_debug(f"detalhe_{numero}.txt", texto)
-            return texto
+            return self._ler_detalhe(popup, numero)
         finally:
             try:
                 popup.close()
             except Exception:
                 pass
+
+    def _ler_detalhe(self, pagina: Page, numero: str) -> str:
+        # espera o corpo ter as movimentações (ou pelo menos o número do processo)
+        limite = time.time() + 30
+        texto = ""
+        while time.time() < limite:
+            texto = pagina.locator("body").inner_text()
+            if "Movimenta" in texto or "Documentos" in texto:
+                break
+            time.sleep(1)
+        if self.debug:
+            salvar_debug(f"detalhe_{numero}.html", pagina.content())
+            salvar_debug(f"detalhe_{numero}.txt", texto)
+        return texto
 
 
 # ---------------------------------------------------------------------------
@@ -797,12 +841,12 @@ def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: b
             if l.get("busca") != busca_atual[0] or page.locator(f'a[onclick*="{l["token"]}"]').count() == 0:
                 crit, de, ate = l["busca"]
                 _, brutas = buscar(crit, de, ate)
-                novo = next((b["token"] for b in brutas if b["numero_cnj"] == l["numero_cnj"]), None)
+                novo = next((b for b in brutas if b["numero_cnj"] == l["numero_cnj"]), None)
                 if not novo:
                     log(f"   {l['numero_cnj']}: não reapareceu na listagem, pulando o detalhe")
                     continue
-                l["token"] = novo
-            texto = consulta.abrir_detalhe(l["token"], l["numero_cnj"])
+                l["token"], l["url"] = novo["token"], novo["url"]
+            texto = consulta.abrir_detalhe(l["token"], l["numero_cnj"], l.get("url"))
             parsed = parse_detalhe(texto)
             confere = cnpj_confere(cnpj, parsed)
             if confere is False:
@@ -894,6 +938,10 @@ def abrir_navegador(pw, headless: bool) -> BrowserContext:
     context.add_init_script(
         "(() => { const abrir = window.open.bind(window);"
         " window.open = (url, nome) => abrir(url, nome || '_blank'); })()")
+    # Aba reservada ao detalhe (decisão 70): criada aqui, antes de esconder o
+    # Chrome, porque criar ou fechar aba com o app escondido o traz para a frente.
+    if ABRIR_DETALHE_EM_ABA and len(context.pages) < 2:
+        context.new_page()
     esconder_navegador(app_anterior)
     return context
 

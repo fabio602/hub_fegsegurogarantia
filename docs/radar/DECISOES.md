@@ -309,3 +309,17 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     parte no PJe pode não ter CNPJ e ter o nome sem sufixo; por isso a cadeia
     de fallbacks (CNPJ, razão social, nome PGFN, variantes, forma tolerante)
     fica inteira.
+70. **Detalhe em aba, sem popup (`ABRIR_DETALHE_EM_ABA = True`).** Em vez de
+    clicar em "Ver Detalhes", o worker lê a URL do `openPopUp(...)` do onclick
+    (`/pje/ConsultaPublica/DetalheProcessoConsultaPublica/listView.seam?ca=...`)
+    e faz `page.goto` nela numa aba do mesmo contexto, com `Referer` igual à
+    URL da listagem. Nunca usa fetch. A aba é criada uma vez só, no lançamento
+    do Chrome e antes de escondê-lo, e reutilizada (volta para `about:blank`
+    entre detalhes): criar ou fechar aba com o app escondido o traz para a
+    frente. Se algum detalhe responder Access Denied, a flag é desligada em
+    tempo de execução e o worker volta ao clique com popup pelo resto da
+    sessão, com registro no log. Testado em 13/09/2026 com a Convenção: 8
+    detalhes abertos sem bloqueio e zero amostras (1 por segundo, 209 s) com
+    o Chrome do worker na frente. Isso supera a regra da spec de "clicar e
+    capturar o popup": o bloqueio relatado na spec era de navegação direta
+    sem a sessão da listagem; com a sessão e o Referer o PJe aceita.

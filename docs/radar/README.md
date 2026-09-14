@@ -225,8 +225,11 @@ movimentações mais recentes. O drawer da empresa mostra tudo isso na seção
   "ExFis 5002050-64.2023.4.03.6182 - PIS", partes "A X B" e última
   movimentação "(dd/mm/aaaa hh:mm:ss)". Rodapé "N resultados encontrados".
   Teto de 30 linhas; acima disso aparece o aviso "somente os 30 primeiros".
-- "Ver Detalhes" abre um popup (`openPopUp(...)`); o worker captura o popup
-  com `expect_popup` e nunca navega direto para a URL do detalhe.
+- "Ver Detalhes" abre um popup (`openPopUp(...)`) com a URL do detalhe
+  (`...DetalheProcessoConsultaPublica/listView.seam?ca=<token>`). O worker
+  abre essa URL numa aba reservada do mesmo contexto, com `Referer` da
+  listagem (`ABRIR_DETALHE_EM_ABA`, decisão 70); se vier Access Denied, volta
+  ao clique com captura do popup pelo resto da sessão. Nunca usa fetch.
 - Detalhe: "Número Processo", "Data da Distribuição", "Classe Judicial
   (1116)", "Assunto", "Jurisdição", "Órgão Julgador", "Polo ativo", "Polo
   Passivo" (participante " - CNPJ: 56.1XX.XXX/XXXX-XX (EXECUTADO)", advogado
@@ -286,8 +289,8 @@ scripts/radar/install_launchd.sh --unload    # parar (launchctl unload) e remove
 O plist (`com.fg.radar-pje`) tem `KeepAlive` e `RunAtLoad`: o worker sobe no
 login e volta sozinho se cair. Roda com janela (o PJe rejeita headless), mas
 o processo do Chrome fica escondido (Cmd+H via System Events) e o foco volta
-ao app que estava na frente; a cada detalhe aberto o Chrome pisca por menos
-de um segundo (decisão 68). Na primeira execução o macOS pode pedir permissão
+ao app que estava na frente, e os detalhes abrem numa aba reservada, sem
+popup, para o Chrome não pular para a frente (decisões 68 e 70). Na primeira execução o macOS pode pedir permissão
 para o Python controlar o System Events: aceite, senão a janela fica visível. Saída e erro do processo ficam em
 `data/radar/launchd.out.log` e `launchd.err.log`. O modelo em
 `scripts/radar/com.fg.radar-pje.plist` usa `__RAIZ__` no lugar da pasta do
