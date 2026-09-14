@@ -24,6 +24,9 @@ export interface RadarEmpresa {
   valor_total: number;
   data_inscricao_mais_recente: string | null;
   tem_garantia: boolean;
+  /** Inscrições "Em cobrança" e em benefício fiscal/negociação (migração 077). */
+  qtd_em_cobranca: number;
+  qtd_beneficio: number;
   receitas: string[];
   score: number;
   enriquecido_em: string | null;
@@ -265,6 +268,10 @@ export const formatCompetencia = (c: string | null | undefined): string => {
   if (!c || c.length !== 6) return c ?? '';
   return `${c.slice(4, 6)}/${c.slice(0, 4)}`;
 };
+
+/** Inscrição garantida: tipo_situacao contém GARANTIA (sem acento, como radar_consolidar_empresas). */
+export const inscricaoGarantida = (tipoSituacao: string | null | undefined): boolean =>
+  (tipoSituacao ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().includes('GARANTIA');
 
 /** Receitas resumidas (PIS, COFINS, IPI) a partir dos textos completos da PGFN. */
 export const receitasResumo = (receitas: string[] | null | undefined): string[] =>

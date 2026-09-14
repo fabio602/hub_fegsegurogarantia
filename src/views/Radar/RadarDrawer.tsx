@@ -7,7 +7,7 @@ import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
 import {
   DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
-  formatDataBr, formatDataHoraBr, leituraDossie, nomeExibicao, receitasResumo,
+  formatDataBr, formatDataHoraBr, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo,
   type GarantiaInformada, type RadarAdvogadoProcesso, type RadarEmpresa, type RadarInscricao, type RadarMovimento, type RadarProcesso,
 } from './radarTipos.ts';
 
@@ -304,8 +304,13 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
             {/* Dívida */}
             <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <h3 className={secao}><FileText size={12} aria-hidden="true" /> Dívida ativa (PGFN {formatCompetencia(empresa.competencia_ultima)})</h3>
+              <p className="mt-3 text-xl font-black text-navy leading-tight">{formatCurrency(Number(empresa.valor_total))}</p>
+              <p className="text-[12px] text-slate-700 font-medium mt-0.5">
+                Inscrições: <strong className="text-navy">{empresa.qtd_em_cobranca ?? 0}</strong> em cobrança,{' '}
+                <strong className="text-navy">{empresa.qtd_beneficio ?? 0}</strong> parceladas ou em negociação,{' '}
+                <strong className="text-navy">{inscricoes === null ? '…' : inscricoes.filter(i => inscricaoGarantida(i.tipo_situacao)).length}</strong> garantidas
+              </p>
               <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                {dado('Valor total', <span className="font-black text-navy">{formatCurrency(Number(empresa.valor_total))}</span>)}
                 {dado('Inscrições', empresa.qtd_inscricoes)}
                 {dado('Garantia', empresa.tem_garantia ? 'Sim' : 'Não')}
                 {dado('Mais recente', formatDataBr(empresa.data_inscricao_mais_recente))}
