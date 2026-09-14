@@ -341,3 +341,20 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     amber, tabela põe o ícone de alerta na coluna Dossiê, filtro Dossiê ganha
     "Sem advogado". Só vale para os processos com detalhe aberto (8 por
     empresa na fila).
+73. **Telefone e e-mail manuais** (migração 082, 14/09/2026). Colunas
+    `telefone_manual`, `email_manual` e `contato_manual_atualizado_em` em
+    `radar_empresas`; `vw_radar_empresas` recriada com as mesmas 28 colunas
+    na mesma ordem mais `telefone_manual`, `email_manual`, `telefone_efetivo`
+    e `email_efetivo` (coalesce do manual com o da BrasilAPI). RPC
+    `radar_atualizar_contato_manual(p_cnpj, p_telefone, p_email)` com
+    semântica por campo: null mantém, string vazia limpa, outro valor valida
+    (telefone 10 ou 11 dígitos; e-mail com o critério de
+    `inscrever_endosso_novas_apolices`) e grava; `contato_manual_atualizado_em`
+    só muda quando algum campo mudou de fato. A PK da tabela é o CNPJ, por
+    isso `p_cnpj`. O enriquecimento (Edge Function, `enrich_local.py`) e as
+    consolidações escrevem por coluna nomeada e não tocam nas manuais
+    (verificado: reenriquecer a Convenção manteve o telefone manual). A tela
+    continua lendo `radar_empresas` direto, então `telefone_efetivo` da view
+    não chega por `select('*')`: `telefoneEfetivo()`/`emailEfetivo()` fazem o
+    coalesce no front (efetivo, manual, BrasilAPI). Restaurar é por campo.
+    Tarefa 100% aditiva; tag `pre-contato-manual` marca o ponto de retorno.
