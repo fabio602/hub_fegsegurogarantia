@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Gavel, Clock, FileSearch, CircleAlert, Minus } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import {
-  DOSSIE_LABEL, POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao,
+  DOSSIE_LABEL, POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao, telefoneEfetivo,
   type RadarEmpresa,
 } from './radarTipos.ts';
 
@@ -78,6 +78,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
               <th scope="col" className={th}>CNPJ</th>
               <th scope="col" className={th}>UF</th>
               <th scope="col" className={th}>Município</th>
+              <th scope="col" className={th}>Telefone</th>
               <th scope="col" className={`${th} text-right`}>Inscrições</th>
               <th scope="col" className={`${th} text-right`} title="Inscrições com situação Em cobrança">Em cobrança</th>
               <th scope="col" className={`${th} text-right`}>Valor total</th>
@@ -91,7 +92,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
           <tbody>
             {carregando && empresas.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-5 py-12 text-center text-slate-600">
+                <td colSpan={14} className="px-5 py-12 text-center text-slate-600">
                   <Loader2 size={18} aria-hidden="true" className="inline animate-spin mr-2 text-gold-dark" />
                   Carregando empresas...
                 </td>
@@ -99,7 +100,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
             )}
             {!carregando && empresas.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-5 py-12 text-center text-slate-600 text-sm">
+                <td colSpan={14} className="px-5 py-12 text-center text-slate-600 text-sm">
                   Nenhuma empresa com esses filtros.
                 </td>
               </tr>
@@ -131,6 +132,10 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
                   <td className={`${td} font-mono text-[12px] text-slate-700 whitespace-nowrap`}>{formatCnpj(e.cnpj)}</td>
                   <td className={`${td} font-bold text-slate-700`}>{e.uf ?? ''}</td>
                   <td className={`${td} text-slate-700 whitespace-nowrap`}>{e.municipio ?? ''}</td>
+                  <td className={`${td} text-slate-700 whitespace-nowrap tabular-nums`}>
+                    {telefoneEfetivo(e) ?? ''}
+                    {e.telefone_manual && <span className="ml-1 text-[9px] font-bold uppercase text-blue-700">manual</span>}
+                  </td>
                   <td className={`${td} text-right tabular-nums text-slate-700`}>{e.qtd_inscricoes}</td>
                   <td className={`${td} text-right tabular-nums font-bold text-navy`}>{e.qtd_em_cobranca ?? 0}</td>
                   <td className={`${td} text-right tabular-nums font-bold text-navy whitespace-nowrap`}>{formatCurrency(Number(e.valor_total))}</td>

@@ -57,7 +57,30 @@ export interface RadarEmpresa {
   garantia_informada: GarantiaInformada | null;
   garantia_obs: string | null;
   garantia_informada_em: string | null;
+  // Contato manual (migração 082). Opcionais: a tela lê radar_empresas direto e
+  // os *_efetivo só existem na vw_radar_empresas.
+  telefone_manual?: string | null;
+  email_manual?: string | null;
+  contato_manual_atualizado_em?: string | null;
+  telefone_efetivo?: string | null;
+  email_efetivo?: string | null;
 }
+
+/** Telefone a usar: efetivo da view, senão manual, senão o da BrasilAPI. */
+export const telefoneEfetivo = (e: Pick<RadarEmpresa, 'telefone' | 'telefone_manual' | 'telefone_efetivo'>): string | null =>
+  e.telefone_efetivo ?? (e.telefone_manual ? formatTelefone(e.telefone_manual) : null) ?? e.telefone ?? null;
+
+/** E-mail a usar: efetivo da view, senão manual, senão o da BrasilAPI. */
+export const emailEfetivo = (e: Pick<RadarEmpresa, 'email' | 'email_manual' | 'email_efetivo'>): string | null =>
+  e.email_efetivo ?? e.email_manual ?? e.email ?? null;
+
+/** '11999991234' -> '(11) 99999-1234'; '1144416300' -> '(11) 4441-6300'. Outros tamanhos voltam como estão. */
+export const formatTelefone = (v: string | null | undefined): string => {
+  const d = (v ?? '').replace(/\D/g, '');
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return v ?? '';
+};
 
 export interface RadarProcesso {
   id: number;
