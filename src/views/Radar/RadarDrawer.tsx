@@ -98,7 +98,12 @@ function ContatoEditavel({ rotulo, icone, manual, api, tipo, ocupado, onSalvar, 
             onChange={e => setTexto(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') { e.preventDefault(); confirmar(); }
-              else if (e.key === 'Escape') { e.preventDefault(); setEditando(false); }
+              else if (e.key === 'Escape') {
+                // Esc cancela só a edição; o drawer também escuta Esc na window para fechar
+                e.preventDefault();
+                e.nativeEvent.stopPropagation();
+                setEditando(false);
+              }
             }}
             onBlur={() => setEditando(false)}
             placeholder={tipo === 'tel' ? 'DDD + número' : 'nome@empresa.com.br'}
