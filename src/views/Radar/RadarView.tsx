@@ -50,6 +50,7 @@ export default function RadarView({ onAbrirKanban }: Props) {
   const filtrosServidor = useMemo(() => ({
     busca: buscaAplicada,
     uf: filtros.uf,
+    municipios: filtros.municipios,
     valorMin: filtros.valorMin,
     valorMax: filtros.valorMax,
     somenteGarantia: filtros.somenteGarantia,
@@ -57,7 +58,7 @@ export default function RadarView({ onAbrirKanban }: Props) {
     receitas: filtros.receitas,
     mostrarExcluidos: filtros.mostrarExcluidos,
     dossie: filtros.dossie,
-  }), [buscaAplicada, filtros.uf, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos, filtros.dossie]);
+  }), [buscaAplicada, filtros.uf, filtros.municipios, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos, filtros.dossie]);
 
   // Qualquer filtro novo volta para a primeira página.
   useEffect(() => { setPagina(0); }, [filtrosServidor]);
@@ -92,6 +93,7 @@ export default function RadarView({ onAbrirKanban }: Props) {
     if (f.status.length > 0) q = q.in('status', f.status);
     else if (!f.mostrarExcluidos) q = q.neq('status', 'excluido');
     if (f.uf) q = q.eq('uf', f.uf);
+    if (f.municipios.length > 0) q = q.in('municipio', f.municipios);
     if (f.valorMin !== '' && !Number.isNaN(Number(f.valorMin))) q = q.gte('valor_total', Number(f.valorMin));
     if (f.valorMax !== '' && !Number.isNaN(Number(f.valorMax))) q = q.lte('valor_total', Number(f.valorMax));
     if (f.somenteGarantia) q = q.eq('tem_garantia', true);

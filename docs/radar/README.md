@@ -164,9 +164,10 @@ consolidação, no enriquecimento e quando o status muda na tela.
 
 Menu **Seguro Garantia > Prospecção > Radar**. O cabeçalho mostra a competência
 mais recente, o total por status e quantas empresas ainda não foram
-enriquecidas. Os filtros (busca por nome ou CNPJ, UF, faixa de valor, garantia,
-status, receita, mostrar excluídos) rodam no servidor; a tabela vem ordenada
-por score, 50 por página.
+enriquecidas. Os filtros (busca por nome ou CNPJ, UF, município com chips e
+autocomplete, região com presets em `src/views/Radar/radarRegioes.ts`, faixa
+de valor, garantia, status, receita, dossiê, mostrar excluídos) rodam no
+servidor; a tabela vem ordenada por score, 50 por página.
 
 Clicar numa linha abre o drawer com a dívida, o cadastro, os sócios, e-mail e
 telefone (com botão copiar) e as inscrições. Ações:

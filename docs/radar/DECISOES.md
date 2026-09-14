@@ -323,3 +323,12 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     o Chrome do worker na frente. Isso supera a regra da spec de "clicar e
     capturar o popup": o bloqueio relatado na spec era de navegação direta
     sem a sessão da listagem; com a sessão e o Referer o PJe aceita.
+71. **Filtro Município e Região** (migração 080, 13/09/2026). O autocomplete
+    vem da função `radar_municipios(uf)` (municípios distintos e contagem,
+    sem excluídas), porque o PostgREST não faz distinct e SP tem 481
+    municípios em dezenas de milhares de linhas. Os chips guardam o valor no
+    formato do banco (maiúsculas, sem acento, como a BrasilAPI grava) e o
+    filtro é `in('municipio', ...)` no servidor. Os presets de região ficam em
+    `src/views/Radar/radarRegioes.ts` com os nomes acentuados; a comparação
+    normaliza. Escolher uma região define a UF e os chips; editar os chips faz
+    o seletor mostrar "Seleção própria". Trocar a UF limpa os chips.

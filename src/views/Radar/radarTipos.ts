@@ -109,6 +109,8 @@ export interface RadarInscricao {
 export interface RadarFiltros {
   busca: string;
   uf: string;
+  /** Municípios no formato do banco (maiúsculas, sem acento). Vazio = todos. */
+  municipios: string[];
   valorMin: string;
   valorMax: string;
   somenteGarantia: boolean;
@@ -124,6 +126,7 @@ export interface RadarFiltros {
 export const FILTROS_INICIAIS: RadarFiltros = {
   busca: '',
   uf: '',
+  municipios: [],
   valorMin: '',
   valorMax: '',
   somenteGarantia: false,
