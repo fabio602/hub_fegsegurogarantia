@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck, CircleAlert } from 'lucide-react';
+import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck, CircleAlert, Pencil, Undo2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import ModalPortal from '../../../components/ModalPortal.tsx';
@@ -7,7 +7,7 @@ import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
 import {
   DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, alertaSemAdvogado, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
-  formatDataBr, formatDataHoraBr, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo,
+  emailEfetivo, formatDataBr, formatDataHoraBr, formatTelefone, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo, telefoneEfetivo,
   type GarantiaInformada, type RadarAdvogadoProcesso, type RadarEmpresa, type RadarInscricao, type RadarMovimento, type RadarProcesso,
 } from './radarTipos.ts';
 
@@ -49,6 +49,93 @@ const dado = (rotulo: string, valor: React.ReactNode) => (
   </div>
 );
 
+interface ContatoEditavelProps {
+  rotulo: string;
+  icone: React.ReactNode;
+  /** Valor manual gravado (já formatado para exibir), ou null. */
+  manual: string | null;
+  /** Valor da BrasilAPI, ou null. */
+  api: string | null;
+  tipo: 'tel' | 'email';
+  ocupado: boolean;
+  onSalvar: (valor: string) => Promise<boolean>;
+  onRestaurar: () => Promise<boolean>;
+  onCopiar: (texto: string) => void;
+}
+
+/**
+ * Telefone ou e-mail editável por clique, no padrão do card do Kanban:
+ * clique abre o input, Enter salva, Esc cancela. Com valor manual, ele é o
+ * principal e o da BrasilAPI aparece abaixo, menor, com botão Restaurar.
+ */
+function ContatoEditavel({ rotulo, icone, manual, api, tipo, ocupado, onSalvar, onRestaurar, onCopiar }: ContatoEditavelProps) {
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState('');
+  const principal = manual ?? api;
+  const rotuloId = `radar-contato-${tipo}`;
+
+  const abrir = () => { if (ocupado) return; setTexto(manual ?? api ?? ''); setEditando(true); };
+  const confirmar = async () => {
+    const ok = await onSalvar(texto);
+    if (ok) setEditando(false);
+  };
+
+  return (
+    <div>
+      <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+        {icone} {rotulo}
+        {manual && <span className="ml-1 px-1.5 py-px rounded bg-blue-50 text-blue-700 border border-blue-200 text-[9px] normal-case tracking-normal">manual</span>}
+      </dt>
+      <dd className="text-sm font-medium text-slate-800">
+        {editando ? (
+          <input
+            autoFocus
+            id={rotuloId}
+            type={tipo}
+            inputMode={tipo === 'tel' ? 'tel' : 'email'}
+            value={texto}
+            aria-label={`Editar ${rotulo.toLowerCase()}`}
+            onChange={e => setTexto(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); confirmar(); }
+              else if (e.key === 'Escape') {
+                // Esc cancela só a edição; o drawer também escuta Esc na window para fechar
+                e.preventDefault();
+                e.nativeEvent.stopPropagation();
+                setEditando(false);
+              }
+            }}
+            onBlur={() => setEditando(false)}
+            placeholder={tipo === 'tel' ? 'DDD + número' : 'nome@empresa.com.br'}
+            className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white"
+          />
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button type="button" onClick={abrir} disabled={ocupado} title="Clique para editar"
+              className={`text-left rounded px-0.5 -mx-0.5 hover:bg-areia-clara transition-colors ${tipo === 'email' ? 'break-all' : ''} ${principal ? '' : 'text-slate-500'}`}>
+              {principal ?? 'Não informado'}
+            </button>
+            <button type="button" onClick={abrir} disabled={ocupado} aria-label={`Editar ${rotulo.toLowerCase()}`} className={botaoCopiar}><Pencil size={12} /></button>
+            {principal && (
+              <button type="button" onClick={() => onCopiar(principal)} aria-label={`Copiar ${rotulo.toLowerCase()}`} className={botaoCopiar}><Copy size={12} /></button>
+            )}
+          </div>
+        )}
+        {manual && (
+          <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] text-slate-600">
+            <span className="font-bold uppercase tracking-wider text-[9px]">BrasilAPI</span>
+            <span className={tipo === 'email' ? 'break-all' : ''}>{api ?? 'não informado'}</span>
+            <button type="button" onClick={onRestaurar} disabled={ocupado}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 bg-white text-slate-700 text-[10px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 transition-colors">
+              <Undo2 size={10} aria-hidden="true" /> Restaurar
+            </button>
+          </div>
+        )}
+      </dd>
+    </div>
+  );
+}
+
 /**
  * Drawer lateral com o detalhe da empresa e as três ações do Radar.
  *
@@ -71,6 +158,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
   const [garantiaObs, setGarantiaObs] = useState(empresa.garantia_obs ?? '');
   const [salvandoGarantia, setSalvandoGarantia] = useState(false);
   const advogados = useMemo(() => agruparAdvogados(advogadosProc), [advogadosProc]);
+  const [salvandoContato, setSalvandoContato] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -174,8 +262,8 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
         name: socio || nomeEmpresa,
         company: nomeEmpresa,
         cnpj: formatCnpj(empresa.cnpj),
-        email: empresa.email,
-        phonenumber: empresa.telefone,
+        email: emailEfetivo(empresa),
+        phonenumber: telefoneEfetivo(empresa),
         city: empresa.municipio,
         state: empresa.uf,
         status: 'Novos Leads',
@@ -224,6 +312,25 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
     if (error) toast(`Falha ao reverter: ${error.message}`, 'error');
     else { await recarregar(); toast('Empresa de volta para novo.', 'success'); }
     setSalvando(null);
+  };
+
+  /**
+   * Contato manual (migração 082): RPC radar_atualizar_contato_manual. Envia só
+   * o campo editado (o outro vai null = manter); string vazia limpa. Em erro,
+   * a tela mantém o valor anterior (só relê a linha quando dá certo).
+   */
+  const gravarContato = async (campo: 'telefone' | 'email', valor: string): Promise<boolean> => {
+    setSalvandoContato(true);
+    const { error } = await supabase.rpc('radar_atualizar_contato_manual', {
+      p_cnpj: empresa.cnpj,
+      p_telefone: campo === 'telefone' ? valor : null,
+      p_email: campo === 'email' ? valor : null,
+    });
+    setSalvandoContato(false);
+    if (error) { toast(error.message.replace(/^.*?:\s*/, '') || 'Não foi possível salvar.', 'error'); return false; }
+    await recarregar();
+    toast(valor.trim() ? (campo === 'telefone' ? 'Telefone salvo.' : 'E-mail salvo.') : 'Valor da BrasilAPI restaurado.', 'success');
+    return true;
   };
 
   /** Coloca (ou recoloca) a empresa na fila do PJe com prioridade 100. */
@@ -335,30 +442,28 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                   {dado('Porte', empresa.porte)}
                   {dado('Situação cadastral', empresa.situacao_cadastral)}
                   {dado('Simples / MEI', `${empresa.optante_simples ? 'Simples' : 'Não optante'}${empresa.optante_mei ? ' · MEI' : ''}`)}
-                  <div>
-                    <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1"><Mail size={10} aria-hidden="true" /> E-mail</dt>
-                    <dd className="flex items-center gap-2 text-sm font-medium text-slate-800 break-all">
-                      {empresa.email ? (
-                        <>
-                          <span>{empresa.email}</span>
-                          <button type="button" onClick={() => copiar(empresa.email!, 'E-mail')} aria-label="Copiar e-mail"
-                            className="p-1 rounded-md text-slate-600 hover:text-navy hover:bg-slate-100 transition-colors"><Copy size={12} /></button>
-                        </>
-                      ) : <span className="text-slate-500">Não informado</span>}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1"><Phone size={10} aria-hidden="true" /> Telefone</dt>
-                    <dd className="flex items-center gap-2 text-sm font-medium text-slate-800">
-                      {empresa.telefone ? (
-                        <>
-                          <span>{empresa.telefone}</span>
-                          <button type="button" onClick={() => copiar(empresa.telefone!, 'Telefone')} aria-label="Copiar telefone"
-                            className="p-1 rounded-md text-slate-600 hover:text-navy hover:bg-slate-100 transition-colors"><Copy size={12} /></button>
-                        </>
-                      ) : <span className="text-slate-500">Não informado</span>}
-                    </dd>
-                  </div>
+                  <ContatoEditavel
+                    rotulo="E-mail"
+                    icone={<Mail size={10} aria-hidden="true" />}
+                    tipo="email"
+                    manual={empresa.email_manual ?? null}
+                    api={empresa.email ?? null}
+                    ocupado={salvandoContato || ocupado}
+                    onSalvar={v => gravarContato('email', v)}
+                    onRestaurar={() => gravarContato('email', '')}
+                    onCopiar={t => copiar(t, 'E-mail')}
+                  />
+                  <ContatoEditavel
+                    rotulo="Telefone"
+                    icone={<Phone size={10} aria-hidden="true" />}
+                    tipo="tel"
+                    manual={empresa.telefone_manual ? formatTelefone(empresa.telefone_manual) : null}
+                    api={empresa.telefone ?? null}
+                    ocupado={salvandoContato || ocupado}
+                    onSalvar={v => gravarContato('telefone', v)}
+                    onRestaurar={() => gravarContato('telefone', '')}
+                    onCopiar={t => copiar(t, 'Telefone')}
+                  />
                 </dl>
               )}
             </section>
