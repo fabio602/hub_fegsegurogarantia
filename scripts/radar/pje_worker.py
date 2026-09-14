@@ -31,6 +31,7 @@ import argparse
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 import unicodedata
@@ -71,6 +72,7 @@ PASTA_DEBUG = PASTA_DADOS / "debug"
 
 URL_CONSULTA = "https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam"
 VIEWPORT = {"width": 1366, "height": 800}
+JANELA_POSICAO = "-2400,-2400"   # fora da área visível; headless não passa pelo Akamai
 LOCALE = "pt-BR"
 FUSO = "America/Sao_Paulo"
 TZ = ZoneInfo(FUSO)
@@ -308,6 +310,7 @@ class ConsultaPje:
     def __init__(self, page: Page, debug: bool = False):
         self.page = page
         self.debug = debug
+        self.app_anterior = app_da_frente()
 
     # --- formulário ---------------------------------------------------------
 
@@ -486,6 +489,7 @@ class ConsultaPje:
         with self.page.expect_popup(timeout=60_000) as info:
             link.click()
         popup = info.value
+        esconder_navegador(self.app_anterior)
         try:
             popup.wait_for_load_state("domcontentloaded", timeout=60_000)
             try:
@@ -838,13 +842,60 @@ def dormir_ate_janela() -> None:
     time.sleep(seg)
 
 
+def _osascript(script: str) -> str:
+    try:
+        r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=10)
+        return (r.stdout or "").strip()
+    except Exception:
+        return ""
+
+
+def app_da_frente() -> str:
+    return _osascript('tell application "System Events" to get name of first process whose frontmost is true')
+
+
+def esconder_navegador(app_anterior: str | None = None) -> None:
+    """Esconde (Cmd+H) o processo do Chrome do worker e devolve o foco ao app
+    que estava na frente. O macOS não deixa a janela ficar fora da tela
+    (--window-position é puxado de volta) e o Chrome ativa ao abrir, então o
+    jeito é esconder o processo pelo System Events, identificado pelo PID do
+    Chrome que usa o perfil do worker. Falha silenciosa se não houver permissão
+    de automação: o worker segue com a janela visível."""
+    try:
+        r = subprocess.run(["pgrep", "-f", f"user-data-dir=.*{PERFIL_NAVEGADOR.name}"], capture_output=True, text=True, timeout=5)
+        pids = [p for p in r.stdout.split() if p.isdigit()]
+    except Exception:
+        pids = []
+    for pid in pids:
+        _osascript(f'tell application "System Events" to set visible of (first process whose unix id is {pid}) to false')
+    if app_anterior and app_anterior != "Google Chrome":
+        _osascript(f'tell application "System Events" to set frontmost of process "{app_anterior}" to true')
+
+
 def abrir_navegador(pw, headless: bool) -> BrowserContext:
     PERFIL_NAVEGADOR.mkdir(parents=True, exist_ok=True)
-    return pw.chromium.launch_persistent_context(
+    app_anterior = app_da_frente()
+    # A janela nasce fora da área visível (o PJe rejeita headless, decisão 67)
+    # e não pede foco: o worker roda em segundo plano sem atrapalhar quem usa o Mac.
+    context = pw.chromium.launch_persistent_context(
         str(PERFIL_NAVEGADOR), channel="chrome", headless=headless, viewport=VIEWPORT,
         locale=LOCALE, timezone_id=FUSO, ignore_default_args=["--enable-automation"],
-        args=["--disable-blink-features=AutomationControlled"],
+        args=[
+            "--disable-blink-features=AutomationControlled",
+            f"--window-position={JANELA_POSICAO}",
+            f"--window-size={VIEWPORT['width']},{VIEWPORT['height']}",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ],
     )
+    # O "Ver Detalhes" chama window.open com features (largura/altura), o que
+    # cria uma janela nova e ativa o Chrome. Sem as features vira uma aba na
+    # janela escondida: mesmo clique, mesma URL, sem roubar o foco.
+    context.add_init_script(
+        "(() => { const abrir = window.open.bind(window);"
+        " window.open = (url, nome) => abrir(url, nome || '_blank'); })()")
+    esconder_navegador(app_anterior)
+    return context
 
 
 class ControleBloqueio:

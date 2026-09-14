@@ -287,3 +287,25 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     continua no worker para testes, mas não funciona contra o PJe hoje. Como
     o LaunchAgent roda na sessão gráfica do usuário, a janela do Chrome abre
     no Mac (e some quando a empresa termina, porque o contexto é fechado).
+68. **Janela do Chrome escondida pelo System Events.** `--window-position=-2400,-2400`
+    e `--window-size=1366,800` vão nos argumentos do Chrome, mas o macOS puxa a
+    janela de volta para a tela (bounds 0,34) e o Chrome ativa ao abrir. O
+    worker então guarda qual app estava na frente, lança o Chrome, esconde o
+    processo do Chrome do worker (`set visible ... to false`, identificado
+    pelo PID que usa `--user-data-dir` do perfil) e devolve o foco ao app
+    anterior; repete o esconder logo que cada popup de detalhe abre. O
+    `window.open` do "Ver Detalhes" ganha um shim que tira as features de
+    janela, então o detalhe abre como aba da janela escondida, não como
+    janela nova. Mesmo assim o Chrome ativa por menos de 1 segundo a cada
+    detalhe (medido a 1 amostra/s: 8 detalhes, 8 amostras) e o foco volta ao
+    app anterior em seguida; cmd+clique (aba em segundo plano) não muda isso.
+    Testado em 13/09/2026 na Convenção e na Tresuno: PJe respondeu
+    normalmente, sem Access Denied. Precisa da permissão de Automação
+    (System Events) para o Python; sem ela o worker segue com a janela
+    visível.
+69. **CNPJ zero, nome acha.** A Tresuno (27848826000161) devolveu zero pelo
+    CNPJ, com e sem data, e zero pela razão social completa, mas a forma
+    tolerante ("... CIMENTICIOS", sem LTDA) trouxe 14 execuções. O cadastro da
+    parte no PJe pode não ter CNPJ e ter o nome sem sufixo; por isso a cadeia
+    de fallbacks (CNPJ, razão social, nome PGFN, variantes, forma tolerante)
+    fica inteira.

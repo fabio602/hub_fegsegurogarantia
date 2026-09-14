@@ -284,8 +284,11 @@ scripts/radar/install_launchd.sh --unload    # parar (launchctl unload) e remove
 ```
 
 O plist (`com.fg.radar-pje`) tem `KeepAlive` e `RunAtLoad`: o worker sobe no
-login e volta sozinho se cair. Roda com janela (o PJe rejeita headless): a
-janela do Chrome aparece enquanto uma empresa está sendo consultada. Saída e erro do processo ficam em
+login e volta sozinho se cair. Roda com janela (o PJe rejeita headless), mas
+o processo do Chrome fica escondido (Cmd+H via System Events) e o foco volta
+ao app que estava na frente; a cada detalhe aberto o Chrome pisca por menos
+de um segundo (decisão 68). Na primeira execução o macOS pode pedir permissão
+para o Python controlar o System Events: aceite, senão a janela fica visível. Saída e erro do processo ficam em
 `data/radar/launchd.out.log` e `launchd.err.log`. O modelo em
 `scripts/radar/com.fg.radar-pje.plist` usa `__RAIZ__` no lugar da pasta do
 repositório; se o repo mudar de pasta, rode o install de novo.
