@@ -449,7 +449,7 @@
       width: 3px; border-radius: 0 3px 3px 0; background: var(--gold);
     }
 
-    .recado-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .recado-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
     /* Avatar com as iniciais de quem escreveu — o rosto da mensagem. */
     .recado-avatar {
       width: 32px; height: 32px; border-radius: 50%; flex: none;
@@ -458,8 +458,8 @@
       font-size: 11.5px; font-weight: 600; letter-spacing: .4px;
     }
     .recado-quem { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-    .recado-nome { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.2; }
-    .recado-papel { font-size: 11px; color: var(--muted); line-height: 1.2; }
+    .recado-nome { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recado-papel { font-size: 11px; color: var(--muted); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recado-quando { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
 
     .recado-texto { font-size: 13.5px; color: var(--ink); line-height: 1.6; }
@@ -482,6 +482,7 @@
 
     /* Versão do card (compacto): mesma ideia, menos ar. */
     .recado.compacto { padding: 11px 12px 10px; border-radius: 13px; margin-top: 10px; }
+    .recado.compacto .recado-quando { margin-left: 0; width: 100%; }
     .recado.compacto::before { left: 22px; }
     .recado.compacto .recado-avatar { width: 27px; height: 27px; font-size: 10px; }
     .recado.compacto .recado-texto { font-size: 12.5px; }
@@ -1284,7 +1285,10 @@
   }
 
   function fmtBRL(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-  function fmtData(d) { if (!d) return '—'; const [y,m,dd] = d.split('-'); return `${dd}/${m}/${y}`; }
+  // O slice(0,10) existe porque nem toda coluna e' uma date pura: recado_enviado_em
+  // e' timestamptz, e sem ele o split('-') devolvia '28T03:00:47.156+00:00/08/2026'
+  // no lugar de '28/08/2026', estourando a caixa do recado no card.
+  function fmtData(d) { if (!d) return '—'; const [y,m,dd] = String(d).slice(0,10).split('-'); return `${dd}/${m}/${y}`; }
   // Texto livre digitado no hub entra em innerHTML — escapar para não quebrar o layout.
   function esc(t) {
     return String(t == null ? '' : t)
@@ -1935,21 +1939,35 @@
   // Prioridade para deduplicação: menor índice = mais prioritário
   const PRIORIDADE = ['ativo','em_renovacao','pendente_renovacao','pagamento_atrasado','vencido','cancelado','saiu_imovel','desistiu','reprovado'];
 
-  function renderCarteira(cs) {
-    const tbody = document.getElementById('carteira-body');
-    if (!cs.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Nenhum cliente cadastrado.</td></tr>'; return; }
-
-    // Deduplicar por nome: manter apenas o registro com status mais prioritário
+  /** Um registro por inquilino: fica o de status mais prioritário. Quem trocou
+      de seguradora ou tem cadastro importado antigo aparece uma vez só. */
+  function dedupPorNome(cs) {
     const mapa = new Map();
-    cs.forEach(c => {
+    (cs || []).forEach(c => {
       const nome = (c.inquilino_nome || '').toUpperCase().trim();
       const existing = mapa.get(nome);
       if (!existing) { mapa.set(nome, c); return; }
-      const priAtual  = PRIORIDADE.indexOf(existing.status_apolice || 'cancelado');
-      const priNovo   = PRIORIDADE.indexOf(c.status_apolice || 'cancelado');
-      if (priNovo < priAtual) mapa.set(nome, c); // novo é mais prioritário
+      const priAtual = PRIORIDADE.indexOf(existing.status_apolice || 'cancelado');
+      const priNovo  = PRIORIDADE.indexOf(c.status_apolice || 'cancelado');
+      if (priNovo < priAtual) mapa.set(nome, c);
     });
-    const lista = [...mapa.values()].sort((a,b) => {
+    return [...mapa.values()];
+  }
+
+  /**
+   * @param cs          lista ja filtrada, que vira a tabela
+   * @param baseResumo  lista com todos os filtros MENOS o de situacao, que
+   *                    alimenta os cartoes de contagem. Sem isso, clicar em
+   *                    "Vencido" fazia o resumo ser recalculado em cima do
+   *                    proprio recorte e sobrava um cartao so: a visao geral
+   *                    sumia e nao dava para pular direto para outra situacao.
+   * @param sitAtiva    situacao filtrada agora, para marcar o cartao aceso
+   */
+  function renderCarteira(cs, baseResumo, sitAtiva) {
+    const tbody = document.getElementById('carteira-body');
+    if (!cs.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty">Nenhum cliente cadastrado.</td></tr>'; return; }
+
+    const lista = dedupPorNome(cs).sort((a,b) => {
       const da = a.data_inicio ? new Date(a.data_inicio).getTime() : 0;
       const db = b.data_inicio ? new Date(b.data_inicio).getTime() : 0;
       return db - da; // mais recente primeiro
@@ -1959,11 +1977,15 @@
 
     const sumEl = document.getElementById('carteira-summary');
     if (sumEl) {
+      // O resumo conta a base sem o filtro de situacao, deduplicada com a
+      // mesma regra da tabela, para os numeros dos cartoes baterem com o que a
+      // tabela mostra quando o filtro e limpo.
+      const paraResumo = dedupPorNome(baseResumo || cs);
       const counts = {};
-      lista.forEach(c => { const s = c.status_apolice||'ativo'; counts[s]=(counts[s]||0)+1; });
+      paraResumo.forEach(c => { const s = c.status_apolice||'ativo'; counts[s]=(counts[s]||0)+1; });
       const labels = {ativo:'Ativo',vencido:'Vencido',cancelado:'Cancelado',em_renovacao:'Em Renovação',pendente_renovacao:'Pend. Renovação',saiu_imovel:'Saiu do Imóvel',desistiu:'Desistiu',reprovado:'Reprovado'};
       sumEl.innerHTML = `<div class="kpi-grid">${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
-        <div class="kpi-card" onclick="toggleKpiFiltro('${k}')" title="Clique para filtrar · Clique novamente para limpar">
+        <div class="kpi-card${k === sitAtiva ? ' active-filter' : ''}" onclick="toggleKpiFiltro('${k}')" title="Clique para filtrar · Clique novamente para limpar">
           <div class="kpi-count">${v}</div>
           <div class="kpi-label">
             <span class="kpi-dot" style="background:${dotColors[k]||'#94a3b8'};"></span>
@@ -2035,9 +2057,14 @@
     const tipo = document.getElementById('filtro-tipo')?.value || '';
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const em30 = new Date(hoje); em30.setDate(em30.getDate() + 30);
-    const filtrado = todosClientes.filter(c => {
+    // Duas listas: `baseResumo` passa por todos os filtros MENOS o de situação
+    // e alimenta os cartões de contagem; `filtrado` acrescenta a situação e
+    // vira a tabela. Antes havia só uma: ao clicar em "Vencido" o resumo era
+    // recalculado em cima do próprio recorte e sobrava um cartão só, o que
+    // apagava a visão geral e obrigava a passar por "Limpar" para trocar de
+    // situação.
+    const passaNosOutros = (c) => {
       if (q && !(c.inquilino_nome||'').toLowerCase().includes(q)) return false;
-      if (sit && (c.status_apolice||'ativo') !== sit) return false;
       // "Apenas Residencial" é só o residencial puro; "Com Garantia" inclui o
       // combo e o de garantia pura, que antes não entrava em filtro nenhum.
       if (tipo === 'residencial' && c.tipo_seguro !== 'residencial') return false;
@@ -2048,7 +2075,9 @@
         return v >= hoje && v <= em30;
       }
       return true;
-    });
+    };
+    const baseResumo = todosClientes.filter(passaNosOutros);
+    const filtrado = baseResumo.filter(c => !sit || (c.status_apolice||'ativo') === sit);
     // Badge vencimento
     const badge = document.getElementById('filtro-venc-badge');
     if (badge) badge.style.display = filtroVencimento30 ? 'inline-flex' : 'none';
@@ -2067,15 +2096,9 @@
       }
     }
 
-    // Marca card KPI ativo
-    document.querySelectorAll('.kpi-card').forEach(el => el.classList.remove('active-filter'));
-    if (sit) {
-      document.querySelectorAll('.kpi-card').forEach(el => {
-        if (el.getAttribute('onclick')?.includes(`'${sit}'`)) el.classList.add('active-filter');
-      });
-    }
-
-    renderCarteira(filtrado);
+    // O cartão aceso é marcado dentro do renderCarteira, que reescreve o
+    // innerHTML do resumo logo abaixo. Marcar aqui não sobrevivia à reescrita.
+    renderCarteira(filtrado, baseResumo, sit);
   }
 
   function limparFiltrosCarteira() {
