@@ -2,32 +2,36 @@
 """
 Radar · Fase 2 · worker do PJe TRF3 (dossiê judicial).
 
-Processo de longa duração que pega empresas da fila radar_pje_fila, consulta
-a consulta pública do PJe TRF3 1º grau com um Chrome real (Playwright,
-perfil persistente), grava execuções fiscais (1116) e embargos (1118) em
-radar_processos, com advogados e as 15 movimentações mais recentes, e
+Processo de longa duração que pega empresas da fila radar_pje_fila, consulta a
+consulta pública do PJe TRF3 1º grau, grava execuções fiscais (1116) e embargos
+(1118) em radar_processos, com advogados e as 15 movimentações mais recentes, e
 consolida o dossiê da empresa.
 
-Regras de ritmo (Akamai): toda navegação é feita clicando, como um humano,
-com pausas entre requisições e entre empresas. Nunca usa fetch/XHR direto.
-Se aparecer "Access Denied", a empresa vai para 'bloqueado', o worker dorme
-60 minutos e tenta a mesma empresa de novo; no terceiro bloqueio do dia,
-para até a próxima janela.
+Desde 20/09/2026 a consulta pública é um aplicativo Angular
+(pje1g-consultapublica.trf3.jus.br) que consome uma API REST pública em JSON,
+sem autenticação e sem captcha. O worker chama essa API em vez de raspar HTML:
+sem cliques, sem popup, sem parse de texto.
+
+O Chrome real (Playwright, perfil persistente, janela escondida) continua sendo
+aberto só para obter e renovar os cookies do Akamai — a API responde
+HTTP/2 INTERNAL_ERROR para cliente sem esses cookies. As chamadas saem por
+context.request.get, que reusa cookies e cabeçalhos do contexto.
 
 Uso (na raiz do repo, com SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env):
 
     .venv/bin/python scripts/radar/pje_worker.py                 # fila, janela 07h-23h
     .venv/bin/python scripts/radar/pje_worker.py --headless      # sem janela
     .venv/bin/python scripts/radar/pje_worker.py --cnpj 56199714000710   # só essa empresa
-    .venv/bin/python scripts/radar/pje_worker.py --cnpj ... --debug      # salva HTML/texto em data/radar/debug
-    .venv/bin/python scripts/radar/pje_worker.py --cnpj ... --detalhes 30  # abre o detalhe de todos os processos
+    .venv/bin/python scripts/radar/pje_worker.py --cnpj ... --debug      # salva o JSON bruto em data/radar/debug
+    .venv/bin/python scripts/radar/pje_worker.py --cnpj ... --detalhes 30  # detalha todos os processos
 
-Especificação: docs/radar/RADAR-FASE2.md.
+Especificação: docs/radar/RADAR-FASE2.md e docs/radar/RADAR-PJE-API.md.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import random
 import re
@@ -35,13 +39,13 @@ import subprocess
 import sys
 import time
 import unicodedata
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
 from dotenv import load_dotenv
-from playwright.sync_api import Page, BrowserContext, TimeoutError as PwTimeout, sync_playwright
+from playwright.sync_api import BrowserContext, TimeoutError as PwTimeout, sync_playwright
 
 # ---------------------------------------------------------------------------
 # Configuração
@@ -49,20 +53,29 @@ from playwright.sync_api import Page, BrowserContext, TimeoutError as PwTimeout,
 
 JANELA_INICIO_H = 7            # só trabalha entre 07:00 e 23:00 (hora local)
 JANELA_FIM_H = 23
-INTERVALO_ENTRE_EMPRESAS_S = 5 * 60
-JITTER_EMPRESAS_S = 60
-INTERVALO_ENTRE_REQUISICOES_S = 20
-JITTER_REQUISICOES_S = 8
+# A API custa cerca de 1 + 4 x N chamadas por empresa (uma busca e quatro
+# chamadas por processo detalhado), contra dezenas de cliques da tela antiga.
+INTERVALO_ENTRE_EMPRESAS_S = 60
+JITTER_EMPRESAS_S = 30
+INTERVALO_ENTRE_REQUISICOES_S = 6
+JITTER_REQUISICOES_S = 4
 MAX_DETALHES_POR_EMPRESA = 8
-TETO_DIARIO = 60
+MAX_MOVIMENTOS_POR_PROCESSO = 15
+TETO_DIARIO = 150
 BLOQUEIO_ESPERA_S = 60 * 60
 BLOQUEIOS_MAX_DIA = 3
 MAX_TENTATIVAS_EMPRESA = 3
-DATA_AUTUACAO_DE = "01/01/2021"
+DATA_AUTUACAO_DE = "2021-01-01"
 ANO_INICIAL = 2021
-# sem nada desde 2021, a busca é repetida sem filtro de data; acima de 30
-# resultados, quebra por ano a partir daqui
+# sem nada desde 2021, a busca é repetida sem filtro de data; se nem a paginação
+# der conta, quebra por ano a partir daqui
 ANO_INICIAL_SEM_FILTRO = 2010
+# a busca devolve 30 por página; páginas além disso vêm por ?page=N.
+# Chegar neste teto significa que nem a paginação deu conta: aí quebra por ano.
+MAX_PAGINAS_BUSCA = 10
+# participantes vêm 10 por página; processos com muita parte precisam da 2ª
+# página para não perder o advogado (e criar alerta falso de "sem advogado")
+MAX_PAGINAS_POLO = 5
 
 RAIZ = Path(__file__).resolve().parents[2]
 PASTA_DADOS = RAIZ / "data" / "radar"
@@ -70,28 +83,31 @@ PERFIL_NAVEGADOR = PASTA_DADOS / "pje-profile"
 ARQUIVO_LOG = PASTA_DADOS / "pje_worker.log"
 PASTA_DEBUG = PASTA_DADOS / "debug"
 
-URL_CONSULTA = "https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam"
+URL_BASE = "https://pje1g-consultapublica.trf3.jus.br"
+API = URL_BASE + "/v1"
 VIEWPORT = {"width": 1366, "height": 800}
 JANELA_POSICAO = "-2400,-2400"   # fora da área visível; headless não passa pelo Akamai
-# Detalhe em aba nova do mesmo contexto (page.goto com Referer da listagem) em
-# vez do popup do "Ver Detalhes": não ativa o Chrome. Se algum detalhe vier
-# com Access Denied, o worker desliga isto em tempo de execução e volta ao
-# clique com popup pelo resto da sessão (decisão 70).
-ABRIR_DETALHE_EM_ABA = True
-URL_BASE = "https://pje1g.trf3.jus.br"
 LOCALE = "pt-BR"
 FUSO = "America/Sao_Paulo"
 TZ = ZoneInfo(FUSO)
 
-CLASSES = {"EXECUCAO FISCAL": (1116, "EXECUÇÃO FISCAL"),
-           "EMBARGOS A EXECUCAO FISCAL": (1118, "EMBARGOS À EXECUÇÃO FISCAL")}
+CLASSES = {1116: "EXECUÇÃO FISCAL", 1118: "EMBARGOS À EXECUÇÃO FISCAL"}
+# a listagem identifica a classe pela sigla; o código é confirmado no detalhe,
+# lendo os parênteses de classeJudicial ("EXECUÇÃO FISCAL (1116)")
+SIGLAS = {"EXFIS": 1116, "EMBEXEFIS": 1118}
+NOMES_CLASSE = {"EXECUCAO FISCAL": 1116, "EMBARGOS A EXECUCAO FISCAL": 1118}
 PAPEIS_EXECUTADO = {"EXECUTADO", "EMBARGANTE", "EXECUTADA"}
-SUFIXOS = {"LTDA", "SA", "S A", "EIRELI", "ME", "EPP", "LIMITADA"}
 
 RE_CNJ = re.compile(r"\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}")
-RE_DATA = re.compile(r"\b(\d{2}/\d{2}/\d{4})\b")
-RE_MOV = re.compile(r"^(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2}:\d{2})\s*-\s*(.+)$")
-RE_AVISO_30 = re.compile(r"somente os 30 primeiros", re.I)
+RE_OAB = re.compile(r"OAB\s*([A-Z]{2}\s?\d+)", re.I)
+RE_DOC = re.compile(r"\b(CNPJ|CPF):\s*([\d.\-/X*]+)", re.I)
+RE_ULTIMA_MOV = re.compile(r"^(.*?)\s*\((\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2}:\d{2})\)\s*$", re.S)
+RE_AVISO_CORTE = re.compile(r"somente os \d+ primeiros", re.I)
+# nome social: "FULANA registrado(a) civilmente como FULANO" — fica só o nome social
+RE_NOME_CIVIL = re.compile(r"\s+registrad[oa]\(a\)\s+civilmente\s+como\s+.*$", re.I)
+
+# Multiplicador das pausas. Qualquer bloqueio dobra o ritmo pelo resto do dia.
+_fator_pausa = [1.0, None]   # [fator, dia em que vale]
 
 
 # ---------------------------------------------------------------------------
@@ -117,8 +133,23 @@ def sem_acento(s: str) -> str:
     return unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().upper()
 
 
+def fator_pausa() -> float:
+    """Fator atual das pausas, zerado na virada do dia."""
+    hoje = agora().date()
+    if _fator_pausa[1] != hoje:
+        _fator_pausa[0], _fator_pausa[1] = 1.0, hoje
+    return _fator_pausa[0]
+
+
+def dobrar_pausas() -> None:
+    fator_pausa()          # garante que o dia está atualizado antes de dobrar
+    _fator_pausa[0] *= 2.0
+    log(f"   ritmo: pausas dobradas pelo resto do dia (fator {_fator_pausa[0]:.0f}x)")
+
+
 def pausa(base: float, jitter: float, motivo: str) -> None:
-    t = max(1.0, base + random.uniform(-jitter, jitter))
+    f = fator_pausa()
+    t = max(1.0, base * f + random.uniform(-jitter, jitter) * f)
     log(f"   pausa {t:.0f}s ({motivo})")
     time.sleep(t)
 
@@ -127,74 +158,36 @@ def pausa_requisicao(motivo: str) -> None:
     pausa(INTERVALO_ENTRE_REQUISICOES_S, JITTER_REQUISICOES_S, motivo)
 
 
-def data_br_para_iso(d: str | None) -> str | None:
-    """'07/06/2023' -> '2023-06-07'."""
-    if not d:
-        return None
-    m = re.match(r"(\d{2})/(\d{2})/(\d{4})", d)
-    return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else None
-
-
 def datahora_br_para_iso(d: str, h: str) -> str:
     """'07/06/2023', '14:03:11' -> ISO com fuso de Brasília."""
     dt = datetime.strptime(f"{d} {h}", "%d/%m/%Y %H:%M:%S").replace(tzinfo=TZ)
     return dt.isoformat()
 
 
-def nomes_de_busca(razao_social: str | None, nome_devedor: str) -> list[str]:
-    """Nomes a tentar, em ordem. A busca por "Nome da parte" do PJe TRF3 é por
-    nome exato (verificado em 13/09/2026: sem o "LTDA" a Convenção devolve zero),
-    então o primeiro candidato é a razão social como está; depois o nome da PGFN;
-    por último a forma sem pontuação e sem sufixo, prevista na especificação."""
-    candidatos: list[str] = []
-
-    def add(n: str | None) -> None:
-        n = re.sub(r"\s+", " ", (n or "")).strip()
-        if n and n.upper() not in [c.upper() for c in candidatos]:
-            candidatos.append(n)
-
-    for n in (razao_social, nome_devedor):
-        add(n)
-        # "LTDA." vs "LTDA": o ponto final muda o resultado numa busca exata
-        add(re.sub(r"[.\s]+$", "", n or ""))
-        # sem o apóstrofo (LARRU'S -> LARRUS) e com apóstrofo curvo
-        add(re.sub(r"[.\s]+$", "", (n or "").replace("'", "")))
-    add(nome_de_busca(razao_social, nome_devedor))
-    return candidatos
-
-
-def nome_de_busca(razao_social: str | None, nome_devedor: str) -> str:
-    """Remove pontuação e sufixos societários no fim para a busca ficar tolerante."""
-    nome = (razao_social or nome_devedor or "").strip()
-    # apóstrofo fica (LARRU'S); o resto da pontuação vira espaço
-    limpo = re.sub(r"[^\w\s']", " ", nome, flags=re.UNICODE)
-    limpo = re.sub(r"\s+", " ", limpo).strip()
-    palavras = limpo.split(" ")
-    if len(palavras) < 2:
-        return limpo or nome
-    while len(palavras) > 1:
-        if palavras[-1].upper() in SUFIXOS:
-            palavras.pop()
-        elif len(palavras) > 2 and " ".join(palavras[-2:]).upper() in SUFIXOS:
-            palavras = palavras[:-2]
-        else:
-            break
-    return " ".join(palavras)
-
-
-def classe_da_linha(texto: str) -> tuple[int, str] | None:
-    t = sem_acento(texto)
-    if "EMBARGOS A EXECUCAO FISCAL" in t:
-        return CLASSES["EMBARGOS A EXECUCAO FISCAL"]
-    if "EXECUCAO FISCAL" in t:
-        return CLASSES["EXECUCAO FISCAL"]
-    return None
+def so_data(iso: str | None) -> str | None:
+    """'2025-01-09T15:44:35.029263' -> '2025-01-09'."""
+    if not iso:
+        return None
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", str(iso))
+    return m.group(1) if m else None
 
 
 def chave_recencia(numero_cnj: str) -> tuple[int, int]:
     """Ano de autuação e sequencial, tirados do próprio número CNJ (NNNNNNN-DD.AAAA...)."""
     m = re.match(r"(\d{7})-\d{2}\.(\d{4})", numero_cnj)
     return (int(m.group(2)), int(m.group(1))) if m else (0, 0)
+
+
+def nome_arquivo(s: str) -> str:
+    return re.sub(r"[^\w.-]", "_", s or "x")
+
+
+def salvar_debug(nome: str, conteudo: str) -> None:
+    try:
+        PASTA_DEBUG.mkdir(parents=True, exist_ok=True)
+        (PASTA_DEBUG / nome).write_text(conteudo, encoding="utf-8")
+    except OSError:
+        pass
 
 
 class Bloqueado(Exception):
@@ -289,378 +282,185 @@ class Supabase:
 
 
 # ---------------------------------------------------------------------------
-# Navegador
+# Cliente da API da consulta pública
 # ---------------------------------------------------------------------------
 
-def verificar_bloqueio(page: Page) -> None:
-    try:
-        titulo = page.title() or ""
-        corpo = page.content() or ""
-    except Exception:
-        return
-    if "access denied" in titulo.lower() or "edgesuite.net" in corpo.lower():
-        raise Bloqueado(f"Access Denied em {page.url}")
+class PjeApi:
+    """Chamadas à API JSON da consulta pública, pelo contexto do navegador.
 
+    O navegador é aberto só para ter os cookies do Akamai; as requisições saem
+    por context.request.get, que os reusa. Nunca usa fetch dentro da página."""
 
-def salvar_debug(nome: str, conteudo: str) -> None:
-    try:
-        PASTA_DEBUG.mkdir(parents=True, exist_ok=True)
-        (PASTA_DEBUG / nome).write_text(conteudo, encoding="utf-8")
-    except OSError:
-        pass
-
-
-class ConsultaPje:
-    """Uma sessão de consulta pública para uma empresa."""
-
-    def __init__(self, page: Page, debug: bool = False):
-        self.page = page
+    def __init__(self, context: BrowserContext, debug: bool = False):
+        self.context = context
         self.debug = debug
         self.app_anterior = app_da_frente()
 
-    # --- formulário ---------------------------------------------------------
-
-    def abrir(self) -> None:
+    def abrir_spa(self) -> None:
+        """Carrega o aplicativo uma vez para renovar os cookies do Akamai."""
+        page = self.context.pages[0] if self.context.pages else self.context.new_page()
         pausa_requisicao("abrir consulta")
-        self.page.goto(URL_CONSULTA, wait_until="domcontentloaded", timeout=90_000)
-        self.page.wait_for_load_state("networkidle", timeout=60_000)
-        verificar_bloqueio(self.page)
-        self.page.wait_for_selector('input[type="text"]', state="visible", timeout=30_000)
-        if self.debug:
-            salvar_debug("formulario.html", self.page.content())
-
-    def _id_input(self, padrao: str, indice: int = 0) -> str | None:
-        return self.page.evaluate(
-            """([padrao, indice]) => {
-                const re = new RegExp(padrao, 'i');
-                const els = Array.from(document.querySelectorAll('input')).filter(i => re.test(i.id || '') || re.test(i.name || ''));
-                return els[indice] ? els[indice].id : null;
-            }""", [padrao, indice])
-
-    def _preencher_por_valor(self, id_input: str, valor: str) -> None:
-        """Preenche via valor do input (máscara de data não aceita tecla a tecla)."""
-        self.page.evaluate(
-            """([id, valor]) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.focus();
-                el.value = valor;
-                for (const t of ['input', 'change', 'keyup', 'blur']) el.dispatchEvent(new Event(t, { bubbles: true }));
-            }""", [id_input, valor])
-        atual = self.page.evaluate("id => (document.getElementById(id) || {}).value || ''", id_input)
-        if atual != valor:
-            self.page.locator(f'[id="{id_input}"]').fill(valor)
-
-    def preencher(self, criterio: tuple[str, str], data_de: str | None, data_ate: str | None = None) -> None:
-        """criterio = ('cnpj', 14 dígitos) ou ('nome', nome exato da parte).
-        data_de None = sem filtro de data (os campos ficam em branco)."""
-        tipo, valor = criterio
-        if tipo == "cnpj":
-            # radio CNPJ (o segundo de tipoMascaraDocumento) e o campo documentoParte;
-            # a máscara é aplicada pelo próprio formulário, então vão só os dígitos, tecla a tecla
-            radios = self.page.locator('input[name="tipoMascaraDocumento"]')
-            if radios.count() < 2:
-                raise RuntimeError("radio de CNPJ não encontrado")
-            radios.nth(1).click()
-            self.page.wait_for_timeout(500)
-            campo = self.page.locator('[id="fPP:dpDec:documentoParte"]')
-            campo.click()
-            campo.fill("")
-            self.page.keyboard.type(re.sub(r"\D", "", valor), delay=40)
-        else:
-            id_nome = self._id_input("nomeParte")
-            if id_nome:
-                campo = self.page.locator(f'[id="{id_nome}"]')
-            else:
-                campo = self.page.get_by_label(re.compile("Nome da parte", re.I))
-            campo.fill("")
-            campo.fill(valor)
-
-        # Só os inputs visíveis do calendário (InputDate). O hidden InputCurrentDate
-        # ("mm/aaaa" do calendário) não pode ser mexido: zerá-lo faz o servidor
-        # ignorar o formulário inteiro e devolver milhões de resultados.
-        id_de = self._id_input("autuacaoInicioInputDate$")
-        id_ate = self._id_input("autuacaoFimInputDate$")
-        if not id_de:
-            raise RuntimeError("campo Data de Autuação não encontrado")
-        if data_de:
-            self._preencher_por_valor(id_de, data_de)
-        if data_ate:
-            if not id_ate:
-                raise RuntimeError("campo Data de Autuação (até) não encontrado")
-            self._preencher_por_valor(id_ate, data_ate)
-        self.page.keyboard.press("Tab")
-
-    def pesquisar(self) -> int | None:
-        """Clica em Pesquisar, espera o ajax terminar e devolve o total do rodapé."""
-        pausa_requisicao("pesquisar")
-        botao = self.page.locator('[id="fPP:searchProcessos"]')
-        if botao.count() == 0:
-            botao = self.page.get_by_role("button", name=re.compile("PESQUISAR", re.I))
+        page.goto(URL_BASE + "/", wait_until="domcontentloaded", timeout=90_000)
         try:
-            with self.page.expect_response(lambda r: "listView.seam" in r.url and r.request.method == "POST", timeout=90_000):
-                botao.first.click()
-        except PwTimeout:
-            log("   aviso: resposta da pesquisa não observada em 90 s; seguindo pelo estado da página")
-        self._esperar_resultado()
-        verificar_bloqueio(self.page)
-        if self.debug:
-            salvar_debug(f"listagem_{agora().strftime('%H%M%S')}.html", self.page.content())
-        total = self.total_resultados()
-        if total is not None and total > 500:
-            # a consulta sem critério devolve milhões de linhas: sinal de que o formulário não foi aplicado
-            raise RuntimeError(f"pesquisa devolveu {total} resultados: critério não aplicado")
-        return total
-
-    def _esperar_resultado(self) -> None:
-        """Espera o indicador de ajax do a4j sumir e a tabela ser re-renderizada."""
-        try:
-            self.page.wait_for_function(
-                """() => { const s = document.getElementById('_viewRoot:status.start');
-                          return !s || s.style.display === 'none' || s.offsetParent === null; }""",
-                timeout=60_000)
+            page.wait_for_load_state("networkidle", timeout=30_000)
         except PwTimeout:
             pass
-        time.sleep(2)
+        titulo = (page.title() or "")
+        if "access denied" in titulo.lower():
+            raise Bloqueado(f"Access Denied ao abrir {page.url}")
 
-    def total_resultados(self) -> int | None:
-        m = re.search(r"(\d+)\s+resultados? encontrados?", self.page.locator("body").inner_text())
-        return int(m.group(1)) if m else None
-
-    # --- listagem -----------------------------------------------------------
-
-    def aviso_30(self) -> bool:
-        return bool(RE_AVISO_30.search(self.page.locator("body").inner_text()))
-
-    def linhas(self) -> list[dict]:
-        """Uma entrada por processo da listagem (célula 2: classe / número - assunto / partes;
-        célula 3: última movimentação com data e hora entre parênteses)."""
-        brutas = self.page.evaluate(
-            """() => Array.from(document.querySelectorAll('[id="fPP:processosTable"] tbody tr')).map(tr => {
-                const a = tr.querySelector('a[onclick*="openPopUp"]');
-                const onclick = a ? (a.getAttribute('onclick') || '') : '';
-                const m = onclick.match(/ca=([^'"&)]+)/);
-                const u = onclick.match(/openPopUp\\([^,]*,\\s*['"]([^'"]+)['"]/);
-                return {
-                    token: m ? m[1] : null,
-                    url: u ? u[1] : null,
-                    cells: Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()),
-                };
-            })""")
-        saida, vistos = [], set()
-        for b in brutas:
-            cells = b["cells"]
-            if len(cells) < 2:
-                continue
-            principal = cells[1]
-            m = RE_CNJ.search(principal)
-            if not m:
-                continue
-            numero = m.group(0)
-            if numero in vistos:
-                continue
-            classe = classe_da_linha(principal.split("\n")[0])
-            if not classe:
-                continue
-            vistos.add(numero)
-            linhas_cel = [l.strip() for l in principal.split("\n") if l.strip()]
-            assunto, partes = None, None
-            for l in linhas_cel:
-                if numero in l:
-                    assunto = l.split(numero, 1)[1].strip(" -") or None
-                elif " X " in l.upper():
-                    partes = l
-            ultima_texto, ultima_data, ultima_hora = None, None, None
-            if len(cells) >= 3 and cells[2]:
-                mm = re.search(r"\((\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2}:\d{2})\)\s*$", cells[2])
-                if mm:
-                    ultima_data, ultima_hora = mm.group(1), mm.group(2)
-                    ultima_texto = cells[2][:mm.start()].strip() or None
-                else:
-                    ultima_texto = cells[2].strip() or None
-                    d = RE_DATA.search(cells[2])
-                    ultima_data = d.group(1) if d else None
-            saida.append({
-                "numero_cnj": numero, "classe_codigo": classe[0], "classe_nome": classe[1],
-                "assunto": assunto, "partes": partes, "token": b["token"], "url": b["url"],
-                "ultima_movimentacao_texto": ultima_texto, "ultima_movimentacao_data": ultima_data,
-                "ultima_movimentacao_hora": ultima_hora,
-            })
-        return saida
-
-    # --- detalhe ------------------------------------------------------------
-
-    def abrir_detalhe(self, token: str, numero: str, url: str | None = None) -> str:
-        """Abre o detalhe do processo e devolve o texto da página.
-        Com ABRIR_DETALHE_EM_ABA ligado: aba nova do mesmo contexto, page.goto na
-        URL do onclick com Referer da listagem. Senão: clica em Ver Detalhes e
-        captura o popup. Nunca usa fetch."""
-        global ABRIR_DETALHE_EM_ABA
-        pausa_requisicao(f"detalhe {numero}")
-        if ABRIR_DETALHE_EM_ABA and url:
-            paginas = self.page.context.pages
-            aba = next((p for p in paginas if p is not self.page and not p.is_closed()), None)
-            if aba is None:
-                aba = self.page.context.new_page()
-                esconder_navegador(self.app_anterior)
-            try:
-                aba.goto(URL_BASE + url if url.startswith("/") else url, referer=self.page.url,
-                         wait_until="domcontentloaded", timeout=60_000)
-                try:
-                    aba.wait_for_load_state("networkidle", timeout=30_000)
-                except PwTimeout:
-                    pass
-                verificar_bloqueio(aba)
-                return self._ler_detalhe(aba, numero)
-            except Bloqueado:
-                ABRIR_DETALHE_EM_ABA = False
-                log(f"!! detalhe em aba respondeu Access Denied ({numero}): voltando ao clique com popup "
-                    "pelo resto da sessão")
-                # o bloqueio pode ser da sessão inteira; se a listagem também estiver barrada, propaga
-                verificar_bloqueio(self.page)
-                pausa_requisicao(f"detalhe {numero} (popup)")
-            finally:
-                # a aba fica aberta (fechar traria o Chrome para a frente); só limpa o conteúdo
-                try:
-                    aba.goto("about:blank", timeout=10_000)
-                except Exception:
-                    pass
-
-        link = self.page.locator(f'a[onclick*="{token}"]').first
-        with self.page.expect_popup(timeout=60_000) as info:
-            link.click()
-        popup = info.value
-        esconder_navegador(self.app_anterior)
+    def _get(self, caminho: str, motivo: str, debug_nome: str | None = None) -> dict:
+        pausa_requisicao(motivo)
+        url = f"{API}/{caminho}"
+        r = self.context.request.get(
+            url, headers={"Accept": "application/json", "Referer": URL_BASE + "/"}, timeout=60_000)
+        corpo = ""
         try:
-            popup.wait_for_load_state("domcontentloaded", timeout=60_000)
-            try:
-                popup.wait_for_load_state("networkidle", timeout=30_000)
-            except PwTimeout:
-                pass
-            verificar_bloqueio(popup)
-            return self._ler_detalhe(popup, numero)
-        finally:
-            try:
-                popup.close()
-            except Exception:
-                pass
+            corpo = r.text()
+        except Exception:
+            pass
+        if r.status == 403 or "access denied" in corpo[:2000].lower() or "edgesuite.net" in corpo[:2000].lower():
+            raise Bloqueado(f"Access Denied em {caminho} (HTTP {r.status})")
+        if r.status != 200:
+            raise RuntimeError(f"{motivo}: HTTP {r.status} em {caminho}")
+        try:
+            dados = json.loads(corpo)
+        except ValueError:
+            raise RuntimeError(f"{motivo}: resposta não é JSON em {caminho}: {corpo[:200]}")
+        if self.debug and debug_nome:
+            salvar_debug(debug_nome, json.dumps(dados, ensure_ascii=False, indent=2))
+        if dados.get("status") != "ok":
+            raise RuntimeError(f"{motivo}: status {dados.get('status')!r} em {caminho}: {str(dados)[:200]}")
+        return dados
 
-    def _ler_detalhe(self, pagina: Page, numero: str) -> str:
-        # espera o corpo ter as movimentações (ou pelo menos o número do processo)
-        limite = time.time() + 30
-        texto = ""
-        while time.time() < limite:
-            texto = pagina.locator("body").inner_text()
-            if "Movimenta" in texto or "Documentos" in texto:
+    # --- endpoints ----------------------------------------------------------
+
+    def buscar(self, cnpj: str, data_de: str | None = None, data_ate: str | None = None, page: int = 0) -> dict:
+        q = f"processos?page={page}&documento={re.sub(r'[^0-9]', '', cnpj)}"
+        if data_de:
+            q += f"&dataAutuacaoInicio={data_de}"
+        if data_ate:
+            q += f"&dataAutuacaoFim={data_ate}"
+        periodo = f"{data_de or 'sem data'}{(' a ' + data_ate) if data_ate else ''}"
+        nome = f"busca_{cnpj}_{nome_arquivo(periodo)}_p{page}.json"
+        return self._get(q, f"busca {cnpj} ({periodo}, pág. {page})", nome)
+
+    def dados(self, id_processo: str, numero: str) -> dict:
+        d = self._get(f"processos/{id_processo}/dados", f"dados {numero}", f"dados_{nome_arquivo(numero)}.json")
+        return d.get("result") or {}
+
+    def polo(self, id_processo: str, lado: str, numero: str) -> list[dict]:
+        """lado = 'poloAtivo' ou 'poloPassivo'. Pagina enquanto houver página.
+        HTTP 500 em alguns processos: trata como lista vazia e segue."""
+        itens: list[dict] = []
+        pagina = 0
+        while pagina < MAX_PAGINAS_POLO:
+            nome = f"{lado}_{nome_arquivo(numero)}_p{pagina}.json"
+            try:
+                d = self._get(f"processos/{id_processo}/{lado}?page={pagina}", f"{lado} {numero}", nome)
+            except Bloqueado:
+                raise
+            except RuntimeError as e:
+                log(f"   {numero}: {lado} indisponível ({e}); seguindo sem essas partes")
                 break
-            time.sleep(1)
-        if self.debug:
-            salvar_debug(f"detalhe_{numero}.html", pagina.content())
-            salvar_debug(f"detalhe_{numero}.txt", texto)
-        return texto
+            itens.extend(d.get("result") or [])
+            pi = d.get("pageInfo") or {}
+            if pagina + 1 >= int(pi.get("last") or 1):
+                break
+            pagina += 1
+        return itens
+
+    def movimentacoes(self, id_processo: str, numero: str) -> tuple[list[dict], int | None]:
+        """Primeira página (15 por página, em ordem decrescente) e o total."""
+        d = self._get(f"processos/{id_processo}/movimentacoes?page=0", f"movimentações {numero}",
+                      f"movimentacoes_{nome_arquivo(numero)}.json")
+        pi = d.get("pageInfo") or {}
+        total = int(pi["count"]) if str(pi.get("count") or "").isdigit() else None
+        return (d.get("result") or []), total
 
 
 # ---------------------------------------------------------------------------
-# Parse da página de detalhe (texto)
+# Normalização das respostas
 # ---------------------------------------------------------------------------
 
-ROTULOS = ["Número Processo", "Data da Distribuição", "Classe Judicial", "Assunto", "Jurisdição",
-           "Órgão Julgador", "Polo ativo", "Polo Passivo", "Movimentações do Processo", "Documentos juntados"]
-
-
-def _linhas(texto: str) -> list[str]:
-    return [re.sub(r"\s+", " ", l).strip() for l in texto.splitlines()]
-
-
-def _movimentos(texto: str) -> list[dict]:
-    """Linhas "dd/mm/aaaa hh:mm:ss - texto" da seção Movimentações. A coluna
-    Documento vem como linha indentada por tabulação logo abaixo do movimento
-    e não é movimento: fica de fora."""
-    dentro, saida = False, []
-    for bruta in texto.splitlines():
-        l = re.sub(r"[ \t]+", " ", bruta).strip()
-        la = sem_acento(l)
-        if not dentro:
-            if la.startswith("MOVIMENTACOES"):
-                dentro = True
-            continue
-        if la.startswith("DOCUMENTOS JUNTADOS"):
-            break
-        if bruta.startswith("\t"):
-            continue
-        m = RE_MOV.match(l)
-        if m:
-            saida.append({"ocorrido_em": datahora_br_para_iso(m.group(1), m.group(2)), "texto": m.group(3).strip()})
-    return saida
-
-
-def campo(linhas: list[str], rotulo: str) -> str | None:
-    """Valor de um rótulo: na mesma linha após ':' ou na linha seguinte não vazia."""
-    r = sem_acento(rotulo)
-    for i, l in enumerate(linhas):
-        la = sem_acento(l)
-        if la.startswith(r):
-            resto = l[len(rotulo):].strip(" :") if la.startswith(r) else ""
-            if resto:
-                return resto
-            for j in range(i + 1, min(i + 4, len(linhas))):
-                if linhas[j] and not any(sem_acento(linhas[j]).startswith(sem_acento(x)) for x in ROTULOS):
-                    return linhas[j]
-            return None
+def classe_do_item(item: dict) -> tuple[int, str] | None:
+    """Código e nome da classe a partir da sigla (ou do nome sem acento)."""
+    sigla = sem_acento(item.get("classeSigla") or "").replace(" ", "")
+    if sigla in SIGLAS:
+        cod = SIGLAS[sigla]
+        return cod, CLASSES[cod]
+    nome = sem_acento(item.get("classe") or "")
+    for chave, cod in NOMES_CLASSE.items():
+        if nome.startswith(chave):
+            return cod, CLASSES[cod]
     return None
 
 
-def secao(linhas: list[str], inicio: str, fins: list[str]) -> list[str]:
-    ini = sem_acento(inicio)
-    fins_a = [sem_acento(f) for f in fins]
-    dentro, saida = False, []
-    for l in linhas:
-        la = sem_acento(l)
-        if not dentro:
-            if la.startswith(ini):
-                dentro = True
-            continue
-        if any(la.startswith(f) for f in fins_a):
-            break
-        if l:
-            saida.append(l)
-    return saida
-
-
-def participantes(linhas: list[str]) -> list[dict]:
-    saida = []
-    for l in linhas:
-        papel = re.search(r"\(([A-ZÇÃÕÉÁÍÓÚ ]+)\)\s*$", l)
-        if not papel:
-            continue
-        nome = re.split(r"\s+-\s+(?=(?:OAB|CNPJ|CPF)\b)", l, maxsplit=1)[0].strip()
-        oab = re.search(r"OAB\s*([A-Z]{2})\s?(\d+)", l)
-        doc = re.search(r"(CNPJ|CPF):\s*([\d.\-/X*]+)", l, re.I)
-        saida.append({
-            "nome": nome, "papel": sem_acento(papel.group(1)).strip(),
-            "oab": f"{oab.group(1)}{oab.group(2)}" if oab else None,
-            "doc_tipo": doc.group(1).upper() if doc else None,
-            "doc": doc.group(2) if doc else None,
-        })
-    return saida
-
-
-def parse_detalhe(texto: str) -> dict:
-    linhas = _linhas(texto)
-    classe_txt = campo(linhas, "Classe Judicial") or ""
-    cod = re.search(r"\((\d{4})\)", classe_txt)
-    passivo = participantes(secao(linhas, "Polo Passivo", ["Movimentações", "Documentos", "Polo ativo"]))
-    ativo = participantes(secao(linhas, "Polo ativo", ["Polo Passivo", "Movimentações", "Documentos"]))
-    movs = _movimentos(texto)
-    # total de movimentações: paginador ("de N", "N resultados") se existir
-    total = None
-    bloco = " ".join(secao(linhas, "Movimentações", ["Documentos juntados"]))
-    for pad in (r"\bde\s+(\d+)\s*(?:resultados?|registros?|movimenta)", r"(\d+)\s+(?:resultados?|registros?|movimenta[cç][oõ]es)\b", r"\b(\d+)\s*/\s*(\d+)\b"):
-        m = re.search(pad, bloco, re.I)
+def normalizar_listagem(item: dict, busca: tuple) -> dict | None:
+    """Item da busca -> linha com as chaves que gravar_listagem espera.
+    Devolve None para classes fora de 1116/1118."""
+    numero = item.get("numeroProcesso") or ""
+    if not RE_CNJ.fullmatch(numero.strip()):
+        return None
+    classe = classe_do_item(item)
+    if not classe:
+        return None
+    partes = item.get("partes") or {}
+    ativo = (partes.get("poloAtivo") or {}).get("nomeParte")
+    passivo = (partes.get("poloPassivo") or {}).get("nomeParte")
+    texto, data, hora = None, None, None
+    bruto = (item.get("ultimaMovimentacao") or "").strip()
+    if bruto:
+        m = RE_ULTIMA_MOV.match(bruto)
         if m:
-            total = int(m.group(m.lastindex))
-            break
-    # Nos embargos a empresa é EMBARGANTE e fica no "Polo ativo" da página.
+            texto, data, hora = (m.group(1).strip() or None), m.group(2), m.group(3)
+        else:
+            texto = bruto
+    return {
+        "numero_cnj": numero.strip(), "classe_codigo": classe[0], "classe_nome": classe[1],
+        "assunto": item.get("assunto") or None,
+        "id_processo": item.get("idProcesso"),
+        "polo_ativo_nome": ativo, "polo_passivo_nome": passivo,
+        "ultima_movimentacao_texto": texto, "ultima_movimentacao_data": data, "ultima_movimentacao_hora": hora,
+        "busca": busca,
+    }
+
+
+def normalizar_participante(p: dict) -> dict:
+    """Participante da API -> dict no formato que gravar_detalhe espera.
+    A OAB e o documento vêm dentro de 'participante'
+    ('FULANO - OAB SP455504 - CPF: 453.XXX.XXX-XX (ADVOGADO)')."""
+    bruto = p.get("participante") or ""
+    oab = RE_OAB.search(bruto)
+    doc = RE_DOC.search(bruto)
+    return {
+        "nome": RE_NOME_CIVIL.sub("", (p.get("nome") or "").strip()).strip() or None,
+        "papel": sem_acento(p.get("tipo") or "").strip(),
+        "oab": re.sub(r"\s+", "", oab.group(1)).upper() if oab else None,
+        "doc_tipo": doc.group(1).upper() if doc else None,
+        "doc": doc.group(2) if doc else None,
+    }
+
+
+def montar_detalhe(dados: dict, passivo_bruto: list[dict], ativo_bruto: list[dict],
+                   movs_brutos: list[dict], total_movs: int | None) -> dict:
+    """Junta /dados, /poloPassivo, /poloAtivo e /movimentacoes no mesmo formato
+    que gravar_detalhe já gravava a partir do HTML."""
+    classe_txt = dados.get("classeJudicial") or ""
+    cod = re.search(r"\((\d{3,4})\)\s*$", classe_txt)
+    passivo = [normalizar_participante(p) for p in passivo_bruto]
+    ativo = [normalizar_participante(p) for p in ativo_bruto]
+
+    movs = []
+    for m in movs_brutos:
+        texto = (m.get("movimento") or "").strip()
+        quando = (m.get("dataAtualizacao") or "").strip()
+        mm = re.match(r"(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2}:\d{2})", quando)
+        if not texto or not mm:
+            continue
+        movs.append({"ocorrido_em": datahora_br_para_iso(mm.group(1), mm.group(2)), "texto": texto})
+
+    # Nos embargos a empresa é EMBARGANTE e fica no polo ativo do processo.
     # O worker guarda os lados em relação à empresa: 'passivo' = lado do
     # executado (empresa e seus advogados), 'ativo' = lado da Fazenda.
     lado_empresa, lado_fazenda = passivo, ativo
@@ -668,25 +468,26 @@ def parse_detalhe(texto: str) -> dict:
         lado_empresa, lado_fazenda = ativo, passivo
     passivo, ativo = lado_empresa, lado_fazenda
     executado = next((p for p in passivo if p["papel"] in PAPEIS_EXECUTADO), None) or (passivo[0] if passivo else None)
-    m_num = RE_CNJ.search(campo(linhas, "Número Processo") or "") or RE_CNJ.search(texto)
-    m_dist = RE_DATA.search(campo(linhas, "Data da Distribuição") or "")
+
+    numero = (dados.get("numeroProcesso") or "").strip()
     return {
-        "numero_cnj": m_num.group(0) if m_num else None,
-        "data_distribuicao": data_br_para_iso(m_dist.group(1)) if m_dist else None,
+        "numero_cnj": numero or None,
+        "data_distribuicao": so_data(dados.get("dataDistribuicao")),
         "classe_codigo": int(cod.group(1)) if cod else None,
-        "classe_nome": re.sub(r"\s*\(\d{4}\)\s*$", "", classe_txt).strip() or None,
-        "assunto": campo(linhas, "Assunto"),
-        "jurisdicao": campo(linhas, "Jurisdição"),
-        "orgao_julgador": campo(linhas, "Órgão Julgador"),
+        "classe_nome": re.sub(r"\s*\(\d{3,4}\)\s*$", "", classe_txt).strip() or None,
+        "assunto": (dados.get("assunto") or "").strip() or None,
+        "jurisdicao": (dados.get("jurisdicao") or "").strip() or None,
+        "orgao_julgador": (dados.get("orgaoJulgador") or "").strip() or None,
         "polo_passivo_nome": executado["nome"] if executado else None,
         "cnpj_mascarado": executado["doc"] if executado and executado["doc_tipo"] == "CNPJ" else None,
         "passivo": passivo, "ativo": ativo, "movimentos": movs,
-        "qtd_movimentacoes": total if total is not None else (len(movs) or None),
+        "qtd_movimentacoes": total_movs if total_movs is not None else (len(movs) or None),
     }
 
 
 def cnpj_confere(cnpj: str, parsed: dict) -> bool | None:
-    """True se algum EXECUTADO/EMBARGANTE com CNPJ bate nos 3 primeiros dígitos;
+    """True se algum EXECUTADO/EMBARGANTE com CNPJ bate nos 3 primeiros dígitos
+    (o CNPJ vem mascarado, '16.4XX.XXX/XXXX-XX', então só esses são visíveis);
     False se há CNPJ e nenhum bate; None se não dá para conferir."""
     prefixo = re.sub(r"\D", "", cnpj)[:3]
     docs = [re.sub(r"\D", "", p["doc"] or "")[:3] for p in parsed["passivo"]
@@ -698,7 +499,7 @@ def cnpj_confere(cnpj: str, parsed: dict) -> bool | None:
 
 
 # ---------------------------------------------------------------------------
-# Fluxo por empresa
+# Gravação
 # ---------------------------------------------------------------------------
 
 def gravar_listagem(sb: Supabase, cnpj: str, linhas: list[dict]) -> dict[str, int]:
@@ -711,13 +512,13 @@ def gravar_listagem(sb: Supabase, cnpj: str, linhas: list[dict]) -> dict[str, in
             "ultima_movimentacao_texto": l["ultima_movimentacao_texto"], "capturado_em": agora().isoformat(),
         }
         if l["ultima_movimentacao_data"]:
-            reg["ultima_movimentacao_em"] = datahora_br_para_iso(l["ultima_movimentacao_data"], l.get("ultima_movimentacao_hora") or "00:00:00")
-        if l.get("partes"):
-            partes = re.split(r"\s+X\s+", l["partes"], maxsplit=1)
-            if len(partes) == 2:
-                # execução fiscal: União X empresa (empresa é o polo passivo);
-                # embargos: empresa X União (a empresa embargante está no polo ativo, mas é o executado)
-                reg["polo_passivo_nome"] = (partes[1] if l["classe_codigo"] == 1116 else partes[0]).strip()
+            reg["ultima_movimentacao_em"] = datahora_br_para_iso(
+                l["ultima_movimentacao_data"], l.get("ultima_movimentacao_hora") or "00:00:00")
+        # execução fiscal: União X empresa (empresa é o polo passivo);
+        # embargos: empresa X União (a empresa embargante está no polo ativo, mas é o executado)
+        nome = l["polo_passivo_nome"] if l["classe_codigo"] == 1116 else l["polo_ativo_nome"]
+        if nome:
+            reg["polo_passivo_nome"] = nome.strip()
         registros.append(reg)
     ids = {}
     for i in range(0, len(registros), 50):
@@ -747,7 +548,7 @@ def gravar_detalhe(sb: Supabase, processo_id: int, parsed: dict) -> None:
 
     sb.delete("radar_processo_movimentos", {"processo_id": f"eq.{processo_id}"})
     vistos, movs = set(), []
-    for m in parsed["movimentos"][:15]:
+    for m in parsed["movimentos"][:MAX_MOVIMENTOS_POR_PROCESSO]:
         k = (m["ocorrido_em"], m["texto"])
         if k in vistos:
             continue
@@ -757,107 +558,117 @@ def gravar_detalhe(sb: Supabase, processo_id: int, parsed: dict) -> None:
         sb.insert("radar_processo_movimentos", movs)
 
 
+# ---------------------------------------------------------------------------
+# Fluxo por empresa
+# ---------------------------------------------------------------------------
+
+def buscar_periodo(api: PjeApi, cnpj: str, de: str | None, ate: str | None = None) -> tuple[int, list[dict], bool]:
+    """Busca paginada num período. Devolve (total no período, itens das classes
+    1116/1118, se a paginação bateu no teto).
+
+    O pageInfo da primeira página não dá para confiar: com mais de 30 processos
+    ela devolve last=1 e count=30 e só a partir de ?page=1 a API admite o total
+    real (verificado em 20/09/2026: Procomp diz 30 na página 0 e 42 na página 1).
+    Quem sinaliza que há mais é o aviso "somente os 30 primeiros" em messages[],
+    então a paginação segue enquanto a página vier cheia e houver aviso."""
+    periodo = f"{de or 'sem data'}{(' a ' + ate) if ate else ''}"
+    itens: list[dict] = []
+    total, pagina, cheia = 0, 0, False
+    while pagina < MAX_PAGINAS_BUSCA:
+        d = api.buscar(cnpj, de, ate, page=pagina)
+        pi = d.get("pageInfo") or {}
+        if str(pi.get("count") or "").isdigit():
+            total = max(total, int(pi["count"]))
+        brutos = d.get("result") or []
+        for bruto in brutos:
+            item = normalizar_listagem(bruto, (de, ate))
+            if item:
+                itens.append(item)
+        tamanho = int(pi.get("size") or 30)
+        ultima = int(pi.get("last") or 1)
+        truncada = any(RE_AVISO_CORTE.search(m or "") for m in (d.get("messages") or []))
+        pagina += 1
+        cheia = len(brutos) >= tamanho
+        # página incompleta é sempre a última; sem aviso, vale o pageInfo.last
+        if not cheia or (not truncada and pagina >= ultima):
+            break
+    no_teto = pagina >= MAX_PAGINAS_BUSCA and cheia
+    log(f"   busca {periodo}: {total} resultados em {pagina} pág., {len(itens)} das classes 1116/1118"
+        + (" (teto de páginas atingido)" if no_teto else ""))
+    return total, itens, no_teto
+
+
 def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: bool = False,
                       max_detalhes: int = MAX_DETALHES_POR_EMPRESA) -> dict:
     """Consulta o PJe para uma empresa e grava tudo. Levanta Bloqueado se o Akamai barrar."""
     cnpj = emp["cnpj"]
-    candidatos = nomes_de_busca(emp.get("razao_social"), emp["nome_devedor"])
     inicio = time.time()
-    page = context.pages[0] if context.pages else context.new_page()
-    consulta = ConsultaPje(page, debug=debug)
+    api = PjeApi(context, debug=debug)
+    api.abrir_spa()
 
     log(f"-> {cnpj} {emp.get('razao_social') or emp['nome_devedor']}")
     encontrados: dict[str, dict] = {}
 
-    busca_atual: list = [None]  # (crit, de, ate) da listagem que está na tela
-
-    def buscar(crit: tuple[str, str], de: str | None, ate: str | None = None) -> tuple[int, list[dict]]:
-        periodo = f"{de or 'sem data'}{(' a ' + ate) if ate else ''}"
-        log(f"   busca por {crit[0]}: \"{crit[1]}\" ({periodo})")
-        consulta.abrir()
-        consulta.preencher(crit, de, ate)
-        total = consulta.pesquisar() or 0
-        brutas = consulta.linhas()
-        busca_atual[0] = (crit, de, ate)
-        for b in brutas:
-            b["busca"] = (crit, de, ate)
-        log(f"   {total} resultados, {len(brutas)} das classes 1116/1118")
-        return total, brutas
-
-    def guardar(brutas: list[dict]) -> None:
-        for l in brutas:
+    def guardar(itens: list[dict]) -> None:
+        for l in itens:
             encontrados[l["numero_cnj"]] = l
 
-    def acima_de_30(total: int) -> bool:
-        return consulta.aviso_30() or total > 30
-
-    def por_ano(crit: tuple[str, str], ano_inicial: int) -> None:
-        log(f"   mais de 30 resultados: repetindo por ano de {ano_inicial} a {agora().year}")
+    def por_ano(ano_inicial: int) -> None:
+        log(f"   paginação insuficiente: repetindo por ano de {ano_inicial} a {agora().year}")
         for ano in range(ano_inicial, agora().year + 1):
-            _, brutas = buscar(crit, f"01/01/{ano}", f"31/12/{ano}")
-            guardar(brutas)
-            if consulta.aviso_30():
-                log(f"   ano {ano} ainda com mais de 30 resultados; ficam os 30 primeiros")
+            _, itens, _ = buscar_periodo(api, cnpj, f"{ano}-01-01", f"{ano}-12-31")
+            guardar(itens)
 
-    def desde_2021_e_sem_data(crit: tuple[str, str]) -> int:
-        """Busca desde 2021; sem linha das classes, repete sem data. Devolve o maior total visto."""
-        total, brutas = buscar(crit, DATA_AUTUACAO_DE)
-        if brutas:
-            guardar(brutas)
-            if acima_de_30(total):
-                por_ano(crit, ANO_INICIAL)
-            return total
+    # 1) desde 2021 (decisão 66: a busca é sempre por CNPJ)
+    total, itens, no_teto = buscar_periodo(api, cnpj, DATA_AUTUACAO_DE)
+    guardar(itens)
+    if no_teto:
+        por_ano(ANO_INICIAL)
+    # 2) sem nada das classes desde 2021, repete sem filtro de data
+    if not encontrados:
         log("   nenhum processo 1116/1118 desde 2021: repetindo sem filtro de data")
-        total2, brutas = buscar(crit, None)
-        guardar(brutas)
-        if brutas and acima_de_30(total2):
-            por_ano(crit, ANO_INICIAL_SEM_FILTRO)
-        return max(total, total2)
-
-    # 1) busca principal pelo CNPJ (decisão 66)
-    total_cnpj = desde_2021_e_sem_data(("cnpj", cnpj))
-
-    # 2) fallback pelo nome exato, só se o CNPJ não devolveu nada (de classe nenhuma)
-    if total_cnpj == 0 and not encontrados:
-        log("   CNPJ sem resultado no PJe: tentando pelo nome")
-        for nome in candidatos:
-            total_nome = desde_2021_e_sem_data(("nome", nome))
-            if total_nome or encontrados:
-                break
+        total2, itens2, no_teto2 = buscar_periodo(api, cnpj, None)
+        guardar(itens2)
+        total = max(total, total2)
+        if no_teto2:
+            por_ano(ANO_INICIAL_SEM_FILTRO)
 
     linhas = list(encontrados.values())
     log(f"   listagem: {len(linhas)} processos das classes 1116/1118")
     ids = gravar_listagem(sb, cnpj, linhas) if linhas else {}
 
     detalhes, homonimos = 0, 0
-    if linhas:
-        # os N mais recentes, agrupados pela busca que os listou para refazer
-        # cada listagem uma vez só (a quebra por ano deixa só o último ano na tela)
-        escolhidos = sorted(linhas, key=lambda l: chave_recencia(l["numero_cnj"]), reverse=True)[:max_detalhes]
-        escolhidos.sort(key=lambda l: (str(l.get("busca")), -chave_recencia(l["numero_cnj"])[0], -chave_recencia(l["numero_cnj"])[1]))
-        for l in escolhidos:
-            if not l["token"]:
-                continue
-            if l.get("busca") != busca_atual[0] or page.locator(f'a[onclick*="{l["token"]}"]').count() == 0:
-                crit, de, ate = l["busca"]
-                _, brutas = buscar(crit, de, ate)
-                novo = next((b for b in brutas if b["numero_cnj"] == l["numero_cnj"]), None)
-                if not novo:
-                    log(f"   {l['numero_cnj']}: não reapareceu na listagem, pulando o detalhe")
-                    continue
-                l["token"], l["url"] = novo["token"], novo["url"]
-            texto = consulta.abrir_detalhe(l["token"], l["numero_cnj"], l.get("url"))
-            parsed = parse_detalhe(texto)
-            confere = cnpj_confere(cnpj, parsed)
-            if confere is False:
-                homonimos += 1
-                log(f"   {l['numero_cnj']}: HOMÔNIMO (CNPJ {parsed.get('cnpj_mascarado')} não bate com {cnpj[:3]}), apagado")
-                sb.delete("radar_processos", {"numero_cnj": f"eq.{l['numero_cnj']}"})
-                continue
-            gravar_detalhe(sb, ids[l["numero_cnj"]], parsed)
-            detalhes += 1
-            log(f"   {l['numero_cnj']}: {parsed.get('orgao_julgador') or '?'} | dist. {parsed.get('data_distribuicao')} | "
-                f"{len([p for p in parsed['passivo'] if p['oab']])} adv | {min(15, len(parsed['movimentos']))} mov gravadas de {parsed.get('qtd_movimentacoes')}")
+    # os N mais recentes pelo número CNJ
+    escolhidos = sorted(linhas, key=lambda l: chave_recencia(l["numero_cnj"]), reverse=True)[:max_detalhes]
+    for l in escolhidos:
+        numero, idp = l["numero_cnj"], l.get("id_processo")
+        if not idp:
+            log(f"   {numero}: sem idProcesso na listagem, pulando o detalhe")
+            continue
+        try:
+            dados = api.dados(idp, numero)
+        except Bloqueado:
+            raise
+        except RuntimeError as e:
+            log(f"   {numero}: detalhe indisponível ({e}); pulando")
+            continue
+        passivo = api.polo(idp, "poloPassivo", numero)
+        ativo = api.polo(idp, "poloAtivo", numero)
+        movs, total_movs = api.movimentacoes(idp, numero)
+        parsed = montar_detalhe(dados, passivo, ativo, movs, total_movs)
+
+        confere = cnpj_confere(cnpj, parsed)
+        if confere is False:
+            homonimos += 1
+            log(f"   {numero}: HOMÔNIMO (CNPJ {parsed.get('cnpj_mascarado')} não bate com {cnpj[:3]}), apagado")
+            sb.delete("radar_processos", {"numero_cnj": f"eq.{numero}"})
+            encontrados.pop(numero, None)
+            continue
+        gravar_detalhe(sb, ids[numero], parsed)
+        detalhes += 1
+        log(f"   {numero}: {parsed.get('orgao_julgador') or '?'} | dist. {parsed.get('data_distribuicao')} | "
+            f"{len([p for p in parsed['passivo'] if p['oab']])} adv | "
+            f"{min(MAX_MOVIMENTOS_POR_PROCESSO, len(parsed['movimentos']))} mov gravadas de {parsed.get('qtd_movimentacoes')}")
 
     sb.rpc("radar_consolidar_dossie", {"p_cnpj": cnpj})
     restantes = len(linhas) - homonimos
@@ -932,16 +743,6 @@ def abrir_navegador(pw, headless: bool) -> BrowserContext:
             "--no-default-browser-check",
         ],
     )
-    # O "Ver Detalhes" chama window.open com features (largura/altura), o que
-    # cria uma janela nova e ativa o Chrome. Sem as features vira uma aba na
-    # janela escondida: mesmo clique, mesma URL, sem roubar o foco.
-    context.add_init_script(
-        "(() => { const abrir = window.open.bind(window);"
-        " window.open = (url, nome) => abrir(url, nome || '_blank'); })()")
-    # Aba reservada ao detalhe (decisão 70): criada aqui, antes de esconder o
-    # Chrome, porque criar ou fechar aba com o app escondido o traz para a frente.
-    if ABRIR_DETALHE_EM_ABA and len(context.pages) < 2:
-        context.new_page()
     esconder_navegador(app_anterior)
     return context
 
@@ -967,6 +768,7 @@ def executar_com_bloqueio(sb: Supabase, pw, headless: bool, emp: dict, fila: dic
             return processar_empresa(sb, context, emp, debug=debug, max_detalhes=max_detalhes)
         except Bloqueado as b:
             n = ctrl.registrar()
+            dobrar_pausas()
             log(f"!! BLOQUEIO {n}/{BLOQUEIOS_MAX_DIA} do dia em {agora().strftime('%H:%M:%S')}: {b} (empresa {emp['cnpj']})")
             if fila:
                 sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"},
@@ -1065,7 +867,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Worker do PJe TRF3 para o Radar (Fase 2)")
     ap.add_argument("--cnpj", help="processa só essa empresa, ignorando fila e teto")
     ap.add_argument("--headless", action="store_true", help="Chrome sem janela")
-    ap.add_argument("--debug", action="store_true", help="salva HTML e texto das páginas em data/radar/debug")
+    ap.add_argument("--debug", action="store_true", help="salva o JSON bruto das chamadas em data/radar/debug")
     ap.add_argument("--detalhes", type=int, default=MAX_DETALHES_POR_EMPRESA,
                     help=f"com --cnpj: quantos detalhes abrir (padrão {MAX_DETALHES_POR_EMPRESA}; use 30 para abrir todos)")
     args = ap.parse_args()

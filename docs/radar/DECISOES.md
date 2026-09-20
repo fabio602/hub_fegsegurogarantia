@@ -358,3 +358,38 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     não chega por `select('*')`: `telefoneEfetivo()`/`emailEfetivo()` fazem o
     coalesce no front (efetivo, manual, BrasilAPI). Restaurar é por campo.
     Tarefa 100% aditiva; tag `pre-contato-manual` marca o ponto de retorno.
+74. **Worker do PJe pela API JSON** (20/09/2026). Em 14/09/2026 o TRF3
+    aposentou a consulta pública em JSF/Seam e passou a redirecionar para
+    `pje1g-consultapublica.trf3.jus.br`, um aplicativo Angular. Os ids que o
+    worker usava (`fPP:dpDec:documentoParte`, `fPP:searchProcessos`,
+    `tipoMascaraDocumento`) sumiram e todas as empresas passaram a falhar com
+    `RuntimeError('radio de CNPJ não encontrado')` — 99 na fila. O worker
+    deixou de raspar HTML e passou a chamar a API REST pública que o
+    aplicativo consome (`/v1/processos`, `/dados`, `/poloPassivo`,
+    `/poloAtivo`, `/movimentacoes`), sem migração de banco: as tabelas
+    `radar_processos`, `radar_processo_advogados` e
+    `radar_processo_movimentos` continuam iguais, e `gravar_listagem` e
+    `gravar_detalhe` gravam as mesmas chaves de antes. Saíram `ConsultaPje`,
+    todo o parse de texto do detalhe, o mecanismo de aba/popup e o fallback
+    pelo nome da parte (a busca por CNPJ é a única via, decisão 66). O Chrome
+    real continua sendo aberto porque o Akamai responde HTTP/2
+    `INTERNAL_ERROR` a cliente sem os cookies do navegador (verificado com
+    curl em 20/09/2026): ele abre o aplicativo uma vez por empresa e as
+    chamadas saem por `context.request.get`, que reusa a sessão. Custo por
+    empresa caiu de dezenas de cliques para 1 + 4 x N chamadas, então o ritmo
+    afrouxou para 6 s ± 4 s entre requisições, 60 s ± 30 s entre empresas e
+    teto de 150 por dia; qualquer bloqueio dobra as pausas pelo resto do dia,
+    além da dormida de 1 h que já existia.
+75. **A paginação da busca não confia no `pageInfo`** (20/09/2026). A primeira
+    página de uma busca com mais de 30 processos devolve `last: 1` e
+    `count: 30`, e só a partir de `?page=1` a API admite o total real — a
+    Procomp diz 30 na página 0 e 42 na página 1. Quem sinaliza que há mais é o
+    aviso "somente os 30 primeiros" em `messages[]`, o mesmo texto que a tela
+    antiga mostrava no rodapé. Por isso `buscar_periodo` pagina enquanto a
+    página vier cheia (`len(result) >= pageInfo.size`) e o aviso estiver
+    presente; página incompleta é sempre a última. A quebra por ano continua,
+    mas só é acionada se nem a paginação der conta (teto de 10 páginas), e não
+    mais a cada busca acima de 30. Os participantes também paginam (10 por
+    página, teto de 5): sem isso um processo com muitas partes esconderia o
+    advogado na 2ª página e criaria alerta falso de "execução sem advogado"
+    (decisão 72).
