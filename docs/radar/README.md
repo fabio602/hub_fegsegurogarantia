@@ -22,7 +22,7 @@ e [ACEITE-FASE2.md](ACEITE-FASE2.md).
 | Edge Function | `supabase/functions/radar-enrich-cnpj` | Enriquece as empresas pela BrasilAPI, de hora em hora |
 | Tela | `src/views/Radar/` | View `radar` do Hub (menu Seguro Garantia > Prospecção > Radar) |
 | Migração 079 (Fase 2) | `supabase/079_radar_fase2_pje.sql` | Fila do PJe, processos, movimentações, advogados, `vw_radar_advogados`, dossiê e score v3 |
-| Worker do PJe (Fase 2) | `scripts/radar/pje_worker.py` | Chrome real via Playwright consultando o PJe TRF3 em ritmo humano |
+| Worker do PJe (Fase 2) | `scripts/radar/pje_worker.py` | Chama a API JSON da consulta pública do TRF3; o Chrome real só mantém os cookies do Akamai |
 | launchd (Fase 2) | `scripts/radar/com.fg.radar-pje.plist`, `install_launchd.sh` | Mantém o worker rodando no Mac |
 
 ## 1. Baixar a base da PGFN
@@ -198,67 +198,83 @@ movimentações mais recentes. O drawer da empresa mostra tudo isso na seção
    coloca em `radar_pje_fila` toda empresa `novo`, com garantia e sem dossiê,
    com prioridade igual ao score. O botão "Buscar processos" do drawer
    enfileira com prioridade 100.
-2. O worker pega a próxima da fila (prioridade maior, mais antiga primeiro),
-   abre a consulta pública com um Chrome real, preenche "Nome da parte" com a
-   razão social exata e "Data de Autuação" a partir de 01/01/2021, pesquisa e
-   fica só com as linhas das duas classes. Se o PJe avisar que há mais de 30
-   resultados, repete a pesquisa ano a ano.
+2. O worker pega a próxima da fila (prioridade maior, mais antiga primeiro)
+   e busca na API por CNPJ (`GET /v1/processos?documento=...&dataAutuacaoInicio=
+   2021-01-01`), paginando enquanto a página vier cheia com o aviso dos 30, e
+   fica só com as classes 1116/1118. Sem nada desde 2021, repete sem filtro de
+   data; se nem a paginação der conta, quebra por ano.
 3. Grava todos os processos da listagem em `radar_processos` (número CNJ,
-   classe, assunto, partes, última movimentação) e abre o detalhe dos 8 mais
-   recentes, em popup, clicando em "Ver Detalhes": vara, jurisdição, data de
-   distribuição, polos, advogados (`radar_processo_advogados`) e as 15
-   movimentações da primeira página (`radar_processo_movimentos`). Confere os
-   3 primeiros dígitos do CNPJ mascarado; homônimo é apagado e vai para o log.
+   classe, assunto, partes, última movimentação) e detalha os 8 mais recentes
+   com quatro chamadas cada (`/dados`, `/poloPassivo`, `/poloAtivo`,
+   `/movimentacoes`): vara, jurisdição, data de distribuição, polos, advogados
+   (`radar_processo_advogados`) e as 15 movimentações mais recentes
+   (`radar_processo_movimentos`). Confere os 3 primeiros dígitos do CNPJ
+   mascarado; homônimo é apagado e vai para o log.
 4. `radar_consolidar_dossie(cnpj)` recalcula `qtd_execucoes`, `qtd_embargos`,
    `dossie_status` (`pronto` ou `sem_processos`), `dossie_em` e o score
    (embargos localizados valem +10).
 
-### Fatos verificados sobre o PJe TRF3 (13/09/2026)
+### Fatos verificados sobre a API da consulta pública (20/09/2026)
 
-- URL: `https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam`. Sem
-  login e sem captcha (o hCaptcha existe na página, mas está desligado).
-- Campos: `fPP:dnp:nomeParte` (nome exato da parte), `fPP:dataAutuacaoDecoration:
-  dataAutuacaoInicioInputDate` e `...FimInputDate` (dd/mm/aaaa, preencher pelo
-  valor do input), botão `fPP:searchProcessos`. Não mexer nos hidden
-  `...InputCurrentDate` do calendário: zerá-los faz o servidor ignorar o
-  formulário e devolver a base inteira.
-- Resultado: tabela `fPP:processosTable`, uma linha por processo, com classe,
-  "ExFis 5002050-64.2023.4.03.6182 - PIS", partes "A X B" e última
-  movimentação "(dd/mm/aaaa hh:mm:ss)". Rodapé "N resultados encontrados".
-  Teto de 30 linhas; acima disso aparece o aviso "somente os 30 primeiros".
-- "Ver Detalhes" abre um popup (`openPopUp(...)`) com a URL do detalhe
-  (`...DetalheProcessoConsultaPublica/listView.seam?ca=<token>`). O worker
-  abre essa URL numa aba reservada do mesmo contexto, com `Referer` da
-  listagem (`ABRIR_DETALHE_EM_ABA`, decisão 70); se vier Access Denied, volta
-  ao clique com captura do popup pelo resto da sessão. Nunca usa fetch.
-- Detalhe: "Número Processo", "Data da Distribuição", "Classe Judicial
-  (1116)", "Assunto", "Jurisdição", "Órgão Julgador", "Polo ativo", "Polo
-  Passivo" (participante " - CNPJ: 56.1XX.XXX/XXXX-XX (EXECUTADO)", advogado
-  " - OAB SP182592 - CPF: ... (ADVOGADO)"), "Movimentações do Processo"
-  (15 por página, "dd/mm/aaaa hh:mm:ss - texto", linha de Documento indentada
-  por tabulação) e "Documentos juntados ao processo" (ignorado). Nos embargos a
-  empresa é EMBARGANTE no polo ativo; o worker grava os lados em relação à
-  empresa.
+Em 14/09/2026 o TRF3 aposentou a consulta pública antiga em JSF/Seam
+(`pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam`), que passou a
+redirecionar para `https://pje1g-consultapublica.trf3.jus.br/`, um aplicativo
+Angular. O worker deixou de raspar HTML e passou a chamar a API REST pública
+que esse aplicativo consome (decisão 74).
+
+- Base `https://pje1g-consultapublica.trf3.jus.br/v1`, JSON, sem login e sem
+  captcha. Toda resposta tem `status`, `code`, `messages[]`, `result` e,
+  quando pagina, `pageInfo {current, last, size, count}`.
+- Busca: `GET /v1/processos?page=0&documento=<14 dígitos>&dataAutuacaoInicio=
+  YYYY-MM-DD` (e `dataAutuacaoFim` para a quebra por ano). Cada item traz
+  `idProcesso`, `numeroProcesso`, `classe`, `classeSigla` ("ExFis",
+  "EmbExeFis"), `assunto`, `ultimaMovimentacao` ("Texto (dd/mm/aaaa hh:mm:ss)")
+  e `partes.poloAtivo/poloPassivo.nomeParte`.
+- Detalhe, com o `idProcesso` da mesma resposta da busca (o token muda a cada
+  resposta; não guardar entre execuções): `/dados` (`dataDistribuicao` ISO,
+  `classeJudicial` com o código entre parênteses, `jurisdicao`,
+  `orgaoJulgador`), `/poloPassivo?page=0` e `/poloAtivo?page=0` (10 por
+  página, `participante` com OAB e documento mascarado, `nome`, `tipo`) e
+  `/movimentacoes?page=0` (15 por página, `movimento` e `dataAtualizacao`
+  "dd/mm/aaaa hh:mm:ss", já em ordem decrescente; `pageInfo.count` é o total).
+- **O `pageInfo` da primeira página não é confiável.** Com mais de 30
+  processos ela devolve `last: 1` e `count: 30`; só a partir de `?page=1` a
+  API admite o total real. O sinal de que há mais é o aviso "somente os 30
+  primeiros" em `messages[]` — foi assim que a Procomp passou de 30 para 42.
+- `/poloPassivo` devolve HTTP 500 em alguns processos: trata como lista vazia
+  e segue, sem marcar erro na empresa.
+- O CNPJ dos participantes vem mascarado (`16.4XX.XXX/XXXX-XX`). Como a busca
+  já é por CNPJ, a conferência é só de sanidade (3 primeiros dígitos).
+- Nome social vem como "FULANA registrado(a) civilmente como FULANO" no mesmo
+  campo; o worker guarda só o nome social.
+- Nos embargos a empresa é EMBARGANTE no polo ativo; o worker grava os lados
+  em relação à empresa.
+- O Akamai continua na frente: a API responde HTTP/2 `INTERNAL_ERROR` para
+  cliente sem os cookies do navegador. Por isso o Chrome real continua sendo
+  aberto, só para abrir o aplicativo uma vez por empresa e renovar o cookie;
+  as chamadas saem por `context.request.get`, que reusa a sessão.
 
 ### Ritmo e bloqueio (Akamai)
 
-O PJe fica atrás do Akamai: cerca de 10 requisições em sequência rápida
-(menos de 2 s) geram "Access Denied" (`errors.edgesuite.net`), bloqueio
-temporário por IP. Por isso o worker, configurado no topo de
-`scripts/radar/pje_worker.py`:
+O PJe fica atrás do Akamai: requisições em sequência rápida geram "Access
+Denied" (`errors.edgesuite.net`), bloqueio temporário por IP. A API custa
+cerca de 1 + 4 x N chamadas por empresa (uma busca e quatro por processo
+detalhado), contra dezenas de cliques da tela antiga, então o ritmo pôde
+afrouxar. Configurado no topo de `scripts/radar/pje_worker.py`:
 
 | Parâmetro | Valor |
 | --- | --- |
 | Janela de trabalho | 07h às 23h (hora do Mac) |
-| Intervalo entre empresas | 5 min ± 60 s |
-| Intervalo entre requisições (pesquisa, cada detalhe, cada ano) | 20 s ± 8 s |
+| Intervalo entre empresas | 60 s ± 30 s |
+| Intervalo entre requisições (busca, cada chamada de detalhe) | 6 s ± 4 s |
 | Detalhes abertos por empresa | 8 (os mais recentes) |
-| Teto diário | 60 empresas |
-| Bloqueio | empresa vira `bloqueado`, worker dorme 60 min e tenta a mesma empresa; no 3º bloqueio do dia para até a próxima janela |
+| Teto diário | 150 empresas |
+| Bloqueio | empresa vira `bloqueado`, worker dorme 60 min, dobra as pausas pelo resto do dia e tenta a mesma empresa; no 3º bloqueio do dia para até a próxima janela |
 
-Uma empresa com 8 detalhes leva uns 5 minutos; com o intervalo entre
-empresas, o teto de 60 por dia cabe na janela. Erro inesperado (não bloqueio)
-conta tentativa: na 3ª a fila fica `erro` e a empresa `dossie_status = 'erro'`.
+Uma empresa com 7 detalhes leva uns 3 minutos (medido em 20/09/2026: Suzano,
+186 s; Procomp, 3 detalhes em 98 s); com o intervalo entre empresas, o teto de
+150 por dia cabe na janela. Erro inesperado (não bloqueio) conta tentativa: na
+3ª a fila fica `erro` e a empresa `dossie_status = 'erro'`.
 
 ### Rodar o worker
 
@@ -274,7 +290,9 @@ headless (decisão 67); use com janela.
 
 O worker usa o Google Chrome instalado no Mac (`channel="chrome"`) com perfil
 persistente em `data/radar/pje-profile/` (cookies mantidos entre execuções).
-`--debug` salva o HTML e o texto de cada página em `data/radar/debug/`. Log:
+`--debug` salva o JSON bruto de cada chamada em `data/radar/debug/`
+(`busca_<cnpj>_<periodo>_p<n>.json`, `dados_<numero>.json`,
+`poloPassivo_<numero>_p<n>.json`, `movimentacoes_<numero>.json`). Log:
 `data/radar/pje_worker.log`, uma linha por empresa (processos, detalhes,
 homônimos, tempo) e uma por bloqueio.
 
@@ -290,8 +308,9 @@ scripts/radar/install_launchd.sh --unload    # parar (launchctl unload) e remove
 O plist (`com.fg.radar-pje`) tem `KeepAlive` e `RunAtLoad`: o worker sobe no
 login e volta sozinho se cair. Roda com janela (o PJe rejeita headless), mas
 o processo do Chrome fica escondido (Cmd+H via System Events) e o foco volta
-ao app que estava na frente, e os detalhes abrem numa aba reservada, sem
-popup, para o Chrome não pular para a frente (decisões 68 e 70). Na primeira execução o macOS pode pedir permissão
+ao app que estava na frente (decisão 68). Desde a migração para a API o
+navegador só abre o aplicativo uma vez por empresa, para renovar o cookie do
+Akamai: não há mais aba de detalhe nem popup (decisão 74). Na primeira execução o macOS pode pedir permissão
 para o Python controlar o System Events: aceite, senão a janela fica visível. Saída e erro do processo ficam em
 `data/radar/launchd.out.log` e `launchd.err.log`. O modelo em
 `scripts/radar/com.fg.radar-pje.plist` usa `__RAIZ__` no lugar da pasta do
