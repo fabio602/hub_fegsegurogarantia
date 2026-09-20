@@ -30,6 +30,7 @@ essas estruturas na tela.
 | `089_trilha_saude_foco_plano` | reescreve o texto das 5 etapas tirando o ângulo de RH (contratação e retenção de pessoal) e colocando o plano no centro: a etapa 1 passa a apresentar os três Unipart e a etapa 2 troca "sua equipe" por "você" e ganha o Hospital Unimed Boituva |
 | `090_trilha_saude_dor` | remonta a trilha em cima de dor e não de objeção, partindo da premissa (confirmada pelo Fábio) de que a maioria dos prospects não tem plano empresarial: o e-mail 1 ataca o bolso do dono que paga plano no CPF, os e-mails 1 e 5 ficam curtos e sem quadro, e três dos cinco botões passam a levar ao simulador em vez de pedir resposta |
 | `091_trilha_saude_desejo` | vira a estratégia da trilha: público sem consciência do problema não responde a dor, então a sequência passa a abrir apresentando a Unimed de Sorocaba (cooperativa de 1971, mais de 1.300 cooperados, hospitais próprios), segue pelo plano no dia a dia, depois pelos hospitais, e só chega ao preço no dia 12. Números institucionais com fonte anotada no comentário da migração |
+| `092_campanha_saude_pme` | cria a campanha de garimpo `saude-pme`, desligada e em dry run, apontando para a trilha `saude-pme` e para Sorocaba, Boituva e Porto Feliz |
 
 Também já está publicada a Edge Function **`lead-saude`** (`verify_jwt: false`),
 que recebe o formulário do site de saúde, grava em `unimed_leads` com status

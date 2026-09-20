@@ -26,9 +26,20 @@ atendimento é R$ 100,00. Os valores agora vêm de `copy.ts` e mudam conforme o
 plano em destaque. Quem mexer nesse arquivo confira a tabela por acomodação
 antes de publicar.
 
-**Vista Prospecção ainda não existe.**
-Fase 1 entregou Funil e Simulador. A Prospecção (seção 6) depende da campanha
-de garimpo, que é uma migração ainda não escrita.
+**Vista Prospecção entregue, com uma parte de fora.**
+Os três painéis da seção 6 estão na tela: estado da campanha com botão de
+ligar, leitura da trilha, e o estoque garimpado com o botão de virar lead.
+Fica pendente o mesmo botão dentro do drawer do prospect no Kanban de Seguro
+Garantia, que é tela de outro módulo e seria mexida invasiva para entregar
+junto. Quem for fazer: a lógica idempotente por CNPJ está em
+`Prospeccao.tsx`, função `promover`.
+
+**O botão de ligar a campanha pede confirmação, e isso é de propósito.**
+Ligar não é só mudar um booleano: o cron das 9h dispara todas as trilhas
+ativas, então ligar a campanha começa a mandar e-mail de verdade assim que o
+primeiro contato for inscrito. O texto do aviso repete os dois pré-requisitos
+(site no ar e patch da cadência aplicado) porque ninguém lê a migração na
+hora de clicar.
 
 **A numeração das migrações andou mais que o previsto.**
 Entre 088 e 091 entraram quatro migrações de trilha de e-mail que não estavam
@@ -42,6 +53,8 @@ original citava.
 - A constraint de `status` aceita os rótulos acentuados, e a trigger
   `unimed_leads_touch_trg` reescreve `status_entered_at` e `updated_at` sozinha
   num update que só manda `status`. Testado com lead de teste, depois apagado.
+- A campanha `saude-pme` foi criada em produção pela migração 092, desligada
+  e em dry run. Nenhum e-mail sai até alguém ligar.
 - `npm run build` passa. O `tsc --noEmit` não acusa nada em `App.tsx`,
   `lib/permissoes.ts` nem em `src/views/Saude/`. Os erros que ele mostra em
   `components/ContratoAnalyzer.tsx`, `components/GarantiaLocaticia.tsx`,

@@ -58,6 +58,7 @@ import RadarView from './src/views/Radar/RadarView.tsx';
 import RadarAdvogadosView from './src/views/Radar/RadarAdvogadosView.tsx';
 import SaudeFunil from './src/views/Saude/Funil.tsx';
 import SaudeSimulador from './src/views/Saude/Simulador.tsx';
+import SaudeProspeccao from './src/views/Saude/Prospeccao.tsx';
 import GarimpoAutomatico from './components/GarimpoAutomatico.tsx';
 import EmailTrilhas from './components/EmailTrilhas.tsx';
 import Carteira from './components/Carteira.tsx';
@@ -82,7 +83,7 @@ type View =
   // Responsabilidade Civil
   | 'rc' | 'rc-seguradoras'
   // Plano de Saúde
-  | 'saude-funil' | 'saude-simulador'
+  | 'saude-funil' | 'saude-simulador' | 'saude-prospeccao'
   // Gestão Financeira
   | 'meta-comissao' | 'metas-mensais' | 'metas-anuais'
   // Outros
@@ -92,7 +93,7 @@ const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calcul
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
-const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador'];
+const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao'];
 const FINANCEIRO_VIEWS: View[] = ['meta-comissao', 'metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
@@ -126,6 +127,7 @@ const VIEW_TITLES: Record<View, string> = {
   'rc-seguradoras': 'Seguradoras · RC',
   'saude-funil': 'Funil · Plano de Saúde',
   'saude-simulador': 'Simulador de Cotação · Saúde',
+  'saude-prospeccao': 'Prospecção · Plano de Saúde',
   'meta-comissao': 'Meta de Comissão',
   'metas-mensais': 'Metas Mensais',
   'metas-anuais': 'Metas Anuais',
@@ -612,6 +614,7 @@ const App: React.FC = () => {
               >
                 <NavSubItem view="saude-funil" label="Funil de Leads" />
                 <NavSubItem view="saude-simulador" label="Simulador de Cotação" />
+                <NavSubItem view="saude-prospeccao" label="Prospecção" />
               </NavGroup>
               )}
 
@@ -918,6 +921,7 @@ const App: React.FC = () => {
               {/* Plano de Saúde */}
               {vista === 'saude-funil' && <SaudeFunil />}
               {vista === 'saude-simulador' && <SaudeSimulador />}
+              {vista === 'saude-prospeccao' && <SaudeProspeccao />}
 
               {/* Outros */}
               {vista === 'whatsapp' && <WhatsAppHub onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
