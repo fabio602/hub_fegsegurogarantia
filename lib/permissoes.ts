@@ -27,6 +27,7 @@ export const MODULOS: Modulo[] = [
   { key: 'auto', label: 'Seguro AUTO', views: ['auto', 'auto-seguradoras'] },
   { key: 'residencial', label: 'Residencial / Locatícia', views: ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'] },
   { key: 'rc', label: 'Responsabilidade Civil', views: ['rc', 'rc-seguradoras'] },
+  { key: 'saude', label: 'Plano de Saúde', views: ['saude-funil', 'saude-simulador', 'saude-prospeccao'] },
   { key: 'financeiro', label: 'Gestão Financeira', views: ['meta-comissao', 'metas-mensais', 'metas-anuais'] },
   { key: 'whatsapp', label: 'WhatsApp', views: ['whatsapp', 'whatsapp-blast'] },
   { key: 'email-followup', label: 'Follow-up de E-mail', views: ['email-followup'] },
