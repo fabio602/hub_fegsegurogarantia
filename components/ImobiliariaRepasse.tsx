@@ -150,6 +150,19 @@ const SITUACOES_ENCERRAMENTO = [
   },
 ];
 
+// Só os códigos das quatro saídas, para decidir quando um cadastro deve sair
+// da carteira ativa, e o valor que a coluna `status` recebe em cada caso. O
+// mapa acompanha o trigger `sync_situacao_residencial` no banco: assim o
+// espelho para residential_clients volta como no-op em vez de regravar um
+// status diferente do que a tela acabou de salvar.
+const VALORES_ENCERRAMENTO = SITUACOES_ENCERRAMENTO.map(s => s.valor);
+const STATUS_CARTEIRA_POR_ENCERRAMENTO: Record<string, string> = {
+  cancelado:   'cancelado',
+  desistiu:    'encerrado',
+  saiu_imovel: 'encerrado',
+  reprovado:   'encerrado',
+};
+
 // Linha do painel "Pendências do portal". Renovação, cancelamento e rescisão têm
 // o mesmo formato — só muda a etiqueta, os documentos e o botão de baixa.
 function LinhaPendencia({
@@ -514,12 +527,29 @@ export default function ImobiliariaRepasse() {
     }
     if (form.status_residencial === 'recusado') kanban = 'recusado';
 
+    // Escolher uma das saídas de encerramento no campo Situação encerra o
+    // cadastro por inteiro. Sem isso o card até ia para Recusado no kanban,
+    // mas `status`/`status_apolice` continuavam 'ativo' e o cliente seguia
+    // aparecendo como ativo na Carteira do portal da imobiliária.
+    const encerrandoAgora = VALORES_ENCERRAMENTO.includes(form.status_apolice);
+    if (encerrandoAgora) kanban = 'recusado';
+
+    // Cadastro que morreu antes da emissão vira 'recusado', que é como o
+    // histórico já registra esses casos e é o que faz a tela mostrar o motivo
+    // real no lugar da etapa. Quem chegou a ter apólice continua 'emitido': é
+    // esse campo que mantém o selo de Seg. Residencial e o PDF no portal.
+    const statusResidencialFinal = encerrandoAgora && form.status_residencial !== 'emitido'
+      ? 'recusado'
+      : form.status_residencial;
+
     const diaVencEdit = parseInt(form.dia_vencimento_aluguel) || null;
     const valorSegRaw = lerValorBRL(form.valor_seguro);
     const valorSegEdit = valorSegRaw === null || valorSegRaw === 0 ? undefined : valorSegRaw;
 
     const jaTemValor = Number((editingStatus as any).valor_seguro) > 0;
-    const ehRepasse = form.is_repasse;
+    // Cadastro encerrado não gera repasse: deixar marcado faria a imobiliária
+    // receber cobrança de um seguro que não existe mais.
+    const ehRepasse = encerrandoAgora ? false : form.is_repasse;
     const eraRepasse = Boolean((editingStatus as any).is_repasse);
 
     // Marcar "É repasse" sem valor mensal não faz sentido: o cliente entraria na
@@ -551,7 +581,7 @@ export default function ImobiliariaRepasse() {
 
     const payload: Record<string, unknown> = {
       inquilino_nome: nomeEditado,
-      status_residencial: form.status_residencial,
+      status_residencial: statusResidencialFinal,
       status_garantia: temGarantia(editingStatus) ? form.status_garantia : null,
       apolice_residencial_url: form.apolice_residencial_url || null,
       apolice_garantia_url: temGarantia(editingStatus) ? form.apolice_garantia_url || null : null,
@@ -560,7 +590,9 @@ export default function ImobiliariaRepasse() {
       termo_clausula_url: form.termo_clausula_url || null,
       vigencia_fim: form.vigencia_fim || null,
       status_apolice: form.status_apolice || 'ativo',
-      status: form.status_apolice || 'ativo',
+      status: encerrandoAgora
+        ? (STATUS_CARTEIRA_POR_ENCERRAMENTO[form.status_apolice] || 'encerrado')
+        : (form.status_apolice || 'ativo'),
       kanban_status: kanban,
       seguradora: form.seguradora || null,
       numero_apolice: form.numero_apolice || null,
@@ -662,7 +694,11 @@ export default function ImobiliariaRepasse() {
     const nomeAntigo = (original.inquilino_nome || '').trim();
 
     // ── Sync para residential_clients quando emitido ──────────────
-    if (editStatusForm.status_residencial === 'emitido') {
+    // O `!encerrando` evita a briga com o espelho de encerramento logo abaixo:
+    // sem ele uma apólice emitida e depois cancelada voltava para 'Ativo' aqui
+    // antes de ser corrigida, piscando o status errado no Residencial.
+    const encerrando = VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice);
+    if (editStatusForm.status_residencial === 'emitido' && !encerrando) {
       const parceiroNome = (original as any).parceiro_nome ||
         parceiros.find(p => p.id === (original as any).partner_id)?.name || null;
 
@@ -709,6 +745,30 @@ export default function ImobiliariaRepasse() {
           parceiro_nome: parceiroNome,
           obs: 'Criado automaticamente via Repasse Imobiliárias',
         });
+      }
+    }
+
+    // ── Sync para residential_clients quando encerrado ────────────
+    // Espelha a desistência, o cancelamento, a saída do imóvel e a reprovação
+    // no módulo Residencial. Antes só o caminho 'emitido' espelhava, então um
+    // cadastro encerrado aqui continuava 'Ativo' ou 'Lead (site)' lá e as duas
+    // telas passavam a contar coisas diferentes. Só atualiza registro que já
+    // existe: encerramento não é motivo para criar cliente no Residencial.
+    if (encerrando) {
+      const situacaoRc = SITUACOES_ENCERRAMENTO
+        .find(s => s.valor === editStatusForm.status_apolice)?.rotulo;
+      if (situacaoRc) {
+        const { data: rcEncerrar } = await supabase
+          .from('residential_clients')
+          .select('id, situacao')
+          .ilike('nome', nomeAntigo || nomeEditado)
+          .limit(1);
+        if (rcEncerrar && rcEncerrar.length > 0 && rcEncerrar[0].situacao !== situacaoRc) {
+          await supabase
+            .from('residential_clients')
+            .update({ nome: nomeEditado, situacao: situacaoRc })
+            .eq('id', rcEncerrar[0].id);
+        }
       }
     }
 
@@ -2070,6 +2130,9 @@ export default function ImobiliariaRepasse() {
                   <option value="pagamento_atrasado">🟡 Pgto. atrasado</option>
                   <option value="em_renovacao">🔵 Em renovação</option>
                   <option value="cancelado">🔴 Cancelado</option>
+                  <option value="desistiu">🟠 Optou Não Contratar</option>
+                  <option value="saiu_imovel">🟣 Saiu do Imóvel</option>
+                  <option value="reprovado">⚫ Reprovado</option>
                 </select>
               </div>
               <div>
@@ -2078,6 +2141,15 @@ export default function ImobiliariaRepasse() {
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
               </div>
             </div>
+
+            {/* Aviso de encerramento: o campo Situação faz mais do que trocar a
+                etiqueta, então a tela diz o que vai acontecer antes de gravar. */}
+            {VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice) && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] font-bold text-amber-700">
+                <AlertTriangle size={13} className="mt-px shrink-0" />
+                <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card vai para <strong>Recusado</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
+              </div>
+            )}
 
             {/* Auto-advance hint */}
             {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
