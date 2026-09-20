@@ -1718,10 +1718,24 @@
       cs.filter(c => c.status_apolice !== 'cancelado' || c.kanban_status === 'solicitado' || c.kanban_status === 'atendimento_iniciado')
         .map(c => (c.inquilino_nome||'').toUpperCase().trim())
     );
-    const cancelados = cs.filter(c =>
+    const canceladosBrutos = cs.filter(c =>
       c.status_apolice === 'cancelado' &&
       !nomesComSolicitacaoAtiva.has((c.inquilino_nome||'').toUpperCase().trim())
     );
+    // Um inquilino com mais de uma apólice cancelada (renovação que trocou de
+    // seguradora, cadastro importado antigo) ganhava uma linha por apólice, e a
+    // imobiliária lia como se fossem dois imóveis descobertos. A Carteira já
+    // deduplica por nome; aqui faltava. Fica a apólice mais recente.
+    const porNome = new Map();
+    canceladosBrutos.forEach(c => {
+      const nome = (c.inquilino_nome||'').toUpperCase().trim();
+      const anterior = porNome.get(nome);
+      if (!anterior) { porNome.set(nome, c); return; }
+      const dAnterior = anterior.data_inicio ? new Date(anterior.data_inicio).getTime() : 0;
+      const dNovo = c.data_inicio ? new Date(c.data_inicio).getTime() : 0;
+      if (dNovo > dAnterior) porNome.set(nome, c);
+    });
+    const cancelados = [...porNome.values()];
     if (!cancelados.length) { el.style.display = 'none'; return; }
     el.style.display = 'block';
     el.innerHTML = `
