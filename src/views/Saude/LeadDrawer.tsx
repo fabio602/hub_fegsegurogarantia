@@ -5,6 +5,7 @@ import { useToast } from '../../../components/Toast.tsx';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import { whatsappUrlFromPhone } from '../../../utils/whatsapp.ts';
 import { PLANOS, LIMITE_VIDAS } from './precos.ts';
+import Documentos from './Documentos.tsx';
 import {
   MESES, diasDesde, mascararCnpj, renovacaoProxima,
   type Lead,
@@ -273,6 +274,11 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
               <Calculator size={13} />
               Para montar uma cotação nova, abra o Simulador de Cotação no menu.
             </p>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Documentos</h3>
+            <Documentos leadId={lead.id} />
           </section>
 
           {lead.status === 'Implantado' && (

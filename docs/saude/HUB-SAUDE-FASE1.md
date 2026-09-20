@@ -426,6 +426,15 @@ comparação de qualidade de lead.
 
 ### 10.2 Envio de documentos pelo cliente
 
+> **Construído em 20/09/2026, na mesma conversa.** O que está escrito abaixo é
+> o desenho original, mantido porque explica o porquê de cada escolha. Duas
+> coisas mudaram na hora de construir, e as duas estão em DECISOES.md:
+> a declaração de saúde **não** passa pelo corretor, então nenhum dado de
+> saúde encosta no bucket; e o link deixou de nascer só no funil, porque o
+> cliente passou a poder começar sozinho pelo site, quando ainda não existe
+> lead. Migração 095 e 096, funções `saude-documentos` e `saude-retencao`,
+> página `enviar.html`, e o bloco Documentos na ficha do lead.
+
 Decidido com o Fábio em 20/09/2026: **construir depois da Fase 1**, porque o
 link nasce de um botão no lead, e o lead mora na aba que ainda não existe.
 

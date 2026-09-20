@@ -146,3 +146,91 @@ O e-mail do dia 12 diz 1 dia para consulta e exame básico, 30 para terapia,
 T1, que é a mais restritiva, dá 30 dias para consulta. A coluna válida é a
 **T7**, descrita como "usado para inclusões e novas vendas PME", e ela bate
 com o e-mail linha por linha. Não mexer no texto achando que está errado.
+
+## 20/09/2026, quarta rodada
+
+**O cliente passa a contratar sozinho, até a proposta.**
+O Fábio perguntou se, agora que o preço está aberto, o cliente não poderia
+comprar sozinho e mandar a documentação por ali.
+
+Comprar sozinho, não. O processo da Favorita não permite: quem emite a
+proposta é o corretor na plataforma, o cliente tem 72 horas para aceitar, e
+cada beneficiário maior de 18 anos passa por entrevista médica por
+videochamada, com prazo até as 12h do dia útil anterior à vigência. Não
+existe botão que feche contrato nesse desenho, e prometer checkout para
+entregar um processo de três dias estragaria a primeira impressão que o
+preço aberto acabou de comprar.
+
+Tudo até a proposta, sim. O cliente simula, escolhe, declara as pessoas e
+manda os documentos pelo site. O Fábio só emite. Some a conversa de WhatsApp
+que hoje fica entre o "gostei do preço" e o "documento chegou".
+
+**Duas coisas mudaram desde o desenho da seção 10.2.**
+
+A declaração de saúde não passa pelo corretor: a operadora manda direto para
+cada beneficiário. Isso tirou do sistema a parte mais sensível. Nenhum dado
+de saúde encosta no nosso storage, e isso passou a ser regra explícita, não
+acidente.
+
+O link deixou de nascer só no funil. No desenho antigo ele vinha de um botão
+no lead, o que não serve para quem começa sozinho, porque aí ainda não existe
+lead. Agora a `lead-saude` cria lead e envio na mesma transação lógica, e o
+link vai por e-mail para o endereço que o próprio cliente informou. Mandar o
+link para o e-mail declarado é, de quebra, a verificação de que o contato é
+real. O botão no funil continua existindo para quem chegou por outro caminho.
+
+**O que foi construído**
+
+- migração 095: `saude_envios`, `saude_documentos`, bucket privado
+  `saude-documentos` (15 MB, só PDF, JPG, PNG, HEIC e WebP), RLS nas duas
+  tabelas e na leitura do bucket, e a view `saude_envios_para_apagar`;
+- `saude-documentos`, com `verify_jwt` false: valida token, validade, pessoa,
+  slot, tipo e tamanho, e grava com service role. É ela que decide quais
+  documentos cada pessoa precisa;
+- `saude-retencao` e o cron `saude-retencao-daily` da migração 096;
+- `enviar.html` e `assets/enviar.js` no site, fora do menu, fora do sitemap,
+  com noindex e Disallow no robots;
+- o passo 6 do simulador agora abre a contratação em vez de só agradecer;
+- no HUB, o bloco Documentos dentro da ficha do lead.
+
+**A lista de documentos mora na Edge Function, e em nenhum outro lugar.**
+Ela sai por papel: titular pede comprovante de vínculo, cônjuge pede certidão
+de casamento, bebê com menos de 60 dias pede teste do pezinho. O site e o HUB
+só desenham o que a função devolve. Se essa regra fosse copiada para o site,
+um dia as duas divergiriam e o Fábio veria uma lista diferente da que o
+cliente viu.
+
+**Sem endpoint aberto, e isso foi verificado, não suposto.**
+Com a chave anon: a URL pública do bucket responde "bucket não encontrado", o
+objeto não é lido, o bucket não é listado, não sai URL assinada, e as duas
+tabelas novas voltam vazias. O upload recusa `.txt` com 415, arquivo de 16 MB
+com 413, slot que a pessoa não precisa com 400, pessoa inventada com 400,
+token torto com 400 e token inexistente com 404.
+
+**`titular_de`: numa empresa com duas famílias, sem isso o Fábio ligaria.**
+Quando há mais de um titular, a página pergunta de quem cada dependente
+depende. Considerei deixar de fora para simplificar e voltei atrás: o objetivo
+do fluxo é entregar um dossiê que dispense a conversa, e "de quem é este
+filho" é exatamente a ligação que ele não deveria precisar fazer.
+
+**A retenção virou código porque a página promete.**
+O texto de consentimento diz que os arquivos são apagados. Enquanto isso não
+fosse executável, a página estaria mentindo. A `saude-retencao` foi testada em
+produção: simulação lista, execução apaga arquivo e linha, e a segunda
+execução devolve zero.
+
+**Não fechei o `imobiliaria-docs`, e o motivo importa.**
+Eu tinha recomendado corrigir junto, como item rápido. Ao olhar, não é:
+`public/imobiliaria.html`, que a imobiliária usa sem login, sobe arquivo com a
+chave anon e monta URL pública em quatro lugares; as URLs públicas estão
+gravadas em colunas de `residential_clients` e `imobiliaria_clientes`; e a
+`imobiliaria-envia-apolice` faz `fetch` na URL pública para anexar a apólice
+no e-mail. Virar a chave quebraria a operação com as imobiliárias no mesmo
+dia. Precisa do mesmo padrão de Edge Function intermediando o portal, que
+agora existe pronto e testado na saúde. **Continua em aberto e continua sendo
+risco real.**
+
+**RLS ligado nos dois backups de prospects (migração 094).**
+`prospects_apagados_20260906` e `prospects_apagados_garimpo_20260906` estavam
+sem RLS, com 919 linhas de razão social, CNPJ e e-mail abertas para a chave
+anon. Sem policy: backup não alimenta tela nenhuma.
