@@ -449,7 +449,7 @@
       width: 3px; border-radius: 0 3px 3px 0; background: var(--gold);
     }
 
-    .recado-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .recado-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
     /* Avatar com as iniciais de quem escreveu — o rosto da mensagem. */
     .recado-avatar {
       width: 32px; height: 32px; border-radius: 50%; flex: none;
@@ -458,8 +458,8 @@
       font-size: 11.5px; font-weight: 600; letter-spacing: .4px;
     }
     .recado-quem { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-    .recado-nome { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.2; }
-    .recado-papel { font-size: 11px; color: var(--muted); line-height: 1.2; }
+    .recado-nome { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recado-papel { font-size: 11px; color: var(--muted); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recado-quando { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
 
     .recado-texto { font-size: 13.5px; color: var(--ink); line-height: 1.6; }
@@ -482,6 +482,7 @@
 
     /* Versão do card (compacto): mesma ideia, menos ar. */
     .recado.compacto { padding: 11px 12px 10px; border-radius: 13px; margin-top: 10px; }
+    .recado.compacto .recado-quando { margin-left: 0; width: 100%; }
     .recado.compacto::before { left: 22px; }
     .recado.compacto .recado-avatar { width: 27px; height: 27px; font-size: 10px; }
     .recado.compacto .recado-texto { font-size: 12.5px; }
@@ -1284,7 +1285,10 @@
   }
 
   function fmtBRL(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-  function fmtData(d) { if (!d) return '—'; const [y,m,dd] = d.split('-'); return `${dd}/${m}/${y}`; }
+  // O slice(0,10) existe porque nem toda coluna e' uma date pura: recado_enviado_em
+  // e' timestamptz, e sem ele o split('-') devolvia '28T03:00:47.156+00:00/08/2026'
+  // no lugar de '28/08/2026', estourando a caixa do recado no card.
+  function fmtData(d) { if (!d) return '—'; const [y,m,dd] = String(d).slice(0,10).split('-'); return `${dd}/${m}/${y}`; }
   // Texto livre digitado no hub entra em innerHTML — escapar para não quebrar o layout.
   function esc(t) {
     return String(t == null ? '' : t)
