@@ -60,3 +60,34 @@ original citava.
   `components/ContratoAnalyzer.tsx`, `components/GarantiaLocaticia.tsx`,
   `components/ResultsDashboard.tsx`, `lib/editalSchema.ts` e `regressao/*`
   são anteriores a este módulo.
+
+## 20/09/2026, segunda rodada
+
+**Inclusão manual de empresas ficou dentro do módulo de Saúde.**
+Dava para usar a tela de Prospecção por E-mail do Seguro Garantia, que já
+escreve em `email_cadencia` e já deixa escolher a trilha. O Fábio pediu
+independência: saúde é outra linha de negócio e não deveria obrigar a entrar
+no módulo do garantia. O painel novo está em `Prospeccao.tsx` e lê listas
+coladas ou de arquivo, com separador flexível e o campo com arroba
+reconhecido como e-mail em qualquer posição.
+
+Diferenças em relação à tela do garantia, todas de propósito:
+
+- lê **cidade**, que a importação de lá não lê. Na trilha de saúde isso
+  importa, porque o assunto do e-mail do dia 7 é "Onde você é atendido em
+  [CIDADE]", e sem cidade vira "em sua cidade";
+- entra **em espera** por padrão (`ativo = false`), com um botão separado para
+  ativar todos. A tela do garantia insere ativo e, no cadastro um a um, ainda
+  dispara o primeiro e-mail na hora. Para montar uma lista antes de o site
+  estar no ar, espera é o comportamento certo;
+- deduplica contra quem já está na trilha, porque `email_cadencia` não tem
+  índice único de e-mail.
+
+**Bug encontrado e corrigido: o check de `origem` quebraria a campanha.**
+`supabase/functions/garimpo/index.ts` grava `origem` como `garimpo_` mais o
+slug da campanha. O check da tabela listava os slugs um a um, então a campanha
+de saúde, slug `saude-pme`, produziria `garimpo_saude-pme`, fora da lista. O
+insert falharia dentro do cron: ninguém inscrito, nenhum aviso, e a impressão
+de que a campanha simplesmente não achou empresas. A migração 093 troca a
+lista fixa por `origem like 'garimpo\_%'`, o que resolve para toda campanha
+futura, não só esta. Testado em produção com as duas origens e limpo depois.

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, AlertTriangle, Power, ArrowRightCircle, Mail, Info } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Power, ArrowRightCircle, Mail, Info, Upload, PlayCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { useToast } from '../../../components/Toast.tsx';
 import { mascararCnpj } from './funilTipos.ts';
+import { lerLista, EXEMPLO_LISTA, type LinhaLida } from './importar.ts';
 
 /**
  * Prospecção da linha de saúde.
@@ -44,6 +45,7 @@ interface ItemEstoque {
 interface Contato {
   id: string;
   nome_empresa: string;
+  email: string;
   nome_contato: string;
   cidade: string | null;
   ativo: boolean;
@@ -60,6 +62,14 @@ const Prospeccao: React.FC = () => {
   const [enviados7d, setEnviados7d] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [promovendo, setPromovendo] = useState<string | null>(null);
+
+  /* Inclusão manual de empresas na trilha. Fica aqui, e não na tela de
+     prospecção do Seguro Garantia, porque saúde é outra linha de negócio: o
+     Fábio não deveria entrar no módulo do garantia para cadastrar um lead de
+     plano de saúde. */
+  const [lista, setLista] = useState('');
+  const [emEspera, setEmEspera] = useState(true);
+  const [incluindo, setIncluindo] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -84,7 +94,7 @@ const Prospeccao: React.FC = () => {
 
     const { data: cts } = await supabase
       .from('email_cadencia')
-      .select('id, nome_empresa, nome_contato, cidade, ativo, data_inicio, bounce_status')
+      .select('id, nome_empresa, nome_contato, email, cidade, ativo, data_inicio, bounce_status')
       .eq('trilha', SLUG)
       .order('data_inicio', { ascending: false });
     const lista = (cts ?? []) as Contato[];
@@ -179,6 +189,80 @@ const Prospeccao: React.FC = () => {
     setPromovendo(null);
     if (error) { toast('Não consegui criar o lead', 'error'); return; }
     toast(`${item.nome} virou lead de saúde`, 'success');
+  };
+
+  const leitura = useMemo(() => lerLista(lista), [lista]);
+
+  const emailsJaNaTrilha = useMemo(
+    () => new Set(contatos.map(c => c.email).filter(Boolean)),
+    [contatos],
+  );
+
+  const novos = useMemo(
+    () => leitura.validas.filter(l => !emailsJaNaTrilha.has(l.email)),
+    [leitura, emailsJaNaTrilha],
+  );
+  const repetidos = leitura.validas.length - novos.length;
+
+  const lerArquivo = (arquivo: File) => {
+    const leitor = new FileReader();
+    leitor.onload = () => setLista(String(leitor.result ?? ''));
+    leitor.onerror = () => toast('Não consegui ler o arquivo', 'error');
+    leitor.readAsText(arquivo);
+  };
+
+  const incluir = async () => {
+    if (!novos.length) return;
+    if (!emEspera) {
+      const ok = await confirm(
+        `${novos.length} empresa(s) entram ATIVAS. O cron das 9h começa a mandar a ` +
+        'sequência amanhã, sem passar por você. Confirma?'
+      );
+      if (!ok) return;
+    }
+    setIncluindo(true);
+    const hoje = new Date().toISOString().split('T')[0];
+    const linhas = novos.map((l: LinhaLida) => ({
+      nome_contato: l.nome_contato,
+      nome_empresa: l.nome_empresa,
+      email: l.email,
+      cidade: l.cidade,
+      origem: 'saude_manual',
+      trilha: SLUG,
+      data_inicio: hoje,
+      ativo: !emEspera,
+    }));
+    let gravadas = 0;
+    for (let i = 0; i < linhas.length; i += 50) {
+      const { error } = await supabase.from('email_cadencia').insert(linhas.slice(i, i + 50));
+      if (error) {
+        toast(`Parei em ${gravadas} incluída(s): ${error.message}`, 'error');
+        break;
+      }
+      gravadas += linhas.slice(i, i + 50).length;
+    }
+    setIncluindo(false);
+    if (gravadas) {
+      toast(`${gravadas} empresa(s) incluída(s)${emEspera ? ' em espera' : ''}`, 'success');
+      setLista('');
+      carregar();
+    }
+  };
+
+  const ativarEmEspera = async () => {
+    const espera = contatos.filter(c => !c.ativo);
+    if (!espera.length) return;
+    const ok = await confirm(
+      `Ativar ${espera.length} contato(s) faz a sequência de saúde começar a sair no ` +
+      'cron das 9h. O site fgsaude.com.br precisa estar no ar e o patch da cadência ' +
+      'aplicado. Ativar?'
+    );
+    if (!ok) return;
+    const { error } = await supabase
+      .from('email_cadencia').update({ ativo: true }).in('id', espera.map(c => c.id));
+    if (error) { toast('Não consegui ativar', 'error'); return; }
+    toast(`${espera.length} contato(s) ativados`, 'success');
+    carregar();
   };
 
   if (carregando) return <p className="text-navy/50 text-sm p-2">Carregando...</p>;
@@ -321,7 +405,77 @@ const Prospeccao: React.FC = () => {
         ))}
       </section>
 
-      {/* 3. Estoque, com promoção para lead */}
+      {/* 3. Inclusão manual de empresas na trilha */}
+      <section className="bg-white border border-linha rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Upload size={16} className="text-gold-dark" />
+          <h2 className="font-semibold text-navy">Incluir empresas na trilha</h2>
+        </div>
+        <p className="text-sm text-navy/60">
+          Uma empresa por linha, separada por ponto e vírgula, vírgula ou tabulação:
+          contato, empresa, e-mail e cidade. O campo com arroba é reconhecido como
+          e-mail esteja ele em qualquer posição. A cidade alimenta o assunto do
+          e-mail do dia 7, então vale preencher.
+        </p>
+
+        <textarea
+          rows={5}
+          value={lista}
+          onChange={e => setLista(e.target.value)}
+          placeholder={EXEMPLO_LISTA}
+          className="w-full border border-linha rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gold"
+        />
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm text-navy/70 border border-linha rounded-lg px-3 py-1.5 cursor-pointer hover:bg-areia transition-colors">
+            Carregar de um arquivo
+            <input type="file" accept=".csv,.txt" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) lerArquivo(f); e.target.value = ''; }} />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-navy">
+            <input type="checkbox" checked={emEspera} onChange={e => setEmEspera(e.target.checked)} />
+            Deixar em espera, sem enviar nada
+          </label>
+        </div>
+
+        {lista.trim() !== '' && (
+          <div className="text-sm border border-linha rounded-lg p-3 space-y-1">
+            <p className="text-navy">
+              <span className="font-semibold tabular-nums">{novos.length}</span> para incluir
+              {repetidos > 0 && <span className="text-navy/60"> · {repetidos} já está na trilha</span>}
+              {leitura.ignoradas.length > 0 && (
+                <span className="text-amber-700"> · {leitura.ignoradas.length} ignorada(s)</span>
+              )}
+            </p>
+            {leitura.ignoradas.slice(0, 5).map((i, n) => (
+              <p key={n} className="text-[11px] text-navy/50 truncate">
+                {i.motivo}: {i.linha}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <button onClick={incluir} disabled={!novos.length || incluindo}
+          className="bg-navy text-white px-4 py-2 rounded-lg text-sm hover:bg-navy-light disabled:opacity-40 transition-colors">
+          {incluindo ? 'Incluindo...' : `Incluir ${novos.length || ''} empresa(s)`}
+        </button>
+
+        {contatos.some(c => !c.ativo) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-xs text-navy/80">
+              {contatos.filter(c => !c.ativo).length} contato(s) em espera. Nenhum e-mail
+              sai enquanto estiverem assim.
+            </p>
+            <button onClick={ativarEmEspera}
+              className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors">
+              <PlayCircle size={13} /> Ativar todos
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* 4. Estoque, com promoção para lead */}
       <section className="bg-white border border-linha rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-navy">Empresas garimpadas</h2>
         {estoque.length === 0 && (
