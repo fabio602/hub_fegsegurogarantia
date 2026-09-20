@@ -91,3 +91,58 @@ insert falharia dentro do cron: ninguém inscrito, nenhum aviso, e a impressão
 de que a campanha simplesmente não achou empresas. A migração 093 troca a
 lista fixa por `origem like 'garimpo\_%'`, o que resolve para toda campanha
 futura, não só esta. Testado em produção com as duas origens e limpo depois.
+
+## 20/09/2026, terceira rodada
+
+**O preço passou a ser público, valor exato e não faixa.**
+O simulador do site respondia com uma faixa ("R$ 1.100 a R$ 1.300 por mês"),
+por medo de errar antes da análise da operadora. O Fábio apontou que na
+região é normal publicar valor, e confirmou que não há regra da Favorita nem
+da Unimed que impeça. Quem procura preço e não acha sai do site, então a
+faixa protegia a gente e custava o visitante.
+
+Três mudanças, nessa ordem:
+
+1. `cotar-saude` voltou a devolver o payload inteiro da RPC, com
+   `total_mensal`, `subtotal_base` e `subtotal_adicionais`. A versão com
+   faixa foi descartada. Está na v3 em produção.
+2. `assets/cotacao.js` mostra o valor exato no cartão de cada plano, a média
+   por pessoa, e no resumo abre mensalidade, adicionais e total.
+3. `planos.html` ganhou a seção `#precos` com a tabela inteira por faixa
+   etária, as duas tabelas (2 a 29 vidas e 1 vida), os quatro adicionais com
+   valor, um exemplo com números reais e o que a tabela não inclui.
+
+**A tabela agora vive em dois lugares, de propósito, com trava.**
+O cálculo continua só no banco, na `unimed_calcular_cotacao`: isso não mudou
+e não deve mudar. O que foi duplicado é a *impressão* da tabela, no bloco
+`PRECOS` do `gerar.py`, porque o site é estático e não consulta o banco.
+Para o risco de divergência existe `conferir-precos.py`, que lê o `PRECOS` do
+gerar.py, busca `unimed_precos` pela API REST e falha com código 1 se alguma
+das 60 células não bater. Rodar sempre que a vigência mudar.
+
+**Texto do site: "faixa de preço" saiu de dez lugares.**
+Sobrava em index, cotação, como contratar, hospital e planos, inclusive no
+aviso do passo 4 do simulador, que explicava por que o valor era uma faixa.
+Contradiria a tela nova. Virou "por que ainda chamamos de estimativa", que é
+o que continua verdade: o definitivo sai na proposta.
+
+**Tabela de preço cabe inteira no celular.**
+As tabelas de preço levam `dados-precos`, que tira o `min-width` de 520px e,
+abaixo de 680px, aperta a célula e esconde o `R$` (o subtítulo passou a dizer
+"em reais"). Medido com o Chromium: a 320px, 390px e 430px nenhuma das três
+tabelas corta. Sem isso o Max B, que é justamente a coluna mais cara e mais
+consultada, ficava escondido atrás de rolagem lateral sem aviso.
+
+**Conferência feita contra a fonte, não contra a memória.**
+As 60 células do `PRECOS` foram comparadas uma a uma com `unimed_precos` e
+com a Tabela UNIPART 09.2026 da Favorita: batem. A tabela de 09.2026 é a
+mesma vigência de 18/05/2026 que já estava no banco, não houve reajuste. A
+conferência do valor com adicionais fecha: Fácil 0 a 18 sai 152,02 na base e
+166,14 na tabela publicada com APH e BF, que é 152,02 + 8,38 + 5,74.
+
+**Carência da trilha estava certa, e agora tem fonte.**
+O e-mail do dia 12 diz 1 dia para consulta e exame básico, 30 para terapia,
+180 para internação e 300 para parto. A tabela oficial tem seis colunas e a
+T1, que é a mais restritiva, dá 30 dias para consulta. A coluna válida é a
+**T7**, descrita como "usado para inclusões e novas vendas PME", e ela bate
+com o e-mail linha por linha. Não mexer no texto achando que está errado.
