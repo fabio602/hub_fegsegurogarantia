@@ -58,6 +58,7 @@ import RadarView from './src/views/Radar/RadarView.tsx';
 import RadarAdvogadosView from './src/views/Radar/RadarAdvogadosView.tsx';
 import SaudeFunil from './src/views/Saude/Funil.tsx';
 import SaudeSimulador from './src/views/Saude/Simulador.tsx';
+import SaudeCartaExclusividade from './src/views/Saude/CartaExclusividade.tsx';
 import SaudeProspeccao from './src/views/Saude/Prospeccao.tsx';
 import GarimpoAutomatico from './components/GarimpoAutomatico.tsx';
 import EmailTrilhas from './components/EmailTrilhas.tsx';
@@ -83,7 +84,7 @@ type View =
   // Responsabilidade Civil
   | 'rc' | 'rc-seguradoras'
   // Plano de Saúde
-  | 'saude-funil' | 'saude-simulador' | 'saude-prospeccao'
+  | 'saude-funil' | 'saude-simulador' | 'saude-prospeccao' | 'saude-materiais' | 'saude-nomeacao'
   // Gestão Financeira
   | 'meta-comissao' | 'metas-mensais' | 'metas-anuais'
   // Outros
@@ -93,7 +94,7 @@ const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calcul
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
-const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao'];
+const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao', 'saude-materiais', 'saude-nomeacao'];
 const FINANCEIRO_VIEWS: View[] = ['meta-comissao', 'metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
@@ -128,6 +129,8 @@ const VIEW_TITLES: Record<View, string> = {
   'saude-funil': 'Funil · Plano de Saúde',
   'saude-simulador': 'Simulador de Cotação · Saúde',
   'saude-prospeccao': 'Prospecção · Plano de Saúde',
+  'saude-materiais': 'Materiais · Plano de Saúde',
+  'saude-nomeacao': 'Carta de Exclusividade · Saúde',
   'meta-comissao': 'Meta de Comissão',
   'metas-mensais': 'Metas Mensais',
   'metas-anuais': 'Metas Anuais',
@@ -615,6 +618,8 @@ const App: React.FC = () => {
                 <NavSubItem view="saude-funil" label="Funil de Leads" />
                 <NavSubItem view="saude-simulador" label="Simulador de Cotação" />
                 <NavSubItem view="saude-prospeccao" label="Prospecção" />
+                <NavSubItem view="saude-materiais" label="Materiais" />
+                <NavSubItem view="saude-nomeacao" label="Carta de Exclusividade" />
               </NavGroup>
               )}
 
@@ -922,6 +927,8 @@ const App: React.FC = () => {
               {vista === 'saude-funil' && <SaudeFunil />}
               {vista === 'saude-simulador' && <SaudeSimulador />}
               {vista === 'saude-prospeccao' && <SaudeProspeccao />}
+              {vista === 'saude-materiais' && <Formularios modulo="saude" />}
+              {vista === 'saude-nomeacao' && <SaudeCartaExclusividade />}
 
               {/* Outros */}
               {vista === 'whatsapp' && <WhatsAppHub onGoToSale={(data) => { setPendingSale(data); navigate('goals'); }} />}
