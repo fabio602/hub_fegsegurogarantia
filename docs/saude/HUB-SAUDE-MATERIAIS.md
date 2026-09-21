@@ -227,7 +227,7 @@ arquivo original NÃO entram no documento gerado; são instrução, não conteú
 
 > Sorocaba, {dia} de {mês} de {ano}.
 >
-> A UNIMED SOROCABA - COOPERATIVA DE TRABALHO MÉDICO
+> A UNIMED SOROCABA – COOPERATIVA DE TRABALHO MÉDICO
 >
 > A/C: Diretora Executiva
 >
