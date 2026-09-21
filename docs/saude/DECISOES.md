@@ -234,3 +234,32 @@ risco real.**
 `prospects_apagados_20260906` e `prospects_apagados_garimpo_20260906` estavam
 sem RLS, com 919 linhas de razão social, CNPJ e e-mail abertas para a chave
 anon. Sem policy: backup não alimenta tela nenhuma.
+
+---
+
+## Materiais e carta de exclusividade
+
+**A permissão tem uma segunda lista de views, e a spec não a mencionava.**
+`SAUDE_VIEWS` no `App.tsx` só decide qual grupo do menu abre sozinho. Quem
+decide se a tela renderiza é `podeVer`, que consulta `viewsDosModulos` e, por
+baixo, o array `views` do módulo `saude` em `lib/permissoes.ts`. Acrescentei as
+duas abas lá também. Sem isso elas apareceriam no menu e renderizariam tela em
+branco para qualquer usuário com módulos restritos. O admin nunca veria o
+defeito, porque para ele `modulos` é `null` e todas as views passam.
+
+**O destinatário da carta usa travessão curto, não hífen.**
+Conferi o texto frase a frase contra o `.doc` da operadora em vez de ler. A
+linha é `A UNIMED SOROCABA – COOPERATIVA DE TRABALHO MÉDICO`, com en dash: o
+Word trocou o caractere na origem. A transcrição a olho tinha posto hífen, e
+antes disso a spec tinha posto vírgula.
+
+**O nome do responsável legal entra como sugestão, não como verdade.**
+A BrasilAPI devolve o quadro societário e o primeiro sócio nem sempre é quem
+assina. O campo vem preenchido para poupar digitação, com aviso na tela de que
+precisa ser conferido. Numa carta que vai para a operadora, nome errado é
+problema.
+
+**Nada da carta é gravado em banco, de propósito.**
+Registrar a geração sem registrar a devolução assinada criaria um status que
+mente. Quando esse controle for necessário, o lugar é um slot em
+`saude_documentos`, que já existe para arquivo assinado.
