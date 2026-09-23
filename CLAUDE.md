@@ -53,6 +53,19 @@ App interno ("Hub") de uma corretora de seguros (FEG Seguro Garantia). SPA em **
 ### Backend (Supabase)
 
 - **Migrations**: `supabase/*.sql`, numeradas (`000_…` a `018_…`). São o histórico de schema — ao mudar o banco, adicione uma nova migração numerada em vez de editar as antigas.
+
+- **Toda migração que cria tabela no schema `public` PRECISA conceder os grants na mesma migração.** A partir de 30/10/2026 o Supabase parou de expor tabelas novas à Data API automaticamente: sem grant, a tabela existe no banco mas `supabase-js`, PostgREST e as Edge Functions respondem *permission denied*, inclusive com a service role. Tabelas criadas antes dessa data mantêm os grants que já tinham e não precisam de nada. O bloco, logo depois do `create table`:
+
+  ```sql
+  alter table public.minha_tabela enable row level security;
+
+  grant select, insert, update, delete on table public.minha_tabela to authenticated;
+  grant select, insert, update, delete on table public.minha_tabela to service_role;
+  -- só se a tabela precisar mesmo ser lida sem login (portal público):
+  -- grant select on table public.minha_tabela to anon;
+  ```
+
+  O grant abre a porta; quem decide quais linhas cada um enxerga continua sendo a **RLS**. Os dois andam juntos: grant sem RLS expõe tudo, RLS sem grant não deixa ninguém entrar. Se a tabela usa sequence (`serial`/`bigserial`), vai junto `grant usage, select on sequence public.minha_tabela_id_seq to authenticated, service_role;`.
 - **Edge Functions** (`supabase/functions/`, Deno): IA e automações.
   - `chat-assistant`, `analyze-edital`, `analyze-contrato`, `validate-minuta` — usam a **API da Anthropic (Claude)** via `ANTHROPIC_API_KEY` (fetch para `api.anthropic.com/v1/messages`).
   - `remind-stale-sales`, `pregao-reminders`, `send-thank-you`, `send-draft-approval`, `send-limits` — notificações/e-mails.
