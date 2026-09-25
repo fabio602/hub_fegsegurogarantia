@@ -1000,41 +1000,43 @@
         <input type="text" id="f-telefone2" placeholder="Opcional" />
       </div>
       <div class="form-group">
-        <label>Estado Civil</label>
+        <label>Estado Civil *</label>
         <select id="f-estado-civil">
+          <option value="">Selecione...</option>
           <option>Casado(a)</option><option>Solteiro(a)</option>
           <option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option>
         </select>
       </div>
       <div class="form-group">
-        <label>CEP do Imóvel</label>
+        <label>CEP do Imóvel *</label>
         <input type="text" id="f-cep" placeholder="00000-000" />
       </div>
       <div class="form-group">
-        <label>Número do Imóvel</label>
+        <label>Número do Imóvel *</label>
         <input type="text" id="f-numero" placeholder="Nº" />
       </div>
       <div class="form-group full">
-        <label>Tipo de Imóvel</label>
+        <label>Tipo de Imóvel *</label>
         <select id="f-tipo-imovel">
+          <option value="">Selecione...</option>
           <option>Casa</option><option>Apartamento</option><option>Comercial</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Valor do Imóvel (R$)</label>
-        <input type="number" id="f-valor-imovel" placeholder="0,00" step="0.01" />
+        <label>Valor do Imóvel (R$) *</label>
+        <input type="text" inputmode="decimal" id="f-valor-imovel" placeholder="Ex: 350.000,00" />
       </div>
       <div class="form-group">
-        <label>Valor do Aluguel (R$)</label>
-        <input type="number" id="f-valor-aluguel" placeholder="0,00" step="0.01" />
+        <label>Valor do Aluguel (R$) *</label>
+        <input type="text" inputmode="decimal" id="f-valor-aluguel" placeholder="Ex: 2.600,00" />
       </div>
       <div class="form-group">
-        <label>Data do Primeiro Pagamento do Aluguel</label>
+        <label>Data do Primeiro Pagamento do Aluguel *</label>
         <input type="date" id="f-data-aluguel" />
       </div>
       <div class="form-group">
-        <label>Valor IPTU e/ou Condomínio (R$)</label>
-        <input type="number" id="f-iptu" placeholder="0,00" step="0.01" />
+        <label>Valor IPTU e/ou Condomínio (R$) <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
+        <input type="text" inputmode="decimal" id="f-iptu" placeholder="Ex: 450,00" />
       </div>
       <div class="form-group full" style="margin-top:4px;">
         <label>Dia de Vencimento do Aluguel <span style="color:#dc2626;">*</span></label>
@@ -2185,13 +2187,47 @@
     } catch(e) { alert('Erro: ' + e.message); btn.style.display='inline'; spin.style.display='none'; }
   }
 
+  // Lê valor em reais do jeito que a imobiliária digita: "2.600", "2.600,00",
+  // "2600", "R$ 2.600,50". O antigo input numérico lia "2.600" como 2,6.
+  function parseValorBRL(txt) {
+    let s = String(txt || '').replace(/R\$|\s/g, '');
+    if (!s) return null;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
   async function enviarSolicitacao() {
     const nome = document.getElementById('f-nome').value.trim();
     const cpf = document.getElementById('f-cpf').value.trim();
     const email = document.getElementById('f-email').value.trim();
     const telefone = document.getElementById('f-telefone').value.trim();
     const diaVenc = parseInt(document.getElementById('f-dia-vencimento').value);
-    if (!nome || !cpf || !email || !telefone) { alert('Preencha: Nome, CPF, E-mail e Telefone.'); return; }
+
+    // Campos obrigatórios: todos os dados do inquilino e do imóvel.
+    // Só Telefone 2 e IPTU/condomínio são opcionais.
+    const OBRIGATORIOS = [
+      ['f-nome', 'Nome'], ['f-cpf', 'CPF/CNPJ'], ['f-email', 'E-mail'], ['f-telefone', 'Telefone'],
+      ['f-estado-civil', 'Estado civil'], ['f-cep', 'CEP do imóvel'], ['f-numero', 'Número do imóvel'],
+      ['f-tipo-imovel', 'Tipo de imóvel'], ['f-valor-imovel', 'Valor do imóvel'],
+      ['f-valor-aluguel', 'Valor do aluguel'], ['f-data-aluguel', 'Data do primeiro pagamento do aluguel'],
+    ];
+    const faltando = OBRIGATORIOS.filter(([id]) => !document.getElementById(id).value.trim());
+    OBRIGATORIOS.forEach(([id]) => { document.getElementById(id).style.borderColor = ''; });
+    if (faltando.length) {
+      faltando.forEach(([id]) => { document.getElementById(id).style.borderColor = '#dc2626'; });
+      alert('Preencha os campos obrigatórios:\n\n• ' + faltando.map(([, l]) => l).join('\n• '));
+      document.getElementById(faltando[0][0]).focus();
+      return;
+    }
+    const valorImovel = parseValorBRL(document.getElementById('f-valor-imovel').value);
+    const valorAluguel = parseValorBRL(document.getElementById('f-valor-aluguel').value);
+    const valorIptu = parseValorBRL(document.getElementById('f-iptu').value);
+    if (!valorImovel || !valorAluguel) { alert('Informe valores válidos para o imóvel e o aluguel.'); return; }
+    if (valorAluguel < 100 && !confirm(`O aluguel ficou em R$ ${valorAluguel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Está correto?`)) {
+      document.getElementById('f-valor-aluguel').focus(); return;
+    }
     if (!diaVenc || diaVenc < 1 || diaVenc > 28) { alert('Informe o Dia de Vencimento do Aluguel (1 a 28).'); document.getElementById('f-dia-vencimento').focus(); return; }
     const btn = document.getElementById('btn-enviar');
     btn.disabled = true; btn.textContent = 'Enviando...';
@@ -2202,11 +2238,12 @@
         telefone2: document.getElementById('f-telefone2').value.trim()||null,
         cep: document.getElementById('f-cep').value.trim()||null,
         numero_imovel: document.getElementById('f-numero').value.trim()||null,
+        estado_civil: document.getElementById('f-estado-civil').value,
         tipo_imovel: document.getElementById('f-tipo-imovel').value,
-        valor_imovel: parseFloat(document.getElementById('f-valor-imovel').value)||null,
-        valor_aluguel: parseFloat(document.getElementById('f-valor-aluguel').value)||null,
+        valor_imovel: valorImovel,
+        valor_aluguel: valorAluguel,
         data_primeiro_pag_aluguel: document.getElementById('f-data-aluguel').value||null,
-        valor_iptu: parseFloat(document.getElementById('f-iptu').value)||null,
+        valor_iptu: valorIptu,
         dia_vencimento_aluguel: diaVenc,
         intencao: intencaoAtual,
         partner_id: session.id, tipo_seguro: tipoSeguro,
@@ -2227,7 +2264,7 @@
       const json = await res.json();
       if (!json.success) throw new Error(json.error||'Erro');
       document.getElementById('form-success').style.display = 'block';
-      ['f-nome','f-cpf','f-email','f-telefone','f-telefone2','f-cep','f-numero','f-valor-imovel','f-valor-aluguel','f-data-aluguel','f-iptu','f-dia-vencimento'].forEach(id => document.getElementById(id).value='');
+      ['f-nome','f-cpf','f-email','f-telefone','f-telefone2','f-cep','f-numero','f-valor-imovel','f-valor-aluguel','f-data-aluguel','f-iptu','f-dia-vencimento','f-estado-civil','f-tipo-imovel'].forEach(id => document.getElementById(id).value='');
       setIntencao('cotacao');
       setTimeout(() => document.getElementById('form-success').style.display='none', 5000);
       await carregar();
