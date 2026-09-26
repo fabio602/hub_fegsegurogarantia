@@ -737,7 +737,7 @@ export default function ImobiliariaRepasse() {
           cpf: (original as any).cpf || null,
           telefone: (original as any).telefone || null,
           email: (original as any).email_inquilino || null,
-          produto: 'Residencial',
+          produto: 'Apenas Seguro Residencial',
           apolice: editStatusForm.numero_apolice || null,
           fim_vigencia: editStatusForm.vigencia_fim || null,
           apolice_url: editStatusForm.apolice_residencial_url || null,

@@ -60,9 +60,9 @@ Deno.serve(async (req) => {
 
     // 3. Espelho na esteira residencial
     const produtoMap: Record<string, string> = {
-      garantia: 'Apenas Garantia Locaícia',
+      garantia: 'Apenas Garantia Locatícia',
       residencial: 'Apenas Seguro Residencial',
-      residencial_garantia: 'Garantia Locaícia & Seguro Residencial',
+      residencial_garantia: 'Garantia Locatícia & Seguro Residencial',
     };
     await supabase.from('residential_clients').insert({
       nome: dados.inquilino_nome,
