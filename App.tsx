@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
   Calculator as CalcIcon,
   FileText,
@@ -31,46 +31,58 @@ import {
 import { supabase } from './lib/supabase';
 import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
 import Auth from './components/Auth';
-import Calculator from './components/Calculator';
-import NominationLetter from './components/NominationLetter';
 import ResultsDashboard from './components/ResultsDashboard';
-import InsuranceDirectory from './components/InsuranceDirectory';
-import BanksDirectory from './components/BanksDirectory';
-import SuretiesDirectory from './components/SuretiesDirectory';
-import InternalProcedures from './components/InternalProcedures';
-import ResidentialInsurance from './components/ResidentialInsurance';
-import AutoInsurance from './components/AutoInsurance';
-import AgendaHub from './components/AgendaHub';
-import ParceiroManager from './components/ParceiroManager';
-import UserManager from './components/UserManager';
-import EndossoAllseg from './components/EndossoAllseg';
-import Formularios from './components/Formularios';
-import RCInsurance from './components/RCInsurance';
 import ChatWidget from './components/ChatWidget';
 import AvisoNovaVersao from './components/AvisoNovaVersao.tsx';
-import WhatsAppHub from './components/WhatsAppHub';
-import ImobiliariaRepasse from './components/ImobiliariaRepasse';
-import WhatsAppBlast from './components/WhatsAppBlast';
-import ProspeccaoEmail from './components/ProspeccaoEmail.tsx';
-import ProspeccaoPncpAuto from './components/ProspeccaoPncpAuto.tsx';
-import PncpProspection from './components/PncpProspection.tsx';
-import RadarView from './src/views/Radar/RadarView.tsx';
-import RadarAdvogadosView from './src/views/Radar/RadarAdvogadosView.tsx';
-import SaudeFunil from './src/views/Saude/Funil.tsx';
-import SaudeSimulador from './src/views/Saude/Simulador.tsx';
-import SaudeCartaExclusividade from './src/views/Saude/CartaExclusividade.tsx';
-import SaudeProspeccao from './src/views/Saude/Prospeccao.tsx';
-import GarimpoAutomatico from './components/GarimpoAutomatico.tsx';
-import EmailTrilhas from './components/EmailTrilhas.tsx';
-import Carteira from './components/Carteira.tsx';
-import EmailFollowUp from './components/EmailFollowUp';
-import GarantiaLocaticia from './components/GarantiaLocaticia';
-import InadimplentesResidencial from './components/InadimplentesResidencial.tsx';
-import MetaComissao from './components/MetaComissao.tsx';
 import { ToastProvider } from './components/Toast.tsx';
 import { FeatureTip } from './components/FeatureTip.tsx';
 import { GlobalSearch } from './components/GlobalSearch.tsx';
 import { CommandCenter } from './components/CommandCenter.tsx';
+
+// Vistas carregadas sob demanda: cada uma vira um chunk proprio e so baixa
+// quando o usuario abre a aba. ResultsDashboard fica eager porque e a tela
+// inicial (goals) e carregaria no primeiro paint de qualquer jeito.
+const Calculator = lazy(() => import('./components/Calculator'));
+const NominationLetter = lazy(() => import('./components/NominationLetter'));
+const InsuranceDirectory = lazy(() => import('./components/InsuranceDirectory'));
+const BanksDirectory = lazy(() => import('./components/BanksDirectory'));
+const SuretiesDirectory = lazy(() => import('./components/SuretiesDirectory'));
+const InternalProcedures = lazy(() => import('./components/InternalProcedures'));
+const ResidentialInsurance = lazy(() => import('./components/ResidentialInsurance'));
+const AutoInsurance = lazy(() => import('./components/AutoInsurance'));
+const AgendaHub = lazy(() => import('./components/AgendaHub'));
+const ParceiroManager = lazy(() => import('./components/ParceiroManager'));
+const UserManager = lazy(() => import('./components/UserManager'));
+const EndossoAllseg = lazy(() => import('./components/EndossoAllseg'));
+const Formularios = lazy(() => import('./components/Formularios'));
+const RCInsurance = lazy(() => import('./components/RCInsurance'));
+const WhatsAppHub = lazy(() => import('./components/WhatsAppHub'));
+const ImobiliariaRepasse = lazy(() => import('./components/ImobiliariaRepasse'));
+const WhatsAppBlast = lazy(() => import('./components/WhatsAppBlast'));
+const ProspeccaoEmail = lazy(() => import('./components/ProspeccaoEmail.tsx'));
+const ProspeccaoPncpAuto = lazy(() => import('./components/ProspeccaoPncpAuto.tsx'));
+const PncpProspection = lazy(() => import('./components/PncpProspection.tsx'));
+const RadarView = lazy(() => import('./src/views/Radar/RadarView.tsx'));
+const RadarAdvogadosView = lazy(() => import('./src/views/Radar/RadarAdvogadosView.tsx'));
+const SaudeFunil = lazy(() => import('./src/views/Saude/Funil.tsx'));
+const SaudeSimulador = lazy(() => import('./src/views/Saude/Simulador.tsx'));
+const SaudeCartaExclusividade = lazy(() => import('./src/views/Saude/CartaExclusividade.tsx'));
+const SaudeProspeccao = lazy(() => import('./src/views/Saude/Prospeccao.tsx'));
+const GarimpoAutomatico = lazy(() => import('./components/GarimpoAutomatico.tsx'));
+const EmailTrilhas = lazy(() => import('./components/EmailTrilhas.tsx'));
+const Carteira = lazy(() => import('./components/Carteira.tsx'));
+const EmailFollowUp = lazy(() => import('./components/EmailFollowUp'));
+const GarantiaLocaticia = lazy(() => import('./components/GarantiaLocaticia'));
+const InadimplentesResidencial = lazy(() => import('./components/InadimplentesResidencial.tsx'));
+const MetaComissao = lazy(() => import('./components/MetaComissao.tsx'));
+
+function VistaCarregando() {
+  return (
+    <div className="flex items-center justify-center py-24 text-slate-400">
+      <Loader2 className="animate-spin" size={22} />
+    </div>
+  );
+}
 
 type View =
   | 'dashboard'
@@ -92,6 +104,9 @@ type View =
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
+// Operacao de seguro auto encerrada em 31/08/2026 (indicacao para o parceiro).
+// O historico de vendas continua no banco; para reabrir o menu, basta true.
+const MODULO_AUTO_ATIVO = false;
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
 const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao', 'saude-materiais', 'saude-nomeacao'];
@@ -558,7 +573,7 @@ const App: React.FC = () => {
               )}
 
               {/* ── Seguro AUTO ─────────────────────────── */}
-              {podeModulo('auto') && (
+              {MODULO_AUTO_ATIVO && podeModulo('auto') && (
               <NavGroup
                 groupKey="auto"
                 icon={<Car size={16} />}
@@ -842,6 +857,7 @@ const App: React.FC = () => {
 
             {/* ── Views ──────────────────────────────────────────── */}
             <div className="animate-fade-in">
+              <Suspense fallback={<VistaCarregando />}>
               {/* Seguro Garantia */}
               {vista === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
               {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
@@ -939,6 +955,7 @@ const App: React.FC = () => {
               {vista === 'agenda' && <AgendaHub />}
               {vista === 'parceiros' && <ParceiroManager />}
               {vista === 'usuarios' && <UserManager />}
+              </Suspense>
             </div>
           </div>
         </div>

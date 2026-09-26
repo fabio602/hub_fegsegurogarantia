@@ -28,7 +28,7 @@ serve(async (req) => {
             </td></tr>
           </table>
           <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">📋 Documentos Necessários</h1>
-          <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">Garantia Locaícia</p>
+          <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">Garantia Locatícia</p>
         </div>
         <div style="padding:28px 32px;background:#fff;">
           <p style="color:#1B263B;font-size:15px;margin:0 0 14px;">Prezados <strong>${parceiro_nome}</strong>,</p>

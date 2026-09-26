@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X, History, Copy, Check
+  Info, ChevronDown, ChevronUp, AlertTriangle, Briefcase, Hash, X, History, Copy, Check, Pencil
 } from 'lucide-react';
 
 const CONTRATO_HISTORY_KEY = 'cotacao_history_contrato';

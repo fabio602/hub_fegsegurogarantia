@@ -167,7 +167,7 @@ serve(async (req) => {
         <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
           <p style="margin-bottom: 5px; font-weight: 900; color: #1B263B; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">F&G Seguro Garantia</p>
           <div style="margin-bottom: 20px;">
-            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">Instagram</a>
+            <a href="https://www.instagram.com/fgsegurogarantia" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">Instagram</a>
             <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #C69C6D; font-size: 12px; font-weight: bold; margin: 0 12px; border: 1px solid #C69C6D; padding: 5px 12px; border-radius: 6px;">LinkedIn</a>
           </div>
           <p style="font-size: 13px;">

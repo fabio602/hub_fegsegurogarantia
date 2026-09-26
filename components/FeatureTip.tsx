@@ -59,15 +59,29 @@ export function FeatureTip({ id, title, description, position = 'bottom', childr
     markSeen(id);
   };
 
+  // Clicar em qualquer lugar da pagina fecha o balao, mas sem engolir o clique:
+  // antes havia um fundo invisivel de tela inteira e, com dois ou tres baloes
+  // abertos ao mesmo tempo, o primeiro clique em qualquer botao "nao funcionava"
+  // (so fechava um balao). Agora o balao some e o clique segue para o botao.
+  useEffect(() => {
+    if (!visible) return;
+    const onClick = (e: MouseEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest?.('[data-feature-tip]')) return;
+      dismiss();
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   return (
     <>
       <div ref={ref} style={{ display: 'contents' }}>{children}</div>
       {visible && createPortal(
         <>
-          {/* Backdrop highlight */}
-          <div onClick={dismiss} style={{ position: 'fixed', inset: 0, zIndex: 8998 }} />
           {/* Tooltip */}
-          <div style={{
+          <div data-feature-tip style={{
             position: 'absolute', top: coords.top, left: coords.left,
             width: '340px', background: '#1B263B', borderRadius: '16px',
             padding: '16px 18px', zIndex: 8999, boxShadow: '0 12px 40px rgba(0,0,0,.25)',

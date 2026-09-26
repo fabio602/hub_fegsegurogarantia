@@ -368,6 +368,46 @@ Deno.serve(async (req) => {
     // falhar por três dias, ninguém recebe três e-mails de uma vez.
     const today = todayBRT();
 
+    // Sábado e domingo não sai prospecção: chega para acumular, ninguém na
+    // construtora lê, e caixa sem engajamento piora a reputação do domínio.
+    // As etapas não se perdem — a trilha compara o dia devido com a data de
+    // entrada do contato, então na segunda a etapa vencida sai normalmente.
+    // Vale só para o cron; envio manual pelo hub segue livre.
+    {
+      const diaSemana = new Date().toLocaleDateString('en-US', {
+        timeZone: 'America/Sao_Paulo', weekday: 'short',
+      });
+      if (diaSemana === 'Sat' || diaSemana === 'Sun') {
+        console.log(`[cadencia] ${diaSemana}: fim de semana, nenhum envio`);
+        await registrarExecucao(supabase, {
+          abortada: true, detalhes: { fim_de_semana: true, dia: diaSemana },
+        });
+        return json({ success: true, fim_de_semana: true, enviados: 0 });
+      }
+    }
+
+    // Pausa GLOBAL de reputação do domínio. Vale só para o cron: prospecção
+    // fria automática precisa parar quando o domínio está em risco.
+    //
+    // Antes esta função não consultava a trava, e a pausa ficava pela metade —
+    // segurava lead novo em prospeccao-pncp e garimpo, mas os e-mails 2 a 5 das
+    // trilhas seguiam saindo e continuavam acumulando bounce. O modo imediato e
+    // o preview seguem livres de propósito: ali é decisão de uma pessoa, não
+    // automação rodando sozinha.
+    {
+      const { data: rep } = await supabase
+        .from('reputacao_envio').select('pausado, pausado_motivo').limit(1).maybeSingle();
+      if (rep?.pausado) {
+        const motivo = String(rep.pausado_motivo ?? 'sem motivo registrado');
+        console.log(`[cadencia] pausada pela reputacao global do dominio: ${motivo}`);
+        await registrarExecucao(supabase, {
+          abortada: true,
+          detalhes: { pausado_por_reputacao: true, motivo },
+        });
+        return json({ success: true, pausado: true, motivo, enviados: 0 });
+      }
+    }
+
     // Todas as trilhas ativas, carregadas de uma vez.
     // Qualquer erro de leitura aborta a rodada com 500. Tratar como lista
     // vazia responderia "0 enviados, 0 erros" com a trilha quebrada.
