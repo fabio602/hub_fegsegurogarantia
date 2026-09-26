@@ -157,14 +157,27 @@ async function checarTaxaBounce(supabase: SupabaseClient) {
   if (!total) return;
   const bounces = pncpBounces + Number(garimpoBounces ?? 0);
 
-  const limite = Math.max(
-    Number(rep.bounce_min_quantidade) || 2,
-    Math.ceil(total * (Number(rep.bounce_max_percentual) || 5) / 100),
-  );
+  // Dois gatilhos independentes, e a quantidade minima NAO eleva mais o limite
+  // percentual. Antes era max(quantidade, percentual), e como a quantidade
+  // valia de piso em qualquer volume, ela anulava o percentual: em 10/09/2026
+  // passaram 4 bounces em 30 envios (13,3%, contra limite de 5%) sem pausar,
+  // porque 4 era menor que o piso de 5.
+  const minQtd = Number(rep.bounce_min_quantidade) || 2;
+  const maxPct = Number(rep.bounce_max_percentual) || 5;
+  const minEnvios = Number(rep.envios_minimos_avaliacao) || 20;
 
-  if (bounces >= limite) {
-    const motivo = `${bounces} bounce(s) em ${total} envio(s) automatico(s) em ${hoje}, somando PNCP e campanhas de garimpo ` +
-      `(limite: ${limite}, regra: o maior entre ${rep.bounce_min_quantidade} bounces e ${rep.bounce_max_percentual}% dos envios).`;
+  const pct = (bounces / total) * 100;
+  // Gatilho absoluto: vale em qualquer volume, inclusive amostra pequena.
+  const estourouQuantidade = bounces >= minQtd;
+  // Gatilho percentual: so com amostra suficiente, senao 1 bounce em 3 envios
+  // (33%) pausaria a operacao inteira sem significar nada.
+  const estourouPercentual = total >= minEnvios && pct > maxPct;
+
+  if (estourouQuantidade || estourouPercentual) {
+    const regra = estourouPercentual
+      ? `${pct.toFixed(1)}% de bounce, acima do limite de ${maxPct}%, com ${total} envios (minimo de ${minEnvios} para avaliar percentual)`
+      : `${bounces} bounce(s), atingindo o gatilho absoluto de ${minQtd}`;
+    const motivo = `${bounces} bounce(s) em ${total} envio(s) automatico(s) em ${hoje}, somando PNCP e campanhas de garimpo. Motivo: ${regra}.`;
     const agora = new Date().toISOString();
     // Se a pausa nao gravar, nao avisar: o aviso diria "pausado" e a
     // automacao continuaria enviando. A excecao faz o Resend reentregar.
