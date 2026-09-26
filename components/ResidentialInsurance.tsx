@@ -104,14 +104,14 @@ function formatEntrada(iso?: string | null): string {
     return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+// Tres produtos, os mesmos nomes que o formulario publico e o portal da
+// imobiliaria gravam. Os nomes antigos ('Residencial', 'Residencial +
+// Locaticia', 'Locaticia', 'Condominio') foram migrados em 26/09/2026
+// (migracao 101); o valor original ficou em produto_legado.
 const PRODUTOS = [
-    'Apenas Garantia Locatícia',
     'Apenas Seguro Residencial',
+    'Apenas Garantia Locatícia',
     'Garantia Locatícia & Seguro Residencial',
-    'Residencial',
-    'Locatícia',
-    'Residencial + Locatícia',
-    'Condomínio',
 ];
 const FORMAS_PAGAMENTO = ['Boleto Mensal', 'Boleto Anual', 'Cartão de Crédito', 'Débito Automático', 'PIX'];
 const SITUACOES = ['Lead (site)', 'Ativo', 'Vencido', 'Cancelado', 'Saiu do Imóvel', 'Optou Não Contratar', 'Desistiu da Locação', 'Pendente Renovação', 'Em Renovação', 'Reprovado'];
@@ -132,6 +132,26 @@ const formatPhone = (value: string) => {
         .replace(/(\d{2})(\d)/, '($1) $2')
         .replace(/(\d{5})(\d)/, '$1-$2')
         .replace(/(-\d{4})\d+?$/, '$1');
+};
+
+/** Comissao padrao de 30% do premio quando o campo ficou vazio. Evita apolice
+ *  gravada com premio e sem comissao, que depois some do relatorio. */
+const comissaoOuPadrao = (premio: string | null | undefined, comissao: string | null | undefined) => {
+    if (comissao && comissao.trim()) return comissao;
+    const numeric = parseFloat((premio || '').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    return numeric > 0 ? (numeric * 0.30).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null;
+};
+
+/** Telefone vazio passa. Preenchido: DDD + 8 digitos (fixo, comeca em 2 a 5)
+ *  ou DDD + 9 digitos (celular, comeca em 9). Celular com 8 digitos e o erro
+ *  classico de digitacao e quebra o link do WhatsApp na hora da cobranca. */
+const erroTelefone = (rotulo: string, valor: string | null | undefined) => {
+    const d = (valor || '').replace(/\D/g, '');
+    if (!d) return null;
+    if (d.length === 11 && d[2] === '9') return null;
+    if (d.length === 10 && /[2-5]/.test(d[2])) return null;
+    if (d.length === 10) return `${rotulo} parece celular com 8 dígitos ("${valor}"). Falta o nono dígito.`;
+    return `${rotulo} com ${d.length} dígitos ("${valor}"). Confira o DDD e o número.`;
 };
 
 const formatCEP = (value: string) => {
@@ -173,7 +193,11 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    // Na tela cheia o formulario fica recolhido ate o usuario pedir (Novo
+    // cliente, Editar, rascunho ou atalho do Repasse); a lista e o que se
+    // abre para ver. No modo embutido (modal do Repasse) ele e a tela inteira.
     const [showModal, setShowModal] = useState(false);
+    const formVisivel = embedded || showModal;
     const formRef = useRef<HTMLDivElement>(null);
     const [formData, setFormData] = useState<Partial<ResidentialClient>>(EMPTY_FORM);
     const [search, setSearch] = useState('');
@@ -448,7 +472,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             produto: formData.produto || null,
             apolice: formData.apolice || null,
             premio_total: formData.premio_total || null,
-            comissao: formData.comissao || null,
+            comissao: comissaoOuPadrao(formData.premio_total, formData.comissao),
             data_emissao: formData.data_emissao || null,
             fim_vigencia: formData.fim_vigencia || null,
             forma_pagamento: formData.forma_pagamento || null,
@@ -506,6 +530,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         rascunhoRestauradoRef.current = true;
         setFormData(prev => ({ ...prev, ...(rascunhoCliente as any) }));
         setRascunhoRestaurado(true);
+        setShowModal(true);
     }, [rascunhoCliente, editingId, formData.nome, formData.cpf, formData.apolice]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -611,6 +636,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         setSaveError(null);
         setSaveSuccess(false);
 
+        const erroFone = erroTelefone('Telefone', formData.telefone) || erroTelefone('Telefone 2', formData.telefone_2);
+        if (erroFone) { setSaveError(erroFone); setSaving(false); return; }
+
         // A3: Verificar duplicata por CPF ou nome (somente para novos clientes)
         if (!editingId && formData.cpf) {
             const cpfClean = (formData.cpf || '').replace(/\D/g, '');
@@ -636,7 +664,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             produto: formData.produto || null,
             apolice: formData.apolice || null,
             premio_total: formData.premio_total || null,
-            comissao: formData.comissao || null,
+            comissao: comissaoOuPadrao(formData.premio_total, formData.comissao),
             data_emissao: formData.data_emissao || null,
             fim_vigencia: formData.fim_vigencia || null,
             forma_pagamento: formData.forma_pagamento || null,
@@ -796,7 +824,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     ...EMPTY_FORM,
                     nome: prefill.nome,
                     telefone: prefill.telefone || '',
-                    produto: 'Residencial',
+                    produto: 'Apenas Seguro Residencial',
                 });
                 setShowModal(true);
                 setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' }), 50);
@@ -903,6 +931,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
 
     const expiringAlerts = getExpiringAlerts();
 
+    // Apolices que ja passaram do fim da vigencia e ainda esperam decisao
+    // (renovar ou encerrar). O cron residencial_marcar_vencidas (migracao 101)
+    // vira Ativo em Vencido todo dia; aqui e so a lista para agir.
+    const vencidasSemDecisao = clients
+        .filter(c => c.situacao === 'Vencido' && !c.nao_renovar && c.fim_vigencia)
+        .sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -972,6 +1007,46 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                 </div>
             )}
 
+            {/* Vencidas sem decisao */}
+            {!embedded && vencidasSemDecisao.length > 0 && (
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center">
+                            <AlertCircle size={18} className="text-rose-600" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-rose-800 text-sm">{vencidasSemDecisao.length} apólice{vencidasSemDecisao.length > 1 ? 's já venceram' : ' já venceu'} e {vencidasSemDecisao.length > 1 ? 'esperam' : 'espera'} decisão</p>
+                            <p className="text-rose-600 text-xs font-medium">Renovou? Edite e atualize a vigência. Não vai renovar? Marque para sair daqui.</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        {vencidasSemDecisao.map(c => {
+                            const fim = new Date(c.fim_vigencia);
+                            const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const dias = Math.max(0, Math.floor((today.getTime() - fim.getTime()) / 86400000));
+                            return (
+                                <div key={c.id} className="flex justify-between items-center bg-white rounded-xl px-4 py-3 border border-rose-100 gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-800 text-sm truncate">{c.nome}</p>
+                                        <p className="text-xs text-slate-500">{c.produto} • {c.apolice}</p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <p className="font-bold text-rose-600 text-sm">há {dias} dia{dias !== 1 ? 's' : ''}</p>
+                                        <p className="text-xs text-slate-400">Venceu {fim.toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <button onClick={() => handleEdit(c)} className="shrink-0 flex items-center gap-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs px-3 py-2 rounded-xl transition-all">
+                                        <Edit2 size={13} /> Editar
+                                    </button>
+                                    <button onClick={() => handleNaoRenovar(c.id)} className="shrink-0 flex items-center gap-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 font-bold text-xs px-3 py-2 rounded-xl transition-all">
+                                        ✕ Não renovar
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Header, link público e cópias de e-mail — só na tela cheia */}
             {!embedded && (<>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1006,6 +1081,15 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     <button onClick={exportCSV} className="shrink-0 bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Download size={16} /> Exportar
                     </button>
+                    {!formVisivel && (
+                        <button
+                            type="button"
+                            onClick={() => { setEditingId(null); setFormData(EMPTY_FORM); setShowModal(true); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }}
+                            className="shrink-0 bg-gold text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-gold-hover transition-all flex items-center gap-2"
+                        >
+                            <Plus size={16} /> Novo cliente
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1091,6 +1175,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             </>)}
 
             {/* Form */}
+            {formVisivel && (
             <div ref={formRef} className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
                 <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
@@ -1464,6 +1549,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                         </div>
                     )}
 
+                    {/* O mesmo erro do topo, repetido aqui: quem clica em Adicionar
+                        esta no pe do formulario e nao ve o aviso la em cima. */}
+                    {saveError && (
+                        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold">
+                            <AlertCircle size={16} className="shrink-0" />{saveError}
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center gap-3">
                         {editingId ? (
                             <button type="button" onClick={() => handleDelete(editingId)}
@@ -1479,16 +1572,23 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                     className="px-8 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
                                     Fechar
                                 </button>
-                            ) : (
+                            ) : (<>
+                                {!embedded && (
+                                    <button type="button" onClick={() => resetForm()}
+                                        className="px-6 py-3.5 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 transition-all border border-slate-200">
+                                        Cancelar
+                                    </button>
+                                )}
                                 <button type="submit" disabled={saving} className="bg-gold text-white px-10 py-3.5 rounded-xl font-bold text-sm hover:bg-gold-hover transition-all shadow-lg active:scale-95 flex items-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                                     Adicionar Cliente
                                 </button>
-                            )}
+                            </>)}
                         </div>
                     </div>
                 </form>
             </div>
+            )}
 
             {/* Table */}
             {!embedded && (
