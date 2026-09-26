@@ -135,7 +135,7 @@ serve(async (req) => {
                   <p style="margin:0;font-size:13px;color:#94a3b8;line-height:2;">
                     📱 <a href="https://wa.me/5515998618659" style="color:#25D366;text-decoration:none;font-weight:600;">(15) 99861-8659</a><br/>
                     🌐 <a href="https://fegsegurogarantia.com.br" style="color:#C69C6D;text-decoration:none;">fegsegurogarantia.com.br</a><br/>
-                    📷 <a href="https://instagram.com/fg_segurogarantia" style="color:#C69C6D;text-decoration:none;">@fg_segurogarantia</a>
+                    📷 <a href="https://instagram.com/fgsegurogarantia" style="color:#C69C6D;text-decoration:none;">@fgsegurogarantia</a>
                   </p>
                 </td>
               </tr>

@@ -61,7 +61,7 @@ serve(async (req) => {
         <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
           <p style="margin-bottom: 10px; font-weight: bold; color: #1B263B;">F&G Corretora de Seguros</p>
           <div style="margin-bottom: 15px;">
-            <a href="https://www.instagram.com/fg_segurogarantia" style="text-decoration: none; color: #E1306C; font-size: 13px; font-weight: bold; margin: 0 10px;">Instagram</a>
+            <a href="https://www.instagram.com/fgsegurogarantia" style="text-decoration: none; color: #E1306C; font-size: 13px; font-weight: bold; margin: 0 10px;">Instagram</a>
             <span style="color: #ccc;">|</span>
             <a href="https://www.linkedin.com/company/107618467" style="text-decoration: none; color: #0077B5; font-size: 13px; font-weight: bold; margin: 0 10px;">LinkedIn</a>
           </div>
