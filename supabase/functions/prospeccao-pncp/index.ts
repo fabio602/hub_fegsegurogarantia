@@ -3,6 +3,17 @@
 //
 // Prospeccao automatica de vencedores de licitacao no PNCP, em lotes.
 //
+// O GATILHO E A HOMOLOGACAO, NAO O CONTRATO ASSINADO.
+// O contrato assinado aparece no PNCP semanas depois da homologacao, e a
+// garantia ja foi contratada antes dele existir: chegar por ali e chegar
+// tarde. A funcao acompanha /contratacoes/atualizacao, que traz tudo que
+// mudou no dia ja com valorTotalHomologado, e trata valor homologado > 0
+// como o sinal de que a licitacao terminou e tem vencedor.
+//
+// Quem entra e decidido pelo OBJETO da licitacao (config.termos_objeto) e
+// pelo valor, nao pelo CNAE do vencedor. Uma construtora que ganha limpeza
+// urbana interessa pelo contrato, nao pelo ramo declarado na Receita.
+//
 // Restricoes de producao que moldaram o desenho:
 //   - A Edge Function deste projeto e encerrada aos 150s (WallClockTime), e a
 //     requisicao HTTP tem idle timeout de 150s. Cada invocacao responde 202 na
@@ -10,13 +21,15 @@
 //   - A BrasilAPI nao retorna e-mail (a Receita tirou o campo dos dados
 //     abertos). O e-mail vem da CNPJa aberta (5/min) com fallback cnpj.ws
 //     (3/min): 13s a 21s por CNPJ.
-//   - O PNCP responde em ~10s por pagina para o IP da AWS; a coleta usa
-//     paginas de 500 e lotes paralelos.
+//   - A API de consulta do PNCP aceita no maximo 50 registros por pagina
+//     (100 e 500 respondem "Tamanho de pagina invalido"). Um dia util passa
+//     de 150 paginas somando as modalidades, o que nao cabe num tique: a
+//     varredura e retomavel, com cursor por modalidade em detalhes.varredura.
 //
 // Por isso o dia e uma EXECUCAO com fila persistente (prospeccao_pncp_fila):
-//   - O primeiro tique do cron (07:00 BRT) coleta o dia anterior no PNCP,
-//     filtra por valor/UF/modalidade, deduplica e enfileira por valor
-//     decrescente.
+//   - A coleta roda em todo tique ate terminar, em tres passos: varre as
+//     atualizacoes do dia e grava as homologadas em pncp_monitor; descobre
+//     quem venceu (itens -> resultados); deduplica e enfileira.
 //   - Os tiques seguintes (a cada 10 min, ate 11:50 BRT) consomem a fila:
 //     cadastro e CNAE pela BrasilAPI (com cache permanente por CNPJ), filtro
 //     de perfil por divisao CNAE, e-mail pela cadeia CNPJa/cnpj.ws, e os
@@ -40,10 +53,34 @@ const SUPABASE_SVC   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
 const FROM_EMAIL     = 'fabio@fegsegurogarantia.com.br';
 
-const PNCP_API = 'https://pncp.gov.br/api/consulta/v1/contratos';
+// Consulta: varredura por data. Itens/resultados: quem venceu cada item.
+const PNCP_CONSULTA = 'https://pncp.gov.br/api/consulta/v1';
+const PNCP_ITENS    = 'https://pncp.gov.br/api/pncp/v1';
 const BRASILAPI_CNPJ = 'https://brasilapi.com.br/api/cnpj/v1';
-const PNCP_PAGE_SIZE = 500;    // 100 da HTTP 500 no PNCP; 200 e 500 funcionam
-const PNCP_PARALELAS = 6;
+// Teto real da API de consulta: 100 e 500 devolvem "Tamanho de pagina invalido".
+const PNCP_PAGE_SIZE = 50;
+// 6 em paralelo derrubava quase tudo (162 falhas em 165 paginas em 10/09/2026)
+// enquanto a MESMA consulta, feita uma de cada vez, respondia normalmente. O
+// PNCP estrangula requisicao concorrente: menos paralelismo rende mais pagina.
+const PNCP_PARALELAS = 3;
+
+// Modalidades varridas. Sao onde moram obra e servico continuado, que e o que
+// exige garantia. Ficam de fora leilao (13) e as modalidades de credenciamento,
+// que nao geram contrato com garantia.
+const MODALIDADES: { id: number; nome: string }[] = [
+  { id: 4, nome: 'Concorrencia - Eletronica' },
+  { id: 5, nome: 'Concorrencia - Presencial' },
+  { id: 6, nome: 'Pregao - Eletronico' },
+  { id: 7, nome: 'Pregao - Presencial' },
+  { id: 8, nome: 'Dispensa de Licitacao' },
+  { id: 9, nome: 'Inexigibilidade' },
+];
+const MODALIDADES_DISPENSA = new Set([8, 9]);
+
+// Itens sondados por licitacao, do maior valor para o menor. Licitacao de
+// registro de precos passa de 100 itens; sondar todos estouraria o tique sem
+// mudar o resultado, porque o lead que interessa esta nos itens grandes.
+const MAX_ITENS_POR_LICITACAO = 10;
 
 // Teto real da funcao: 150s. O orcamento para de INICIAR trabalho bem antes,
 // porque um item que comeca no limite ainda gasta ate ~20s de timeouts de
@@ -96,6 +133,19 @@ function horaBRT(): string {
   return new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
+/**
+ * Sabado ou domingo no fuso de Brasilia.
+ *
+ * E-mail de prospeccao no fim de semana chega para acumular: ninguem na
+ * construtora le, e caixa sem engajamento piora a reputacao do dominio. A
+ * COLETA continua rodando — senao as homologacoes publicadas no fim de semana
+ * seriam perdidas, porque cada tique olha so o dia anterior.
+ */
+function fimDeSemanaBRT(): boolean {
+  const dia = new Date().toLocaleDateString('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' });
+  return dia === 'Sat' || dia === 'Sun';
+}
+
 function diaAnteriorBRT(): string {
   const hoje = hojeBRT();
   const d = new Date(Date.parse(hoje + 'T12:00:00Z') - 86_400_000);
@@ -126,19 +176,63 @@ interface Config {
   email_relatorio: string;
   email_padroes_contador: string[];
   email_prefixos_genericos: string[];
+  email_provedores_gratuitos: string[];
   fila_validade_dias: number;
+  termos_objeto: string[];
+  valor_prioritario: number;
+  dispensa_valor_prioritario: number;
+  monitor_validade_dias: number;
+  incluir_srp: boolean;
 }
 
 interface Contrato {
-  cnpj: string;            // 14 digitos
+  cnpj: string;            // 14 digitos: o VENCEDOR da licitacao
   razaoPncp: string;
   orgao: string;
   objeto: string;
-  valor: number;
+  valor: number;           // valor homologado do vencedor
   numeroLicitacao: string;
   municipio: string;
   uf: string;
   processo: string;
+  // Campos do monitoramento por homologacao (ausentes nas sobras antigas).
+  numeroControlePncp?: string;
+  dataHomologacao?: string;
+  modalidade?: string;
+  termos?: string[];
+  porte?: string;
+  materialOuServico?: string;
+  prioritario?: boolean;
+}
+
+/** Uma licitacao homologada, antes de sabermos quem venceu. */
+interface Homologada {
+  numeroControlePncp: string;
+  orgaoCnpj: string;
+  orgaoNome: string;
+  ano: number;
+  sequencial: number;
+  uf: string;
+  municipio: string;
+  modalidadeId: number;
+  modalidadeNome: string;
+  objeto: string;
+  termos: string[];
+  valorHomologado: number;
+  valorEstimado: number;
+  dataHomologacao: string;
+  processo: string;
+  prioritario: boolean;
+  srp: boolean;
+}
+
+/** Um vencedor de item, ja com o valor que ele levou. */
+interface Vencedor {
+  cnpj: string;
+  nome: string;
+  valor: number;
+  porte: string;
+  materialOuServico: string;
 }
 
 interface Empresa {
@@ -161,75 +255,287 @@ interface Empresa {
 
 // ─── Coleta no PNCP ──────────────────────────────────────────────────────────
 
-async function fetchComRetry(url: string, tentativas = 3): Promise<Record<string, unknown> | null> {
+const CABECALHO_PNCP = { 'Accept': 'application/json', 'User-Agent': 'FEG-Hub/1.0' };
+
+// A latencia do PNCP varia MUITO: a mesma consulta responde em 2s ou passa de
+// 25s. 12s foi calibrado durante a instabilidade noturna de 09/09/2026 e ficou
+// apertado demais para o horario comercial, quando o portal esta sob carga.
+// Como a varredura agora e retomavel E nao bloqueia mais o resto do pipeline,
+// vale esperar mais por pagina em vez de descartar pagina boa por impaciencia.
+const PNCP_TIMEOUT_MS = 25_000;
+
+/**
+ * 'vazio' e resposta boa sem registros; 'falha' e rede/timeout/5xx.
+ * A diferenca importa: 'vazio' encerra a modalidade, 'falha' precisa ser
+ * tentada de novo no proximo tique em vez de dar o dia por varrido.
+ */
+type Resposta = { estado: 'ok'; body: unknown } | { estado: 'vazio' } | { estado: 'falha' };
+
+async function fetchJson(url: string, tentativas = 2, fimMs?: number): Promise<Resposta> {
   for (let i = 0; i < tentativas; i++) {
+    if (fimMs && Date.now() > fimMs) return { estado: 'falha' };
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      const res = await fetch(url, { headers: CABECALHO_PNCP, signal: AbortSignal.timeout(PNCP_TIMEOUT_MS) });
+      // 204 = consulta valida sem registros (pagina alem do fim, dia sem nada).
+      if (res.status === 204) return { estado: 'vazio' };
+      // 429 pede recuo maior que o retry normal.
+      if (res.status === 429) { await pausa(2000 * (i + 1)); continue; }
       if (res.ok) {
         const body = await res.json().catch(() => null);
-        if (body) return body as Record<string, unknown>;
+        if (body !== null) return { estado: 'ok', body };
+        return { estado: 'vazio' };
       }
-    } catch { /* tenta de novo */ }
-    if (i < tentativas - 1) await pausa(1000 * (i + 1));
+      // 4xx que nao seja 429 e parametro errado: repetir nao melhora.
+      if (res.status >= 400 && res.status < 500) return { estado: 'vazio' };
+    } catch { /* timeout ou rede: tenta de novo */ }
+    if (i < tentativas - 1) await pausa(800);
   }
-  return null;
+  return { estado: 'falha' };
 }
 
-async function coletarPncp(dataRef: string, inicioMs: number): Promise<{
-  contratos: Contrato[]; paginasLidas: number; paginasFalhas: number; incompleto: boolean;
+/** Objeto paginado ({data, totalPaginas}). */
+async function fetchPagina(
+  url: string, fimMs?: number,
+): Promise<{ estado: 'ok'; body: Record<string, unknown> } | { estado: 'vazio' } | { estado: 'falha' }> {
+  const r = await fetchJson(url, 2, fimMs);
+  if (r.estado !== 'ok') return r;
+  return r.body && typeof r.body === 'object' && !Array.isArray(r.body)
+    ? { estado: 'ok', body: r.body as Record<string, unknown> }
+    : { estado: 'vazio' };
+}
+
+/** Endpoints de itens/resultados devolvem array na raiz. */
+async function fetchLista(url: string, fimMs?: number): Promise<Record<string, unknown>[]> {
+  const r = await fetchJson(url, 2, fimMs);
+  return r.estado === 'ok' && Array.isArray(r.body) ? r.body as Record<string, unknown>[] : [];
+}
+
+/** Normaliza para casar termo sem depender de acento nem de caixa. */
+function normalizar(s: string): string {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function termosQueCasam(objeto: string, termos: string[]): string[] {
+  const alvo = normalizar(objeto);
+  const achados: string[] = [];
+  for (const t of termos) {
+    const n = normalizar(t).trim();
+    if (n && alvo.includes(n)) achados.push(t);
+  }
+  return achados;
+}
+
+/**
+ * Le uma pagina de /contratacoes/atualizacao e devolve so as licitacoes que
+ * interessam: homologadas, no perfil de valor, na UF e com o objeto batendo
+ * em algum termo. O corte e feito aqui para nao carregar 7 mil registros/dia
+ * na memoria do tique.
+ */
+function filtrarPagina(
+  body: Record<string, unknown>,
+  config: Config,
+  modalidade: { id: number; nome: string },
+): Homologada[] {
+  const achadas: Homologada[] = [];
+  for (const raw of ((body.data as Record<string, unknown>[]) ?? [])) {
+    // Sem valor homologado a licitacao ainda nao terminou: nao interessa hoje,
+    // e volta a aparecer na varredura do dia em que for homologada.
+    const valorHomologado = Number(raw.valorTotalHomologado ?? 0) || 0;
+    if (valorHomologado <= 0) continue;
+
+    const unidade = raw.unidadeOrgao as Record<string, unknown> | undefined;
+    const uf = String(unidade?.ufSigla ?? '');
+    if (config.ufs.length && !config.ufs.includes(uf)) continue;
+
+    const dispensa = MODALIDADES_DISPENSA.has(modalidade.id);
+    const piso = dispensa
+      ? Number(config.dispensa_inexig_valor_minimo)
+      : Number(config.valor_minimo);
+    if (valorHomologado < piso) continue;
+
+    const objeto = String(raw.objetoCompra ?? '');
+    const termos = termosQueCasam(objeto, config.termos_objeto ?? []);
+    if (!termos.length) continue;
+
+    const orgaoEnt = raw.orgaoEntidade as Record<string, unknown> | undefined;
+    const orgaoCnpj = cleanCnpj(String(orgaoEnt?.cnpj ?? ''));
+    const ano = Number(raw.anoCompra ?? 0) || 0;
+    const sequencial = Number(raw.sequencialCompra ?? 0) || 0;
+    if (orgaoCnpj.length !== 14 || !ano || !sequencial) continue;
+
+    const tetoPrioritario = dispensa
+      ? Number(config.dispensa_valor_prioritario)
+      : Number(config.valor_prioritario);
+
+    achadas.push({
+      numeroControlePncp: String(raw.numeroControlePNCP ?? `${orgaoCnpj}-1-${sequencial}/${ano}`),
+      orgaoCnpj,
+      orgaoNome: String(orgaoEnt?.razaoSocial ?? ''),
+      ano,
+      sequencial,
+      uf,
+      municipio: String(unidade?.municipioNome ?? ''),
+      modalidadeId: modalidade.id,
+      modalidadeNome: String(raw.modalidadeNome ?? modalidade.nome),
+      objeto,
+      termos,
+      valorHomologado,
+      valorEstimado: Number(raw.valorTotalEstimado ?? 0) || 0,
+      dataHomologacao: String(raw.dataAtualizacao ?? raw.dataAtualizacaoGlobal ?? '').slice(0, 10),
+      processo: String(raw.processo ?? ''),
+      prioritario: valorHomologado >= tetoPrioritario,
+      srp: raw.srp === true,
+    });
+  }
+  return achadas;
+}
+
+/**
+ * Varre /contratacoes/atualizacao do dia, modalidade a modalidade.
+ *
+ * A varredura e RETOMAVEL: `cursor` guarda a ultima pagina concluida de cada
+ * modalidade e volta atualizado. Um dia inteiro passa de 150 paginas e nao
+ * cabe no orcamento de um tique so, entao o tique seguinte continua de onde
+ * este parou em vez de recomecar.
+ */
+async function varrerAtualizacoes(
+  dataRef: string,
+  config: Config,
+  cursor: Record<string, number>,
+  inicioMs: number,
+): Promise<{
+  achadas: Homologada[];
+  cursor: Record<string, number>;
+  completa: boolean;
+  paginasLidas: number;
+  paginasFalhas: number;
 }> {
   const dataParam = dataRef.replaceAll('-', '');
-  const contratos: Contrato[] = [];
+  const achadas: Homologada[] = [];
+  const novoCursor = { ...cursor };
   let paginasLidas = 0;
   let paginasFalhas = 0;
-  let incompleto = false;
+  let completa = true;
 
-  const urlPagina = (p: number) =>
-    `${PNCP_API}?dataInicial=${dataParam}&dataFinal=${dataParam}&pagina=${p}&tamanhoPagina=${PNCP_PAGE_SIZE}`;
+  const url = (mod: number, p: number) =>
+    `${PNCP_CONSULTA}/contratacoes/atualizacao?dataInicial=${dataParam}&dataFinal=${dataParam}` +
+    `&codigoModalidadeContratacao=${mod}&pagina=${p}&tamanhoPagina=${PNCP_PAGE_SIZE}`;
 
-  const primeira = await fetchComRetry(urlPagina(1));
-  if (!primeira) return { contratos, paginasLidas, paginasFalhas: 1, incompleto: true };
+  const fimMs = inicioMs + ORCAMENTO_COLETA_MS;
 
-  const totalPaginas = Math.max(1, Number(primeira.totalPaginas) || 1);
+  for (const modalidade of MODALIDADES) {
+    const chave = String(modalidade.id);
+    // -1 marca modalidade ja concluida em tique anterior.
+    if (novoCursor[chave] === -1) continue;
+    if (Date.now() > fimMs) { completa = false; break; }
 
-  const processa = (body: Record<string, unknown>) => {
-    paginasLidas++;
-    for (const raw of ((body.data as Record<string, unknown>[]) ?? [])) {
-      const cnpj = cleanCnpj(String(raw.niFornecedor ?? ''));
-      if (cnpj.length !== 14 || raw.tipoPessoa === 'PF') continue;
-      const orgaoEnt = raw.orgaoEntidade as Record<string, unknown> | undefined;
-      const unidade = raw.unidadeOrgao as Record<string, unknown> | undefined;
-      contratos.push({
-        cnpj,
-        razaoPncp: String(raw.nomeRazaoSocialFornecedor ?? ''),
-        orgao: String(orgaoEnt?.razaoSocial ?? ''),
-        objeto: String(raw.objetoContrato ?? ''),
-        valor: Number(raw.valorGlobal ?? raw.valorInicial ?? 0) || 0,
-        numeroLicitacao: String(raw.numeroContratoEmpenho ?? raw.numeroControlePNCP ?? ''),
-        municipio: String(unidade?.municipioNome ?? ''),
-        uf: String(unidade?.ufSigla ?? ''),
-        processo: String(raw.processo ?? ''),
-      });
+    const feitas = Number(novoCursor[chave] ?? 0);
+    const primeira = await fetchPagina(url(modalidade.id, feitas + 1), fimMs);
+
+    if (primeira.estado === 'falha') {
+      // Rede ou timeout. O cursor NAO anda e a modalidade NAO e dada por
+      // concluida: quem falhou aqui e retentado no proximo tique. Marcar -1
+      // nesta situacao fazia a varredura pular a modalidade inteira do dia.
+      paginasFalhas++;
+      completa = false;
+      continue;
     }
-  };
+    if (primeira.estado === 'vazio') { novoCursor[chave] = -1; continue; }
 
-  processa(primeira);
+    paginasLidas++;
+    achadas.push(...filtrarPagina(primeira.body, config, modalidade));
+    novoCursor[chave] = feitas + 1;
 
-  // Demais paginas em lotes paralelos, por causa da latencia alta do PNCP.
-  const pendentes: number[] = [];
-  for (let p = 2; p <= totalPaginas; p++) pendentes.push(p);
+    const totalPaginas = Math.max(1, Number(primeira.body.totalPaginas) || 1);
+    if (novoCursor[chave] >= totalPaginas) { novoCursor[chave] = -1; continue; }
 
-  for (let i = 0; i < pendentes.length; i += PNCP_PARALELAS) {
-    if (Date.now() - inicioMs > ORCAMENTO_COLETA_MS) { incompleto = true; break; }
-    const lote = pendentes.slice(i, i + PNCP_PARALELAS);
-    const results = await Promise.all(lote.map((p) => fetchComRetry(urlPagina(p))));
-    for (const body of results) {
-      if (!body) { paginasFalhas++; continue; }
-      processa(body);
+    let interrompida = false;
+    for (let p = feitas + 2; p <= totalPaginas; p += PNCP_PARALELAS) {
+      if (Date.now() > fimMs) { interrompida = true; break; }
+      const lote: number[] = [];
+      for (let k = p; k < p + PNCP_PARALELAS && k <= totalPaginas; k++) lote.push(k);
+      const respostas = await Promise.all(lote.map((k) => fetchPagina(url(modalidade.id, k), fimMs)));
+
+      // O cursor so avanca ate a ultima pagina lida SEM buraco. Se a terceira
+      // do lote falhou, o cursor para na segunda e o proximo tique retoma da
+      // terceira: nenhuma pagina e pulada em silencio.
+      let ultimaBoa = novoCursor[chave];
+      let houveBuraco = false;
+      for (let i = 0; i < respostas.length; i++) {
+        const r = respostas[i];
+        if (r.estado === 'ok') {
+          paginasLidas++;
+          achadas.push(...filtrarPagina(r.body, config, modalidade));
+          if (!houveBuraco) ultimaBoa = lote[i];
+        } else if (r.estado === 'vazio') {
+          if (!houveBuraco) ultimaBoa = lote[i];
+        } else {
+          paginasFalhas++;
+          houveBuraco = true;
+        }
+      }
+      novoCursor[chave] = ultimaBoa;
+      if (houveBuraco) { interrompida = true; break; }
+    }
+
+    if (interrompida) { completa = false; continue; }
+    novoCursor[chave] = -1;
+  }
+
+  // Completa de verdade so quando toda modalidade chegou ao fim.
+  if (completa) completa = MODALIDADES.every((m) => novoCursor[String(m.id)] === -1);
+
+  return { achadas, cursor: novoCursor, completa, paginasLidas, paginasFalhas };
+}
+
+/**
+ * Descobre quem venceu uma licitacao homologada.
+ *
+ * Le os itens, fica com os que tem resultado, e sonda do maior para o menor.
+ * Varios itens podem ter vencedores diferentes: cada CNPJ vira um lead, com o
+ * valor somado do que ele levou.
+ */
+async function resolverVencedores(h: Homologada, fimMs: number): Promise<Vencedor[]> {
+  const base = `${PNCP_ITENS}/orgaos/${h.orgaoCnpj}/compras/${h.ano}/${h.sequencial}`;
+  const itens = await fetchLista(`${base}/itens?pagina=1&tamanhoPagina=${PNCP_PAGE_SIZE}`, fimMs);
+  if (!itens.length) return [];
+
+  const comResultado = itens
+    .filter((it) => it.temResultado === true)
+    .sort((a, b) => (Number(b.valorTotal ?? 0) || 0) - (Number(a.valorTotal ?? 0) || 0))
+    .slice(0, MAX_ITENS_POR_LICITACAO);
+
+  const porCnpj = new Map<string, Vencedor>();
+  for (const item of comResultado) {
+    if (Date.now() > fimMs) break;
+    const numeroItem = Number(item.numeroItem ?? 0) || 0;
+    if (!numeroItem) continue;
+
+    const resultados = await fetchLista(`${base}/itens/${numeroItem}/resultados`, fimMs);
+    for (const r of resultados) {
+      // Resultado cancelado nao e venda: a licitacao voltou atras.
+      if (r.dataCancelamento) continue;
+      if (r.tipoPessoa === 'PF') continue;
+      const cnpj = cleanCnpj(String(r.niFornecedor ?? ''));
+      if (cnpj.length !== 14) continue;
+
+      const valor = Number(r.valorTotalHomologado ?? 0) || 0;
+      const atual = porCnpj.get(cnpj);
+      if (atual) {
+        atual.valor += valor;
+      } else {
+        porCnpj.set(cnpj, {
+          cnpj,
+          nome: String(r.nomeRazaoSocialFornecedor ?? ''),
+          valor,
+          porte: String(r.porteFornecedorNome ?? ''),
+          materialOuServico: String(item.materialOuServicoNome ?? ''),
+        });
+      }
     }
   }
 
-  return { contratos, paginasLidas, paginasFalhas, incompleto: incompleto || paginasFalhas > 0 };
+  return [...porCnpj.values()].sort((a, b) => b.valor - a.valor);
 }
 
 // ─── Cadastro na BrasilAPI (sem e-mail; a Receita retirou o campo de la) ─────
@@ -351,6 +657,10 @@ function avaliaCnae(e: Empresa, incluir: string[], excluir: string[]): { ok: boo
   if (excluir.includes(e.cnae_divisao)) {
     return { ok: false, motivo: `Divisao CNAE ${e.cnae_divisao} esta na lista de exclusao (${e.cnae_descricao})` };
   }
+  // Lista de inclusao vazia = sem restricao de ramo. O filtro passa a ser o
+  // objeto da licitacao, nao o CNAE do vencedor. Antes, lista vazia reprovava
+  // todo mundo e marcava o CNPJ como fora_do_perfil para sempre.
+  if (!incluir.length) return { ok: true, motivo: '' };
   const divisoes = new Set([e.cnae_divisao, ...e.cnaes_secundarios.map((c) => c.divisao)]);
   for (const d of divisoes) {
     if (incluir.includes(d)) return { ok: true, motivo: '' };
@@ -362,9 +672,17 @@ function avaliaCnae(e: Empresa, incluir: string[], excluir: string[]): { ok: boo
 //
 // 'contador': o e-mail aparenta ser do escritorio de contabilidade, nao da
 // empresa (prefixo ou dominio com termos contabeis).
-// 'generico_corporativo': caixa setorial (fiscal@, juridico@, dl-...).
-// 'direto': os demais. O XLSX ordena com 'direto' primeiro.
-type TipoEmail = 'direto' | 'generico_corporativo' | 'contador';
+// 'generico_corporativo': caixa de setor (contato@, comercial@, diretoria@...).
+// 'provedor_gratuito': gmail, hotmail e afins — costuma ser a caixa que o socio
+//   de fato le, e mede melhor que caixa de setor.
+// 'direto': os demais, tipicamente nome de pessoa no dominio da empresa.
+// O XLSX ordena com 'direto' primeiro.
+//
+// Medido em 60 envios reais de 10 e 11/09/2026: caixa de setor devolveu 18,8%,
+// contador 14,3%, provedor gratuito 6,7% e 'direto' nenhum. A amostra e pequena
+// (intervalos de confianca se sobrepoem), por isso isto ROTULA e nao bloqueia:
+// serve para a decisao de filtrar ou nao ser tomada com volume maior.
+type TipoEmail = 'direto' | 'generico_corporativo' | 'contador' | 'provedor_gratuito';
 
 function classificarEmail(email: string, config: Config): TipoEmail {
   const e = (email || '').toLowerCase();
@@ -379,10 +697,18 @@ function classificarEmail(email: string, config: Config): TipoEmail {
     const t = pref.toLowerCase().trim();
     if (t && prefixo.startsWith(t)) return 'generico_corporativo';
   }
+  // Comparacao exata de dominio: 'includes' faria "gmail.com" casar com
+  // "naoegmail.com.br" e rotularia empresa como provedor gratuito.
+  for (const prov of (config.email_provedores_gratuitos ?? [])) {
+    const t = prov.toLowerCase().trim();
+    if (t && dominio === t) return 'provedor_gratuito';
+  }
   return 'direto';
 }
 
-const ORDEM_TIPO_EMAIL: Record<string, number> = { direto: 0, generico_corporativo: 1, contador: 2 };
+const ORDEM_TIPO_EMAIL: Record<string, number> = {
+  direto: 0, provedor_gratuito: 1, generico_corporativo: 2, contador: 3,
+};
 
 // ─── Relatorio XLSX (montado a partir das linhas de prospeccao_pncp_leads) ───
 
@@ -546,73 +872,210 @@ async function selectTudo(consulta: (de: number, ate: number) => any): Promise<R
 
 // ─── Fase 1: coleta e enfileiramento ─────────────────────────────────────────
 
-async function criarExecucao(
+/** Cria a execucao do dia, sem coletar nada ainda. */
+async function abrirExecucao(
   supabase: SupabaseClient,
-  config: Config,
   dataRef: string,
   dryRun: boolean,
+): Promise<string | null> {
+  const { data: exec, error } = await supabase
+    .from('prospeccao_pncp_execucoes')
+    .insert({
+      data_referencia: dataRef,
+      dry_run: dryRun,
+      fase: 'processando',
+      coletados: 0,
+      detalhes: { varredura: {}, varredura_completa: false, avisos: [] },
+    })
+    .select('id').single();
+  if (error || !exec) { console.error('[execucao]', error?.message); return null; }
+  return exec.id as string;
+}
+
+/**
+ * Fase 1, retomavel: varre as homologacoes do dia, descobre os vencedores e
+ * enfileira os que passam na deduplicacao.
+ *
+ * Roda em todo tique enquanto houver o que fazer. O estado mora em duas
+ * tabelas, nao na memoria: `pncp_monitor` guarda a licitacao homologada e o
+ * vencedor ja resolvido, e o cursor da varredura fica em detalhes.varredura.
+ */
+async function coletarHomologacoes(
+  supabase: SupabaseClient,
+  config: Config,
+  execId: string,
+  dataRef: string,
   inicioMs: number,
   avisos: string[],
-): Promise<string | null> {
-  const coleta = await coletarPncp(dataRef, inicioMs);
-  if (coleta.incompleto) {
-    avisos.push(`Coleta PNCP incompleta (${coleta.paginasLidas} paginas lidas, ${coleta.paginasFalhas} falharam).`);
+): Promise<void> {
+  const { data: execRow } = await supabase.from('prospeccao_pncp_execucoes')
+    .select('detalhes, coletados').eq('id', execId).single();
+  const detalhes = (execRow?.detalhes ?? {}) as Record<string, unknown>;
+
+  // ── Passo 1: varredura das atualizacoes do dia ────────────────────────────
+  if (detalhes.varredura_completa !== true) {
+    const cursor = (detalhes.varredura ?? {}) as Record<string, number>;
+    const v = await varrerAtualizacoes(dataRef, config, cursor, inicioMs);
+
+    if (v.achadas.length) {
+      // Upsert por numero_controle_pncp: a mesma licitacao reaparece na
+      // varredura de varios dias (cada atualizacao no PNCP), e nao pode virar
+      // lead duas vezes.
+      const linhas = v.achadas.map((h) => ({
+        numero_controle_pncp: h.numeroControlePncp,
+        orgao_cnpj: h.orgaoCnpj,
+        orgao_nome: h.orgaoNome,
+        ano: h.ano,
+        sequencial: h.sequencial,
+        uf: h.uf,
+        municipio: h.municipio,
+        modalidade_id: h.modalidadeId,
+        modalidade_nome: h.modalidadeNome,
+        objeto: h.objeto,
+        termos: h.termos,
+        valor_estimado: h.valorEstimado,
+        valor_homologado: h.valorHomologado,
+        homologado: true,
+        homologado_em: h.dataHomologacao || dataRef,
+        prioritario: h.prioritario,
+        situacao: h.processo,
+        srp: h.srp,
+      }));
+      for (let i = 0; i < linhas.length; i += 200) {
+        const { error } = await supabase.from('pncp_monitor')
+          .upsert(linhas.slice(i, i + 200), { onConflict: 'numero_controle_pncp', ignoreDuplicates: true });
+        if (error) console.error('[monitor]', error.message);
+      }
+    }
+
+    detalhes.varredura = v.cursor;
+    detalhes.varredura_completa = v.completa;
+    detalhes.paginas_lidas = Number(detalhes.paginas_lidas ?? 0) + v.paginasLidas;
+    detalhes.paginas_falhas = Number(detalhes.paginas_falhas ?? 0) + v.paginasFalhas;
+    detalhes.homologadas = Number(detalhes.homologadas ?? 0) + v.achadas.length;
+
+    await supabase.from('prospeccao_pncp_execucoes')
+      .update({ detalhes, coletados: Number(detalhes.homologadas ?? 0) }).eq('id', execId);
+
+    console.log(`[prospeccao-pncp] varredura ${v.completa ? 'concluida' : 'parcial'}: ${v.paginasLidas} paginas, ${v.achadas.length} homologadas no perfil`);
+    // NAO retorna aqui. A varredura ALIMENTA o estoque de pncp_monitor; os
+    // passos 2 e 3 CONSOMEM esse estoque. Sao independentes.
+    //
+    // A versao anterior parava aqui quando a varredura nao fechava o dia, e o
+    // PNCP derruba quase toda requisicao de manha (162 falhas em 165 paginas
+    // em 10/09/2026): a varredura nunca fechava, entao nada era enfileirado e
+    // a prospeccao passou dois dias sem enviar nenhum e-mail, com 631
+    // licitacoes paradas e 30 vencedores ja identificados esperando.
   }
 
-  // Filtros de valor, UF e modalidade + melhor contrato por CNPJ.
-  const porCnpj = new Map<string, Contrato>();
-  for (const c of coleta.contratos) {
-    if (c.valor < Number(config.valor_minimo)) continue;
-    if (config.ufs.length && !config.ufs.includes(c.uf)) continue;
-    if (RE_DISPENSA_INEXIG.test(c.processo) && c.valor < Number(config.dispensa_inexig_valor_minimo)) continue;
-    const atual = porCnpj.get(c.cnpj);
-    if (!atual || c.valor > atual.valor) porCnpj.set(c.cnpj, c);
-  }
-  const candidatos = [...porCnpj.values()].sort((a, b) => b.valor - a.valor);
-
-  // Sobras de execucoes anteriores: pendentes que a janela nao alcancou.
-  // Os ainda validos (data do contrato dentro da validade) migram para a
-  // frente da fila de hoje; os vencidos sao encerrados.
-  const validadeDias = Number(config.fila_validade_dias ?? 3);
-  const dataLimite = new Date(Date.parse(dataRef + 'T12:00:00Z') - validadeDias * 86_400_000)
+  // ── Passo 2: quem venceu cada licitacao ───────────────────────────────────
+  const fimVencedoresMs = inicioMs + ORCAMENTO_COLETA_MS;
+  const validade = new Date(Date.parse(dataRef + 'T12:00:00Z') - Number(config.monitor_validade_dias ?? 90) * 86_400_000)
     .toISOString().slice(0, 10);
 
-  const { data: pendentesAntigos } = await supabase.from('prospeccao_pncp_fila')
-    .select('id, cnpj, contrato, data_referencia')
-    .eq('estado', 'pendente');
+  // Registro de precos homologado nao vira contrato assinado, so uma ata que
+  // a prefeitura pode ou nao usar. Fica gravado no monitor, mas nao consome
+  // sondagem nem lugar na fila enquanto config.incluir_srp for falso.
+  let qSemVencedor = supabase.from('pncp_monitor')
+    .select('*')
+    .eq('homologado', true)
+    .is('vencedor_cnpj', null)
+    .is('descartado_em', null)
+    .gte('homologado_em', validade);
+  if (!config.incluir_srp) qSemVencedor = qSemVencedor.eq('srp', false);
 
-  let sobrasExpiradas = 0;
-  const sobrasPorCnpj = new Map<string, { contrato: Contrato; data_referencia: string }>();
-  for (const row of (pendentesAntigos ?? [])) {
-    const dref = String(row.data_referencia ?? dataRef);
-    if (dref < dataLimite) { sobrasExpiradas++; continue; }
-    const contrato = row.contrato as Contrato;
-    const atual = sobrasPorCnpj.get(String(row.cnpj));
-    if (!atual || contrato.valor > atual.contrato.valor) {
-      sobrasPorCnpj.set(String(row.cnpj), { contrato, data_referencia: dref });
+  const { data: semVencedor } = await qSemVencedor
+    .order('prioritario', { ascending: false })
+    .order('valor_homologado', { ascending: false })
+    .limit(120);
+
+  const novosVencedores: { linha: Record<string, unknown>; vencedores: Vencedor[] }[] = [];
+  for (const linha of (semVencedor ?? [])) {
+    if (Date.now() > fimVencedoresMs) break;
+    const h: Homologada = {
+      numeroControlePncp: String(linha.numero_controle_pncp),
+      orgaoCnpj: String(linha.orgao_cnpj),
+      orgaoNome: String(linha.orgao_nome ?? ''),
+      ano: Number(linha.ano),
+      sequencial: Number(linha.sequencial),
+      uf: String(linha.uf ?? ''),
+      municipio: String(linha.municipio ?? ''),
+      modalidadeId: Number(linha.modalidade_id ?? 0),
+      modalidadeNome: String(linha.modalidade_nome ?? ''),
+      objeto: String(linha.objeto ?? ''),
+      termos: (linha.termos as string[]) ?? [],
+      valorHomologado: Number(linha.valor_homologado ?? 0),
+      valorEstimado: Number(linha.valor_estimado ?? 0),
+      dataHomologacao: String(linha.homologado_em ?? ''),
+      processo: String(linha.situacao ?? ''),
+      prioritario: linha.prioritario === true,
+      srp: linha.srp === true,
+    };
+
+    const vencedores = await resolverVencedores(h, fimVencedoresMs);
+    if (!vencedores.length) {
+      // Homologada sem resultado publicado: o orgao ainda nao subiu o vencedor.
+      // Fica para o proximo tique ate a validade expirar.
+      await supabase.from('pncp_monitor')
+        .update({ checado_em: new Date().toISOString(), checagens: Number(linha.checagens ?? 0) + 1 })
+        .eq('id', linha.id);
+      continue;
     }
+
+    const principal = vencedores[0];
+    await supabase.from('pncp_monitor').update({
+      vencedor_cnpj: principal.cnpj,
+      vencedor_nome: principal.nome,
+      vencedor_porte: principal.porte,
+      material_ou_servico: principal.materialOuServico,
+      checado_em: new Date().toISOString(),
+      checagens: Number(linha.checagens ?? 0) + 1,
+    }).eq('id', linha.id);
+
+    novosVencedores.push({ linha: linha as Record<string, unknown>, vencedores });
   }
 
-  // Deduplicacao: quem ja esta no Hub ou ja foi descartado por perfil.
+  // Expira o que nunca publicou resultado dentro da validade.
+  const { count: expirados } = await supabase.from('pncp_monitor')
+    .update({ descartado_em: new Date().toISOString(), descartado_motivo: 'Sem resultado publicado dentro da validade' }, { count: 'exact' })
+    .eq('homologado', true).is('vencedor_cnpj', null).is('descartado_em', null)
+    .lt('homologado_em', validade);
+  if (expirados) avisos.push(`${expirados} licitacao(oes) descartada(s) por nao publicarem o vencedor dentro de ${config.monitor_validade_dias ?? 90} dias.`);
+
+  // ── Passo 3: deduplicacao e fila ──────────────────────────────────────────
+  let qProntos = supabase.from('pncp_monitor')
+    .select('*')
+    .eq('homologado', true)
+    .eq('enfileirado', false)
+    .not('vencedor_cnpj', 'is', null)
+    .is('descartado_em', null);
+  if (!config.incluir_srp) qProntos = qProntos.eq('srp', false);
+
+  const { data: prontos } = await qProntos
+    .order('prioritario', { ascending: false })
+    .order('valor_homologado', { ascending: false })
+    .limit(500);
+
+  if (!prontos?.length) return;
+
   const [pData, sData, lData, fData] = await Promise.all([
     selectTudo((de, ate) => supabase.from('prospects').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
     selectTudo((de, ate) => supabase.from('sales').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
     selectTudo((de, ate) => supabase.from('leads_seguro_garantia').select('cnpj').not('cnpj', 'is', null).range(de, ate)),
     selectTudo((de, ate) => supabase.from('prospeccao_pncp_leads').select('cnpj').eq('resultado', 'fora_do_perfil').range(de, ate)),
   ]);
-  const pRes = { data: pData }, sRes = { data: sData }, lRes = { data: lData }, fRes = { data: fData };
   const conhecidos = new Set<string>();
-  for (const r of [...(pRes.data ?? []), ...(sRes.data ?? []), ...(lRes.data ?? [])]) {
+  for (const r of [...(pData ?? []), ...(sData ?? []), ...(lData ?? [])]) {
     const d = cleanCnpj(String((r as { cnpj: string }).cnpj));
     if (d.length === 14) conhecidos.add(d);
   }
-  for (const r of (fRes.data ?? [])) conhecidos.add(String((r as { cnpj: string }).cnpj));
+  for (const r of (fData ?? [])) conhecidos.add(String((r as { cnpj: string }).cnpj));
 
   // CNPJs cujo e-mail ja foi consultado e nao existe: pular para sempre.
   const semEmailDefinitivo = new Set<string>();
   {
-    const cnpjs = [...new Set([...candidatos.map((c) => c.cnpj), ...sobrasPorCnpj.keys()])]
-      .filter((c) => !conhecidos.has(c));
+    const cnpjsProntos: string[] = prontos.map((p) => String((p as { vencedor_cnpj: string }).vencedor_cnpj));
+    const cnpjs = [...new Set(cnpjsProntos)].filter((c) => !conhecidos.has(c));
     for (let i = 0; i < cnpjs.length; i += 200) {
       const { data } = await supabase.from('prospeccao_pncp_cnpj_cache')
         .select('cnpj').eq('email_consultado', true).eq('tem_email', false)
@@ -621,80 +1084,62 @@ async function criarExecucao(
     }
   }
 
-  const novos = candidatos.filter((c) => !conhecidos.has(c.cnpj) && !semEmailDefinitivo.has(c.cnpj));
+  // Ja na fila desta execucao: o tique anterior pode ter enfileirado o CNPJ.
+  const { data: naFila } = await supabase.from('prospeccao_pncp_fila')
+    .select('cnpj').eq('execucao_id', execId);
+  const jaEnfileirados = new Set((naFila ?? []).map((r) => String((r as { cnpj: string }).cnpj)));
 
-  // Sobra some quando o CNPJ reaparece na coleta de hoje (o contrato novo
-  // manda, com validade renovada) ou quando os filtros de dedup o pegam.
-  const cnpjsHoje = new Set(novos.map((c) => c.cnpj));
-  const sobras = [...sobrasPorCnpj.entries()]
-    .filter(([cnpj]) => !cnpjsHoje.has(cnpj) && !conhecidos.has(cnpj) && !semEmailDefinitivo.has(cnpj))
-    .map(([, v]) => v)
-    .sort((a, b) => b.contrato.valor - a.contrato.valor);
+  const filaRows: Record<string, unknown>[] = [];
+  const marcarEnfileirado: number[] = [];
+  const vistos = new Set<string>();
+  let ordem = jaEnfileirados.size;
 
-  const { data: exec, error: execErr } = await supabase
-    .from('prospeccao_pncp_execucoes')
-    .insert({
-      data_referencia: dataRef,
-      dry_run: dryRun,
-      fase: 'processando',
-      coletados: candidatos.length,
-      detalhes: {
-        paginas_pncp: coleta.paginasLidas,
-        paginas_falhas: coleta.paginasFalhas,
-        contratos_brutos: coleta.contratos.length,
-        candidatos_novos: novos.length,
-        sobras_aproveitadas: sobras.length,
-        sobras_expiradas: sobrasExpiradas,
-        avisos,
-      },
-    })
-    .select('id').single();
-  if (execErr || !exec) {
-    console.error('[execucao]', execErr?.message);
-    return null;
-  }
-  const execId = exec.id as string;
+  for (const p of prontos) {
+    marcarEnfileirado.push(Number(p.id));
+    const cnpj = String(p.vencedor_cnpj ?? '');
+    if (cnpj.length !== 14) continue;
+    if (conhecidos.has(cnpj) || semEmailDefinitivo.has(cnpj) || jaEnfileirados.has(cnpj) || vistos.has(cnpj)) continue;
+    vistos.add(cnpj);
 
-  // Encerra os pendentes antigos: os validos acabaram de migrar para a fila
-  // nova e os vencidos nao serao mais processados.
-  {
-    const idsAntigos = (pendentesAntigos ?? []).map((r) => String(r.id));
-    for (let i = 0; i < idsAntigos.length; i += 200) {
-      await supabase.from('prospeccao_pncp_fila')
-        .update({ estado: 'descartado', atualizado_em: new Date().toISOString() })
-        .in('id', idsAntigos.slice(i, i + 200))
-        .eq('estado', 'pendente');
-    }
-  }
+    const contrato: Contrato = {
+      cnpj,
+      razaoPncp: String(p.vencedor_nome ?? ''),
+      orgao: String(p.orgao_nome ?? ''),
+      objeto: String(p.objeto ?? ''),
+      valor: Number(p.valor_homologado ?? 0),
+      numeroLicitacao: String(p.numero_controle_pncp ?? ''),
+      municipio: String(p.municipio ?? ''),
+      uf: String(p.uf ?? ''),
+      processo: String(p.situacao ?? ''),
+      numeroControlePncp: String(p.numero_controle_pncp ?? ''),
+      dataHomologacao: String(p.homologado_em ?? ''),
+      modalidade: String(p.modalidade_nome ?? ''),
+      termos: (p.termos as string[]) ?? [],
+      porte: String(p.vencedor_porte ?? ''),
+      materialOuServico: String(p.material_ou_servico ?? ''),
+      prioritario: p.prioritario === true,
+    };
 
-  // Enfileira: sobras primeiro (pedido do Fabio), depois os novos do dia,
-  // cada grupo por valor decrescente. A data_referencia da sobra e a do
-  // contrato original, para a validade continuar contando do dia certo.
-  const filaRows = [
-    ...sobras.map((s2, i) => ({
+    filaRows.push({
       execucao_id: execId,
-      ordem: i + 1,
-      cnpj: s2.contrato.cnpj,
-      contrato: s2.contrato,
-      data_referencia: s2.data_referencia,
-    })),
-    ...novos.map((c, i) => ({
-      execucao_id: execId,
-      ordem: sobras.length + i + 1,
-      cnpj: c.cnpj,
-      contrato: c,
+      ordem: ++ordem,
+      cnpj,
+      contrato,
       data_referencia: dataRef,
-    })),
-  ];
+    });
+  }
+
   for (let i = 0; i < filaRows.length; i += 500) {
     const { error } = await supabase.from('prospeccao_pncp_fila').insert(filaRows.slice(i, i + 500));
     if (error) console.error('[fila]', error.message);
   }
+  for (let i = 0; i < marcarEnfileirado.length; i += 200) {
+    await supabase.from('pncp_monitor').update({ enfileirado: true })
+      .in('id', marcarEnfileirado.slice(i, i + 200));
+  }
 
-  console.log(`[prospeccao-pncp] execucao ${execId} criada: ${candidatos.length} candidatos, ${sobras.length} sobras aproveitadas, ${sobrasExpiradas} expiradas, ${filaRows.length} na fila`);
-  return execId;
+  console.log(`[prospeccao-pncp] ${novosVencedores.length} vencedores resolvidos, ${filaRows.length} novos na fila (de ${prontos.length} prontos)`);
 }
-
 // ─── Fase 2: consumo da fila ─────────────────────────────────────────────────
 
 async function processarFila(
@@ -988,8 +1433,18 @@ async function enviarLead(
     product_type: 'Seguro Garantia',
     segmento: empresa.cnae_descricao || null,
     decisor: empresa.socio || null,
-    description: `Venceu licitacao: ${contrato.orgao}\nObjeto: ${contrato.objeto}\nValor: ${brl(contrato.valor)}\nNumero: ${contrato.numeroLicitacao}`,
-    tags: ['pncp', 'auto'],
+    // A data de homologacao e o que a Bruna precisa na ligacao: mostra se o
+    // contrato ainda esta por assinar (garantia por contratar) ou se ja passou.
+    description: [
+      `Venceu licitacao: ${contrato.orgao}`,
+      `Objeto: ${contrato.objeto}`,
+      `Valor homologado: ${brl(contrato.valor)}`,
+      contrato.dataHomologacao ? `Homologada em: ${contrato.dataHomologacao}` : '',
+      contrato.modalidade ? `Modalidade: ${contrato.modalidade}` : '',
+      contrato.porte ? `Porte do vencedor: ${contrato.porte}` : '',
+      `Numero: ${contrato.numeroLicitacao}`,
+    ].filter(Boolean).join('\n'),
+    tags: ['pncp', 'auto', ...(contrato.prioritario ? ['prioritario'] : [])],
     cnae_principal: empresa.cnae_principal,
     cnae_divisao: empresa.cnae_divisao,
     orgao_licitante: contrato.orgao,
@@ -1142,14 +1597,35 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
     }
 
     if (!execId) {
-      const criado = await criarExecucao(supabase, config, dataRef, dryRun, inicioMs, avisos);
+      const criado = await abrirExecucao(supabase, dataRef, dryRun);
       if (!criado) return;
       execId = criado;
     }
 
-    if (Date.now() < fimTarefaMs) {
+    // A coleta e retomavel e roda em todo tique: a varredura de um dia passa
+    // de 150 paginas e nao cabe num tique so. Quando ja terminou, sai barato.
+    await coletarHomologacoes(supabase, config, execId, dataRef, inicioMs, avisos);
+
+    // Fim de semana: COLETA sim, ENVIO nao. O lead fica em pncp_monitor e sai
+    // na segunda, com a fila ordenada por prioritario e valor como sempre.
+    // Coletar no sabado e domingo e necessario porque cada tique olha so o dia
+    // anterior: pular o fim de semana perderia essas homologacoes para sempre.
+    const fimDeSemana = fimDeSemanaBRT();
+
+    if (Date.now() < fimTarefaMs && !fimDeSemana) {
       await processarFila(supabase, config, execId, dryRun, fimTarefaMs, avisos);
     }
+    if (fimDeSemana) {
+      avisos.push('Fim de semana: coleta feita, envio nao. Os leads saem na segunda.');
+      console.log('[prospeccao-pncp] fim de semana: coletou e nao enviou');
+    }
+
+    // A varredura incompleta segura a finalizacao: fila vazia agora nao quer
+    // dizer dia terminado, so que a coleta ainda nao chegou nos leads.
+    const { data: execAtual } = await supabase.from('prospeccao_pncp_execucoes')
+      .select('detalhes').eq('id', execId).single();
+    const varreduraCompleta =
+      ((execAtual?.detalhes ?? {}) as Record<string, unknown>).varredura_completa === true;
 
     // Finaliza quando a fila esvazia, o limite fecha ou o horario passa.
     const { count: pendentes } = await supabase.from('prospeccao_pncp_fila')
@@ -1159,10 +1635,33 @@ async function executarTique(body: Record<string, unknown>): Promise<void> {
       .select('id', { count: 'exact', head: true })
       .eq('execucao_id', execId).in('resultado', ['enviado', 'dry_run']);
 
+    // A hora limite existe para o cron fechar o dia antes do meio-dia. Num
+    // disparo manual ela nao se aplica: rodar as 21h nao pode significar
+    // "finalize imediatamente", senao o teste fecha antes de coletar nada.
+    const estourouHorario = !manual && horaBRT() >= HORA_LIMITE_BRT;
+
     const deveFinalizar =
-      Number(pendentes ?? 0) === 0 ||
+      (varreduraCompleta && Number(pendentes ?? 0) === 0) ||
       Number(enviadosCount ?? 0) >= Number(config.limite_diario) ||
-      horaBRT() >= HORA_LIMITE_BRT;
+      estourouHorario;
+
+    // Alarme de silencio: dia fechado, sem nenhum envio, mas com licitacao
+    // pronta esperando. E o sintoma de pipeline travado, nao de dia fraco —
+    // exatamente o que passou despercebido por dois dias em 10 e 11/09/2026.
+    // No fim de semana zero envio e o comportamento correto, nao sintoma.
+    if (deveFinalizar && !dryRun && !fimDeSemana && Number(enviadosCount ?? 0) === 0) {
+      const { count: prontas } = await supabase.from('pncp_monitor')
+        .select('id', { count: 'exact', head: true })
+        .eq('homologado', true).is('descartado_em', null)
+        .not('vencedor_cnpj', 'is', null);
+      if (Number(prontas ?? 0) > 0) {
+        avisos.push(
+          `ATENCAO: o dia fechou sem enviar nenhum e-mail, mas ha ${prontas} licitacao(oes) ` +
+          `com vencedor ja identificado esperando. Isso indica pipeline travado, nao falta de lead.`,
+        );
+        console.error(`[prospeccao-pncp] ALARME: 0 enviados com ${prontas} prontas`);
+      }
+    }
 
     if (deveFinalizar) {
       await finalizar(supabase, config, execId, dataRef, dryRun, avisos);
