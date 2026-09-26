@@ -104,6 +104,9 @@ type View =
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
+// Operacao de seguro auto encerrada em 31/08/2026 (indicacao para o parceiro).
+// O historico de vendas continua no banco; para reabrir o menu, basta true.
+const MODULO_AUTO_ATIVO = false;
 const RESIDENCIAL_VIEWS: View[] = ['residential', 'residencial-seguradoras', 'residencial-garantidoras', 'imobiliaria-repasse', 'garantia-locaticia', 'inadimplentes'];
 const RC_VIEWS: View[] = ['rc', 'rc-seguradoras'];
 const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao', 'saude-materiais', 'saude-nomeacao'];
@@ -570,7 +573,7 @@ const App: React.FC = () => {
               )}
 
               {/* ── Seguro AUTO ─────────────────────────── */}
-              {podeModulo('auto') && (
+              {MODULO_AUTO_ATIVO && podeModulo('auto') && (
               <NavGroup
                 groupKey="auto"
                 icon={<Car size={16} />}
