@@ -64,7 +64,7 @@ interface InsurerLimit {
 function normalizeSaleFromDb(row: Record<string, unknown>): Sale {
     const r = row as any;
     return {
-        ...(row as Sale),
+        ...(row as unknown as Sale),
         vigencia_inicio: r.vigencia_inicio ?? r.inicio_vigencia ?? '',
         vigencia_fim: r.vigencia_fim ?? r.fim_vigencia ?? '',
     };
@@ -679,7 +679,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const markExpiryReminderDone = (s: Sale) => {
         const key = expiryReminderDismissKey(s);
         setDismissedExpiryReminderKeys((prev) => {
-            const next = new Set(prev).add(key);
+            const next = new Set<string>(prev).add(key);
             persistExpiryReminderDismissed(next);
             return next;
         });

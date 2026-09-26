@@ -78,8 +78,7 @@ const GarantiaLocaticia: React.FC = () => {
           setConfig(cfg);
           setConfigEdit(cfg);
         }
-      })
-      .catch(() => {});
+      }, () => {});
 
     supabase.auth.getUser().then(({ data }) => {
       setIsAdmin(data?.user?.email === 'fabio@fegsegurogarantia.com.br');

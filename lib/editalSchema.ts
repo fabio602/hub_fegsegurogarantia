@@ -83,7 +83,6 @@ export interface EditalData {
 
   // Alertas estruturados (v9+) — retro-compatível com string[] (v8-)
   alertas?:                        Alerta[] | string[];
-  pendencias_bloqueantes?:         string[];
   observacoes_relevantes?:         string | null;
 
   // Pendências e recomendações — dois níveis distintos
