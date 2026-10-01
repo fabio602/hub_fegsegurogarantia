@@ -204,12 +204,21 @@ const App: React.FC = () => {
 
       const hoje = new Date().toISOString().slice(0, 10);
       const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-      const { count: vencCount } = await supabase
-        .from('residential_clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('situacao', 'Ativo')
-        .gte('fim_vigencia', hoje)
-        .lte('fim_vigencia', em30);
+      // Mesma regra do aviso amarelo do Registro de Vendas: vence em até 30
+      // dias, sem "não renovar" e fora do Repasse (cliente de imobiliária tem
+      // a renovação decidida lá, no portal). Antes contava todo mundo.
+      const [{ data: vencendo }, { data: noRepasse }] = await Promise.all([
+        supabase.from('residential_clients').select('nome, cpf, nao_renovar')
+          .eq('situacao', 'Ativo').gte('fim_vigencia', hoje).lte('fim_vigencia', em30),
+        supabase.from('imobiliaria_clientes').select('inquilino_nome, cpf'),
+      ]);
+      const nomeChave = (n: string | null) => (n || '').trim().toUpperCase();
+      const cpfChave = (c: string | null) => (c || '').replace(/\D/g, '');
+      const nomesRepasse = new Set((noRepasse || []).map(r => nomeChave(r.inquilino_nome)).filter(Boolean));
+      const cpfsRepasse = new Set((noRepasse || []).map(r => cpfChave(r.cpf)).filter(c => c.length >= 11));
+      const vencCount = (vencendo || []).filter(r =>
+        !r.nao_renovar && !nomesRepasse.has(nomeChave(r.nome)) && !(cpfChave(r.cpf).length >= 11 && cpfsRepasse.has(cpfChave(r.cpf)))
+      ).length;
 
       setBadges({
         whatsapp: wppCount || 0,
