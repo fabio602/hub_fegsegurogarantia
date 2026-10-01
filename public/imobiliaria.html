@@ -1813,12 +1813,12 @@
         set('f-cep', c.cep);
         set('f-numero', c.numero_imovel);
         set('f-tipo-imovel', c.tipo_imovel);
-        set('f-valor-imovel', c.valor_imovel);
-        set('f-valor-aluguel', c.valor_aluguel);
+        set('f-valor-imovel', numeroParaReais(c.valor_imovel));
+        set('f-valor-aluguel', numeroParaReais(c.valor_aluguel));
         set('f-data-aluguel', c.data_primeiro_pag_aluguel);
-        set('f-iptu', c.valor_iptu);
+        set('f-iptu', numeroParaReais(c.valor_iptu));
         // Preenche o orçamento também
-        set('orc-aluguel', c.valor_aluguel); set('orc-iptu', c.valor_iptu); set('orc-imovel', c.valor_imovel);
+        set('orc-aluguel', numeroParaReais(c.valor_aluguel)); set('orc-iptu', numeroParaReais(c.valor_iptu)); set('orc-imovel', numeroParaReais(c.valor_imovel));
         document.getElementById('orc-form')?.dispatchEvent(new Event('input'));
       }
       // Rola direto para o formulário de dados (ignora o orçamento no topo)
@@ -2398,6 +2398,31 @@
     }
   }
 
+  // ── MÁSCARA DE REAIS ──
+  // Enquanto digita: pontos de milhar e no máximo 2 casas depois da vírgula.
+  // Ao sair do campo: completa os centavos (400000 vira 400.000,00).
+  function formatarReais(txt, completar) {
+    const v = String(txt == null ? '' : txt).replace(/[^\d,]/g, '');
+    const p = v.indexOf(',');
+    let int = (p >= 0 ? v.slice(0, p) : v).replace(/^0+(?=\d)/, '');
+    let dec = p >= 0 ? v.slice(p + 1).replace(/,/g, '').slice(0, 2) : null;
+    if (int === '' && dec === null) return '';
+    int = (int || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    if (completar) dec = ((dec || '') + '00').slice(0, 2);
+    return dec === null ? int : int + ',' + dec;
+  }
+  // Número vindo do banco (2400.5) para o formato do campo (2.400,50).
+  function numeroParaReais(n) {
+    const x = Number(n);
+    return n == null || n === '' || isNaN(x) ? '' : x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function mascaraReais(el, aoSair) {
+    if (!el) return;
+    el.addEventListener('input', () => { const f = formatarReais(el.value, false); if (f !== el.value) el.value = f; });
+    el.addEventListener('blur', () => { el.value = formatarReais(el.value, true); if (aoSair) aoSair(); });
+  }
+  ['f-valor-imovel', 'f-valor-aluguel', 'f-iptu'].forEach(id => mascaraReais(document.getElementById(id)));
+
   // ── ORÇAMENTO DE LOCAÇÃO (garantia + seguro residencial, com download em PDF ou imagem) ──
   (function () {
     // Constantes da garantia vêm de GAR_CFG; juros do boleto vêm da tabela do seguro (RES_CFG)
@@ -2511,6 +2536,7 @@
         render();
       });
     }
+    ['aluguel', 'iptu', 'imovel'].forEach(id => mascaraReais($(id), render));
     seg('seg', v => pagamento = v);
     seg('seg-prod', v => produto = v);
     seg('seg-ps', v => { pagS = v.startsWith('boleto') ? 'boleto' : v; if (pagS === 'boleto') segBol = Number(v.slice(6)); });
