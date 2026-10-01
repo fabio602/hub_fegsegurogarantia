@@ -967,6 +967,80 @@
     </div>
   </div>
 
+  <!-- SIMULADOR DE SEGURO RESIDENCIAL (largura total) -->
+  <style>
+    .res-sim { border-radius:20px; overflow:hidden; border:1px solid var(--line); box-shadow:0 2px 12px rgba(27,38,59,.06); margin-bottom:32px; background:#fff; }
+    .res-sim-head { background:#1B263B; padding:20px 24px; }
+    .res-sim-head h3 { color:#fff; font-size:16px; font-weight:600; margin:0 0 2px; }
+    .res-sim-head p { color:rgba(255,255,255,.5); font-size:12px; margin:0; }
+    .res-sim-body { padding:24px; display:flex; flex-direction:column; gap:22px; }
+    .res-campos { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .res-campos label { display:block; font-size:13px; font-weight:700; color:#1B263B; margin-bottom:6px; }
+    .res-campos label span { font-weight:400; color:#94a3b8; }
+    .res-input { display:flex; align-items:center; border:1.5px solid rgba(27,38,59,.08); border-radius:12px; overflow:hidden; }
+    .res-input span { padding:12px 14px; background:#f8f5f0; font-size:13px; font-weight:700; color:#78716c; border-right:1.5px solid rgba(27,38,59,.08); }
+    .res-input input { flex:1; min-width:0; padding:12px 14px; border:none; outline:none; font-size:14px; font-weight:700; color:#1B263B; background:#fff; font-family:inherit; }
+    .res-input:focus-within { border-color:#C69C6D; }
+    .res-vazio { font-size:13px; color:#78716c; background:#f8f5f0; border-radius:12px; padding:16px; text-align:center; }
+    .res-faixa { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 24px; background:#fdf8f2; border:1px solid #f0dcc0; border-radius:14px; padding:16px 20px; }
+    .res-faixa small { display:block; font-size:11px; font-weight:600; letter-spacing:.3px; text-transform:uppercase; color:#C69C6D; margin-bottom:3px; }
+    .res-faixa b { font-size:17px; font-weight:600; color:#1B263B; }
+    .res-faixa .res-preco { font-size:26px; font-weight:600; color:#1B263B; }
+    .res-faixa .res-preco em { font-style:normal; font-size:13px; font-weight:500; color:#78716c; }
+    .res-dest { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .res-card { border:1.5px solid rgba(27,38,59,.08); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .res-card.principal { border-color:#1B263B; }
+    .res-card-top { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; font-weight:600; color:#1B263B; }
+    .res-pill { font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:99px; background:#d1fae5; color:#047857; white-space:nowrap; }
+    .res-pill.juros { background:#fef3c7; color:#92400e; }
+    .res-valor { font-size:26px; font-weight:600; color:#1B263B; line-height:1.15; }
+    .res-valor em { font-style:normal; font-size:13px; font-weight:500; color:#78716c; }
+    .res-linha { font-size:12.5px; color:#78716c; line-height:1.5; }
+    .res-linha b { color:#1B263B; font-weight:600; }
+    .res-aluguel { margin-top:auto; padding-top:10px; border-top:1px dashed rgba(27,38,59,.15); font-size:12.5px; color:#78716c; line-height:1.5; }
+    .res-aluguel b { color:#1B263B; font-weight:600; }
+    .res-tabs { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,3fr); gap:20px; align-items:start; }
+    .res-tab h4 { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; color:#C69C6D; margin-bottom:10px; }
+    .res-scroll { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+    .res-table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+    .res-table th { text-align:right; font-size:11px; font-weight:600; color:#78716c; padding:10px 12px; background:#f8f5f0; white-space:nowrap; }
+    .res-table td { text-align:right; padding:9px 12px; border-top:1px solid rgba(27,38,59,.06); color:#1B263B; white-space:nowrap; }
+    .res-table th:first-child, .res-table td:first-child { text-align:left; font-weight:600; }
+    .res-table tr.res-hl td { background:#fdf8f2; font-weight:600; }
+    .res-table .res-mais { color:#92400e; }
+    .res-table .res-ok { color:#047857; }
+    .res-nota { font-size:11.5px; color:#94a3b8; margin-top:8px; line-height:1.5; }
+    .res-pers { text-align:center; background:#fdf8f2; border:1px solid #f0dcc0; border-radius:14px; padding:26px 20px; }
+    .res-pers b { display:block; font-size:17px; font-weight:600; color:#1B263B; margin-bottom:6px; }
+    .res-pers p { font-size:13px; color:#78716c; margin-bottom:16px; }
+    .res-pers a { display:inline-block; background:#1B263B; color:#fff; font-size:13.5px; font-weight:600; padding:12px 22px; border-radius:12px; text-decoration:none; }
+    .res-aviso { font-size:11.5px; color:#94a3b8; text-align:center; border-top:1px solid #f0ece4; padding-top:14px; }
+    @media (max-width: 1100px) { .res-tabs { grid-template-columns:minmax(0,1fr); } }
+    @media (max-width: 768px) { .res-dest, .res-campos { grid-template-columns:1fr; } .res-sim-body { padding:18px; } .res-valor, .res-faixa .res-preco { font-size:22px; } }
+  </style>
+  <div class="res-sim" id="res-sim">
+    <div class="res-sim-head">
+      <h3>Simulador de Seguro Residencial</h3>
+      <p>Tokio Marine · preço anual por faixa de valor do imóvel</p>
+    </div>
+    <div class="res-sim-body">
+      <div class="res-campos">
+        <div>
+          <label for="res-imovel">Valor do imóvel</label>
+          <div class="res-input"><span>R$</span><input type="number" id="res-imovel" placeholder="Ex.: 400000" min="0" step="1000" inputmode="decimal" oninput="resSimular()" /></div>
+        </div>
+        <div>
+          <label for="res-aluguel">Valor do aluguel <span>(Opcional)</span></label>
+          <div class="res-input"><span>R$</span><input type="number" id="res-aluguel" placeholder="0,00" min="0" step="0.01" inputmode="decimal" oninput="resSimular()" /></div>
+        </div>
+      </div>
+      <div id="res-resultado" style="display:flex;flex-direction:column;gap:22px;">
+        <div class="res-vazio">Informe o valor do imóvel para ver o preço e as opções de pagamento.</div>
+      </div>
+      <div class="res-aviso" id="res-aviso"></div>
+    </div>
+  </div>
+
   <!-- Form section below -->
   <div id="form-cotacao-section" style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:28px;box-shadow:0 2px 12px rgba(27,38,59,.06);">
     <h3 style="font-size:16px;font-weight:600;color:#1B263B;margin-bottom:20px;">Dados do Inquilino</h3>
@@ -2374,6 +2448,110 @@
     document.getElementById('glc-r-boleto-p1').textContent = `1ª Parcela: ${f(GLK_SETUP+pbBase)}`;
     document.getElementById('glc-r-boleto-p2').textContent = `Demais: ${f(pbBase)}/mês`;
   }
+
+  // ── SIMULADOR DE SEGURO RESIDENCIAL: TELA ──
+  function resSimular() {
+    const out = document.getElementById('res-resultado');
+    if (!out) return;
+    document.getElementById('res-aviso').textContent = RES_CFG.aviso;
+    const imovel = parseFloat(document.getElementById('res-imovel').value) || 0;
+    const aluguel = Math.round((parseFloat(document.getElementById('res-aluguel').value) || 0) * 100);
+    const f = c => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const mil = v => 'R$ ' + (v / 1000).toLocaleString('pt-BR') + ' mil';
+    const pct = p => p.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    const meses = n => n + (n === 1 ? ' mês' : ' meses');
+
+    if (imovel <= 0) {
+      out.innerHTML = '<div class="res-vazio">Informe o valor do imóvel para ver o preço e as opções de pagamento.</div>';
+      return;
+    }
+    const faixa = resFaixa(imovel);
+    if (!faixa) {
+      const teto = RES_CFG.faixas[RES_CFG.faixas.length - 1].ate;
+      const msg = `Olá! Preciso de uma cotação personalizada de seguro residencial para um imóvel de ${f(Math.round(imovel * 100))}.`;
+      out.innerHTML = `<div class="res-pers">
+        <b>${RES_CFG.msgPersonalizada}</b>
+        <p>Imóveis acima de ${mil(teto)} não têm preço de tabela.</p>
+        <a target="_blank" rel="noopener" href="https://wa.me/${WHATS_FG}?text=${encodeURIComponent(msg)}">Falar com a F&amp;G no WhatsApp</a>
+      </div>`;
+      return;
+    }
+
+    const avista = Math.round(faixa.premio * 100);
+    const ultimaTxt = p => p.ultima !== p.parcela ? ` (última de ${f(p.ultima)})` : '';
+    // Aluguel com a parcela somada: vale para as parcelas depois da entrada.
+    const aluguelTxt = b => {
+      if (!aluguel || b.n < 2) return '';
+      const dif = b.ultima !== b.parcela;
+      const txt = `<b>${f(aluguel)} + ${f(b.parcela)} = ${f(aluguel + b.parcela)}</b> por ${meses(dif ? b.n - 2 : b.n - 1)}`
+        + (dif ? `, e ${f(aluguel + b.ultima)} no último mês` : '');
+      return `<div class="res-aluguel">Boleto do aluguel: ${txt}.</div>`;
+    };
+
+    const c = resCartao(avista, RES_CFG.destaqueCartao);
+    const b1 = resBoleto(avista, RES_CFG.destaqueBoletoSemJuros);
+    const b2 = resBoleto(avista, RES_CFG.destaqueBoletoComJuros);
+    const cardBoleto = (b, principal) => `<div class="res-card${principal ? ' principal' : ''}">
+        <div class="res-card-top">Boleto em ${b.n}x ${b.juros ? '<span class="res-pill juros">Com juros</span>' : '<span class="res-pill">Sem juros</span>'}</div>
+        <div class="res-valor"><em>${b.n}x de </em>${f(b.parcela)}</div>
+        <div class="res-linha">1ª parcela à vista, as outras ${b.n - 1} no boleto do aluguel${ultimaTxt(b)}.</div>
+        <div class="res-linha">Total <b>${f(b.total)}</b>${b.juros ? `, ou <b>${f(b.juros)} a mais</b> que à vista (juros de ${pct(b.pct)})` : ''}.</div>
+        ${aluguelTxt(b)}
+      </div>`;
+
+    let linhasCartao = '';
+    for (let n = 1; n <= RES_CFG.cartaoMaxParcelas; n++) {
+      const p = resCartao(avista, n);
+      linhasCartao += `<tr${n === RES_CFG.destaqueCartao ? ' class="res-hl"' : ''}><td>${n}x</td><td>${f(p.parcela)}</td><td>${f(p.total)}</td></tr>`;
+    }
+    let linhasBoleto = '';
+    const ns = Object.keys(RES_CFG.boletoJurosPct).map(Number).sort((a, b) => a - b);
+    ns.forEach(n => {
+      const b = resBoleto(avista, n);
+      const hl = n === RES_CFG.destaqueBoletoSemJuros || n === RES_CFG.destaqueBoletoComJuros;
+      linhasBoleto += `<tr${hl ? ' class="res-hl"' : ''}><td>${n}x</td>
+        <td>${f(b.parcela)}</td>
+        <td>${n > 1 ? `${n - 1}x de ${f(b.parcela)}` : 'Nenhuma'}</td>
+        <td>${b.pct ? pct(b.pct) : 'Sem juros'}</td>
+        <td>${f(b.total)}</td>
+        <td class="${b.juros ? 'res-mais' : 'res-ok'}">${b.juros ? '+ ' + f(b.juros) : 'Igual ao à vista'}</td>
+        ${aluguel ? `<td>${n > 1 ? f(aluguel + b.parcela) + ' por ' + meses(n - 1) : 'Sem alteração'}</td>` : ''}</tr>`;
+    });
+
+    out.innerHTML = `
+      <div class="res-faixa">
+        <div><small>Faixa do imóvel</small><b>Até ${mil(faixa.ate)}</b></div>
+        <div style="text-align:right;"><small>Preço anual à vista</small><span class="res-preco">${f(avista)}</span></div>
+      </div>
+      <div class="res-dest">
+        <div class="res-card principal">
+          <div class="res-card-top">Cartão de crédito em ${c.n}x <span class="res-pill">Sem juros</span></div>
+          <div class="res-valor"><em>${c.n}x de </em>${f(c.parcela)}</div>
+          <div class="res-linha">Parcelas no cartão${ultimaTxt(c)}.</div>
+          <div class="res-linha">Total <b>${f(c.total)}</b>, igual ao à vista.</div>
+        </div>
+        ${cardBoleto(b1, false)}
+        ${cardBoleto(b2, false)}
+      </div>
+      <div class="res-tabs">
+        <div class="res-tab">
+          <h4>Cartão de crédito, de 1x a ${RES_CFG.cartaoMaxParcelas}x sem juros</h4>
+          <div class="res-scroll"><table class="res-table">
+            <thead><tr><th>Parcelas</th><th>Valor da parcela</th><th>Total</th></tr></thead>
+            <tbody>${linhasCartao}</tbody>
+          </table></div>
+        </div>
+        <div class="res-tab">
+          <h4>Boleto, 1ª parcela à vista e as demais no boleto do aluguel</h4>
+          <div class="res-scroll"><table class="res-table">
+            <thead><tr><th>Parcelas</th><th>Entrada à vista</th><th>No boleto do aluguel</th><th>Juros</th><th>Total</th><th>A mais que à vista</th>${aluguel ? '<th>Boleto do aluguel</th>' : ''}</tr></thead>
+            <tbody>${linhasBoleto}</tbody>
+          </table></div>
+          <div class="res-nota">Quando a divisão não fecha em centavos, a diferença entra na última parcela.</div>
+        </div>
+      </div>`;
+  }
+  resSimular();
 
   function abrirFormGarantia() {
     const a = document.getElementById('glc-aluguel').value;
