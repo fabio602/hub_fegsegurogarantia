@@ -904,7 +904,7 @@ const App: React.FC = () => {
               )}
 
               {/* Seguro Residencial */}
-              {vista === 'residential' && <ResidentialInsurance />}
+              {vista === 'residential' && <ResidentialInsurance onAbrirRepasse={() => navigate('imobiliaria-repasse')} />}
               {vista === 'residencial-seguradoras' && (
                 <InsuranceDirectory
                   tableName="seguradoras_residencial"
