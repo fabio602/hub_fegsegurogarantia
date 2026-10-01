@@ -905,7 +905,8 @@
         <p class="msg" id="orc-erro"></p>
       </div>
 
-      <div class="grp" id="orc-g-pag">
+      <!-- Forma de pagamento: só boleto em 12x. Os seletores de cartão e boleto 4x ficam ocultos; para voltar, tire o hidden e ajuste o estado inicial no script. -->
+      <div class="grp" id="orc-g-pag" hidden>
         <h2>Forma de pagamento</h2>
         <label id="orc-l-pg">Garantia locatícia
           <span class="seg" id="orc-seg">
@@ -2452,7 +2453,8 @@
     const $ = id => document.getElementById('orc-' + id);
     const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
-    let pagamento = 'ambos', pagS = 'ambos', produto = 'ambos', segBol = 4, valido = false;
+    // Só boleto: garantia e seguro em boleto parcelado (cartão e boleto 4x fora do orçamento)
+    let pagamento = 'boleto', pagS = 'boleto', produto = 'ambos', segBol = RES_CFG.destaqueBoletoComJuros, valido = false;
     const hoje = new Date();
     $('imob').value = (session?.name || '').replace('Imobiliária ', '');
 
@@ -2488,7 +2490,7 @@
       $('opt-boleto').classList.toggle('best', pagamento === 'boleto');
       $('o-warn').hidden = pagamento === 'cartao';
       $('o-warn').textContent = pagamento === 'boleto'
-        ? 'O boleto tem ' + brl(r.juros) + ' de juros e emissão de boletos no total. No cartão de crédito, o mesmo valor sai por ' + brl(r.total) + ' em 12x sem juros.'
+        ? 'O boleto em 12x inclui ' + brl(r.juros) + ' de juros e emissão de boletos.'
         : 'O boleto tem juros e taxa de emissão: o total fica ' + brl(r.juros) + ' maior que no cartão de crédito.';
       $('o-res').hidden = produto === 'garantia' || !valido;
       $('o-cliente').textContent = $('cliente').value.trim() || 'Não informado';
