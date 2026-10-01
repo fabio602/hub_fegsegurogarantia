@@ -783,190 +783,6 @@
     <p style="color:#78716c;font-size:14px;">Soluções completas em proteção imobiliária</p>
   </div>
 
-  <!-- Two columns -->
-  <div class="cotacao-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;">
-
-    <!-- LEFT: Garantia Locatícia Fiantec -->
-    <div style="border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 12px rgba(27,38,59,.06);">
-      <div style="background:#1B263B;padding:20px 24px;">
-        <h3 style="color:#fff;font-size:16px;font-weight:600;margin:0;">Garantia Locatícia Fiantec</h3>
-      </div>
-      <div style="background:#fff;padding:24px;">
-        <!-- Plan buttons -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
-          <button id="btn-plan-12" onclick="setCalcPlano(12)" style="padding:14px;border-radius:12px;border:2px solid #1B263B;background:#fff;cursor:pointer;text-align:center;transition:all .2s;">
-            <div style="font-size:15px;font-weight:600;color:#1B263B;">12 Meses</div>
-            <div style="font-size:11px;color:#78716c;margin-top:4px;line-height:1.4;">Contrato garantido até 12 meses. (É necessário renovar a cada 12 meses)</div>
-          </button>
-          <button id="btn-plan-30" onclick="setCalcPlano(30)" style="padding:14px;border-radius:12px;border:2px solid rgba(27,38,59,.08);background:#fff;cursor:pointer;text-align:center;transition:all .2s;">
-            <div style="font-size:15px;font-weight:600;color:#94a3b8;">30 Meses</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.4;">Contrato garantido até 30 meses. (Não precisa renovar a cada 12 meses)</div>
-          </button>
-        </div>
-
-        <!-- Inputs -->
-        <div style="margin-bottom:16px;">
-          <label style="display:block;font-size:13px;font-weight:700;color:#1B263B;margin-bottom:6px;">Valor do Aluguel</label>
-          <div style="display:flex;align-items:center;border:1.5px solid rgba(27,38,59,.08);border-radius:12px;overflow:hidden;">
-            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid rgba(27,38,59,.08);">R$</span>
-            <input type="number" id="glc-aluguel" placeholder="0,00" step="0.01" oninput="calcGarantia()" style="flex:1;padding:12px 14px;border:none;outline:none;font-size:14px;font-weight:700;color:#1B263B;background:#fff;" />
-          </div>
-        </div>
-        <div style="margin-bottom:20px;">
-          <label style="display:block;font-size:13px;font-weight:700;color:#1B263B;margin-bottom:6px;">Condomínio / IPTU <span style="font-weight:400;color:#94a3b8;">(Opcional)</span></label>
-          <div style="display:flex;align-items:center;border:1.5px solid rgba(27,38,59,.08);border-radius:12px;overflow:hidden;">
-            <span style="padding:12px 14px;background:#f8f5f0;font-size:13px;font-weight:700;color:#78716c;border-right:1.5px solid rgba(27,38,59,.08);">R$</span>
-            <input type="number" id="glc-iptu" placeholder="0,00" step="0.01" oninput="calcGarantia()" style="flex:1;padding:12px 14px;border:none;outline:none;font-size:14px;font-weight:700;color:#1B263B;background:#fff;" />
-          </div>
-          <p style="font-size:11px;color:#94a3b8;margin-top:5px;">Deixe em branco ou 0 se não houver.</p>
-        </div>
-
-        <!-- Result breakdown -->
-        <div style="border-top:1px solid #f0ece4;padding-top:16px;margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:13px;color:#78716c;">Valor do Aluguel</span>
-            <span id="glc-r-aluguel" style="font-size:13px;font-weight:700;color:#1B263B;">R$ 0,00</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:13px;color:#78716c;">Condomínio/IPTU</span>
-            <span id="glc-r-iptu" style="font-size:13px;font-weight:700;color:#1B263B;">R$ 0,00</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <span style="font-size:13px;color:#78716c;">Setup (Taxa de Cadastro)</span>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:13px;font-weight:700;color:#1B263B;">R$ 250,00</span>
-              <span style="font-size:10px;font-weight:600;background:#C69C6D20;color:#C69C6D;border:1px solid #C69C6D50;padding:2px 8px;border-radius:6px;">Fixo</span>
-            </div>
-          </div>
-          <div style="text-align:center;margin-bottom:6px;">
-            <div id="glc-r-total" style="font-size:36px;font-weight:600;color:#1B263B;">R$ 250,00</div>
-            <div id="glc-r-parcela-c" style="font-size:13px;color:#78716c;margin-top:2px;">ou em até 12x de R$ 20,83</div>
-          </div>
-        </div>
-
-        <!-- CTA button -->
-        <button onclick="abrirFormGarantia()" style="width:100%;padding:15px;background:#1B263B;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;transition:background .2s;" onmouseover="this.style.background='#243447'" onmouseout="this.style.background='#1B263B'">
-          Enviar informações para F&amp;G
-        </button>
-
-        <!-- Payment options -->
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
-            <svg class="ico ico-md"><use href="#i-cartao"/></svg>
-            <div>
-              <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito</div>
-              <div id="glc-r-cartao" style="font-size:12px;color:#C69C6D;font-weight:700;margin-top:2px;">Valor final sem juros em até 12x de R$ 20,83.</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#f8f5f0;border-radius:12px;">
-            <svg class="ico ico-md"><use href="#i-doc"/></svg>
-            <div>
-              <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
-              <div style="font-size:12px;margin-top:2px;">
-                <span id="glc-r-boleto-p1" style="color:#C69C6D;font-weight:700;">1ª Parcela: R$ 250,00</span>
-                <br/><span id="glc-r-boleto-p2" style="color:#78716c;">Demais: R$ 0,00/mês</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- What's included -->
-        <div style="border-top:1px solid #f0ece4;padding-top:20px;">
-          <h4 style="font-size:13px;font-weight:600;color:#1B263B;text-align:center;margin-bottom:16px;">O QUE ESTÁ INCLUÍDO NA GARANTIA?</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-            <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div class="tile-ico"><svg class="ico"><use href="#i-inicio"/></svg></div>
-              <div style="font-size:11px;font-weight:700;color:#1B263B;">Aluguéis atrasados</div>
-            </div>
-            <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div class="tile-ico"><svg class="ico"><use href="#i-predio"/></svg></div>
-              <div style="font-size:11px;font-weight:700;color:#1B263B;">Condomínio e IPTU</div>
-            </div>
-            <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div class="tile-ico"><svg class="ico"><use href="#i-balanca"/></svg></div>
-              <div style="font-size:11px;font-weight:700;color:#1B263B;">Multas contratuais</div>
-            </div>
-            <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;">
-              <div class="tile-ico"><svg class="ico"><use href="#i-gota"/></svg></div>
-              <div style="font-size:11px;font-weight:700;color:#1B263B;">Água e Luz</div>
-            </div>
-            <div style="text-align:center;padding:14px;background:#f8f5f0;border-radius:12px;grid-column:1/-1;">
-              <div class="tile-ico"><svg class="ico"><use href="#i-bloqueio"/></svg></div>
-              <div style="font-size:11px;font-weight:700;color:#1B263B;">Despejo com assessoria jurídica</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:#78716c;line-height:1.6;">
-            <p style="margin-bottom:6px;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> <strong>Aluguéis Atrasados:</strong> Reembolsado em até 10 dias sem juros ou até 30 dias com juros e multa.</p>
-            <p><svg class="ico ico-inline"><use href="#i-doc"/></svg> <strong>Outras Despesas:</strong> Multas, condomínio, IPTU e contas serão reembolsadas após negociação extrajudicial ou judicial.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Seguro Residencial -->
-    <div style="border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 12px rgba(27,38,59,.06);">
-      <div style="background:#1B263B;padding:20px 24px;">
-        <h3 style="color:#fff;font-size:16px;font-weight:600;margin:0 0 2px;">Seguro Residencial</h3>
-        <p style="color:rgba(255,255,255,.5);font-size:12px;margin:0;">Tokio Marine</p>
-      </div>
-      <div style="background:#fff;padding:24px;display:flex;flex-direction:column;gap:20px;">
-        <!-- Description -->
-        <div style="background:#fef9f0;border-left:4px solid #C69C6D;border-radius:0 12px 12px 0;padding:14px 16px;">
-          <p style="font-size:13px;color:#1B263B;margin:0;line-height:1.6;">Proteção completa para o seu imóvel e tranquilidade para o seu dia a dia com assistência 24h.</p>
-        </div>
-
-        <!-- Cobertura básica -->
-        <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Cobertura Básica</div>
-          <div style="display:flex;flex-direction:column;gap:9px;">
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Proteção contra incêndio</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de raio</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Explosão</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Fumaça</span></div>
-            <div style="display:flex;align-items:center;gap:10px;"><div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div><span style="font-size:13px;font-weight:700;color:#1B263B;">Queda de aeronaves</span></div>
-          </div>
-        </div>
-
-        <!-- Assistência 24h -->
-        <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Assistência 24 Horas</div>
-          <div style="background:#fef9f0;border:1px solid #C69C6D40;border-radius:14px;padding:16px;">
-            <p style="font-size:13px;font-weight:600;color:#1B263B;margin:0 0 6px;">Serviços Incluídos sem custo adicional</p>
-            <p style="font-size:12px;color:#78716c;margin:0 0 12px;line-height:1.5;">Na contratação do seguro, você terá acesso a uma equipe de profissionais capacitados prontos para ajudar:</p>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-chave"/></svg> <strong>Chaveiro</strong></div>
-              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-ferramenta"/></svg> <strong>Encanador</strong></div>
-              <div style="font-size:13px;font-weight:700;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-raio"/></svg> <strong>Eletricista</strong></div>
-              <div style="font-size:13px;color:#1B263B;"><svg class="ico ico-inline"><use href="#i-ferramenta"/></svg> <strong>Reparo de eletrodomésticos</strong> <span style="font-weight:400;color:#78716c;">(Geladeira, Fogão, Máquina de Lavar)</span></div>
-            </div>
-            <a href="https://www.tokiomarine.com.br/para-voce/residencial.html" target="_blank" rel="noopener" style="display:inline-block;margin-top:12px;font-size:12px;font-weight:700;color:#1B263B;text-decoration:underline;">Ver detalhes completos das assistências Tokio →</a>
-          </div>
-        </div>
-
-        <!-- Forma de pagamento -->
-        <div>
-          <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#C69C6D;margin-bottom:12px;">Forma de Pagamento</div>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:#1B263B;">Cartão de Crédito em até 12x</div>
-                <div style="font-size:12px;color:#78716c;margin-top:3px;">O pagamento não compromete o limite do seu cartão de crédito</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="width:30px;height:30px;background:#f8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg class="ico ico-esc"><use href="#i-escudo"/></svg></div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:#1B263B;">Boleto Bancário</div>
-                <div style="font-size:12px;color:#78716c;margin-top:3px;">Em até 4x sem juros ou 12x com juros</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ORÇAMENTO DE LOCAÇÃO (largura total): garantia + seguro residencial, com download -->
   <div id="orc">
   <style>
@@ -2001,10 +1817,11 @@
         set('f-valor-aluguel', c.valor_aluguel);
         set('f-data-aluguel', c.data_primeiro_pag_aluguel);
         set('f-iptu', c.valor_iptu);
-        // Preenche calculadora também
-        if (c.valor_aluguel) { set('glc-aluguel', c.valor_aluguel); calcGarantia(); }
+        // Preenche o orçamento também
+        set('orc-aluguel', c.valor_aluguel); set('orc-iptu', c.valor_iptu); set('orc-imovel', c.valor_imovel);
+        document.getElementById('orc-form')?.dispatchEvent(new Event('input'));
       }
-      // Rola direto para o formulário de dados (ignora a calculadora no topo)
+      // Rola direto para o formulário de dados (ignora o orçamento no topo)
       const formSection = document.getElementById('form-cotacao-section');
       if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 250);
@@ -2581,42 +2398,6 @@
     }
   }
 
-  // ── CALCULADORA GARANTIA LOCATÍCIA (coluna esquerda da cotação) ──
-  let glcPlano = 12;
-  const GLK_SETUP = 25000; // centavos
-  const GLK_TAXA = 0.10;
-  const GLK_FATOR = 1.291824;
-
-  function setCalcPlano(m) {
-    glcPlano = m;
-    const b12 = document.getElementById('btn-plan-12');
-    const b30 = document.getElementById('btn-plan-30');
-    b12.style.borderColor = m===12 ? '#1B263B' : 'rgba(27,38,59,.08)';
-    b12.querySelector('div').style.color = m===12 ? '#1B263B' : '#94a3b8';
-    b30.style.borderColor = m===30 ? '#1B263B' : 'rgba(27,38,59,.08)';
-    b30.querySelector('div').style.color = m===30 ? '#1B263B' : '#94a3b8';
-    calcGarantia();
-  }
-
-  function calcGarantia() {
-    const a = Math.round((parseFloat(document.getElementById('glc-aluguel').value)||0)*100);
-    const i = Math.round((parseFloat(document.getElementById('glc-iptu').value)||0)*100);
-    const base = (a+i)*12*(glcPlano/12);
-    const premio = Math.round(base*GLK_TAXA);
-    const total = premio + GLK_SETUP;
-    const tbolt = Math.round(total*GLK_FATOR);
-    const pc = Math.floor(total/12);
-    const pbBase = Math.floor((tbolt-GLK_SETUP)/12);
-    const f = c => (c/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-    document.getElementById('glc-r-aluguel').textContent = f(a);
-    document.getElementById('glc-r-iptu').textContent = f(i);
-    document.getElementById('glc-r-total').textContent = f(total);
-    document.getElementById('glc-r-parcela-c').textContent = `ou em até 12x de ${f(pc)}`;
-    document.getElementById('glc-r-cartao').textContent = `Valor final sem juros em até 12x de ${f(pc)}.`;
-    document.getElementById('glc-r-boleto-p1').textContent = `1ª Parcela: ${f(GLK_SETUP+pbBase)}`;
-    document.getElementById('glc-r-boleto-p2').textContent = `Demais: ${f(pbBase)}/mês`;
-  }
-
   // ── ORÇAMENTO DE LOCAÇÃO (garantia + seguro residencial, com download em PDF ou imagem) ──
   (function () {
     // Constantes da garantia vêm de GAR_CFG; juros do boleto vêm da tabela do seguro (RES_CFG)
@@ -2782,21 +2563,16 @@
     // Mesmo comportamento do botão da calculadora: leva os valores para "Dados do Inquilino"
     $('b-enviar').addEventListener('click', () => {
       const a = centavos($('aluguel').value), i = centavos($('iptu').value);
-      if (produto !== 'residencial' && a > 0) document.getElementById('f-valor-aluguel').value = (a / 100).toFixed(2);
-      if (produto !== 'residencial' && i > 0) document.getElementById('f-iptu').value = (i / 100).toFixed(2);
+      if (produto !== 'residencial' && a > 0) document.getElementById('f-valor-aluguel').value = (a / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      if (produto !== 'residencial' && i > 0) document.getElementById('f-iptu').value = (i / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      const im = centavos($('imovel').value), fIm = document.getElementById('f-valor-imovel'), fNome = document.getElementById('f-nome');
+      if (produto !== 'garantia' && im > 0 && fIm) fIm.value = (im / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      if (fNome && !fNome.value && $('cliente').value.trim()) fNome.value = $('cliente').value.trim();
       document.getElementById('form-cotacao-section').scrollIntoView({ behavior: 'smooth' });
     });
     $('b-pdf').addEventListener('click', () => baixar('pdf'));
     $('b-png').addEventListener('click', () => baixar('png'));
   })();
-
-  function abrirFormGarantia() {
-    const a = document.getElementById('glc-aluguel').value;
-    const i = document.getElementById('glc-iptu').value;
-    if (a) document.getElementById('f-valor-aluguel').value = a;
-    if (i) document.getElementById('f-iptu').value = i;
-    document.getElementById('form-cotacao-section').scrollIntoView({behavior:'smooth'});
-  }
 
   async function chamarDecisao(clientId, inquilinoNome, parceiroNome, acao) {
     const msg = acao === 'declinar'
