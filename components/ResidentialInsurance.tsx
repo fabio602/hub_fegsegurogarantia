@@ -185,9 +185,11 @@ interface ResidentialInsuranceProps {
     prefill?: { nome: string; telefone: string } | null;
     /** Avisa o App que o prefill já foi aplicado, para não reabrir o modal. */
     onPrefillConsumed?: () => void;
+    /** Abre a tela Repasse Imobiliárias (atalho do aviso de vencimentos). */
+    onAbrirRepasse?: () => void;
 }
 
-const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, prefill, onPrefillConsumed }) => {
+const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, prefill, onPrefillConsumed, onAbrirRepasse }) => {
     const { toast, confirm: confirmDialog } = useToast();
     const [clients, setClients] = useState<ResidentialClient[]>([]);
     const [loading, setLoading] = useState(true);
@@ -439,6 +441,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
      */
     const jaCarregouRef = useRef(false);
 
+    const [repasse, setRepasse] = useState<{ inquilino_nome: string | null; cpf: string | null; vigencia_fim: string | null; status_apolice: string | null; renovacao_confirmacao: string | null }[]>([]);
+
     const fetchClients = useCallback(async () => {
         if (!jaCarregouRef.current) setLoading(true);
         const { data, error } = await supabase
@@ -447,6 +451,12 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             .order('id', { ascending: false });
         if (error) console.error('Erro ao buscar clientes:', error);
         setClients(data || []);
+        // Cadastros do Repasse: quem está lá tem a renovação decidida pela
+        // imobiliária no portal, então sai dos avisos de vencimento daqui.
+        const { data: rep } = await supabase
+            .from('imobiliaria_clientes')
+            .select('inquilino_nome, cpf, vigencia_fim, status_apolice, renovacao_confirmacao');
+        setRepasse(rep || []);
         jaCarregouRef.current = true;
         setLoading(false);
     }, []);
@@ -854,12 +864,43 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         fetchClients();
     };
 
+    // Mesmo cliente nas duas telas: casa por CPF (só dígitos) ou pelo nome.
+    const chaveNome = (n: string | null | undefined) => (n || '').trim().toUpperCase();
+    const chaveCpf = (c: string | null | undefined) => (c || '').replace(/\D/g, '');
+    const noRepasse = useMemo(() => {
+        const set = new Set<string>();
+        for (const r of repasse) {
+            if (chaveNome(r.inquilino_nome)) set.add('n:' + chaveNome(r.inquilino_nome));
+            if (chaveCpf(r.cpf).length >= 11) set.add('c:' + chaveCpf(r.cpf));
+        }
+        return set;
+    }, [repasse]);
+    const estaNoRepasse = (c: ResidentialClient) =>
+        noRepasse.has('n:' + chaveNome(c.nome)) || (chaveCpf(c.cpf).length >= 11 && noRepasse.has('c:' + chaveCpf(c.cpf)));
+
+    // Resumo do que está no Repasse, com as mesmas regras de lá: sem resposta
+    // da imobiliária até 30 dias do fim (ou vencido) e "vai renovar" até 45.
+    const resumoRepasse = (() => {
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const encerrados = ['cancelado', 'saiu_imovel', 'desistiu', 'reprovado'];
+        let semResposta = 0, vaoRenovar = 0;
+        for (const r of repasse) {
+            if (!r.vigencia_fim || encerrados.includes(r.status_apolice || '')) continue;
+            const [a, m, d] = r.vigencia_fim.slice(0, 10).split('-').map(Number);
+            const dias = Math.round((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86400000);
+            if (!r.renovacao_confirmacao && dias <= 30) semResposta++;
+            else if (r.renovacao_confirmacao === 'vai_renovar' && dias <= 45) vaoRenovar++;
+        }
+        return { semResposta, vaoRenovar };
+    })();
+
     const getExpiringAlerts = () => {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
         return clients.filter(c => {
             if (!c.fim_vigencia) return false;
             if (c.nao_renovar) return false;
+            if (estaNoRepasse(c)) return false;
             const fim = new Date(c.fim_vigencia);
             return fim >= today && fim <= in30 && c.situacao === 'Ativo';
         }).sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
@@ -935,7 +976,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     // (renovar ou encerrar). O cron residencial_marcar_vencidas (migracao 101)
     // vira Ativo em Vencido todo dia; aqui e so a lista para agir.
     const vencidasSemDecisao = clients
-        .filter(c => c.situacao === 'Vencido' && !c.nao_renovar && c.fim_vigencia)
+        .filter(c => c.situacao === 'Vencido' && !c.nao_renovar && c.fim_vigencia && !estaNoRepasse(c))
         .sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
 
     if (loading) {
@@ -966,6 +1007,26 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+
+            {/* Clientes de imobiliária: a renovação é decidida no Repasse */}
+            {!embedded && (resumoRepasse.semResposta > 0 || resumoRepasse.vaoRenovar > 0) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-linha rounded-2xl px-5 py-4">
+                    <div className="min-w-0">
+                        <p className="font-bold text-navy text-sm">Renovações de clientes de imobiliária ficam no Repasse Imobiliárias</p>
+                        <p className="text-slate-500 text-xs font-medium mt-0.5">
+                            {[
+                                resumoRepasse.semResposta > 0 ? `${resumoRepasse.semResposta} aguardando resposta da imobiliária` : '',
+                                resumoRepasse.vaoRenovar > 0 ? `${resumoRepasse.vaoRenovar} que a imobiliária confirmou que vão renovar` : '',
+                            ].filter(Boolean).join(' · ')}
+                        </p>
+                    </div>
+                    {onAbrirRepasse && (
+                        <button onClick={onAbrirRepasse} className="shrink-0 bg-navy hover:bg-navy-light text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors">
+                            Abrir Repasse
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Expiry Alert */}
             {!embedded && expiringAlerts.length > 0 && (
