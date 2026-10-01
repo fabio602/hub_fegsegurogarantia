@@ -5,8 +5,9 @@ import SaveIndicator from './SaveIndicator.tsx';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Send, RefreshCw,
   User, Shield, FileText, DollarSign, Calendar, CheckCircle2, X, Loader2, AlertTriangle, Pencil, Search,
-  XCircle, Mail, Info
+  XCircle, Mail, Info, MessageCircle, Phone
 } from 'lucide-react';
+import { whatsappUrlFromPhone } from '../utils/whatsapp';
 import { supabase } from '../lib/supabase';
 import ResidentialInsurance from './ResidentialInsurance.tsx';
 
@@ -53,6 +54,23 @@ const diasAte = (s: string) => {
 };
 
 const fmtData = (s: string) => parseDataLocal(s).toLocaleDateString('pt-BR');
+
+// Fim de vigência padrão: hoje + 1 ano - 1 dia, a mesma conta que o Registro de
+// Vendas faz a partir da data de emissão. Data local, sem passar por UTC.
+const fimVigenciaPadrao = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Datas do Registro de Vendas podem vir como 'YYYY-MM-DD' ou 'dd/mm/aaaa'.
+const dataParaISO = (v: unknown): string => {
+  const t = String(v ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+  const m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+};
 
 // Etapas anteriores à emissão da apólice — o registro ainda é uma solicitação.
 const ETAPAS_EM_ANDAMENTO = ['solicitado', 'atendimento_iniciado', 'aguardando_seguradora', 'aguardando_cliente'];
@@ -456,6 +474,15 @@ export default function ImobiliariaRepasse() {
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
   const originalRef = useRef<Cliente | null>(null);
+  // Ajustes de tela do modal: recado recolhido, dia do aluguel como texto,
+  // aviso de vigência sugerida e o que veio do Registro de Vendas.
+  const [recadoAberto, setRecadoAberto] = useState(false);
+  const [corrigirDia, setCorrigirDia] = useState(false);
+  const [vigenciaSugerida, setVigenciaSugerida] = useState(false);
+  const [origemRegistro, setOrigemRegistro] = useState<string[] | null>(null);
+  // Cópia sempre atual do formulário, para leituras fora do ciclo de render.
+  const formStatusRef = useRef(editStatusForm);
+  formStatusRef.current = editStatusForm;
   // Houve gravação nesta abertura do modal? Sem isso, abrir e fechar sem mexer
   // em nada já mandaria o cadastro para o Residencial de novo, à toa.
   const mudouAlgoRef = useRef(false);
@@ -502,6 +529,55 @@ export default function ImobiliariaRepasse() {
     originalRef.current = c;
     mudouAlgoRef.current = false;
     setBloqueio(null);
+    setRecadoAberto(Boolean(((c as any).observacao_imobiliaria || '').trim()));
+    setCorrigirDia(!(c as any).dia_vencimento_aluguel);
+    setVigenciaSugerida(false);
+    setOrigemRegistro(null);
+    void completarComRegistro(c);
+  };
+
+  /**
+   * Completa campos vazios com o Registro de Vendas (residential_clients).
+   * As duas telas se ligam pelo nome, então só usa o Registro quando há
+   * exatamente um cliente com aquele nome, e nunca sobrescreve o que já foi
+   * preenchido aqui. Os PDFs trazidos entram também no "antes" (originalRef),
+   * para não disparar de novo o e-mail de apólice para a imobiliária.
+   */
+  const completarComRegistro = async (c: Cliente) => {
+    const nome = (c.inquilino_nome || '').trim();
+    if (!nome) return;
+    const { data, error } = await supabase
+      .from('residential_clients')
+      .select('apolice, fim_vigencia, apolice_url, apolice_garantia_url')
+      .ilike('nome', nome.replace(/[%_\\]/g, m => '\\' + m))
+      .limit(2);
+    if (error || !data || data.length !== 1) return;
+    if (originalRef.current?.id !== c.id) return; // o modal já mudou de cliente
+    const r: any = data[0];
+    const valido = (v: unknown) => { const t = String(v ?? '').trim(); return t && t.toLowerCase() !== 'nan' ? t : ''; };
+    // Decide a partir do formulário atual (ref), antes de agendar o setState:
+    // o updater do React pode rodar depois, e a lista do aviso sairia vazia.
+    const f = formStatusRef.current;
+    const trouxe: string[] = [];
+    const campos: Record<string, string> = {};
+    if (!f.numero_apolice && valido(r.apolice)) { campos.numero_apolice = valido(r.apolice); trouxe.push('nº da apólice'); }
+    const vig = dataParaISO(r.fim_vigencia);
+    if (!f.vigencia_fim && vig) { campos.vigencia_fim = vig; trouxe.push('fim da vigência'); }
+    if (!f.apolice_residencial_url && valido(r.apolice_url)) { campos.apolice_residencial_url = valido(r.apolice_url); trouxe.push('PDF do residencial'); }
+    if (temGarantia(c) && !f.apolice_garantia_url && valido(r.apolice_garantia_url)) { campos.apolice_garantia_url = valido(r.apolice_garantia_url); trouxe.push('PDF da garantia'); }
+    if (!trouxe.length) return;
+    // PDFs trazidos entram no "antes": não são apólice nova para avisar a imobiliária.
+    const pdfs: Record<string, string> = {};
+    if (campos.apolice_residencial_url) pdfs.apolice_residencial_url = campos.apolice_residencial_url;
+    if (campos.apolice_garantia_url) pdfs.apolice_garantia_url = campos.apolice_garantia_url;
+    if (Object.keys(pdfs).length && originalRef.current) originalRef.current = { ...originalRef.current, ...pdfs } as Cliente;
+    // Só preenche o que continua vazio na hora de aplicar.
+    setEditStatusForm(atual => {
+      const novo: any = { ...atual };
+      for (const [k, v] of Object.entries(campos)) if (!novo[k]) novo[k] = v;
+      return novo;
+    });
+    setOrigemRegistro(trouxe);
   };
 
   /**
@@ -672,6 +748,10 @@ export default function ImobiliariaRepasse() {
       : prev
     );
   };
+
+  const nomeParceiroStatus = editingStatus
+    ? ((editingStatus as any).parceiro_nome || parceiros.find(p => p.id === (editingStatus as any).partner_id)?.name || '')
+    : '';
 
   const { estado: estadoSalvamento, salvarAgora: salvarStatusAgora } = useAutoSave({
     dados: editStatusForm,
@@ -2085,276 +2165,318 @@ export default function ImobiliariaRepasse() {
     {editingStatus && createPortal(
       <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
         <div className="min-h-full flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-4">
-          {/* Header */}
-          <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-slate-100">
-            <div>
-              <h3 className="font-black text-slate-800 text-lg">Atualizar Status</h3>
-              <p className="text-sm text-slate-500 mt-0.5">{editStatusForm.inquilino_nome || editingStatus.inquilino_nome}</p>
-              {/* Não existe botão Salvar: o formulário grava sozinho. O indicador
-                  é o que conta isso para quem está usando. */}
-              {bloqueio
-                ? <p className="text-[11px] font-bold text-rose-600 mt-1">{bloqueio}</p>
-                : <SaveIndicator estado={estadoSalvamento} aoTentarNovamente={() => void salvarStatusAgora()} className="mt-1" />}
-            </div>
-            <button onClick={() => void fecharStatus()} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
-          </div>
-
-          <div className="px-7 py-5 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Inquilino</label>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
+          {/* Cabeçalho: quem é o cliente e como falar com ele. O nome continua
+              editável (clicando nele), mas sem ocupar um campo próprio. */}
+          <div className="px-7 pt-6 pb-4 border-b border-slate-100">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold text-gold-dark uppercase tracking-widest">Atualizar cadastro</p>
                 <input
                   value={editStatusForm.inquilino_nome}
                   onChange={e => setEditStatusForm(f => ({...f, inquilino_nome: e.target.value}))}
                   placeholder="Nome do inquilino"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                  title="Clique para corrigir o nome"
+                  className="w-full -ml-2 px-2 py-1 mt-0.5 rounded-lg border border-transparent hover:border-slate-200 focus:border-gold focus:outline-none text-lg font-black text-slate-800 bg-transparent" />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
+                  <span className="font-bold text-slate-600">{rotuloTipoSeguro(editingStatus)}</span>
+                  {nomeParceiroStatus && <span>Imobiliária {nomeParceiroStatus}</span>}
+                </div>
+                {bloqueio
+                  ? <p className="text-[11px] font-bold text-rose-600 mt-1.5">{bloqueio}</p>
+                  : <SaveIndicator estado={estadoSalvamento} aoTentarNovamente={() => void salvarStatusAgora()} className="mt-1.5" />}
               </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Etapa no Kanban</label>
-                <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
-                  <option value="solicitado">📬 Solicitado</option>
-                  <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
-                  <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
-                  <option value="aguardando_cliente">👤 Aguardando o Cliente</option>
-                  <option value="aprovado">✅ Aprovado</option>
-                  <option value="recusado">❌ Recusado</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Situação</label>
-                <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
-                  <option value="ativo">🟢 Ativo</option>
-                  <option value="pagamento_atrasado">🟡 Pgto. atrasado</option>
-                  <option value="em_renovacao">🔵 Em renovação</option>
-                  <option value="cancelado">🔴 Cancelado</option>
-                  <option value="desistiu">🟠 Optou Não Contratar</option>
-                  <option value="saiu_imovel">🟣 Saiu do Imóvel</option>
-                  <option value="reprovado">⚫ Reprovado</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vencimento</label>
-                <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
-              </div>
+              <button onClick={() => void fecharStatus()} title="Fechar" className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
             </div>
 
-            {/* Aviso de encerramento: o campo Situação faz mais do que trocar a
-                etiqueta, então a tela diz o que vai acontecer antes de gravar. */}
-            {VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice) && (
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] font-bold text-amber-700">
-                <AlertTriangle size={13} className="mt-px shrink-0" />
-                <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card vai para <strong>Recusado</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
+            {/* Contato do inquilino, com atalho para o WhatsApp */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {[(editingStatus as any).telefone, (editingStatus as any).telefone2]
+                .filter((t: any) => t && String(t).trim())
+                .map((t: string, i: number) => {
+                  const url = whatsappUrlFromPhone(t);
+                  return url
+                    ? <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-whatsapp hover:bg-whatsapp-hover text-white text-xs font-bold transition-colors">
+                        <MessageCircle size={14} /> WhatsApp {t}
+                      </a>
+                    : <span key={i} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold"><Phone size={14} /> {t}</span>;
+                })}
+              {(editingStatus as any).email_inquilino && (
+                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold select-all">
+                  <Mail size={14} /> {(editingStatus as any).email_inquilino}
+                </span>
+              )}
+              {!(editingStatus as any).telefone && !(editingStatus as any).telefone2 && !(editingStatus as any).email_inquilino && (
+                <span className="text-xs text-slate-400">Sem telefone ou e-mail no cadastro.</span>
+              )}
+            </div>
+          </div>
+
+          <div className="px-7 py-5 space-y-5">
+            {origemRegistro && origemRegistro.length > 0 && (
+              <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-700">
+                <CheckCircle2 size={13} className="mt-px shrink-0" />
+                <span>Completado com o Registro de Vendas: {origemRegistro.join(', ')}. Confira se está certo.</span>
               </div>
             )}
 
-            {/* Auto-advance hint */}
-            {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
-              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-700">
-                <CheckCircle2 size={13} /> O card foi movido para <strong>Aprovado</strong> no kanban
-              </div>
-            )}
-
-            {/* Seguradora e Apólice */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
-                <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
-                  placeholder="Ex: Porto Seguro" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº Apólice</label>
-                <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
-                  placeholder="Ex: APL-2026-001" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
-              </div>
-            </div>
-
-            {/* Repasse */}
-            <div className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
-              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Repasse Mensal</p>
-
-              {/* Sem esta marcação o cliente não entra na lista de repasses ativos
-                  nem no total mensal — os campos abaixo ficariam sem efeito. */}
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editStatusForm.is_repasse}
-                  onChange={e => setEditStatusForm(f => ({...f, is_repasse: e.target.checked}))}
-                  className="mt-0.5 w-4 h-4 accent-gold cursor-pointer"
-                />
-                <span className="text-xs font-bold text-slate-700 leading-tight">
-                  Este seguro é cobrado por repasse da imobiliária
-                  <span className="block text-[10px] font-medium text-amber-600 mt-0.5">
-                    A 1ª parcela é sempre paga pelo cliente; a cobrança da imobiliária começa na 2ª.
-                  </span>
-                </span>
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
+            {/* ── Andamento ── */}
+            <section className="space-y-3">
+              <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Andamento</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Valor Mensal (R$)</label>
-                  <input
-                    type="text" placeholder="Ex: 182,49"
-                    value={editStatusForm.valor_seguro}
-                    onChange={e => setEditStatusForm(f => ({...f, valor_seguro: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dia Venc. Aluguel</label>
-                  <input
-                    type="number" min="1" max="28" placeholder="Ex: 20"
-                    value={editStatusForm.dia_vencimento_aluguel}
-                    onChange={e => setEditStatusForm(f => ({...f, dia_vencimento_aluguel: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
-                  />
-                </div>
-              </div>
-              {editStatusForm.is_repasse && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Parcela Atual</label>
-                    <input
-                      type="number" min="1" placeholder="Ex: 2"
-                      value={editStatusForm.parcela_atual}
-                      onChange={e => setEditStatusForm(f => ({...f, parcela_atual: e.target.value}))}
-                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Total de Parcelas</label>
-                    <input
-                      type="number" min="1" placeholder="Ex: 12"
-                      value={editStatusForm.total_parcelas}
-                      onChange={e => setEditStatusForm(f => ({...f, total_parcelas: e.target.value}))}
-                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold"
-                    />
-                  </div>
-                </div>
-              )}
-              {/* Sem valor o cliente fica de fora dos avisos, senão a imobiliária
-                  receberia cobrança de R$ 0,00. Antes isso era um confirm na hora
-                  de salvar; com o autosave o aviso precisa ficar aqui, à vista. */}
-              {editStatusForm.is_repasse && editStatusForm.dia_vencimento_aluguel && !lerValorBRL(editStatusForm.valor_seguro)
-                ? <p className="text-[10px] font-bold text-amber-700">Sem o valor mensal, este cliente fica fora dos avisos de repasse.</p>
-                : <p className="text-[10px] text-amber-600">Aviso enviado 10 dias antes do vencimento</p>}
-            </div>
-
-            {/* Recado para a imobiliária — aparece no portal do parceiro */}
-            <div className="bg-blue-50 rounded-2xl p-4 space-y-2 border border-blue-100">
-              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Observação para a Imobiliária</p>
-              <textarea
-                rows={3}
-                value={editStatusForm.observacao_imobiliaria}
-                onChange={e => setEditStatusForm(f => ({...f, observacao_imobiliaria: e.target.value}))}
-                placeholder="Ex: Aguardando o cliente enviar o comprovante de renda para seguir com a cotação."
-                className="w-full px-3 py-2.5 border border-blue-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold resize-y"
-              />
-              <p className="text-[10px] text-blue-600">👁️ A imobiliária vê este texto no portal. Para anotação interna, use o campo de observações do cadastro.</p>
-
-              {/* Recado que é pergunta: o portal sozinho não avisa ninguém.
-                  Marcando aqui, a imobiliária recebe um e-mail com o texto. */}
-              <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${editStatusForm.recado_precisa_retorno ? 'bg-orange-50 border-orange-200' : 'bg-white border-blue-200'} ${!editStatusForm.observacao_imobiliaria.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                <input
-                  type="checkbox"
-                  disabled={!editStatusForm.observacao_imobiliaria.trim()}
-                  checked={editStatusForm.recado_precisa_retorno}
-                  onChange={e => setEditStatusForm(f => ({ ...f, recado_precisa_retorno: e.target.checked }))}
-                  className="mt-0.5 w-4 h-4 shrink-0 accent-orange-500"
-                />
-                <span className="min-w-0">
-                  <span className="block text-xs font-bold text-slate-700">Preciso de retorno da imobiliária</span>
-                  <span className="block text-[10px] text-slate-500 leading-relaxed">
-                    Envia um e-mail com este recado para o parceiro e destaca no portal até você desmarcar.
-                  </span>
-                </span>
-              </label>
-              {(editingStatus as any).recado_enviado_em && (
-                <p className="text-[10px] text-slate-400">
-                  Último aviso enviado em {new Date((editingStatus as any).recado_enviado_em).toLocaleString('pt-BR')}
-                </p>
-              )}
-            </div>
-
-            {/* Apólice Residencial */}
-            <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Seguro Residencial</p>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</label>
-                <select value={editStatusForm.status_residencial} onChange={e => setEditStatusForm(f => ({...f, status_residencial: e.target.value}))}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
-                  {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
-                {editStatusForm.apolice_residencial_url
-                  ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                      <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
-                      <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
-                    </div>
-                  : <ApoliceUpload
-                      clienteId={editingStatus.id}
-                      field="apolice_residencial_url"
-                      onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_residencial_url: url}))}
-                    />
-                }
-              </div>
-            </div>
-
-            {/* Garantia */}
-            {temGarantia(editingStatus) && (
-              <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Garantia de Aluguel</p>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status</label>
-                  <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
-                    {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Etapa no kanban</label>
+                  <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
+                    <option value="solicitado">📬 Solicitado</option>
+                    <option value="atendimento_iniciado">🔄 F&G em atendimento</option>
+                    <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
+                    <option value="aguardando_cliente">👤 Aguardando o Cliente</option>
+                    <option value="aprovado">✅ Aprovado</option>
+                    <option value="recusado">❌ Recusado</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da Apólice</label>
-                  {editStatusForm.apolice_garantia_url
-                    ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                        <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado — clique para ver</a>
-                        <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
-                      </div>
-                    : <ApoliceUpload
-                        clienteId={editingStatus.id}
-                        field="apolice_garantia_url"
-                        onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_garantia_url: url}))}
-                      />
-                  }
-                </div>
-                {/* Termo com a cláusula do seguro, que a imobiliária precisa
-                    incluir no contrato de locação. Campo próprio, separado do
-                    contrato assinado que ela envia pelo portal: são documentos
-                    em sentidos opostos e misturá-los apagaria a pendência dela
-                    sem que nada tivesse chegado. Vai anexado no e-mail da
-                    apólice da garantia. */}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Termo da Cláusula (vai no contrato)</label>
-                  {editStatusForm.termo_clausula_url
-                    ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                        <a href={editStatusForm.termo_clausula_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Termo anexado, clique para ver</a>
-                        <button onClick={() => setEditStatusForm(f => ({...f, termo_clausula_url: ''}))} className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
-                      </div>
-                    : <ApoliceUpload
-                        clienteId={editingStatus.id}
-                        field="termo_clausula_url"
-                        rotulo="Clique para anexar o termo (PDF ou Word)"
-                        onUploaded={(url) => setEditStatusForm(f => ({...f, termo_clausula_url: url}))}
-                      />
-                  }
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Situação do cliente</label>
+                  <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
+                    <option value="ativo">🟢 Ativo</option>
+                    <option value="pagamento_atrasado">🟡 Pgto. atrasado</option>
+                    <option value="em_renovacao">🔵 Em renovação</option>
+                    <option value="cancelado">🔴 Cancelado</option>
+                    <option value="desistiu">🟠 Optou Não Contratar</option>
+                    <option value="saiu_imovel">🟣 Saiu do Imóvel</option>
+                    <option value="reprovado">⚫ Reprovado</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1">Deixe em Ativo. Mude só se o cliente desistir, for reprovado, cancelar ou sair do imóvel.</p>
                 </div>
               </div>
+
+              {/* Aviso de encerramento: o campo Situação faz mais do que trocar a
+                  etiqueta, então a tela diz o que vai acontecer antes de gravar. */}
+              {VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice) && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] font-bold text-amber-700">
+                  <AlertTriangle size={13} className="mt-px shrink-0" />
+                  <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card vai para <strong>Recusado</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
+                </div>
+              )}
+              {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 size={13} /> O card foi movido para <strong>Aprovado</strong> no kanban
+                </div>
+              )}
+            </section>
+
+            {/* ── Seguro Residencial ── a apólice inteira num lugar só */}
+            {(temResidencial(editingStatus) || !temGarantia(editingStatus)) && (
+              <section className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">🏠 Seguro Residencial</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status da apólice</label>
+                    <select value={editStatusForm.status_residencial} onChange={e => {
+                        const v = e.target.value;
+                        setEditStatusForm(f => {
+                          // Emitiu sem fim de vigência: sugere 1 ano menos 1 dia,
+                          // a mesma conta do Registro de Vendas, para conferir.
+                          if (v === 'emitido' && !f.vigencia_fim) {
+                            setVigenciaSugerida(true);
+                            return { ...f, status_residencial: v, vigencia_fim: fimVigenciaPadrao() };
+                          }
+                          return { ...f, status_residencial: v };
+                        });
+                      }}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
+                      {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
+                    <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
+                      placeholder="Ex: Tokio Marine" className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº da apólice</label>
+                    <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
+                      placeholder="Número que está no PDF" className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fim da vigência</label>
+                    <input type="date" value={editStatusForm.vigencia_fim} onChange={e => { setVigenciaSugerida(false); setEditStatusForm(f => ({...f, vigencia_fim: e.target.value})); }}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
+                    <p className={`text-[10px] mt-1 ${vigenciaSugerida ? 'font-bold text-amber-700' : 'text-slate-400'}`}>
+                      {vigenciaSugerida ? 'Sugerido: hoje mais 1 ano. Confira com a data da apólice.' : 'Quando a apólice acaba. Usado no aviso de renovação.'}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da apólice</label>
+                  {editStatusForm.apolice_residencial_url
+                    ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                        <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado, clique para ver</a>
+                        <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                      </div>
+                    : <ApoliceUpload clienteId={editingStatus.id} field="apolice_residencial_url"
+                        onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_residencial_url: url}))} />}
+                </div>
+              </section>
+            )}
+
+            {/* ── Garantia Locatícia ── */}
+            {temGarantia(editingStatus) && (
+              <section className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">🔒 Garantia Locatícia</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status da garantia</label>
+                    <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
+                      {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  {/* Só garantia: os dados da apólice ficam aqui, já que não há bloco do residencial */}
+                  {!temResidencial(editingStatus) && (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Garantidora</label>
+                        <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
+                          className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº do contrato</label>
+                        <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
+                          className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fim da vigência</label>
+                        <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
+                          className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da apólice</label>
+                    {editStatusForm.apolice_garantia_url
+                      ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                          <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado, clique para ver</a>
+                          <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                        </div>
+                      : <ApoliceUpload clienteId={editingStatus.id} field="apolice_garantia_url"
+                          onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_garantia_url: url}))} />}
+                  </div>
+                  {/* Termo com a cláusula do seguro que a imobiliária inclui no
+                      contrato de locação. Vai anexado no e-mail da apólice. */}
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Termo da cláusula (vai no contrato)</label>
+                    {editStatusForm.termo_clausula_url
+                      ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                          <a href={editStatusForm.termo_clausula_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Termo anexado, clique para ver</a>
+                          <button onClick={() => setEditStatusForm(f => ({...f, termo_clausula_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                        </div>
+                      : <ApoliceUpload clienteId={editingStatus.id} field="termo_clausula_url" rotulo="Clique para anexar o termo (PDF ou Word)"
+                          onUploaded={(url) => setEditStatusForm(f => ({...f, termo_clausula_url: url}))} />}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ── Repasse mensal ── */}
+            <section className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
+              <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest">Repasse mensal</p>
+              {/* Sem esta marcação o cliente não entra na lista de repasses ativos
+                  nem no total mensal. */}
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" checked={editStatusForm.is_repasse}
+                  onChange={e => setEditStatusForm(f => ({...f, is_repasse: e.target.checked}))}
+                  className="mt-0.5 w-4 h-4 accent-gold cursor-pointer" />
+                <span className="text-xs font-bold text-slate-700 leading-tight">
+                  A imobiliária cobra este seguro junto com o aluguel
+                  <span className="block text-[10px] font-medium text-amber-700 mt-0.5">
+                    A 1ª parcela o cliente paga direto; a imobiliária cobra a partir da 2ª.
+                  </span>
+                </span>
+              </label>
+
+              {/* Dia do aluguel: vem do portal da imobiliária. Fica como texto,
+                  com opção de corrigir, para não parecer uma segunda data. */}
+              {editStatusForm.dia_vencimento_aluguel && !corrigirDia ? (
+                <p className="text-xs text-slate-600">
+                  📅 O aluguel vence todo <strong>dia {editStatusForm.dia_vencimento_aluguel}</strong>, informado pela imobiliária. A parcela do seguro vence junto.{' '}
+                  <button type="button" onClick={() => setCorrigirDia(true)} className="text-gold-dark font-bold underline underline-offset-2">Corrigir</button>
+                </p>
+              ) : (
+                <div className="max-w-[12rem]">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dia do vencimento do aluguel</label>
+                  <input type="number" min="1" max="28" placeholder="Ex: 20"
+                    value={editStatusForm.dia_vencimento_aluguel}
+                    onChange={e => setEditStatusForm(f => ({...f, dia_vencimento_aluguel: e.target.value}))}
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                </div>
+              )}
+
+              {editStatusForm.is_repasse && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Valor da parcela (R$)</label>
+                    <input type="text" placeholder="Ex: 182,49" value={editStatusForm.valor_seguro}
+                      onChange={e => setEditStatusForm(f => ({...f, valor_seguro: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Parcela atual</label>
+                    <input type="number" min="1" placeholder="Ex: 2" value={editStatusForm.parcela_atual}
+                      onChange={e => setEditStatusForm(f => ({...f, parcela_atual: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">De quantas</label>
+                    <input type="number" min="1" placeholder="Ex: 12" value={editStatusForm.total_parcelas}
+                      onChange={e => setEditStatusForm(f => ({...f, total_parcelas: e.target.value}))}
+                      className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                  </div>
+                </div>
+              )}
+              {editStatusForm.is_repasse && (
+                editStatusForm.dia_vencimento_aluguel && !lerValorBRL(editStatusForm.valor_seguro)
+                  ? <p className="text-[10px] font-bold text-amber-700">Sem o valor da parcela, este cliente fica fora dos avisos de repasse.</p>
+                  : <p className="text-[10px] text-amber-700">A imobiliária recebe o aviso 10 dias antes do vencimento{(editingStatus as any).proximo_vencimento ? `; o próximo vence em ${fmtDataISO((editingStatus as any).proximo_vencimento)}` : ''}.</p>
+              )}
+            </section>
+
+            {/* ── Recado para a imobiliária ── fechado até alguém precisar */}
+            {!recadoAberto ? (
+              <button type="button" onClick={() => setRecadoAberto(true)}
+                className="w-full text-left px-4 py-3 rounded-2xl border border-dashed border-blue-200 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors">
+                ＋ Escrever recado para a imobiliária
+              </button>
+            ) : (
+              <section className="bg-blue-50 rounded-2xl p-4 space-y-2 border border-blue-100">
+                <p className="text-[11px] font-black text-blue-700 uppercase tracking-widest">Recado para a imobiliária</p>
+                <textarea rows={3} value={editStatusForm.observacao_imobiliaria}
+                  onChange={e => setEditStatusForm(f => ({...f, observacao_imobiliaria: e.target.value}))}
+                  placeholder="Ex: Aguardando o cliente enviar o comprovante de renda para seguir com a cotação."
+                  className="w-full px-3 py-2.5 border border-blue-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold resize-y" />
+                <p className="text-[10px] text-blue-600">👁️ A imobiliária vê este texto no portal.</p>
+                <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${editStatusForm.recado_precisa_retorno ? 'bg-orange-50 border-orange-200' : 'bg-white border-blue-200'} ${!editStatusForm.observacao_imobiliaria.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <input type="checkbox" disabled={!editStatusForm.observacao_imobiliaria.trim()}
+                    checked={editStatusForm.recado_precisa_retorno}
+                    onChange={e => setEditStatusForm(f => ({ ...f, recado_precisa_retorno: e.target.checked }))}
+                    className="mt-0.5 w-4 h-4 shrink-0 accent-orange-500" />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-slate-700">Preciso de resposta da imobiliária</span>
+                    <span className="block text-[10px] text-slate-500 leading-relaxed">Manda este recado por e-mail e deixa em destaque no portal até você desmarcar.</span>
+                  </span>
+                </label>
+                {(editingStatus as any).recado_enviado_em && (
+                  <p className="text-[10px] text-slate-400">Último aviso enviado em {new Date((editingStatus as any).recado_enviado_em).toLocaleString('pt-BR')}</p>
+                )}
+              </section>
             )}
           </div>
 
@@ -2369,7 +2491,7 @@ export default function ImobiliariaRepasse() {
               }}
               className="flex-1 py-2.5 bg-gold hover:bg-gold-hover text-white rounded-xl font-bold text-sm transition-colors"
             >
-              → Registro de Venda
+              Abrir Registro de Venda
             </button>
             <button onClick={() => void fecharStatus()} className="flex-1 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm transition-colors">Fechar</button>
           </div>
