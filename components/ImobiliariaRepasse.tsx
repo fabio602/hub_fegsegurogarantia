@@ -55,6 +55,18 @@ const diasAte = (s: string) => {
 
 const fmtData = (s: string) => parseDataLocal(s).toLocaleDateString('pt-BR');
 
+// Situação da renovação para o cartão do kanban, com a mesma regra do portal da
+// imobiliária: fim da vigência em até 30 dias (ou passado) e cadastro não encerrado.
+const situacaoRenovacao = (c: any): { texto: string; cor: string; bg: string; borda: string } | null => {
+  if (!c?.vigencia_fim) return null;
+  if (['cancelado', 'saiu_imovel', 'desistiu', 'reprovado'].includes(c.status_apolice)) return null;
+  if (diasAte(c.vigencia_fim) > 30) return null;
+  const quando = `${diasAte(c.vigencia_fim) < 0 ? 'venceu' : 'vence'} ${fmtDataISO(c.vigencia_fim).slice(0, 5)}`;
+  if (c.renovacao_confirmacao === 'vai_renovar') return { texto: `🔁 Vai renovar · ${quando}`, cor: '#1d4ed8', bg: '#eff6ff', borda: '#bfdbfe' };
+  if (c.renovacao_confirmacao === 'nao_vai_renovar') return { texto: `Não vai renovar · ${quando}`, cor: '#475569', bg: '#f8fafc', borda: '#e2e8f0' };
+  return { texto: `⏳ Renovação: aguardando imobiliária · ${quando}`, cor: '#b45309', bg: '#fffbeb', borda: '#fde68a' };
+};
+
 // Fim de vigência padrão: hoje + 1 ano - 1 dia, a mesma conta que o Registro de
 // Vendas faz a partir da data de emissão. Data local, sem passar por UTC.
 const fimVigenciaPadrao = () => {
@@ -1578,11 +1590,20 @@ export default function ImobiliariaRepasse() {
                               <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>
                                 {rotuloTipoSeguro(c)}
                               </span>
-                              {(c as any).intencao === 'contratar' ? (
-                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', border: '1px solid #c3dfd4', padding: '1px 6px', borderRadius: '20px' }}>✅ Contratar</span>
-                              ) : (
-                                <span style={{ fontSize: '9px', fontWeight: 900, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '20px' }}>📋 Cotação</span>
-                              )}
+                              {/* Na janela de renovação (mesma regra do portal: vence em até 30
+                                  dias ou já venceu), o cartão mostra a renovação no lugar da
+                                  intenção da solicitação original, que já foi atendida. */}
+                              {(() => {
+                                const ren = situacaoRenovacao(c);
+                                if (ren) return (
+                                  <span style={{ fontSize: '9px', fontWeight: 900, background: ren.bg, color: ren.cor, border: `1px solid ${ren.borda}`, padding: '1px 6px', borderRadius: '20px' }}>{ren.texto}</span>
+                                );
+                                return (c as any).intencao === 'contratar' ? (
+                                  <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', border: '1px solid #c3dfd4', padding: '1px 6px', borderRadius: '20px' }}>✅ Contratar</span>
+                                ) : (
+                                  <span style={{ fontSize: '9px', fontWeight: 900, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '20px' }}>📋 Cotação</span>
+                                );
+                              })()}
                             </div>
                             {parceiro && (
                               <div style={{ fontSize: '10px', fontWeight: 900, color: '#78716c', background: '#f4f1ec', padding: '2px 7px', borderRadius: '8px', display: 'inline-block', marginBottom: '4px' }}>
