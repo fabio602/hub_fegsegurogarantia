@@ -1195,7 +1195,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                 </div>
             </div>
 
-            {/* Cópias adicionais de e-mail (Cco) do módulo */}
+            {/* Cópias adicionais de e-mail (Cco) do módulo. O quadro inteiro
+                só aparece para o administrador; antes os colegas viam a lista. */}
+            {ehAdmin && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="min-w-0 sm:w-72 shrink-0">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -1249,6 +1251,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     )}
                 </div>
             </div>
+            )}
 
             </>)}
 
