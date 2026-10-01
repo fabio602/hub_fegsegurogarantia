@@ -1188,6 +1188,58 @@
 </button>
 
 <script>
+  // ── SIMULADOR DE SEGURO RESIDENCIAL: CONFIGURAÇÃO ──
+  // Faixas, preços e juros ficam só aqui. Valores de referência, ainda a
+  // validar com cotações na Tokio Marine: para ajustar, edite este objeto.
+  const RES_CFG = {
+    // Prêmio anual à vista por valor do imóvel (em reais). Acima da última
+    // faixa não há preço: o portal mostra a cotação personalizada.
+    faixas: [
+      { ate: 150000, premio: 250.00 },
+      { ate: 200000, premio: 330.00 },
+      { ate: 300000, premio: 390.00 },
+      { ate: 400000, premio: 440.00 },
+      { ate: 500000, premio: 500.00 },
+      { ate: 600000, premio: 560.00 },
+    ],
+    // Cartão de crédito: sem juros até este número de parcelas.
+    cartaoMaxParcelas: 12,
+    // Boleto: juros (%) sobre o valor à vista, por número de parcelas.
+    boletoJurosPct: {
+      1: 0, 2: 0, 3: 0, 4: 0,
+      5: 7.00, 6: 8.80, 7: 10.60, 8: 16.10,
+      9: 18.50, 10: 20.90, 11: 23.40, 12: 25.90,
+    },
+    // Parcelamentos que aparecem em destaque, nesta ordem.
+    destaqueCartao: 12,
+    destaqueBoletoSemJuros: 4,
+    destaqueBoletoComJuros: 12,
+    msgPersonalizada: 'Cotação personalizada, fale com a F&G',
+    aviso: 'Valores de referência. O preço final é confirmado na cotação da seguradora.',
+  };
+
+  // Faixa em que o imóvel se enquadra, ou null se passar da última.
+  function resFaixa(valorImovel) {
+    return RES_CFG.faixas.find(f => valorImovel <= f.ate) || null;
+  }
+  // Divide um total (centavos) em n parcelas arredondadas em 2 casas;
+  // a diferença de centavos vai na última parcela.
+  function resParcelar(totalCent, n) {
+    const parcela = Math.round(totalCent / n);
+    return { n, parcela, ultima: totalCent - parcela * (n - 1), total: totalCent };
+  }
+  function resCartao(avistaCent, n) {
+    return resParcelar(avistaCent, n);
+  }
+  // Boleto: total = à vista x (1 + juros). A 1ª parcela é paga à vista e as
+  // demais entram no boleto do aluguel.
+  function resBoleto(avistaCent, n) {
+    const pct = RES_CFG.boletoJurosPct[n] || 0;
+    const bp = Math.round(pct * 100); // 25,90% = 2590, evita erro de ponto flutuante
+    const total = Math.round(avistaCent * (10000 + bp) / 10000);
+    return Object.assign(resParcelar(total, n), { pct, juros: total - avistaCent });
+  }
+
   const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
   const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
