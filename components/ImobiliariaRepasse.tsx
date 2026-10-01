@@ -1514,6 +1514,10 @@ export default function ImobiliariaRepasse() {
           { key: 'aguardando_seguradora',label: 'Aguardando Seguradora',accent: '#1B263B', labelColor: '#1B263B' },
           { key: 'aguardando_cliente',   label: 'Aguardando o Cliente', accent: '#7c3aed', labelColor: '#7c3aed' },
           { key: 'aprovado',             label: 'Aprovado',             accent: '#2d6a4f', labelColor: '#2d6a4f' },
+          // Coluna só de exibição: apólice emitida que entrou na janela de
+          // renovação e espera a resposta da imobiliária no portal. Quando ela
+          // responde, o cadastro passa para Pendências do portal (no topo).
+          { key: 'renovacao',            label: 'Renovação: aguardando imobiliária', accent: '#b45309', labelColor: '#b45309' },
           { key: 'recusado',             label: 'Recusado',             accent: '#9b1c1c', labelColor: '#9b1c1c' },
         ];
         return (
@@ -1523,13 +1527,20 @@ export default function ImobiliariaRepasse() {
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
-            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(160px, 1fr))', gap: '10px' }}>
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(160px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
                 // Pending always show; approved/rejected only last 3 days
                 const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-                const colCards = clientes.filter(c => {
+                const colCards = col.key === 'renovacao'
+                  ? clientes
+                      .filter(c => ((c as any).kanban_status || 'solicitado') === 'aprovado' && situacaoRenovacao(c) && !(c as any).renovacao_confirmacao)
+                      .sort((a, b) => String((a as any).vigencia_fim).localeCompare(String((b as any).vigencia_fim)))
+                  : clientes.filter(c => {
                   const status = (c as any).kanban_status || 'solicitado';
                   if (status !== col.key) return false;
+                  // Em renovação, o cartão sai de Aprovado: aguardando a imobiliária
+                  // vai para a coluna ao lado; respondido fica em Pendências do portal.
+                  if (status === 'aprovado' && situacaoRenovacao(c)) return false;
                   if (['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(status)) return true;
                   return new Date(c.created_at) >= tresDiasAtras;
                 });
@@ -1539,12 +1550,12 @@ export default function ImobiliariaRepasse() {
                     key={col.key}
                     className="rounded-2xl transition-all"
                     style={{ minWidth: 0, padding: '12px', background: '#fff', border: `1px solid ${isOver ? '#C69C6D' : '#e8e4dc'}`, borderTop: `3px solid ${isOver ? '#C69C6D' : col.accent}`, boxShadow: isOver ? '0 4px 20px rgba(198,156,109,.15)' : 'none' }}
-                    onDragOver={e => { e.preventDefault(); setDragOver(col.key); }}
+                    onDragOver={e => { if (col.key === 'renovacao') return; e.preventDefault(); setDragOver(col.key); }}
                     onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
                     onDrop={e => {
                       e.preventDefault();
                       const id = e.dataTransfer.getData('clienteId');
-                      if (id) moveCard(id, col.key);
+                      if (id && col.key !== 'renovacao') moveCard(id, col.key);
                     }}
                   >
                     {/* Column header */}
