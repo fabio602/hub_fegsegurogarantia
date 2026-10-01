@@ -49,6 +49,7 @@ const BanksDirectory = lazy(() => import('./components/BanksDirectory'));
 const SuretiesDirectory = lazy(() => import('./components/SuretiesDirectory'));
 const InternalProcedures = lazy(() => import('./components/InternalProcedures'));
 const ResidentialInsurance = lazy(() => import('./components/ResidentialInsurance'));
+const AvisoEntrada = lazy(() => import('./components/AvisoEntrada'));
 const AutoInsurance = lazy(() => import('./components/AutoInsurance'));
 const AgendaHub = lazy(() => import('./components/AgendaHub'));
 const ParceiroManager = lazy(() => import('./components/ParceiroManager'));
@@ -184,6 +185,9 @@ const App: React.FC = () => {
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
   // Módulos liberados para quem está logado. `null` = vê tudo.
   const [modulos, setModulos] = useState<string[] | null>(null);
+  // As permissões chegam depois do login. O aviso de entrada espera por elas,
+  // senão quem não tem o Residencial veria o aviso no intervalo.
+  const [modulosProntos, setModulosProntos] = useState(false);
   const [badges, setBadges] = useState<{
     whatsapp: number;
     imobiliaria: number;
@@ -204,12 +208,21 @@ const App: React.FC = () => {
 
       const hoje = new Date().toISOString().slice(0, 10);
       const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-      const { count: vencCount } = await supabase
-        .from('residential_clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('situacao', 'Ativo')
-        .gte('fim_vigencia', hoje)
-        .lte('fim_vigencia', em30);
+      // Mesma regra do aviso amarelo do Registro de Vendas: vence em até 30
+      // dias, sem "não renovar" e fora do Repasse (cliente de imobiliária tem
+      // a renovação decidida lá, no portal). Antes contava todo mundo.
+      const [{ data: vencendo }, { data: noRepasse }] = await Promise.all([
+        supabase.from('residential_clients').select('nome, cpf, nao_renovar')
+          .eq('situacao', 'Ativo').gte('fim_vigencia', hoje).lte('fim_vigencia', em30),
+        supabase.from('imobiliaria_clientes').select('inquilino_nome, cpf'),
+      ]);
+      const nomeChave = (n: string | null) => (n || '').trim().toUpperCase();
+      const cpfChave = (c: string | null) => (c || '').replace(/\D/g, '');
+      const nomesRepasse = new Set((noRepasse || []).map(r => nomeChave(r.inquilino_nome)).filter(Boolean));
+      const cpfsRepasse = new Set((noRepasse || []).map(r => cpfChave(r.cpf)).filter(c => c.length >= 11));
+      const vencCount = (vencendo || []).filter(r =>
+        !r.nao_renovar && !nomesRepasse.has(nomeChave(r.nome)) && !(cpfChave(r.cpf).length >= 11 && cpfsRepasse.has(cpfChave(r.cpf)))
+      ).length;
 
       setBadges({
         whatsapp: wppCount || 0,
@@ -271,8 +284,8 @@ const App: React.FC = () => {
   // Permissões do usuário logado. `null` = sem restrição (admin, ou quem
   // ainda não tem linha na tabela) — ver lib/permissoes.ts.
   useEffect(() => {
-    if (!session) { setModulos(null); return; }
-    carregarModulos(session.user?.email).then(setModulos);
+    if (!session) { setModulos(null); setModulosProntos(false); return; }
+    carregarModulos(session.user?.email).then(m => { setModulos(m); setModulosProntos(true); });
   }, [session]);
 
   // Reagir a mudança de permissão sem esperar o próximo login: o admin marca
@@ -506,6 +519,10 @@ const App: React.FC = () => {
     <ToastProvider>
     {/* Passa por navigate() para a busca global respeitar a permissão. */}
     <GlobalSearch onNavigate={(view) => navigate(view as View)} />
+    {/* Aviso ao abrir: solicitações novas e renovações confirmadas pela imobiliária */}
+    {modulosProntos && podeVer('imobiliaria-repasse') && (
+      <Suspense fallback={null}><AvisoEntrada onAbrirRepasse={() => navigate('imobiliaria-repasse')} /></Suspense>
+    )}
     <div className="min-h-screen flex bg-areia font-sans selection:bg-gold/30">
       {/* Overlay mobile — fecha sidebar ao clicar fora */}
       {isSidebarOpen && (

@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
       telefone_2: dados.telefone2 || null,
       produto: produtoMap[dados.tipo_seguro] || 'Apenas Seguro Residencial',
       cep_imovel: dados.cep || null,
+      endereco_imovel: dados.endereco_imovel || null,
       numero_imovel: dados.numero_imovel || null,
       tipo_imovel: dados.tipo_imovel || null,
       valor_imovel: dados.valor_imovel?.toString() || null,
