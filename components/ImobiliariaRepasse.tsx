@@ -818,6 +818,7 @@ export default function ImobiliariaRepasse() {
           telefone: (original as any).telefone || null,
           email: (original as any).email_inquilino || null,
           produto: 'Apenas Seguro Residencial',
+          endereco_imovel: (original as any).endereco_imovel || null,
           apolice: editStatusForm.numero_apolice || null,
           fim_vigencia: editStatusForm.vigencia_fim || null,
           apolice_url: editStatusForm.apolice_residencial_url || null,
@@ -2188,6 +2189,13 @@ export default function ImobiliariaRepasse() {
               </div>
               <button onClick={() => void fecharStatus()} title="Fechar" className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>
             </div>
+
+            {/* Imóvel: endereço vindo da busca de CEP, com o número e o CEP */}
+            {((editingStatus as any).endereco_imovel || (editingStatus as any).cep) && (
+              <p className="mt-3 text-xs text-slate-600">
+                📍 {[(editingStatus as any).endereco_imovel, (editingStatus as any).numero_imovel ? `nº ${(editingStatus as any).numero_imovel}` : '', (editingStatus as any).cep ? `CEP ${(editingStatus as any).cep}` : ''].filter(Boolean).join(' · ')}
+              </p>
+            )}
 
             {/* Contato do inquilino, com atalho para o WhatsApp */}
             <div className="mt-4 flex flex-wrap items-center gap-2">

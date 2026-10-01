@@ -11,6 +11,7 @@ import { FeatureTip } from './FeatureTip.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import { useAutoSave } from '../hooks/useAutoSave.ts';
 import SaveIndicator from './SaveIndicator.tsx';
+import { buscarEnderecoPorCep } from '../utils/cep';
 
 interface ResidentialClient {
     id: number;
@@ -30,6 +31,7 @@ interface ResidentialClient {
     obs: string;
     estado_civil?: string | null;
     cep_imovel?: string | null;
+    endereco_imovel?: string | null;
     numero_imovel?: string | null;
     tipo_imovel?: string | null;
     valor_imovel?: string | null;
@@ -55,7 +57,7 @@ const EMPTY_FORM: Partial<ResidentialClient> = {
     produto: '', apolice: '', premio_total: '',
     comissao: '', data_emissao: '', fim_vigencia: '',
     forma_pagamento: '', situacao: 'Ativo', obs: '',
-    estado_civil: '', cep_imovel: '', numero_imovel: '', tipo_imovel: '',
+    estado_civil: '', cep_imovel: '', endereco_imovel: '', numero_imovel: '', tipo_imovel: '',
     valor_imovel: '', valor_aluguel: '', data_primeiro_pag_aluguel: '', valor_iptu_condominio: '',
     tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: '',
     origem_publica: false,
@@ -194,6 +196,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     const [clients, setClients] = useState<ResidentialClient[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [buscandoCep, setBuscandoCep] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     // Na tela cheia o formulario fica recolhido ate o usuario pedir (Novo
     // cliente, Editar, rascunho ou atalho do Repasse); a lista e o que se
@@ -490,6 +493,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             obs: formData.obs || null,
             estado_civil: formData.estado_civil?.trim() || null,
             cep_imovel: formData.cep_imovel?.trim() || null,
+            endereco_imovel: formData.endereco_imovel?.trim() || null,
             numero_imovel: formData.numero_imovel?.trim() || null,
             tipo_imovel: formData.tipo_imovel?.trim() || null,
             valor_imovel: formData.valor_imovel?.trim() || null,
@@ -549,7 +553,19 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         // Aplicar máscaras
         if (id === 'cpf') value = formatCPF(value);
         if (id === 'telefone' || id === 'telefone_2') value = formatPhone(value);
-        if (id === 'cep_imovel') value = formatCEP(value);
+        if (id === 'cep_imovel') {
+            value = formatCEP(value);
+            // CEP completo digitado: busca rua, bairro e cidade e preenche o
+            // endereço. Só aplica se o CEP ainda for o mesmo quando a resposta chegar.
+            const d = value.replace(/\D/g, '');
+            if (d.length === 8 && d !== (formData.cep_imovel || '').replace(/\D/g, '')) {
+                setBuscandoCep(true);
+                void buscarEnderecoPorCep(d).then(end => {
+                    setBuscandoCep(false);
+                    if (end) setFormData(prev => ((prev.cep_imovel || '').replace(/\D/g, '') === d ? { ...prev, endereco_imovel: end } : prev));
+                });
+            }
+        }
         if (id === 'premio_total' || id === 'comissao' || id === 'garantia_valor'
             || id === 'valor_imovel' || id === 'valor_aluguel' || id === 'valor_iptu_condominio') {
             value = formatCurrency(value);
@@ -682,6 +698,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             obs: formData.obs || null,
             estado_civil: formData.estado_civil?.trim() || null,
             cep_imovel: formData.cep_imovel?.trim() || null,
+            endereco_imovel: formData.endereco_imovel?.trim() || null,
             numero_imovel: formData.numero_imovel?.trim() || null,
             tipo_imovel: formData.tipo_imovel?.trim() || null,
             valor_imovel: formData.valor_imovel?.trim() || null,
@@ -1344,6 +1361,10 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                     <option value="">Selecione...</option>
                                     {TIPO_IMOVEL_OPTS.map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
+                            </div>
+                            <div className="space-y-2 col-span-full">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Endereço do imóvel {buscandoCep ? '(buscando pelo CEP...)' : '(preenchido pelo CEP)'}</label>
+                                <input type="text" id="endereco_imovel" value={formData.endereco_imovel || ''} onChange={handleInputChange} placeholder="Digite o CEP para preencher rua, bairro e cidade" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Valor do imóvel</label>
