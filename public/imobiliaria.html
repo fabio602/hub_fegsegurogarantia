@@ -1552,6 +1552,11 @@
       </div>`).join('');
   }
 
+  // Data do banco ('AAAA-MM-DD') como meia-noite no horário local. new Date('2026-08-27')
+  // lê como meia-noite UTC e, em Brasília, vira 26/08 às 21h: o portal mostrava
+  // o vencimento um dia antes do que está gravado.
+  function dataLocal(s) { return new Date(String(s).slice(0, 10) + 'T00:00:00'); }
+
   function vencBadge(v) {
     if (!v) return '<span style="color:#c9c2b8;font-size:12px;">—</span>';
     const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -1632,7 +1637,7 @@
     const naJanela = cs.filter(c => {
       if (!c.vigencia_fim) return false;
       if (['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
-      const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
+      const dias = Math.round((dataLocal(c.vigencia_fim) - hoje) / 86400000);
       return dias <= 30;
     }).sort((a, b) => new Date(a.vigencia_fim) - new Date(b.vigencia_fim));
 
@@ -1657,9 +1662,9 @@
         </div>
         <div style="padding:8px 0;">
           ${proximos.map(c => {
-            const dias = Math.round((new Date(c.vigencia_fim) - hoje) / 86400000);
+            const dias = Math.round((dataLocal(c.vigencia_fim) - hoje) / 86400000);
             const conf = c.renovacao_confirmacao;
-            const dataVenc = new Date(c.vigencia_fim).toLocaleDateString('pt-BR');
+            const dataVenc = dataLocal(c.vigencia_fim).toLocaleDateString('pt-BR');
             const urgencia = dias <= 7 ? '#dc2626' : '#d97706';
             const urgBg   = dias <= 7 ? '#fef2f2' : '#fffbeb';
             // Já vencido mostra "Venceu há X dias" — antes aparecia "Vence em -99 dias".
@@ -1906,7 +1911,7 @@
     const em30 = new Date(hoje); em30.setDate(em30.getDate() + 30);
     const kpiVenc = cs.filter(c => {
       if (!c.vigencia_fim || ['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
-      const v = new Date(c.vigencia_fim);
+      const v = dataLocal(c.vigencia_fim);
       return v >= hoje && v <= em30;
     }).length;
     // Cancelados sem nova solicitação ativa (mesma lógica do banner)
@@ -2192,7 +2197,7 @@
       if (tipo === 'garantia' && !temGarantiaLocaticia(c)) return false;
       if (filtroVencimento30) {
         if (!c.vigencia_fim || ['cancelado','saiu_imovel','desistiu','reprovado'].includes(c.status_apolice)) return false;
-        const v = new Date(c.vigencia_fim);
+        const v = dataLocal(c.vigencia_fim);
         return v >= hoje && v <= em30;
       }
       return true;
