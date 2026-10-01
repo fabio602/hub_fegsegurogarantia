@@ -873,6 +873,10 @@
 #orc .s-foot b{color:var(--s-ink)}
 @media (max-width:520px){#orc .s-head,#orc .s-body,#orc .s-foot{padding-inline:18px}#orc .s-doc{text-align:left}#orc .s-big{font-size:24px}}
 #orc .wrap{padding:0}
+#orc .acoes{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 20px}
+#orc .acoes .btn{padding:15px;font-size:14.5px}
+#orc .acoes .msg{grid-column:1/-1;text-align:center}
+@media (max-width:700px){#orc .acoes{grid-template-columns:minmax(0,1fr)}}
 #orc .s-vazio{font-size:13px;color:var(--s-muted);background:var(--s-sand);border-radius:12px;padding:18px;text-align:center}
   </style>
   <div class="wrap">
@@ -927,14 +931,6 @@
         <input type="hidden" id="orc-imob" value="">
       </div>
 
-      <div class="grp">
-        <div class="actions" id="orc-actions">
-          <button type="button" class="btn" id="orc-b-pdf">Baixar PDF</button>
-          <button type="button" class="btn alt" id="orc-b-png">Baixar imagem</button>
-        </div>
-        <button type="button" class="btn" id="orc-b-enviar">Enviar informações para F&amp;G</button>
-        <p class="msg" id="orc-status">A imagem é a mais prática para enviar pelo WhatsApp.</p>
-      </div>
     </form>
 
     <div class="stage">
@@ -1010,6 +1006,12 @@
           <span><b>F&amp;G Seguro Garantia</b> · fegsegurogarantia.com.br · CNPJ 56.123.874/0001-90</span>
         </div>
       </div>
+    </div>
+    <div class="acoes" id="orc-actions">
+      <button type="button" class="btn" id="orc-b-pdf">Baixar PDF</button>
+      <button type="button" class="btn alt" id="orc-b-png">Baixar imagem</button>
+      <button type="button" class="btn" id="orc-b-enviar">Enviar informações para F&amp;G</button>
+      <p class="msg" id="orc-status">A imagem é a mais prática para enviar pelo WhatsApp.</p>
     </div>
   </div>
   </div>
