@@ -167,6 +167,7 @@
       cursor: pointer; text-align: center; box-shadow: var(--shadow-sm);
       transition: transform .34s var(--ease), box-shadow .34s var(--ease), border-color .34s var(--ease);
     }
+    a.action-card { display: block; text-decoration: none; color: inherit; }
     .action-card::after {
       content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
       background: var(--gold); transform: scaleX(0); transform-origin: left;
@@ -707,6 +708,12 @@
       <h3>Fatura Mensal</h3>
       <p>Confira quais clientes precisam de repasse este mês e o valor total a ser pago.</p>
     </div>
+    <!-- Material de apoio: PDF fixo em public/materiais. Para atualizar, basta trocar o arquivo. -->
+    <a class="action-card" href="materiais/comparativo-garantias-locacao.pdf" download="Comparativo-Garantias-de-Locacao-FG.pdf">
+      <div class="emoji"><svg class="ico"><use href="#i-baixar"/></svg></div>
+      <h3>Comparativo de Garantias</h3>
+      <p>Baixe o PDF que compara Tokio Marine, Pottencial e Fiantec para apresentar ao proprietário.</p>
+    </a>
   </div>
 
   <!-- Alerta crítico: sem cobertura -->
