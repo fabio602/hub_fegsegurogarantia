@@ -1196,7 +1196,7 @@
     <select id="sel-mes" onchange="renderRepasse(todosClientes)">
       <option value="0">Mês atual</option>
     </select>
-    <span style="font-size:12px;color:#94a3b8">Selecione para ver meses anteriores</span>
+    <span style="font-size:12px;color:#94a3b8">Selecione para ver o próximo mês ou meses anteriores</span>
   </div>
   <div class="repasse-hero">
     <div class="repasse-hero-top">
@@ -1212,7 +1212,7 @@
       </div>
     </div>
     <table class="rep-table">
-      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th><th>Venc. Aluguel</th></tr></thead>
+      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th><th>Vencimento</th></tr></thead>
       <tbody id="repasse-body"><tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
     </table>
   </div>
@@ -1509,10 +1509,16 @@
   // sozinho no meio do preenchimento.
   const rescisaoAberta = new Set();
 
-  // Populate month selector (last 12 months)
+  // Seletor de mês: o próximo mês vem primeiro (é o que a imobiliária precisa
+  // para incluir o seguro no boleto que ainda vai emitir), depois os 12 anteriores.
   (function() {
     const sel = document.getElementById('sel-mes');
     const now = new Date();
+    const prox = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const optProx = document.createElement('option');
+    optProx.value = `${prox.getMonth()+1}-${prox.getFullYear()}`;
+    optProx.textContent = 'Próximo mês (' + prox.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) + ')';
+    sel.appendChild(optProx);
     for (let i = 1; i <= 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const opt = document.createElement('option');
@@ -2254,23 +2260,38 @@
       mesRef = parseInt(m); anoRef = parseInt(a);
       mesNome = new Date(anoRef, mesRef - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     }
-    // Fix: excluir clientes sem valor definido (1ª parcela paga pelo cliente)
-    // e mostrar a partir da 2ª parcela (que entra no repasse)
-    const ativos = cs.filter(c => (c.status_apolice === 'ativo' || c.status === 'ativo') && c.is_repasse === true && Number(c.valor_seguro) > 0 && c.parcela_atual >= 2);
+    // Entra no repasse quem tem valor definido e já está na 2ª parcela em diante
+    // (a 1ª o inquilino paga direto para a seguradora).
+    const emRepasse = cs.filter(c => (c.status_apolice === 'ativo' || c.status === 'ativo') && c.is_repasse === true && Number(c.valor_seguro) > 0 && c.parcela_atual >= 2);
+    // Cada parcela pertence ao mês da data de vencimento (proximo_vencimento).
+    // Antes a lista ignorava o mês: quem acabava de entrar, com 1º repasse só no
+    // mês seguinte, já aparecia somado no mês corrente.
+    const chaveMes = String(anoRef) + '-' + String(mesRef).padStart(2, '0');
+    const mesAtual = !selVal || selVal === '0';
+    const ativos = emRepasse.filter(c => {
+      const venc = c.proximo_vencimento ? String(c.proximo_vencimento).slice(0, 7) : null;
+      // Sem data gravada não dá para saber o mês: fica no mês atual, à vista,
+      // em vez de sumir da cobrança.
+      if (!venc) return mesAtual;
+      // No mês atual entram também as parcelas de meses anteriores ainda em aberto.
+      return mesAtual ? venc <= chaveMes : venc === chaveMes;
+    }).sort((x, y) =>
+      String(x.proximo_vencimento || '9999').localeCompare(String(y.proximo_vencimento || '9999')) ||
+      String(x.inquilino_nome || '').localeCompare(String(y.inquilino_nome || ''), 'pt-BR'));
     const total = ativos.reduce((s, c) => s + Number(c.valor_seguro || 0), 0);
     document.getElementById('r-total').textContent = total > 0 ? fmtBRL(total) : '—';
-    document.getElementById('r-mes').textContent = `Clientes com parcela em aberto — ${mesNome}`;
+    document.getElementById('r-mes').textContent = `Parcelas em aberto com vencimento em ${mesNome}`;
     if (session?.pix_key) document.getElementById('r-pix').textContent = `PIX: ${session.pix_key}`;
     if (session?.banco_nome) document.getElementById('r-banco').textContent = `F&G Seguro Garantia · ${session.banco_nome}`;
     const tbody = document.getElementById('repasse-body');
-    if (!ativos.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Nenhum cliente com parcela em aberto.</td></tr>'; return; }
+    if (!ativos.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Nenhuma parcela em aberto com vencimento em ${mesNome}.</td></tr>`; return; }
     tbody.innerHTML = ativos.map(c => `<tr>
       <td class="nome">${c.inquilino_nome||'—'}</td>
       <td>${c.seguradora||'—'}</td>
       <td style="font-family:monospace;font-size:12px">${c.numero_apolice||'—'}</td>
       <td class="valor">${fmtBRL(c.valor_seguro)}</td>
       <td><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${c.parcela_atual}/${c.total_parcelas}</span></td>
-      <td style="font-size:11px;color:rgba(255,255,255,.6);">${c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—'}</td>
+      <td style="font-size:12px;color:rgba(255,255,255,.75);">${c.proximo_vencimento ? fmtData(c.proximo_vencimento) : (c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—')}</td>
     </tr>`).join('');
   }
 
