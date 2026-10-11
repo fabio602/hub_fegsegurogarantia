@@ -76,6 +76,19 @@ const fimVigenciaPadrao = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+// Sugestão para o vencimento da 1ª parcela que entra no repasse: o dia do
+// aluguel no mês seguinte ao de hoje. A 1ª parcela o inquilino paga direto na
+// contratação, então a que a imobiliária repassa cai no mês seguinte. É só
+// sugestão: a data fica à vista no formulário para ser corrigida.
+const sugerirPrimeiroRepasse = (dia: unknown): string => {
+  const d = parseInt(String(dia ?? ''));
+  if (!Number.isFinite(d) || d < 1 || d > 31) return '';
+  const hoje = new Date();
+  const mes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const ultimo = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+  return `${mes.getFullYear()}-${String(mes.getMonth() + 1).padStart(2, '0')}-${String(Math.min(d, ultimo)).padStart(2, '0')}`;
+};
+
 // Datas do Registro de Vendas podem vir como 'YYYY-MM-DD' ou 'dd/mm/aaaa'.
 const dataParaISO = (v: unknown): string => {
   const t = String(v ?? '').trim();
@@ -400,7 +413,9 @@ export default function ImobiliariaRepasse() {
   };
   // Modal de configuração de repasse ao aprovar cliente do portal
   const [repasseSetupModal, setRepasseSetupModal] = useState<{ clienteId: string; nome: string; newStatus: string } | null>(null);
-  const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '', dia_vencimento_aluguel: '' });
+  const [repasseSetupForm, setRepasseSetupForm] = useState({ total_parcelas: 12, valor_seguro: '', dia_vencimento_aluguel: '', primeiro_repasse: '' });
+  // Data que vale no modal: a digitada ou, em branco, a sugerida pelo dia do aluguel.
+  const primeiroRepasseSetup = repasseSetupForm.primeiro_repasse || sugerirPrimeiroRepasse(repasseSetupForm.dia_vencimento_aluguel);
 
   // Modal de encerramento: uma tela só para todo cliente que sai da carteira,
   // não importa se a notícia veio pelo portal ou se o próprio inquilino avisou.
@@ -420,7 +435,8 @@ export default function ImobiliariaRepasse() {
     if (newStatus === 'aprovado') {
       const cliente = clientes.find(c => c.id === clienteId);
       if (cliente && !(Number((cliente as any).valor_seguro) > 0)) {
-        setRepasseSetupForm({ total_parcelas: 12, valor_seguro: '' });
+        // O dia do aluguel já vem do portal: não faz sentido pedir de novo.
+        setRepasseSetupForm({ total_parcelas: 12, valor_seguro: '', dia_vencimento_aluguel: cliente.dia_vencimento_aluguel?.toString() || '', primeiro_repasse: '' });
         setRepasseSetupModal({ clienteId, nome: cliente.inquilino_nome, newStatus });
         return; // aguarda confirmação no modal
       }
@@ -440,6 +456,13 @@ export default function ImobiliariaRepasse() {
       alert('Informe o "Valor Mensal (R$)" do seguro.\n\nSem ele, a imobiliária receberia um e-mail pedindo repasse de R$ 0,00.');
       return;
     }
+    // Sem a data completa o cliente não entra em mês nenhum do portal e o aviso
+    // automático (10 dias antes) nunca dispara. Foi o que aconteceu com os
+    // cadastros de outubro/2026.
+    if (!primeiroRepasseSetup) {
+      alert('Informe o dia de vencimento do aluguel ou a data do 1º repasse.');
+      return;
+    }
     // parcela_atual = 2: a 1ª sempre é paga pelo cliente diretamente
     // o repasse começa a partir da 2ª parcela
     await supabase.from('imobiliaria_clientes').update({
@@ -449,10 +472,11 @@ export default function ImobiliariaRepasse() {
       parcela_atual: 2,
       valor_seguro: valor,
       dia_vencimento_aluguel: diaVenc,
+      proximo_vencimento: primeiroRepasseSetup,
       updated_at: new Date().toISOString(),
     }).eq('id', repasseSetupModal.clienteId);
     setClientes(prev => prev.map(c => c.id === repasseSetupModal.clienteId
-      ? { ...c, kanban_status: repasseSetupModal.newStatus, is_repasse: true, total_parcelas: repasseSetupForm.total_parcelas, valor_seguro: valor } as any
+      ? { ...c, kanban_status: repasseSetupModal.newStatus, is_repasse: true, total_parcelas: repasseSetupForm.total_parcelas, parcela_atual: 2, valor_seguro: valor, dia_vencimento_aluguel: diaVenc, proximo_vencimento: primeiroRepasseSetup } as any
       : c));
     setRepasseSetupModal(null);
   };
@@ -481,7 +505,7 @@ export default function ImobiliariaRepasse() {
   // a tela nunca desmonta (antes o atalho navegava para outra view e perdia tudo).
   const [vendaModal, setVendaModal] = useState<{ nome: string; telefone: string } | null>(null);
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', termo_clausula_url: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', termo_clausula_url: '', proximo_vencimento: '' });
 
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
@@ -532,7 +556,7 @@ export default function ImobiliariaRepasse() {
   };
 
   const openEditStatus = (c: Cliente) => {
-    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', termo_clausula_url: (c as any).termo_clausula_url || '' };
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', termo_clausula_url: (c as any).termo_clausula_url || '', proximo_vencimento: (c.proximo_vencimento || '').slice(0, 10) };
     setEditingStatus(c);
     setEditStatusForm(inicial);
     // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
@@ -693,6 +717,15 @@ export default function ImobiliariaRepasse() {
       updated_at: new Date().toISOString(),
     };
     if (valorSegEdit !== undefined) payload.valor_seguro = valorSegEdit;
+
+    // Data completa do vencimento da parcela em aberto. É ela que decide em que
+    // mês o cliente aparece no portal e quando sai o aviso automático. Em branco,
+    // vale a mesma sugestão mostrada no campo (dia do aluguel no mês que vem).
+    // Só grava para repasse com valor: sem valor ainda não há o que cobrar.
+    if (ehRepasse && (valorSegEdit !== undefined || jaTemValor)) {
+      const vencEdit = form.proximo_vencimento || sugerirPrimeiroRepasse(form.dia_vencimento_aluguel);
+      if (vencEdit) payload.proximo_vencimento = vencEdit;
+    }
 
     // Parcelas editadas no modal só entram no payload quando diferem do que o
     // cadastro já tem — assim quem não mexeu nelas preserva o salto para a 2ª
@@ -1005,6 +1038,8 @@ export default function ImobiliariaRepasse() {
     const p: string[] = [];
     if (!(Number(c.valor_seguro) > 0)) p.push('Sem valor mensal');
     if (!c.dia_vencimento_aluguel) p.push('Sem dia de vencimento');
+    // Com valor e sem data o cliente não entra em mês nenhum do portal.
+    if (Number(c.valor_seguro) > 0 && !c.proximo_vencimento) p.push('Sem data de vencimento');
     if (c.status_apolice && c.status_apolice !== 'ativo') {
       p.push(STATUS_APOLICE_LABELS[c.status_apolice] || c.status_apolice);
     }
@@ -2109,6 +2144,16 @@ export default function ImobiliariaRepasse() {
               </div>
             </div>
             <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data do 1º Repasse</label>
+              <input
+                type="date"
+                value={primeiroRepasseSetup}
+                onChange={e => setRepasseSetupForm(f => ({ ...f, primeiro_repasse: e.target.value }))}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+              />
+              <p className="text-xs text-slate-400">Vencimento da 2ª parcela, a primeira que a imobiliária repassa. Sugerimos o mês que vem; confira e corrija se for outro mês.</p>
+            </div>
+            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
               <div className="grid grid-cols-3 gap-2">
                 {[6, 12, 24].map(n => (
@@ -2480,12 +2525,24 @@ export default function ImobiliariaRepasse() {
                       onChange={e => setEditStatusForm(f => ({...f, total_parcelas: e.target.value}))}
                       className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
                   </div>
+                  <div className="sm:col-span-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vencimento da parcela atual</label>
+                    <input type="date"
+                      value={editStatusForm.proximo_vencimento || sugerirPrimeiroRepasse(editStatusForm.dia_vencimento_aluguel)}
+                      onChange={e => setEditStatusForm(f => ({...f, proximo_vencimento: e.target.value}))}
+                      className="w-full max-w-[14rem] px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
+                    <p className="text-[10px] text-amber-700 mt-1">
+                      {editStatusForm.proximo_vencimento
+                        ? 'Define em que mês este cliente aparece no repasse do portal. Avança sozinha a cada baixa.'
+                        : 'Data sugerida: o dia do aluguel no mês que vem. Confira e corrija se o 1º repasse for em outro mês.'}
+                    </p>
+                  </div>
                 </div>
               )}
               {editStatusForm.is_repasse && (
                 editStatusForm.dia_vencimento_aluguel && !lerValorBRL(editStatusForm.valor_seguro)
                   ? <p className="text-[10px] font-bold text-amber-700">Sem o valor da parcela, este cliente fica fora dos avisos de repasse.</p>
-                  : <p className="text-[10px] text-amber-700">A imobiliária recebe o aviso 10 dias antes do vencimento{(editingStatus as any).proximo_vencimento ? `; o próximo vence em ${fmtDataISO((editingStatus as any).proximo_vencimento)}` : ''}.</p>
+                  : <p className="text-[10px] text-amber-700">A imobiliária recebe o aviso 10 dias antes do vencimento.</p>
               )}
             </section>
 
