@@ -1145,14 +1145,14 @@ export default function ImobiliariaRepasse() {
   };
 
   // A regra de avançar (parcela + 1, próximo vencimento um mês à frente,
-  // encerrar quando passa do total) vive na RPC avancar_parcela_repasse, no
-  // banco. Assim hub e portal não divergem e a data nunca é calculada aqui.
+  // desligar o repasse ao quitar a última) vive na RPC avancar_parcela_repasse,
+  // no banco. Quitar o repasse não encerra o cadastro: a apólice segue vigente. Assim hub e portal não divergem e a data nunca é calculada aqui.
   const avancarParcela = async (c: Cliente) => {
     const { data, error } = await supabase.rpc('avancar_parcela_repasse', { p_id: c.id });
     if (error) { alert(`Erro ao avançar a parcela: ${error.message}`); return; }
     const r = data as { parcela_atual: number; total_parcelas: number; proximo_vencimento: string | null; encerrado: boolean } | null;
     if (r?.encerrado) {
-      alert(`Contrato de ${c.inquilino_nome} encerrado: as ${r.total_parcelas} parcelas foram repassadas. O cadastro sai da lista de cobrança.`);
+      alert(`Repasse de ${c.inquilino_nome} quitado: as ${r.total_parcelas} parcelas foram repassadas. Ele sai da lista de cobrança e a apólice continua ativa na carteira.`);
     }
     load();
   };
@@ -1743,7 +1743,7 @@ export default function ImobiliariaRepasse() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
             <p className="font-bold text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
-            <p className="text-xs font-bold text-slate-400">Clique em "Avançar Parcela" nos clientes com repasse quando o pagamento for confirmado</p>
+            <p className="text-xs font-bold text-slate-400">Recebeu o pagamento? Clique em "Avançar Parcela" (ou "Quitar Repasse", na última) para dar a baixa</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1850,9 +1850,9 @@ export default function ImobiliariaRepasse() {
                           <button
                             onClick={() => avancarParcela(c)}
                             className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-bold rounded-xl transition-colors"
-                            title={c.parcela_atual === c.total_parcelas ? 'Encerrar contrato' : 'Avançar para próxima parcela'}
+                            title={c.parcela_atual === c.total_parcelas ? 'Dar baixa na última parcela. A apólice continua ativa.' : 'Dar baixa nesta parcela e avançar para a próxima'}
                           >
-                            {c.parcela_atual === c.total_parcelas ? 'Encerrar' : 'Avançar Parcela'}
+                            {c.parcela_atual === c.total_parcelas ? 'Quitar Repasse' : 'Avançar Parcela'}
                           </button>
                         )}
                         {confirmDelete === c.id ? (
