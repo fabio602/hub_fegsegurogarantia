@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   AlertTriangle, RotateCcw, ClipboardCheck, ChevronDown, ChevronUp,
@@ -6,36 +6,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { normalizarSeguradora } from '../utils/seguradoras';
+import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
+import { extrairMinuta, type MinutaExtraida } from '../lib/minuta/extrairMinuta.ts';
+import { conferirMinuta, type ValidationItem, type ValidationResult, type MinutaDados } from '../lib/minuta/conferirMinuta.ts';
+import type { EditalData } from '../lib/editalSchema.ts';
 
-export interface ValidationItem {
-  campo: string;
-  esperado: string;
-  encontrado: string;
-  status: 'ok' | 'divergencia' | 'nao_encontrado' | 'atencao_favoravel' | 'nao_aplicavel';
-  observacao?: string | null;
-}
-
-interface MinutaDados {
-  seguradora?: string | null;
-  tomador?: string | null;
-  segurado?: string | null;
-  valor_garantia?: string | null;
-  vigencia?: string | null;
-  custo_seguro?: string | null;
-  numero_apolice_minuta?: string | null;
-}
-
-export interface ValidationResult {
-  status_geral: 'aprovado' | 'divergencias' | 'verificar';
-  veredicto?: 'PODE EMITIR' | 'EMITIR COM RESSALVA' | 'NAO EMITIR';
-  veredicto_acao?: string | null;
-  itens: ValidationItem[];
-  resumo: string;
-  pendencias_bloqueantes?: string[];
-  minuta_dados?: MinutaDados;
-  raw?: string;
-  parse_error?: boolean;
-}
+export type { ValidationItem, ValidationResult };
 
 interface Props {
   dadosOriginais: Record<string, unknown>;
@@ -140,6 +116,12 @@ const STATUS_CONFIG = {
     badge: 'bg-blue-100 text-blue-700',
     label: 'FAVORÁVEL',
   },
+  conferir: {
+    icon: <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />,
+    row: 'bg-amber-50 border-amber-100',
+    badge: 'bg-amber-100 text-amber-700',
+    label: 'CONFERIR',
+  },
   nao_aplicavel: {
     icon: <CheckCircle2 size={16} className="text-slate-400 shrink-0 mt-0.5" />,
     row: 'bg-slate-50 border-slate-100',
@@ -168,7 +150,7 @@ const GERAL_CONFIG = {
     icon: <AlertTriangle size={24} className="text-amber-600" />,
     title: 'Verificação Necessária',
     titleColor: 'text-amber-800',
-    text: 'Alguns campos não foram localizados na minuta. Verifique manualmente.',
+    text: 'Alguns campos não foram localizados na minuta ou precisam de conferência manual.',
   },
 };
 
@@ -176,6 +158,9 @@ const GERAL_CONFIG = {
 
 export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onVerVendas }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  // Minuta já lida (Licitante): a conferência é refeita quando a análise do edital muda,
+  // por exemplo quando o usuário marca os lotes que o cliente disputa.
+  const [minutaLida, setMinutaLida] = useState<MinutaExtraida | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +196,15 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
     if (!file) return;
     setLoading(true); setError(null); setResult(null); setShowMsg(false); setShowVenda(false); setVendaSalva(false);
     try {
+      // Licitante: conferência por regras, no navegador, sem IA (lib/minuta)
+      if (tipo === 'licitante') {
+        const lido = await lerDocumento(file);
+        if (!lido.paginas.some(p => p.trim())) throw new Error('Não encontrei texto na minuta.');
+        const extraida = extrairMinuta(lido.paginas);
+        setMinutaLida(extraida);
+        setResult(conferirMinuta(extraida, dadosOriginais as EditalData));
+        return;
+      }
       const pdfBase64 = await toBase64(file);
       const contexto = buildContexto(dadosOriginais, campoLabels);
       const { data: { session } } = await supabase.auth.getSession();
@@ -238,8 +232,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
     }
   };
 
+  useEffect(() => {
+    if (tipo === 'licitante' && minutaLida) setResult(conferirMinuta(minutaLida, dadosOriginais as EditalData));
+  }, [dadosOriginais, minutaLida, tipo]);
+
   const reset = () => {
-    setFile(null); setResult(null); setError(null);
+    setFile(null); setResult(null); setError(null); setMinutaLida(null);
     setShowMsg(false); setCopied(false);
     setShowVenda(false); setVendaSalva(false); setVendaError(null);
   };
@@ -310,14 +308,14 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
   const okCount      = result?.itens?.filter(i => i.status === 'ok' || i.status === 'atencao_favoravel').length ?? 0;
   const divCount     = result?.itens?.filter(i => i.status === 'divergencia').length ?? 0;
-  const naCount      = result?.itens?.filter(i => i.status === 'nao_encontrado').length ?? 0;
+  const naCount      = result?.itens?.filter(i => i.status === 'nao_encontrado' || i.status === 'conferir').length ?? 0;
   const favCount     = result?.itens?.filter(i => i.status === 'atencao_favoravel').length ?? 0;
   const naAplCount   = result?.itens?.filter(i => i.status === 'nao_aplicavel').length ?? 0;
 
   const sortedItens = result?.itens
     ? [...result.itens].sort((a, b) => {
         // Prioridade: divergencia (0) > nao_encontrado (1) > atencao_favoravel (2) > ok (3) > nao_aplicavel (4)
-        const order: Record<string, number> = { divergencia: 0, nao_encontrado: 1, atencao_favoravel: 2, ok: 3, nao_aplicavel: 4 };
+        const order: Record<string, number> = { divergencia: 0, nao_encontrado: 1, conferir: 1, atencao_favoravel: 2, ok: 3, nao_aplicavel: 4 };
         return (order[a.status] ?? 3) - (order[b.status] ?? 3);
       })
     : [];
@@ -405,7 +403,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
           <Loader2 size={28} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-bold text-slate-800">Comparando dados...</p>
-            <p className="text-slate-400 text-sm mt-0.5">A IA está conferindo campo a campo</p>
+            <p className="text-slate-400 text-sm mt-0.5">{tipo === 'licitante' ? 'Conferindo campo a campo com o edital' : 'A IA está conferindo campo a campo'}</p>
           </div>
         </div>
       )}
@@ -475,12 +473,10 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                           <span className="text-slate-400 uppercase tracking-[1px] font-bold">Esperado: </span>
                           <span className="text-slate-600 font-semibold">{item.esperado}</span>
                         </div>
-                        {item.status !== 'ok' && (
-                          <div>
-                            <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
-                            <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : 'text-amber-700'}`}>{item.encontrado}</span>
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
+                          <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : item.status === 'ok' || item.status === 'atencao_favoravel' ? 'text-slate-600' : 'text-amber-700'}`}>{item.encontrado}</span>
+                        </div>
                       </div>
                       {item.observacao && (
                         <p className="text-xs text-slate-500 mt-1 italic">{item.observacao}</p>

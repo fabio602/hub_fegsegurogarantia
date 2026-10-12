@@ -68,6 +68,7 @@ App interno ("Hub") de uma corretora de seguros (FEG Seguro Garantia). SPA em **
   O grant abre a porta; quem decide quais linhas cada um enxerga continua sendo a **RLS**. Os dois andam juntos: grant sem RLS expõe tudo, RLS sem grant não deixa ninguém entrar. Se a tabela usa sequence (`serial`/`bigserial`), vai junto `grant usage, select on sequence public.minha_tabela_id_seq to authenticated, service_role;`.
 - **Edge Functions** (`supabase/functions/`, Deno): IA e automações.
   - `chat-assistant`, `analyze-edital`, `analyze-contrato`, `validate-minuta` — usam a **API da Anthropic (Claude)** via `ANTHROPIC_API_KEY` (fetch para `api.anthropic.com/v1/messages`).
+    `analyze-edital` e `validate-minuta` continuam publicadas, mas a aba **Seguro Licitante não as usa mais** (ver abaixo).
   - `remind-stale-sales`, `pregao-reminders`, `send-thank-you`, `send-draft-approval`, `send-limits` — notificações/e-mails.
 - **Jobs agendados**: `.github/workflows/daily-stale-sales-reminder.yml` chama, via cron (10:00 UTC = 07:00 BRT), as functions `remind-stale-sales` e `pregao-reminders` por `curl`, usando os secrets `SUPABASE_URL`/`SUPABASE_ANON_KEY` do GitHub.
 
@@ -77,6 +78,10 @@ App interno ("Hub") de uma corretora de seguros (FEG Seguro Garantia). SPA em **
 - **Edge Functions** usam **Claude/Anthropic** (`ANTHROPIC_API_KEY` no ambiente do Supabase).
 
 Ao mexer em código de IA, confira qual das duas camadas você está editando e qual provedor ela usa.
+
+### Seguro Licitante — sem IA
+
+A leitura do edital e o Double Check da minuta na aba Seguro Licitante rodam **no navegador, por regras**: `lib/edital/` (extração e travas), `lib/minuta/` (leitura e conferência da apólice), `lib/pdf/` (texto via unpdf num Web Worker, OCR local com Tesseract servido em `/tesseract/*` pelo plugin `ocrLocal` do `vite.config.ts`). Leia `docs/licitante/README.md` antes de mexer. Toda mudança nas regras passa pela bateria `regressao/rodar-local.ts` (Deno), que tem de continuar fechando 100% contra `regressao/gabarito.json` e `regressao/gabarito-minutas.json`. A aba Seguro de Contrato continua usando a IA.
 
 ### Config notável
 

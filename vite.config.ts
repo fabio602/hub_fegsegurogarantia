@@ -2,6 +2,44 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+/**
+ * Arquivos do OCR (Tesseract) servidos pelo próprio hub, em /tesseract/*.
+ *
+ * O tesseract.js baixa por padrão o worker, o núcleo wasm e o idioma de uma CDN
+ * externa. Aqui eles saem do node_modules: no `npm run dev` por um middleware e no
+ * build como arquivos do dist/. Só são baixados pelo navegador quando alguém sobe
+ * um edital escaneado ou uma imagem (lib/pdf/ocr.ts).
+ */
+const OCR_ARQUIVOS: Record<string, string> = {
+  'tesseract/worker.min.js': 'node_modules/tesseract.js/dist/worker.min.js',
+  'tesseract/core/tesseract-core-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
+  'tesseract/core/tesseract-core-simd-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
+  'tesseract/core/tesseract-core-relaxedsimd-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
+  'tesseract/lang/por.traineddata.gz': 'node_modules/@tesseract.js-data/por/4.0.0_best_int/por.traineddata.gz',
+};
+
+function ocrLocal() {
+  return {
+    name: 'fg-ocr-local',
+    configureServer(server: any) {
+      server.middlewares.use(async (req: any, res: any, next: any) => {
+        const rota = String(req.url ?? '').split('?')[0].replace(/^\//, '');
+        const origem = OCR_ARQUIVOS[rota];
+        if (!origem) return next();
+        const fs = await import('fs');
+        res.setHeader('Content-Type', rota.endsWith('.js') ? 'text/javascript' : 'application/octet-stream');
+        fs.createReadStream(path.resolve(__dirname, origem)).pipe(res);
+      });
+    },
+    async generateBundle(this: any) {
+      const fs = await import('fs/promises');
+      for (const [destino, origem] of Object.entries(OCR_ARQUIVOS)) {
+        this.emitFile({ type: 'asset', fileName: destino, source: await fs.readFile(path.resolve(__dirname, origem)) });
+      }
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
 
@@ -18,6 +56,7 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        ocrLocal(),
         {
           // Publica o timestamp do build num arquivo à parte.
           //
@@ -68,6 +107,9 @@ export default defineConfig(({ mode }) => {
           },
         },
       ],
+      // O leitor de PDF (lib/pdf/textoPdf.worker.ts) roda num Web Worker módulo:
+      // o unpdf usa import dinâmico, que só funciona com saída ES.
+      worker: { format: 'es' as const },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
