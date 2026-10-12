@@ -1,19 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   DollarSign, Shield, Calendar, RotateCcw,
-  Info, ChevronDown, ChevronUp, AlertTriangle, Plus, X, History, Copy, Check
+  Info, ChevronDown, ChevronUp, AlertTriangle, X, History, Copy, Check, Pencil, Search, Building2
 } from 'lucide-react';
 
 const LICITANTE_HISTORY_KEY = 'cotacao_history_licitante';
 const MAX_HISTORY = 5;
 
-import { supabase } from '../lib/supabase';
 import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext';
 import MinutaValidator from './MinutaValidator';
-import { type EditalData, type Alerta, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER, normalizeAlertas } from '../lib/editalSchema.ts';
+import VisualizadorTrecho from './VisualizadorTrecho';
+import { type EditalData, type Alerta, type Evidencia, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER, normalizeAlertas } from '../lib/editalSchema.ts';
+import { extrairEdital, finalizarEdital, corrigirCampo } from '../lib/edital/index.ts';
+import { makeAlerta } from '../lib/edital/travas.ts';
+import { lerDocumentos, MAX_PAGINAS_OCR } from '../lib/pdf/lerDocumento.ts';
+import { encerrarOcr } from '../lib/pdf/ocr.ts';
 
 interface HistoryEntry { timestamp: string; fileName: string; data: EditalData; }
+
+/** PDFs da análise atual, mantidos em memória para o "ver trecho" (não vão para o histórico). */
+interface ArquivoLido { nome: string; tipo: string; bytes: ArrayBuffer; primeiraPagina: number }
 
 const LICITANTE_LABELS: Record<string, string> = {
   orgao_nome: 'Órgão Licitante',
@@ -67,6 +74,88 @@ function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactN
   );
 }
 
+/** "R$ 1.393.413,10", "1393413,10" ou "1393413.10" → número */
+function lerNumeroBR(s: string): number | null {
+  const t = s.replace(/[R$\s]/g, '');
+  if (!t) return null;
+  const n = /,\d{1,2}$/.test(t) ? Number(t.replace(/\./g, '').replace(',', '.')) : Number(t.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Link "p. 16 · ver trecho" que abre a origem do dado no PDF. */
+function OrigemLink({ evidencia, onVer, light }: { evidencia?: Evidencia; onVer: () => void; light?: boolean }) {
+  if (!evidencia) return null;
+  const manual = evidencia.pagina === 0;
+  return (
+    <div className="mt-1.5 leading-none">
+      <button type="button" onClick={onVer}
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-lg px-1.5 py-0.5 -ml-1.5 transition-colors ${light ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-gold-dark hover:bg-areia-clara'}`}>
+        {manual ? <Pencil size={11} /> : <Search size={11} />}
+        {manual ? 'Informado manualmente' : `p. ${evidencia.pagina} · ver trecho`}
+      </button>
+    </div>
+  );
+}
+
+type TipoEdicao = 'moeda' | 'numero' | 'texto' | 'termo' | 'simnao';
+
+/** Campo com botão de correção manual (substitui a correção pelo chat). */
+function Editavel({ valor, tipo, placeholder, onSalvar, light, children }: {
+  valor: unknown; tipo: TipoEdicao; placeholder?: string; light?: boolean;
+  onSalvar: (v: unknown) => void; children: React.ReactNode;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState('');
+  const abrir = () => {
+    setTexto(valor == null ? '' : tipo === 'moeda' ? Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+      : tipo === 'simnao' ? (valor === true ? 'sim' : valor === false ? 'nao' : '') : String(valor));
+    setEditando(true);
+  };
+  const salvar = () => {
+    let v: unknown = texto.trim() || null;
+    if (v != null && (tipo === 'moeda' || tipo === 'numero')) v = lerNumeroBR(String(v));
+    if (tipo === 'simnao') v = texto === 'sim' ? true : texto === 'nao' ? false : null;
+    onSalvar(v);
+    setEditando(false);
+  };
+  const campoCls = 'w-full px-3 py-2 bg-white border border-gold rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/30';
+  if (editando) return (
+    <div className="space-y-2" onKeyDown={e => { if (e.key === 'Enter' && tipo !== 'termo' && tipo !== 'simnao') salvar(); if (e.key === 'Escape') { e.stopPropagation(); setEditando(false); } }}>
+      {tipo === 'termo' ? (
+        <select autoFocus value={texto} onChange={e => setTexto(e.target.value)} className={campoCls}>
+          <option value="">Não informado</option>
+          <option value="sessao_publica">Sessão pública / abertura</option>
+          <option value="entrega_proposta">Entrega da proposta</option>
+          <option value="emissao">Emissão da apólice</option>
+        </select>
+      ) : tipo === 'simnao' ? (
+        <select autoFocus value={texto} onChange={e => setTexto(e.target.value)} className={campoCls}>
+          <option value="">Indeterminado</option>
+          <option value="sim">Sim, exige</option>
+          <option value="nao">Não exige</option>
+        </select>
+      ) : (
+        <input autoFocus value={texto} onChange={e => setTexto(e.target.value)} placeholder={placeholder} className={campoCls} />
+      )}
+      <div className="flex gap-2">
+        <button type="button" onClick={salvar} className="px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors">Salvar</button>
+        <button type="button" onClick={() => setEditando(false)} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+      </div>
+    </div>
+  );
+  return (
+    <div className="group flex items-start gap-2">
+      <div className="flex-1 min-w-0">{children}</div>
+      <button type="button" onClick={abrir} title="Corrigir"
+        className={`shrink-0 p-1 rounded-lg transition-colors ${light ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-slate-300 hover:text-gold-dark hover:bg-areia-clara'}`}>
+        <Pencil size={13} />
+      </button>
+    </div>
+  );
+}
+
+const NAO_ENCONTRADO = <span className="text-base font-bold text-amber-600">Não encontrado — preencher</span>;
+
 function loadHistory(): HistoryEntry[] {
   try { return JSON.parse(localStorage.getItem(LICITANTE_HISTORY_KEY) ?? '[]'); } catch { return []; }
 }
@@ -84,8 +173,37 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
   const [showObs, setShowObs] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
-  const [additionalInstructions, setAdditionalInstructions] = useState('');
+  const [progresso, setProgresso] = useState('');
+  const [arquivosLidos, setArquivosLidos] = useState<ArquivoLido[]>([]);
+  const [origemAberta, setOrigemAberta] = useState<{ titulo: string; campo: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Libera o OCR (se foi usado) ao sair da tela
+  useEffect(() => () => { encerrarOcr(); }, []);
+
+  /** Aplica o resultado na tela e no contexto do chat (que pode corrigir campos). */
+  const publicar = (dados: EditalData) => {
+    setResult(dados);
+    setAnalysisContext(dados as unknown as Record<string, unknown>, 'licitante', (updates) => setResult(r => {
+      if (!r) return r;
+      let novo = r;
+      for (const [campo, valor] of Object.entries(updates)) novo = corrigirCampo(novo, campo as keyof EditalData, valor);
+      return novo;
+    }));
+  };
+
+  const corrigir = (campo: keyof EditalData) => (valor: unknown) => {
+    setResult(r => {
+      if (!r) return r;
+      const novo = corrigirCampo(r, campo, valor);
+      setAnalysisContext(novo as unknown as Record<string, unknown>, 'licitante', (updates) => setResult(x => x ? Object.entries(updates).reduce((acc, [c, v]) => corrigirCampo(acc, c as keyof EditalData, v), x) : x));
+      return novo;
+    });
+  };
+
+  const ev = (campo: string) => result?._evidencias?.[campo];
+  const verOrigem = (titulo: string, campo: string) => () => setOrigemAberta({ titulo, campo });
+  const fecharOrigem = React.useCallback(() => setOrigemAberta(null), []);
 
   const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -101,60 +219,58 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
-  const toBase64 = (f: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve((r.result as string).split(',')[1]);
-      r.onerror = reject;
-      r.readAsDataURL(f);
-    });
-
+  /**
+   * Leitura 100% local: texto do PDF (ou OCR) no navegador + regras de lib/edital.
+   * Nenhum arquivo sai da máquina e não há chamada de IA.
+   */
   const analyze = async () => {
     if (files.length === 0) return;
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setProgresso('Abrindo o arquivo…');
     try {
-      const filesData = await Promise.all(files.map(async f => ({
-        data: await toBase64(f),
-        mediaType: f.type,
-        name: f.name,
-      })));
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const supabaseUrl = (supabase as any).supabaseUrl as string;
-      const supabaseKey = (supabase as any).supabaseKey as string;
-
-      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-edital`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || supabaseKey}`,
-          'apikey': supabaseKey,
-        },
-        body: JSON.stringify({ filesData, additionalInstructions: additionalInstructions.trim() || undefined }),
-      });
-
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Erro ao analisar');
-      setResult(json.data);
-      setAnalysisContext(json.data, 'licitante', (updates) => setResult(r => r ? { ...r, ...updates } : r));
-      const entry: HistoryEntry = { timestamp: new Date().toISOString(), fileName: files[0].name, data: json.data };
+      const lido = await lerDocumentos(files, setProgresso);
+      if (!lido.paginas.some(p => p.trim())) throw new Error('Não encontrei texto no arquivo. Confira se é o edital correto.');
+      setProgresso('Procurando os dados do seguro…');
+      let dados = extrairEdital(lido.paginas, lido.origem);
+      if (lido.paginasIgnoradas > 0) {
+        dados = finalizarEdital({
+          ...dados,
+          _alertas_extracao: [...(dados._alertas_extracao ?? []), makeAlerta('outro', 'atencao', null,
+            `Documento escaneado: li por OCR só as ${MAX_PAGINAS_OCR} primeiras páginas de cada arquivo (${lido.paginasIgnoradas} ficaram de fora). Se faltar algum dado, anexe só as páginas da garantia e do valor estimado.`)],
+        });
+      }
+      setArquivosLidos(await Promise.all(files.map(async (f, i) => ({
+        nome: f.name, tipo: f.type, bytes: await f.arrayBuffer(), primeiraPagina: lido.inicioDeCada[i] + 1,
+      }))));
+      publicar(dados);
+      const entry: HistoryEntry = { timestamp: new Date().toISOString(), fileName: files[0].name, data: dados };
       saveToHistory(entry);
       setHistory(loadHistory());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao analisar. Tente novamente.');
+      setError(e instanceof Error ? e.message : 'Erro ao ler o edital. Tente novamente.');
     } finally {
       setLoading(false);
+      setProgresso('');
     }
   };
 
-  const reset = () => { setFiles([]); setResult(null); setError(null); clearAnalysisContext(); };
+  const reset = () => { setFiles([]); setResult(null); setError(null); setArquivosLidos([]); clearAnalysisContext(); };
+
+  /** Página global (somando os arquivos) → PDF e página dentro dele, para o visualizador. */
+  const evidenciaAberta = origemAberta ? result?._evidencias?.[origemAberta.campo] : undefined;
+  const pdfAberto = useMemo(() => {
+    const pagina = evidenciaAberta?.pagina ?? 0;
+    if (pagina < 1) return null;
+    const arq = [...arquivosLidos].reverse().find(a => a.primeiraPagina <= pagina);
+    if (!arq || arq.tipo !== 'application/pdf') return null;
+    return { bytes: arq.bytes, nome: arq.nome, paginaLocal: pagina - arq.primeiraPagina + 1 };
+  }, [evidenciaAberta?.pagina, arquivosLidos]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Seguro Licitante</h2>
-          <p className="text-slate-500 font-semibold mt-1">Envie o edital em PDF. A IA extrai os dados para a cotação do seguro-garantia.</p>
+          <p className="text-slate-500 font-semibold mt-1">Envie o edital em PDF. O hub lê o documento no seu computador e extrai os dados da cotação, sem IA e sem enviar o arquivo.</p>
         </div>
         {history.length > 0 && (
           <button
@@ -185,7 +301,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 )}
               </div>
               <button
-                onClick={() => { setResult(entry.data); setShowHistory(false); }}
+                onClick={() => { setArquivosLidos([]); publicar(finalizarEdital(entry.data)); setShowHistory(false); }}
                 className="shrink-0 px-3 py-1.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors"
               >
                 Restaurar
@@ -232,23 +348,15 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 </div>
               ))}
 
-              {/* Additional instructions */}
-              <div className="pt-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Instrução adicional (opcional)</label>
-                <textarea
-                  value={additionalInstructions}
-                  onChange={e => setAdditionalInstructions(e.target.value)}
-                  placeholder="Ex: O edital é para obras de engenharia. Considere que a sessão pública é presencial. Foque no item 10 sobre garantias..."
-                  rows={2}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 resize-none focus:outline-none focus:border-gold"
-                />
-              </div>
+              {files.length > 1 && (
+                <p className="text-xs text-slate-400 px-1">Os arquivos são lidos como um documento só (edital + anexos), na ordem acima.</p>
+              )}
 
               <div className="flex gap-3">
                 <button onClick={analyze} disabled={loading}
                   className="flex-1 bg-navy text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-navy-light transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
-                  {loading ? 'Analisando...' : `Analisar ${files.length > 1 ? `${files.length} arquivos` : 'Edital'} com IA`}
+                  {loading ? 'Lendo...' : `Ler ${files.length > 1 ? `${files.length} arquivos` : 'edital'}`}
                 </button>
                 <button onClick={reset}
                   className="bg-slate-100 text-slate-600 px-5 py-3.5 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center gap-2">
@@ -265,7 +373,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
           <Loader2 size={36} className="text-gold animate-spin" />
           <div className="text-center">
             <p className="font-black text-slate-800 text-lg">Lendo o edital...</p>
-            <p className="text-slate-400 text-sm mt-1">O Claude está analisando o PDF e extraindo os dados do seguro</p>
+            <p className="text-slate-400 text-sm mt-1">{progresso || 'Extraindo os dados do seguro'}</p>
           </div>
         </div>
       )}
@@ -296,17 +404,21 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   {result.numero_edital && <CopyBtn text={result.numero_edital} light />}
                 </div>
                 {/* Órgão */}
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black text-white leading-tight">{result.orgao_nome || '—'}</h3>
-                  {result.orgao_nome && <CopyBtn text={result.orgao_nome} light />}
-                </div>
-                {/* CNPJ */}
-                {result.orgao_cnpj && (
+                <Editavel valor={result.orgao_nome} tipo="texto" light onSalvar={corrigir('orgao_nome')}>
                   <div className="flex items-center gap-2">
-                    <p className="text-white/50 text-sm font-mono">{result.orgao_cnpj}</p>
-                    <CopyBtn text={result.orgao_cnpj} light />
+                    <h3 className="text-xl font-black text-white leading-tight">{result.orgao_nome || '—'}</h3>
+                    {result.orgao_nome && <CopyBtn text={result.orgao_nome} light />}
                   </div>
-                )}
+                </Editavel>
+                {/* CNPJ do beneficiário (segurado) */}
+                <Editavel valor={result.orgao_cnpj} tipo="texto" placeholder="00.000.000/0000-00" light onSalvar={corrigir('orgao_cnpj')}>
+                  <div className="flex items-center gap-2">
+                    <Building2 size={13} className="text-white/40 shrink-0" />
+                    <p className="text-white/60 text-sm font-mono">{result.orgao_cnpj || 'CNPJ do beneficiário não encontrado'}</p>
+                    {result.orgao_cnpj && <CopyBtn text={result.orgao_cnpj} light />}
+                  </div>
+                  <OrigemLink light evidencia={ev('orgao_cnpj')} onVer={verOrigem('CNPJ do beneficiário', 'orgao_cnpj')} />
+                </Editavel>
                 {/* Objeto */}
                 {result.objeto && (
                   <div className="flex items-start gap-2 border-t border-white/10 pt-3 mt-1">
@@ -322,18 +434,41 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             </div>
           </div>
 
+          {/* Como o edital foi lido */}
+          <div className={`flex items-start gap-2 rounded-xl px-4 py-2.5 text-xs border ${result._origem === 'ocr' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-areia-clara border-linha text-slate-500'}`}>
+            <Info size={14} className="shrink-0 mt-px" />
+            <span>
+              {result._origem === 'ocr'
+                ? 'Documento escaneado, lido por OCR no seu computador. Confira cada número no trecho de origem.'
+                : `Lido por regras no seu computador${result._total_paginas ? ` (${result._total_paginas} páginas)` : ''}, sem IA. Clique em "ver trecho" para conferir de onde veio cada dado e no lápis para corrigir.`}
+              {(result._editados?.length ?? 0) > 0 && ` ${result._editados!.length} campo(s) corrigido(s) à mão.`}
+            </span>
+          </div>
+
           {/* Dados financeiros */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card
               icon={<DollarSign size={15} />}
               label="Valor Global do Edital"
-              value={result.valor_global_edital != null ? (fmtBRL(result.valor_global_edital) ?? '—') : 'Não informado no edital'}
+              value={
+                <Editavel valor={result.valor_global_edital} tipo="moeda" placeholder="Ex.: 1.393.413,10" onSalvar={corrigir('valor_global_edital')}>
+                  {result.valor_global_edital != null ? fmtBRL(result.valor_global_edital) : NAO_ENCONTRADO}
+                  <OrigemLink evidencia={ev('valor_global_edital')} onVer={verOrigem('Valor global do edital', 'valor_global_edital')} />
+                </Editavel>
+              }
               copyValue={fmtBRL(result.valor_global_edital) ?? undefined}
             />
             <Card
               icon={<Shield size={15} />}
               label="% Garantia de Proposta"
-              value={result.percentual_garantia_proposta != null ? `${result.percentual_garantia_proposta}%` : '—'}
+              value={
+                <Editavel valor={result.percentual_garantia_proposta} tipo="numero" placeholder="Ex.: 1" onSalvar={corrigir('percentual_garantia_proposta')}>
+                  {result.percentual_garantia_proposta != null
+                    ? `${String(result.percentual_garantia_proposta).replace('.', ',')}%`
+                    : result.exige_garantia_proposta === false ? '—' : NAO_ENCONTRADO}
+                  <OrigemLink evidencia={ev('percentual_garantia_proposta')} onVer={verOrigem('Percentual da garantia de proposta', 'percentual_garantia_proposta')} />
+                </Editavel>
+              }
               copyValue={result.percentual_garantia_proposta != null ? `${result.percentual_garantia_proposta}%` : undefined}
             />
             <Card
@@ -369,7 +504,12 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <Card
               icon={<Calendar size={15} />}
               label="Data da Sessão Pública / Pregão"
-              value={result.data_sessao_publica ?? '—'}
+              value={
+                <Editavel valor={result.data_sessao_publica} tipo="texto" placeholder="DD/MM/AAAA HH:MM" onSalvar={corrigir('data_sessao_publica')}>
+                  {result.data_sessao_publica ?? NAO_ENCONTRADO}
+                  <OrigemLink evidencia={ev('data_sessao_publica')} onVer={verOrigem('Data da sessão pública', 'data_sessao_publica')} />
+                </Editavel>
+              }
               copyValue={result.data_sessao_publica ?? undefined}
             />
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
@@ -377,6 +517,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 <span className="text-slate-400"><Calendar size={15} /></span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência da Garantia de Proposta</span>
               </div>
+              <Editavel valor={result.vigencia_garantia_proposta_dias} tipo="numero" placeholder="Dias (ex.: 90)" onSalvar={corrigir('vigencia_garantia_proposta_dias')}>
               {(() => {
                 const BUFFER_DIAS = 30;
                 const dias = result.vigencia_garantia_proposta_dias;
@@ -438,6 +579,21 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 );
                 return <p className="text-xl font-black text-slate-500">Não informado</p>;
               })()}
+              <OrigemLink evidencia={ev('vigencia_garantia_proposta_dias')} onVer={verOrigem('Vigência da garantia de proposta', 'vigencia_garantia_proposta_dias')} />
+              </Editavel>
+              {result.vigencia_garantia_proposta_dias != null && (
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <Editavel valor={result.vigencia_garantia_termo_inicial} tipo="termo" onSalvar={corrigir('vigencia_garantia_termo_inicial')}>
+                    <p className="text-xs text-slate-500">
+                      Contada a partir de: <strong className="text-slate-700">{
+                        result.vigencia_garantia_termo_inicial === 'sessao_publica' ? 'sessão pública / abertura'
+                          : result.vigencia_garantia_termo_inicial === 'entrega_proposta' ? 'entrega da proposta'
+                          : result.vigencia_garantia_termo_inicial === 'emissao' ? 'emissão da apólice'
+                          : 'não informado'}</strong>
+                    </p>
+                  </Editavel>
+                </div>
+              )}
             </div>
           </div>
 
@@ -461,9 +617,14 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               conditional:   <AlertTriangle size={20} className="text-blue-500 shrink-0" />,
             };
             return (
-              <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border font-bold ${styles[desc.kind]}`}>
-                {icons[desc.kind]}
-                <span>{desc.text}</span>
+              <div className={`px-6 py-4 rounded-2xl border font-bold ${styles[desc.kind]}`}>
+                <Editavel valor={result.exige_garantia_proposta} tipo="simnao" onSalvar={corrigir('exige_garantia_proposta')}>
+                  <div className="flex items-center gap-3">
+                    {icons[desc.kind]}
+                    <span>{desc.text}</span>
+                  </div>
+                  <div className="pl-8"><OrigemLink evidencia={ev('exige_garantia_proposta')} onVer={verOrigem('Exigência da garantia de proposta', 'exige_garantia_proposta')} /></div>
+                </Editavel>
               </div>
             );
           })()}
@@ -496,7 +657,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-100/50 transition-all">
                 <div className="flex items-center gap-2">
                   <Info size={15} className="text-amber-600" />
-                  <span className="font-bold text-amber-800 text-xs uppercase tracking-[1.5px]">Observações da IA</span>
+                  <span className="font-bold text-amber-800 text-xs uppercase tracking-[1.5px]">Observações</span>
                 </div>
                 {showObs ? <ChevronUp size={15} className="text-amber-600" /> : <ChevronDown size={15} className="text-amber-600" />}
               </button>
@@ -620,6 +781,15 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             )
           )}
         </div>
+      )}
+
+      {origemAberta && evidenciaAberta && (
+        <VisualizadorTrecho
+          titulo={origemAberta.titulo}
+          evidencia={evidenciaAberta}
+          pdf={pdfAberto}
+          onFechar={fecharOrigem}
+        />
       )}
     </div>
   );

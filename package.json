@@ -10,12 +10,15 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
+    "@tesseract.js-data/por": "1.0.0",
     "framer-motion": "^13.1.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.18.2",
+    "tesseract.js": "7.0.0",
+    "unpdf": "1.8.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
