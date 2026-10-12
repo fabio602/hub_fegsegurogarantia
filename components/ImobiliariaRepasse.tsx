@@ -1077,18 +1077,31 @@ export default function ImobiliariaRepasse() {
   // Dar baixa = informar a nova vigência. Com a data nova o registro sai deste painel
   // e some do alerta de vencimento do portal da imobiliária, sem precisar de flag extra.
   const darBaixaRenovacao = async (c: any) => {
-    const atual = parseDataLocal(c.vigencia_fim);
-    const sugestao = new Date(atual.getFullYear() + 1, atual.getMonth(), atual.getDate());
+    // Sugestão: um ano depois da vigência atual. Sem vigência gravada, usa o
+    // padrão de hoje + 1 ano - 1 dia (antes o campo abria vazio, com "NaN").
     const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    let sugestaoISO = fimVigenciaPadrao();
+    if (c.vigencia_fim) {
+      const atual = parseDataLocal(c.vigencia_fim);
+      sugestaoISO = iso(new Date(atual.getFullYear() + 1, atual.getMonth(), atual.getDate()));
+    }
 
+    // A data é pedida e mostrada no formato brasileiro; o banco continua em ISO.
     const resp = prompt(
-      `Renovação de ${c.inquilino_nome}\n\nNova data de fim de vigência (AAAA-MM-DD):`,
-      iso(sugestao)
+      `Renovação de ${c.inquilino_nome}\n\nNova data de fim de vigência (dd/mm/aaaa):`,
+      fmtDataISO(sugestaoISO)
     );
     if (!resp) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(resp.trim())) { alert('Data inválida. Use o formato AAAA-MM-DD.'); return; }
+    const m = resp.trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+    const dia = m ? Number(m[1]) : 0, mes = m ? Number(m[2]) : 0, ano = m ? Number(m[3]) : 0;
+    const conferida = new Date(ano, mes - 1, dia);
+    // O Date "arruma" 31/02 para março; comparar de volta pega data que não existe.
+    if (!m || conferida.getFullYear() !== ano || conferida.getMonth() !== mes - 1 || conferida.getDate() !== dia) {
+      alert('Data inválida. Use o formato dd/mm/aaaa, por exemplo 05/10/2027.');
+      return;
+    }
 
-    const novaData = resp.trim();
+    const novaData = iso(conferida);
     if (diasAte(novaData) <= 0) { alert('A nova vigência precisa ser uma data futura.'); return; }
 
     const { error } = await supabase
