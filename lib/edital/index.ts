@@ -9,12 +9,13 @@
  */
 import type { Alerta, EditalData, Evidencia } from '../editalSchema.ts';
 import { montarDocumento } from './documento.ts';
-import { arredondar2 } from './numeros.ts';
+import { arredondar2, cnpjValido } from './numeros.ts';
 import { extrairGarantia } from './regras/garantia.ts';
 import { extrairValorGlobal } from './regras/valor.ts';
 import { extrairIdentificacao } from './regras/identificacao.ts';
 import { extrairDatas } from './regras/datas.ts';
 import { extrairExecucao } from './regras/execucao.ts';
+import { extrairLotes } from './regras/lotes.ts';
 import {
   addDeadlineAlerts, deduplicateBlockers, deriveExigeGarantia, enforcePlausibilityBand,
   enforcePositiveLock, enforceScaleSanity, enforceTermoInicialLock, makeAlerta,
@@ -31,6 +32,7 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
   const gar = extrairGarantia(doc);
   const valor = extrairValorGlobal(doc);
   const exec = extrairExecucao(doc);
+  const lotes = gar.baseCalculo === 'por_lote' ? extrairLotes(doc) : [];
 
   const evidencias: Record<string, Evidencia> = { ...ident.evidencias, ...datas.evidencias };
   if (gar.exigeEvidencia) evidencias.exige_garantia_proposta = gar.exigeEvidencia;
@@ -52,6 +54,17 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
   if (valor?.alternativos.length) {
     extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
       `O edital traz outros valores totais: ${valor.alternativos.slice(0, 3).map(a => `${brl(a.valor)} (p. ${a.pagina})`).join(', ')}. Confira qual é o valor estimado da contratação.`));
+  }
+  if (gar.cnpjInvalido) {
+    extracao.push(makeAlerta('outro', 'atencao', 'orgao_cnpj',
+      `O CNPJ ${gar.cnpj} tem dígito verificador inválido (erro de digitação no edital ou de leitura). Confirme o CNPJ do órgão antes de pedir a minuta.`));
+  }
+  if (lotes.length && valor) {
+    const soma = lotes.reduce((s, l) => s + l.valor, 0);
+    if (Math.abs(soma - valor.valor) > Math.max(1, valor.valor * 0.005)) {
+      extracao.push(makeAlerta('outro', 'atencao', 'lotes',
+        `A soma dos lotes (${brl(soma)}) não fecha com o valor global (${brl(valor.valor)}). Confira os valores por lote no edital.`));
+    }
   }
   if (origem === 'ocr') {
     extracao.push(makeAlerta('outro', 'atencao', null,
@@ -89,6 +102,8 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
     valor_global_edital: valor?.valor ?? null,
     valor_global_edital_trecho: valor?.evidencia.trecho ?? null,
     valor_global_edital_pagina: valor ? `p. ${valor.evidencia.pagina}` : null,
+    lotes: lotes.length ? lotes : null,
+    lotes_selecionados: null,
 
     validade_proposta_dias: datas.validade_proposta_dias,
     validade_proposta_fonte: datas.validade_proposta_fonte,
@@ -122,12 +137,21 @@ export function finalizarEdital(entrada: EditalData, agora = Date.now()): Edital
 
   deriveExigeGarantia(d);
 
-  // Garantia calculada
+  // Garantia calculada: sobre os lotes escolhidos (se houver) ou sobre o valor global
   const pct = d.percentual_garantia_proposta;
   const valor = d.valor_global_edital;
-  if (d.exige_garantia_proposta !== false && pct != null && valor != null) {
+  const lotes = d.base_calculo_garantia === 'por_lote' && d.lotes?.length ? d.lotes : null;
+  const escolhidos = lotes && d.lotes_selecionados?.length
+    ? lotes.filter(l => d.lotes_selecionados!.includes(l.numero))
+    : null;
+  const pctTxt = pct != null ? `${String(pct).replace('.', ',')}%` : '';
+  if (d.exige_garantia_proposta !== false && pct != null && escolhidos?.length) {
+    const base = escolhidos.reduce((s, l) => s + l.valor, 0);
+    d.valor_garantia_proposta_calculado = arredondar2(base * pct / 100);
+    d.formula_calculo = `${pctTxt} x ${escolhidos.length === 1 ? 'lote' : 'lotes'} ${escolhidos.map(l => l.numero).join(', ')} (${brl(base)})`;
+  } else if (d.exige_garantia_proposta !== false && pct != null && valor != null) {
     d.valor_garantia_proposta_calculado = arredondar2(valor * pct / 100);
-    d.formula_calculo = `${String(pct).replace('.', ',')}% x valor global (${brl(valor)})`;
+    d.formula_calculo = `${pctTxt} x valor global (${brl(valor)})${lotes ? ' = todos os lotes' : ''}`;
   } else {
     d.valor_garantia_proposta_calculado = null;
     d.formula_calculo = pct != null && valor == null ? `${String(pct).replace('.', ',')}% x valor global (valor não localizado)` : null;
@@ -163,8 +187,14 @@ export function finalizarEdital(entrada: EditalData, agora = Date.now()): Edital
     alertas.push(makeAlerta('dado_ausente', 'atencao', 'data_sessao_publica', 'Data da sessão pública não localizada.'));
   }
 
-  if (d.base_calculo_garantia === 'por_lote' || d.base_calculo_garantia === 'por_item') {
-    recomendacoes.push(`A garantia incide sobre o valor do(s) ${d.base_calculo_garantia === 'por_lote' ? 'lote(s)' : 'item(ns)'} em que o cliente participar. O valor calculado sobre o total é o teto; ajuste se ele não disputar tudo.`);
+  if (d.orgao_cnpj && !cnpjValido(d.orgao_cnpj) && !(d._alertas_extracao ?? []).some(a => a.campo_afetado === 'orgao_cnpj' && /verificador/.test(a.texto))) {
+    alertas.push(makeAlerta('outro', 'atencao', 'orgao_cnpj', `O CNPJ ${d.orgao_cnpj} tem dígito verificador inválido. Confira antes de pedir a minuta.`));
+  }
+
+  if (lotes && !escolhidos?.length) {
+    recomendacoes.push('A garantia incide sobre os lotes em que o cliente participar. Marque os lotes que ele disputa para o valor ficar exato; sem marcar, o cálculo é o teto (todos os lotes).');
+  } else if (d.base_calculo_garantia === 'por_lote' || d.base_calculo_garantia === 'por_item') {
+    if (!escolhidos?.length) recomendacoes.push(`A garantia incide sobre o valor do(s) ${d.base_calculo_garantia === 'por_lote' ? 'lote(s)' : 'item(ns)'} em que o cliente participar. O valor calculado sobre o total é o teto; ajuste se ele não disputar tudo.`);
   }
   if (d.divergencia_validade_proposta) recomendacoes.push(`Validade da proposta diverge no edital: ${d.divergencia_validade_proposta}`);
   if (d.exige_garantia_execucao === true) {

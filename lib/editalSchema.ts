@@ -72,6 +72,12 @@ export interface EditalData {
   /** @deprecated campo interno da edge function */
   valor_global_edital_fonte?:      string | null;
 
+  // Lotes (garantia sobre "o(s) lote(s) em que o licitante participar")
+  /** Valor estimado de cada lote, lido do edital */
+  lotes?:                          { numero: number; descricao: string | null; valor: number; pagina: number }[] | null;
+  /** Lotes que o cliente disputa; null/ausente = todos (o cálculo vira o teto) */
+  lotes_selecionados?:             number[] | null;
+
   // Cálculo
   valor_garantia_proposta_calculado?: number | null;
   formula_calculo?:                string | null;

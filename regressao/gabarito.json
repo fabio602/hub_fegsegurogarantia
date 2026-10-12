@@ -5,14 +5,19 @@
   "casos": [
     {
       "id": "maraba-cp-148-2026",
-      "prefiltro_criterio_paginas": [11, 16, 17, 18],
+      "prefiltro_criterio_paginas": [
+        11,
+        16,
+        17,
+        18
+      ],
       "prefiltro_evidencia": "p.11: menção 'garantia de proposta' em contexto de penalidades — score pelo termo. p.16: 'Garantia da Proposta / 4.15. Será exigida a garantia da proposta ... Art. 58, §1º ... 1% (um por cento)'. p.17: item 4.22 CNPJ da SEMED 27.927.574/0001-66 e item 4.23 prazo 180 dias a partir da data de abertura da proposta. p.18: continuação das condições de garantia (art. 4.24+). Confirmado por pdftotext.",
       "arquivo": "Edital - CP 148-06 - Esc Sol Poente - V Carrapato.pdf",
       "orgao": "Prefeitura Municipal de Marabá / SEMED",
       "modalidade": "Concorrência Eletrônica 148/2026",
       "por_que_esta_na_bateria": "Caso base. Beneficiário é uma SECRETARIA (SEMED), não a prefeitura. Percentual no corpo (4.15), CNPJ do beneficiário sete itens abaixo (4.22), valor global só na planilha do Anexo V.",
       "esperado": {
-        "valor_global_edital": 1393413.10,
+        "valor_global_edital": 1393413.1,
         "exige_garantia_proposta": true,
         "percentual_garantia_proposta": 1,
         "valor_garantia_proposta_calculado": 13934.13,
@@ -30,7 +35,9 @@
     },
     {
       "id": "araujos-conc-03-2026",
-      "prefiltro_criterio_paginas": [8],
+      "prefiltro_criterio_paginas": [
+        8
+      ],
       "prefiltro_evidencia": "p.8: seção '7.11 – Da Garantia da Proposta: os licitantes deverão juntar ... comprovantes da prestação de garantia de 1% (um por cento) sobre o valor de referência ... 7.11.2 – modalidades ...'. Confirmado por pdftotext.",
       "arquivo": "EDITAL (4) (1).pdf",
       "orgao": "Prefeitura Municipal de Araújos/MG",
@@ -40,7 +47,7 @@
         "valor_global_edital": 468380.42,
         "exige_garantia_proposta": true,
         "percentual_garantia_proposta": 1,
-        "valor_garantia_proposta_calculado": 4683.80,
+        "valor_garantia_proposta_calculado": 4683.8,
         "vigencia_garantia_proposta_dias": null,
         "vigencia_garantia_termo_inicial": null,
         "orgao_cnpj": "18.300.996/0001-16",
@@ -55,7 +62,10 @@
     },
     {
       "id": "paulista-pb-pe-00026-2026",
-      "prefiltro_criterio_paginas": [5, 6],
+      "prefiltro_criterio_paginas": [
+        5,
+        6
+      ],
       "prefiltro_evidencia": "p.5: seção 8.4.1 'art. 58, §1º da Lei 14.133/2021, o valor da garantia da proposta deverá ser de 1% (um por cento) do valor estimado ... em nome do Município de Paulista/PB'. p.6: seções 8.4.4-8.4.6 continuação — devolução em 10 dias úteis, execução por recusa em assinar contrato. Confirmado por pdftotext.",
       "arquivo": "EDITAL - PAULISTA-PB.pdf",
       "orgao": "Prefeitura Municipal de Paulista/PB",
@@ -104,24 +114,29 @@
     },
     {
       "id": "mortugaba-ba-pe-012-2026",
-      "prefiltro_criterio_paginas": [23, 24, 25, 26],
+      "prefiltro_criterio_paginas": [
+        23,
+        24,
+        25,
+        26
+      ],
       "prefiltro_evidencia": "p.23-26 = seção de preços por lote: p.24 Lote1 R$ 379.550,00 | p.25 Lote2 R$ 63.500,00 | p.26 Lote3 R$ 40.100,00 + TOTAL GERAL R$ 483.150,00. p.29 removida do critério: 'MODELO DE EXECUÇÃO DO OBJETO', único match foi 'lote 03' incidental (score=3).",
       "arquivo": "EDITAL - MORTUGABA-BA 012-2026.pdf",
       "orgao": "Prefeitura Municipal de Mortugaba/BA",
       "modalidade": "Pregão Eletrônico SRP 012/2026",
       "por_que_esta_na_bateria": "CASO DE USO REAL — cotado em produção em 23/08/2026 com resultado aceito pelo corretor, ANTES dos locks de vigência entrarem no ar. Serve de detector de regressão: se os locks apertarem demais, é aqui que aparece. Traz também um modo de falha que nenhum outro caso cobre: a BASE DE CÁLCULO é POR LOTE, não sobre o valor global — 1% do(s) lote(s) em que o licitante participar. Duas armadilhas de vigência distintas das de Araújos: validade da proposta (60 dias, linha 328) e prazo de devolução da garantia (10 dias úteis, linha 159). A seção de garantia NÃO fixa prazo de validade.",
       "esperado": {
-        "valor_global_edital": 483150.00,
+        "valor_global_edital": 483150.0,
         "exige_garantia_proposta": true,
         "percentual_garantia_proposta": 1,
-        "valor_garantia_proposta_calculado": 4831.50,
+        "valor_garantia_proposta_calculado": 4831.5,
         "vigencia_garantia_proposta_dias": null,
         "vigencia_garantia_termo_inicial": null,
         "orgao_cnpj": "13.677.687/0001-46",
         "data_sessao_publica": "2026-08-28T11:30"
       },
       "esperado_nao_testado": {
-        "_nota": "Campos que o gabarito documenta mas que rodar.ts ainda NÃO compara. Incluir em CAMPOS_TESTADOS quando a função passar a tratá-los.",
+        "_nota": "base_calculo_garantia = por_lote é testado indiretamente pelos lotes.",
         "base_calculo_garantia": "lote"
       },
       "evidencias": {
@@ -134,7 +149,21 @@
         "armadilha_1": "item 7.18 (linha 328) — 'O prazo de validade da proposta não será inferior a 60 (sessenta) dias, a contar da data de...'. Validade da PROPOSTA (art. 59), não da garantia. Preencher 60 é ERRO.",
         "armadilha_2": "seção 5 (linha 159) — 'A garantia será devolvida no prazo de 10 dias úteis, contado da assinatura do contrato'. Prazo de DEVOLUÇÃO, não vigência. Preencher 10 é ERRO.",
         "armadilha_3_lock": "seção 5 (linha 155) — 'A garantia deverá estar constituída até o horário-limite de apresentação das propostas'. Se o modelo citar este trecho como justificativa de termo_inicial, o lock ANCORA_TERMO NÃO rejeita (o trecho casa com 'apresentação das propostas'). Falso-negativo conhecido da heurística — este caso existe para medi-lo."
-      }
+      },
+      "esperado_lotes": [
+        {
+          "numero": 1,
+          "valor": 379550.0
+        },
+        {
+          "numero": 2,
+          "valor": 63500.0
+        },
+        {
+          "numero": 3,
+          "valor": 40100.0
+        }
+      ]
     }
   ]
 }

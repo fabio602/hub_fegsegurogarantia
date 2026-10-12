@@ -9,7 +9,7 @@
  * garantia — são rejeitadas explicitamente.
  */
 import { Documento, ocorrencias, paginaDe, trecho } from '../documento.ts';
-import { parsePercentual } from '../numeros.ts';
+import { parsePercentual, cnpjValido } from '../numeros.ts';
 import type { Evidencia } from '../../editalSchema.ts';
 
 /** Âncora forte: fala da garantia de PROPOSTA/PARTICIPAÇÃO (texto dobrado). */
@@ -98,6 +98,8 @@ export interface ResultadoGarantia {
   cnpj: string | null;
   cnpjEvidencia: Evidencia | null;
   cnpjDoCabecalho: boolean;
+  /** CNPJ achado só com dígito verificador inválido (erro de digitação/OCR) */
+  cnpjInvalido: boolean;
   /** Seção principal (onde está o percentual), usada por outras regras */
   secaoPrincipal: Secao | null;
 }
@@ -200,10 +202,10 @@ const CNPJ_FG = '56.123.874/0001-90';
 const RE_CNPJ = /\d{2}\.\d{3}\.\d{3}\s?\/\s?\d{4}\s?-\s?\d{2}/g;
 const limparCnpj = (s: string) => s.replace(/\s/g, '');
 
-function cnpjNaSecao(doc: Documento, s: Secao) {
+function cnpjNaSecao(doc: Documento, s: Secao, aceitarInvalido = false) {
   for (const m of doc.texto.slice(s.ini, s.fim).matchAll(RE_CNPJ)) {
     const c = limparCnpj(m[0]);
-    if (c === CNPJ_FG) continue;
+    if (c === CNPJ_FG || (!aceitarInvalido && !cnpjValido(c))) continue;
     const ini = s.ini + m.index!;
     return { cnpj: c, evidencia: ev(doc, ini, ini + m[0].length) };
   }
@@ -211,12 +213,12 @@ function cnpjNaSecao(doc: Documento, s: Secao) {
 }
 
 /** CNPJ mais frequente no cabeçalho/rodapé e nas 3 primeiras páginas (órgão licitante). */
-export function cnpjDoOrgao(doc: Documento) {
+export function cnpjDoOrgao(doc: Documento, aceitarInvalido = false) {
   const freq = new Map<string, number>();
   const somar = (txt: string, peso: number) => {
     for (const m of txt.matchAll(RE_CNPJ)) {
       const c = limparCnpj(m[0]);
-      if (c !== CNPJ_FG) freq.set(c, (freq.get(c) ?? 0) + peso);
+      if (c !== CNPJ_FG && (aceitarInvalido || cnpjValido(c))) freq.set(c, (freq.get(c) ?? 0) + peso);
     }
   };
   somar(doc.cabecalhos.join('\n'), 2);
@@ -260,7 +262,7 @@ export function extrairGarantia(doc: Documento): ResultadoGarantia {
   const r: ResultadoGarantia = {
     exige: null, exigeEvidencia: null, percentual: null, percentualEvidencia: null,
     baseCalculo: null, modalidades: null, vigenciaDias: null, termoInicial: null, termoTrecho: null,
-    vigenciaEvidencia: null, cnpj: null, cnpjEvidencia: null, cnpjDoCabecalho: false, secaoPrincipal: null,
+    vigenciaEvidencia: null, cnpj: null, cnpjEvidencia: null, cnpjDoCabecalho: false, cnpjInvalido: false, secaoPrincipal: null,
   };
 
   // 1. Negação explícita ("não será exigida garantia de proposta")
@@ -325,6 +327,12 @@ export function extrairGarantia(doc: Documento): ResultadoGarantia {
   if (!r.cnpj) {
     const c = cnpjDoOrgao(doc);
     if (c) { r.cnpj = c.cnpj; r.cnpjEvidencia = c.evidencia; r.cnpjDoCabecalho = true; }
+  }
+  // Último recurso: CNPJ com dígito inválido (melhor mostrar e alertar do que esconder)
+  if (!r.cnpj) {
+    const naSecao = r.exige !== false ? ordem.slice(0, 3).map(s => cnpjNaSecao(doc, s, true)).find(Boolean) : null;
+    const c = naSecao ?? cnpjDoOrgao(doc, true);
+    if (c) { r.cnpj = c.cnpj; r.cnpjEvidencia = c.evidencia; r.cnpjInvalido = true; r.cnpjDoCabecalho = !naSecao; }
   }
   return r;
 }

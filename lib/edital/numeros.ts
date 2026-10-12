@@ -68,3 +68,19 @@ export function formatarDataHora(d: DataHora): string {
   const base = `${dois(d.dia)}/${dois(d.mes)}/${d.ano}`;
   return d.hora != null ? `${base} ${dois(d.hora)}:${dois(d.minuto ?? 0)}` : base;
 }
+
+/**
+ * Dígitos verificadores do CNPJ (aceita com ou sem máscara).
+ * Pega erro de digitação da seguradora e erro de leitura do OCR.
+ */
+export function cnpjValido(cnpj: string | null | undefined): boolean {
+  const d = String(cnpj ?? '').replace(/\D/g, '');
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const dv = (base: string) => {
+    const pesos = base.length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const soma = [...base].reduce((s, c, i) => s + Number(c) * pesos[i], 0);
+    const r = soma % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return dv(d.slice(0, 12)) === Number(d[12]) && dv(d.slice(0, 13)) === Number(d[13]);
+}

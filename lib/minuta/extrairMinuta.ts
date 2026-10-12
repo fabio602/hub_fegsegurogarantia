@@ -29,6 +29,11 @@ export interface MinutaExtraida {
   premio: number | null;
   vigencia_inicio: string | null; // DD/MM/YYYY
   vigencia_fim: string | null;
+  /**
+   * Convenção de horário do início: true = "às 24h" / "23:59h" da data inicial (a cobertura
+   * começa na virada para o dia seguinte); false = "a partir das 00:00h"; null = não informa.
+   */
+  vigencia_inicio_24h: boolean | null;
   modalidade: 'licitante' | 'contrato' | null;
   modalidade_texto: string | null;
   /** Números de edital/pregão citados no objeto ("013/2026") */
@@ -299,6 +304,12 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
     }
   }
   if (vig) marcar('vigencia', vig.a.pos, vig.b.pos + 10);
+  // Convenção de horário (a frente tem prioridade; as condições gerais costumam repetir a regra)
+  const conv = (txt: string): boolean | null =>
+    /a\s+partir\s+das\s+0?0\s*[:h]\s*00|das\s+0?0\s*[:h]\s*00\s*h?\s+d[eo]/.test(txt) ? false
+      : /(?:das|a\s+partir\s+das|as)\s+24\s*h|24\s*horas\s+d[aeo]|vinte\s+e\s+quatro\s+horas\)?\s+das|23\s*:\s*59\s*h?s?\s+das\s+datas|as\s+24\s*hs?\s+das\s+datas/.test(txt) ? true
+      : null;
+  const vigencia_inicio_24h = conv(frente) ?? conv(doc.busca.slice(corte));
 
   // ── Modalidade ────────────────────────────────────────────────────────────
   const lic = /licitante|garantia\s+de\s+proposta|participacao\s+em\s+licitacao|bid\s+bond/.exec(frente);
@@ -339,6 +350,7 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
     premio: pr?.[0] ?? null,
     vigencia_inicio: vig?.a.s ?? null,
     vigencia_fim: vig?.b.s ?? null,
+    vigencia_inicio_24h,
     modalidade,
     modalidade_texto,
     edital_refs,

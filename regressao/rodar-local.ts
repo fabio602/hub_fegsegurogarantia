@@ -14,7 +14,7 @@
  * (lib/minuta) e, quando o caso aponta o edital de origem, o Double Check minuta × edital.
  */
 import { extractText } from "npm:unpdf";
-import { extrairEdital } from "../lib/edital/index.ts";
+import { extrairEdital, finalizarEdital } from "../lib/edital/index.ts";
 import { extrairMinuta } from "../lib/minuta/extrairMinuta.ts";
 import { conferirMinuta } from "../lib/minuta/conferirMinuta.ts";
 import type { EditalData } from "../lib/editalSchema.ts";
@@ -55,7 +55,7 @@ function comparar(campo: Campo, esperado: unknown, obtido: unknown): boolean {
   return esperado === obtido;
 }
 
-interface Caso { id: string; arquivo: string; esperado: Record<Campo, unknown> }
+interface Caso { id: string; arquivo: string; esperado: Record<Campo, unknown>; esperado_lotes?: { numero: number; valor: number }[] }
 const gabarito = JSON.parse(await Deno.readTextFile(`${DIR}/gabarito.json`)) as { casos: Caso[] };
 
 let acertos = 0, total = 0;
@@ -81,11 +81,30 @@ for (const caso of gabarito.casos) {
     const ev = dados._evidencias?.[c];
     console.log(`  ${ok ? "✓" : "✗"} ${c.padEnd(34)} esperado=${JSON.stringify(esp)}  obtido=${JSON.stringify(obt ?? null)}${!ok && ev ? `\n      ↳ p.${ev.pagina}: ${ev.trecho}` : ""}`);
   }
+  if (caso.esperado_lotes) {
+    const obtidos = (dados.lotes ?? []).map(l => ({ numero: l.numero, valor: l.valor }));
+    const ok = JSON.stringify(obtidos) === JSON.stringify(caso.esperado_lotes);
+    total++; if (ok) acertos++;
+    console.log(`  ${ok ? "✓" : "✗"} ${"lotes".padEnd(34)} esperado=${JSON.stringify(caso.esperado_lotes.map(l => l.valor))}  obtido=${JSON.stringify(obtidos.map(l => l.valor))}`);
+  }
   if (json) console.log(JSON.stringify({ ...dados, _evidencias: undefined }, null, 2));
 }
 
 // ── Minutas ────────────────────────────────────────────────────────────────
-interface CasoMinuta { arquivo: string; edital_caso?: string; esperado: Record<string, unknown> }
+interface Conferencia { _nota?: string; lotes_selecionados: number[] | null; veredicto: string; itens: Record<string, string> }
+interface CasoMinuta { arquivo: string; edital_caso?: string; esperado: Record<string, unknown>; conferencias?: Conferencia[] }
+
+/** Confere um Double Check contra o esperado; devolve a lista de diferenças. */
+function checarConferencia(r: ReturnType<typeof conferirMinuta>, esp: { veredicto: string; itens: Record<string, string> }): string[] {
+  const erros: string[] = [];
+  if (r.veredicto !== esp.veredicto) erros.push(`veredicto: esperado=${esp.veredicto} obtido=${r.veredicto}`);
+  for (const [campo, status] of Object.entries(esp.itens)) {
+    const item = r.itens.find(i => i.campo === campo);
+    if (item?.status !== status) erros.push(`${campo}: esperado=${status} obtido=${item?.status ?? "(ausente)"}${item?.observacao ? ` — ${item.observacao}` : ""}`);
+  }
+  return erros;
+}
+let confOk = 0, confTotal = 0;
 const gabMin = JSON.parse(await Deno.readTextFile(`${DIR}/gabarito-minutas.json`)) as { casos: CasoMinuta[] };
 let minOk = 0, minTotal = 0;
 if (!soCaso) {
@@ -104,14 +123,54 @@ if (!soCaso) {
     console.log(`  ${erros.length ? "✗" : "✓"} ${caso.arquivo}${erros.map(e => `\n      ${e}`).join("")}`);
     const ed = caso.edital_caso ? editais.get(caso.edital_caso) : undefined;
     if (ed) {
-      const r = conferirMinuta(m, ed);
-      console.log(`      Double Check × ${caso.edital_caso}: ${r.veredicto} — ${r.resumo}`);
-      for (const i of r.itens) console.log(`        [${i.status}] ${i.campo}: ${i.encontrado}${i.observacao ? ` (${i.observacao})` : ""}`);
+      for (const conf of caso.conferencias ?? []) {
+        const edSel = finalizarEdital({ ...ed, lotes_selecionados: conf.lotes_selecionados });
+        const r = conferirMinuta(m, edSel);
+        const erros = checarConferencia(r, conf);
+        confTotal++; if (!erros.length) confOk++;
+        console.log(`      ${erros.length ? "✗" : "✓"} Double Check × ${caso.edital_caso} (lotes ${conf.lotes_selecionados?.join(",") ?? "todos"}): ${r.veredicto}${erros.map(e => `\n          ${e}`).join("")}`);
+        if (json) for (const i of r.itens) console.log(`          [${i.status}] ${i.campo}: ${i.encontrado}${i.observacao ? ` (${i.observacao})` : ""}`);
+      }
+
+      // Casos adulterados: a mesma minuta com um erro plantado de propósito.
+      // Cada um prova que a regra correspondente pega o problema.
+      if (caso.arquivo === "allseg-9180.pdf") {
+        const sel1 = finalizarEdital({ ...ed, lotes_selecionados: [1] });
+        const sinteticos: { nome: string; minuta: typeof m; edital?: EditalData; veredicto: string; itens: Record<string, string> }[] = [
+          { nome: "CNPJ do segurado com dígito errado", minuta: { ...m, segurado_cnpj: "13.677.687/0001-47", cnpjs: ["08.588.004/0001-44", "13.677.687/0001-47"] },
+            veredicto: "NAO EMITIR", itens: { "Segurado": "divergencia", "CNPJs da minuta": "divergencia" } },
+          { nome: "CNPJ do tomador com dígito errado", minuta: { ...m, tomador_cnpj: "08.588.004/0001-45" },
+            veredicto: "NAO EMITIR", itens: { "Segurado": "ok", "CNPJs da minuta": "divergencia" } },
+          { nome: "início às 24h do dia da sessão (só vale no dia seguinte)", minuta: { ...m, vigencia_inicio: "28/08/2026" },
+            veredicto: "NAO EMITIR", itens: { "Início da cobertura": "divergencia" } },
+          { nome: "início 00:00 do dia da sessão (vale 11h30 antes)", minuta: { ...m, vigencia_inicio: "28/08/2026", vigencia_inicio_24h: false },
+            veredicto: "PODE EMITIR", itens: { "Início da cobertura": "ok" } },
+          { nome: "data impossível (31/02)", minuta: { ...m, vigencia_fim: "31/02/2027" },
+            veredicto: "NAO EMITIR", itens: { "Início da cobertura": "divergencia", "Prazo da vigência": "divergencia" } },
+          { nome: "lote 2 marcado, minuta do lote 1 (acima do exigido)", minuta: m, edital: finalizarEdital({ ...ed, lotes_selecionados: [2] }),
+            veredicto: "PODE EMITIR", itens: { "Valor da garantia": "atencao_favoravel" } },
+          { nome: "valor que não bate com nenhum lote", minuta: { ...m, valor_garantia: 1000 },
+            veredicto: "NAO EMITIR", itens: { "Valor da garantia": "divergencia" } },
+          { nome: "edital errado no objeto", minuta: { ...m, edital_refs: ["021/2026"] }, edital: sel1,
+            veredicto: "NAO EMITIR", itens: { "Edital no objeto": "divergencia" } },
+          { nome: "minuta de contrato no lugar de licitante", minuta: { ...m, modalidade: "contrato", modalidade_texto: "EXECUTANTE" }, edital: sel1,
+            veredicto: "NAO EMITIR", itens: { "Modalidade": "divergencia" } },
+          { nome: "fim antes do mínimo (vigência exigida de 120 dias)", minuta: m,
+            edital: finalizarEdital({ ...sel1, vigencia_garantia_proposta_dias: 120, vigencia_garantia_termo_inicial: "sessao_publica", _editados: ["vigencia_garantia_proposta_dias", "vigencia_garantia_termo_inicial"] }),
+            veredicto: "NAO EMITIR", itens: { "Prazo da vigência": "divergencia" } },
+        ];
+        for (const t of sinteticos) {
+          const r = conferirMinuta(t.minuta, t.edital ?? sel1);
+          const erros = checarConferencia(r, t);
+          confTotal++; if (!erros.length) confOk++;
+          console.log(`      ${erros.length ? "✗" : "✓"} adulterado: ${t.nome} → ${r.veredicto}${erros.map(e => `\n          ${e}`).join("")}`);
+        }
+      }
     }
   }
-  acertos += minOk; total += minTotal;
+  acertos += minOk + confOk; total += minTotal + confTotal;
 }
 
-console.log(`\n══ Placar: ${acertos}/${total} campos corretos${minTotal ? ` (editais ${acertos - minOk}/${total - minTotal}, minutas ${minOk}/${minTotal})` : ""}`);
+console.log(`\n══ Placar: ${acertos}/${total} verificações corretas${minTotal ? ` (editais ${acertos - minOk - confOk}/${total - minTotal - confTotal}, minutas ${minOk}/${minTotal}, Double Check ${confOk}/${confTotal})` : ""}`);
 for (const [c, { ok, n }] of porCampo) if (n) console.log(`   ${c.padEnd(34)} ${ok}/${n}`);
 if (acertos < total) Deno.exitCode = 1;

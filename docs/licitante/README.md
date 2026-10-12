@@ -20,6 +20,7 @@ PDF / imagem
        ├─ regras/datas.ts         sessão pública, limite de propostas, validade (art. 59)
        ├─ regras/identificacao.ts órgão, modalidade, nº, processo, objeto, portal
        ├─ regras/execucao.ts      garantia de execução (oportunidade de contrato)
+       ├─ regras/lotes.ts         valor de cada lote (quando a garantia é por lote)
        └─ travas.ts               travas portadas do analyze-edital
   └─ finalizarEdital / corrigirCampo  recalcula garantia, alertas e pendências
                                       a cada correção manual na tela
@@ -29,6 +30,22 @@ Minuta (Double Check)
                                   vigência, modalidade, edital citado
   └─ lib/minuta/conferirMinuta.ts confere contra o edital → veredicto
 ```
+
+## O que o Double Check confere
+
+| Item | Regra |
+|---|---|
+| Modalidade | tem de ser licitante / garantia de proposta |
+| Segurado | o CNPJ do edital tem de estar na minuta |
+| CNPJs da minuta | dígitos verificadores do segurado e do tomador (pega erro de digitação) |
+| Valor da garantia | exato sobre o valor global ou sobre os lotes marcados; sem lote marcado, diz a qual combinação de lotes a minuta corresponde |
+| Início da cobertura | a garantia tem de estar valendo até o limite de entrega das propostas (ou a sessão). Respeita a convenção da seguradora: "a partir das 00:00h" começa no dia; "às 24h"/"23:59h" só vale no dia seguinte. Sem informação, considera às 24h (conservador) |
+| Prazo da vigência | dias exigidos contados do termo inicial (art. 183: exclui o dia do começo e inclui o do vencimento); sem vigência no edital, compara com a validade da proposta e só marca "conferir" |
+| Edital no objeto | o número do edital citado na apólice tem de bater ("013/2026" = "13/2026") |
+| Tomador | tem de estar identificado |
+
+Datas impossíveis (31/02) e fim antes do início são divergência. Quando o usuário marca
+lotes depois de validar, o Double Check se recalcula sozinho.
 
 Cada dado extraído guarda a **evidência** (`_evidencias`: trecho literal e página). Na
 tela, "p. 16 · ver trecho" abre a página do PDF com o trecho destacado
@@ -60,7 +77,11 @@ corrigido fica marcado como "Informado manualmente" e não é derrubado pelas tr
 - `regressao/gabarito.json`: 5 editais × 8 campos, conferidos à mão.
 - `regressao/gabarito-minutas.json`: 7 minutas de 5 seguradoras.
 - Os PDFs ficam em `regressao/pdfs/` e `regressao/minutas/` e não vão para o git.
-- Placar em 11/10/2026: **96/96** (editais 40/40, minutas 56/56).
+- Casos adulterados (no próprio `rodar-local.ts`): a minuta de Mortugaba com um erro
+  plantado de cada vez (CNPJ com dígito trocado, início às 24h do dia da sessão, data
+  impossível, lote errado, edital errado, modalidade errada, prazo curto). Cada um prova
+  que a regra correspondente pega o problema.
+- Placar em 11/10/2026: **117/117** (editais 41/41, minutas 63/63, Double Check 13/13).
 
 Rode a bateria **antes e depois** de qualquer mudança nas regras. Quando um edital real
 vier errado, a correção é: adicionar o PDF em `regressao/pdfs/`, o caso no gabarito

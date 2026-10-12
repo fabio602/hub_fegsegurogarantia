@@ -484,6 +484,53 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             />
           </div>
 
+          {/* Lotes: o cliente escolhe quais disputa e a garantia fica exata */}
+          {result.base_calculo_garantia === 'por_lote' && result.lotes && result.lotes.length > 1 && (() => {
+            const lotes = result.lotes!;
+            const marcados = result.lotes_selecionados ?? [];
+            const alternar = (n: number) => {
+              const novo = marcados.includes(n) ? marcados.filter(x => x !== n) : [...marcados, n].sort((a, b) => a - b);
+              corrigir('lotes_selecionados')(novo.length ? novo : null);
+            };
+            const pct = result.percentual_garantia_proposta;
+            return (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-100">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lotes que o cliente disputa</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {marcados.length ? 'A garantia é calculada só sobre os lotes marcados.' : 'Nenhum marcado: o cálculo é o teto (todos os lotes). Marque os que o cliente disputa.'}
+                    </p>
+                  </div>
+                  {marcados.length > 0 && (
+                    <button type="button" onClick={() => corrigir('lotes_selecionados')(null)}
+                      className="shrink-0 text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">Limpar</button>
+                  )}
+                </div>
+                <ul className="divide-y divide-slate-100">
+                  {lotes.map(l => {
+                    const marcado = marcados.includes(l.numero);
+                    return (
+                      <li key={l.numero}>
+                        <label className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${marcado ? 'bg-areia-clara' : 'hover:bg-slate-50'}`}>
+                          <input type="checkbox" checked={marcado} onChange={() => alternar(l.numero)} className="w-4 h-4 accent-navy shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-800">Lote {l.numero}</p>
+                            {l.descricao && <p className="text-xs text-slate-500 truncate">{l.descricao}</p>}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold text-slate-800">{fmtBRL(l.valor)}</p>
+                            {pct != null && <p className="text-[11px] text-slate-400">garantia {fmtBRL(Math.round(l.valor * pct) / 100)}</p>}
+                          </div>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })()}
+
           {/* Fórmula em aberto + divergência de validade */}
           {(result.formula_calculo || result.divergencia_validade_proposta) && (
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 space-y-2">

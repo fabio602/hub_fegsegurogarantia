@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload, FileText, Loader2, CheckCircle2, XCircle,
   AlertTriangle, RotateCcw, ClipboardCheck, ChevronDown, ChevronUp,
@@ -7,7 +7,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { normalizarSeguradora } from '../utils/seguradoras';
 import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
-import { extrairMinuta } from '../lib/minuta/extrairMinuta.ts';
+import { extrairMinuta, type MinutaExtraida } from '../lib/minuta/extrairMinuta.ts';
 import { conferirMinuta, type ValidationItem, type ValidationResult, type MinutaDados } from '../lib/minuta/conferirMinuta.ts';
 import type { EditalData } from '../lib/editalSchema.ts';
 
@@ -158,6 +158,9 @@ const GERAL_CONFIG = {
 
 export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onVerVendas }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  // Minuta já lida (Licitante): a conferência é refeita quando a análise do edital muda,
+  // por exemplo quando o usuário marca os lotes que o cliente disputa.
+  const [minutaLida, setMinutaLida] = useState<MinutaExtraida | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -197,7 +200,9 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
       if (tipo === 'licitante') {
         const lido = await lerDocumento(file);
         if (!lido.paginas.some(p => p.trim())) throw new Error('Não encontrei texto na minuta.');
-        setResult(conferirMinuta(extrairMinuta(lido.paginas), dadosOriginais as EditalData));
+        const extraida = extrairMinuta(lido.paginas);
+        setMinutaLida(extraida);
+        setResult(conferirMinuta(extraida, dadosOriginais as EditalData));
         return;
       }
       const pdfBase64 = await toBase64(file);
@@ -227,8 +232,12 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
     }
   };
 
+  useEffect(() => {
+    if (tipo === 'licitante' && minutaLida) setResult(conferirMinuta(minutaLida, dadosOriginais as EditalData));
+  }, [dadosOriginais, minutaLida, tipo]);
+
   const reset = () => {
-    setFile(null); setResult(null); setError(null);
+    setFile(null); setResult(null); setError(null); setMinutaLida(null);
     setShowMsg(false); setCopied(false);
     setShowVenda(false); setVendaSalva(false); setVendaError(null);
   };
@@ -464,12 +473,10 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                           <span className="text-slate-400 uppercase tracking-[1px] font-bold">Esperado: </span>
                           <span className="text-slate-600 font-semibold">{item.esperado}</span>
                         </div>
-                        {item.status !== 'ok' && (
-                          <div>
-                            <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
-                            <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : 'text-amber-700'}`}>{item.encontrado}</span>
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
+                          <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : item.status === 'ok' || item.status === 'atencao_favoravel' ? 'text-slate-600' : 'text-amber-700'}`}>{item.encontrado}</span>
+                        </div>
                       </div>
                       {item.observacao && (
                         <p className="text-xs text-slate-500 mt-1 italic">{item.observacao}</p>
