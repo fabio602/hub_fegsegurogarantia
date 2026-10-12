@@ -1,0 +1,44 @@
+{
+  "_descricao": "Gabarito da leitura de minutas/apólices por regras (lib/minuta/extrairMinuta.ts). Cada valor foi conferido no texto do PDF extraído pelo unpdf. Os PDFs ficam em regressao/minutas/ (fora do git). null = o documento não traz o dado.",
+  "_versao": 1,
+  "_data": "2026-10-10",
+  "casos": [
+    {
+      "arquivo": "allseg-7734.pdf",
+      "esperado": { "seguradora": "Allseg Seguradora S/A", "tomador_cnpj": "40.447.088/0001-09", "segurado_cnpj": "02.578.421/0001-20", "valor_garantia": 113463.61, "premio": 12501.2, "vigencia_inicio": "01/06/2026", "vigencia_fim": "29/08/2031", "modalidade": "contrato" },
+      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 113.463,61 R$ 113.463,61'; 'PRÊMIO TOTAL R$ 12.501,20'; '01/06/2026 INÍCIO VIGÊNCIA 29/08/2031 FIM DE VIGÊNCIA'"
+    },
+    {
+      "arquivo": "allseg-9180.pdf",
+      "edital_caso": "mortugaba-ba-pe-012-2026",
+      "esperado": { "seguradora": "Allseg Seguradora S/A", "tomador_cnpj": "08.588.004/0001-44", "segurado_cnpj": "13.677.687/0001-46", "valor_garantia": 3795.5, "premio": 170, "vigencia_inicio": "27/08/2026", "vigencia_fim": "27/11/2026", "modalidade": "licitante" },
+      "evidencias": "p.2: 'LICITANTE R$ 3.795,50 R$ 3.795,50' (1% do LOTE 1 de Mortugaba); 'PRÊMIO TOTAL R$ 170,00'; Edital nº 012/2026",
+      "conferencia_esperada": "valor da garantia abaixo do teto (todos os lotes), mas o edital calcula por lote: 'conferir', não divergência"
+    },
+    {
+      "arquivo": "allseg-9181.pdf",
+      "esperado": { "seguradora": "Allseg Seguradora S/A", "tomador_cnpj": "07.352.266/0001-42", "segurado_cnpj": "05.422.000/0001-01", "valor_garantia": 895353.11, "premio": 45655.65, "vigencia_inicio": "10/08/2026", "vigencia_fim": "08/11/2030", "modalidade": "contrato" },
+      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 895.353,11 R$ 895.353,11'; 'PRÊMIO TOTAL R$ 45.655,65'"
+    },
+    {
+      "arquivo": "axa-707540c5-cotacao.pdf",
+      "esperado": { "seguradora": "AXA Seguros S.A.", "tomador_cnpj": "51.370.429/0001-01", "segurado_cnpj": "18.008.904/0001-29", "valor_garantia": 31176.4, "premio": 691.86, "vigencia_inicio": "03/08/2026", "vigencia_fim": "30/01/2027", "modalidade": "contrato" },
+      "evidencias": "p.1-2: tabela 'Valor do prêmio Valor IS' → 'R$ 691,86 R$ 31.176,40'; armadilha: 'criada em 03/08/2026 ... válida até 27/08/2026' NÃO é vigência"
+    },
+    {
+      "arquivo": "junto-0533405-endosso.pdf",
+      "esperado": { "seguradora": "Junto Seguros S.A.", "tomador_cnpj": "16.963.926/0001-12", "segurado_cnpj": "42.441.758/0001-05", "valor_garantia": 3386.75, "premio": 400, "vigencia_inicio": "13/07/2026", "vigencia_fim": "30/04/2027", "modalidade": "contrato" },
+      "evidencias": "p.2: 'Limite Máximo Garantido (L.M.G) R$ 3.386,75'; armadilha: 'acréscimo do valor de R$237,66' é a majoração do endosso, não a IS; p.3 'Prêmio Total R$ 400,00'"
+    },
+    {
+      "arquivo": "pottencial-4497288.pdf",
+      "esperado": { "seguradora": "Pottencial Seguradora S/A", "tomador_cnpj": "50.855.606/0001-87", "segurado_cnpj": "08.159.071/0001-43", "valor_garantia": 22000, "premio": 0, "vigencia_inicio": "23/08/2026", "vigencia_fim": "21/02/2027", "modalidade": "licitante" },
+      "evidencias": "p.1: 'LIMITE MÁXIMO DE GARANTIA (LMG): R$ 22.000,00'; prêmio R$ 0,00 é real (não é campo vazio); armadilha: 'Medidas de Contenção e Salvamento R$ 220,00' não é a IS"
+    },
+    {
+      "arquivo": "sancor-9a540155.pdf",
+      "esperado": { "seguradora": "Sancor Seguros do Brasil S.A.", "tomador_cnpj": "05.508.323/0001-04", "segurado_cnpj": "04.283.578/0001-53", "valor_garantia": 83386.03, "premio": 210.18, "vigencia_inicio": "19/08/2026", "vigencia_fim": "19/11/2026", "modalidade": "licitante" },
+      "evidencias": "p.3: 'LICITANTE R$ 83.386,03 R$ 210,18'; CNPJ colado ao nome ('04.283.578/0001-53MUNICIPIO DE NHAMUNDA')"
+    }
+  ]
+}

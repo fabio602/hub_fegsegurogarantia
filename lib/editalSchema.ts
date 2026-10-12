@@ -1,6 +1,6 @@
 /**
  * Tipos e helpers para análise de edital — sem dependência de Zod.
- * Zod é usado apenas na Edge Function (Deno), não no browser.
+ * O mesmo formato serve à leitura local por regras (lib/edital/) e à Edge Function antiga.
  */
 
 // ── Alerta estruturado ────────────────────────────────────────────────────────
@@ -19,6 +19,14 @@ export interface Alerta {
   campo_afetado: string | null;
   /** Texto do alerta, máx 300 chars */
   texto: string;
+}
+
+// ── Evidência: de onde, no PDF, veio cada dado (extração por regras) ─────────
+export interface Evidencia {
+  /** Trecho literal do edital (até ~200 caracteres) */
+  trecho: string;
+  /** Página do PDF (1-based); 0 quando informado manualmente */
+  pagina: number;
 }
 
 // ── Quatro estados para garantia de execução ─────────────────────────────────
@@ -48,7 +56,7 @@ export interface EditalData {
   // Garantia de proposta
   exige_garantia_proposta?:        boolean;
   percentual_garantia_proposta?:   number | null;
-  base_calculo_garantia?:          'global' | 'por_item' | 'nao_especificado' | null;
+  base_calculo_garantia?:          'global' | 'por_item' | 'por_lote' | 'nao_especificado' | null;
   modalidades_aceitas_garantia?:   string[] | null;
   vigencia_garantia_proposta_dias?: number | null;
   vigencia_garantia_termo_inicial?: 'sessao_publica' | 'entrega_proposta' | 'emissao' | null;
@@ -91,6 +99,17 @@ export interface EditalData {
   /** Exibe mas NÃO bloqueia. Itens de atenção operacional. */
   recomendacoes?:                  string[];
 
+  // Extração local por regras (sem IA)
+  /** Evidência por campo: trecho literal + página */
+  _evidencias?:                    Record<string, Evidencia>;
+  /** Campos corrigidos à mão na tela de conferência */
+  _editados?:                      string[];
+  /** Alertas da leitura que não dependem dos valores atuais (ex.: valores concorrentes, OCR) */
+  _alertas_extracao?:              Alerta[];
+  /** 'texto' = PDF com texto; 'ocr' = lido por OCR (conferir com mais atenção) */
+  _origem?:                        'texto' | 'ocr';
+  _total_paginas?:                 number;
+
   // Campos internos
   raw?:                            string;
   raw_tail?:                       string;
@@ -112,10 +131,10 @@ export function describeTriState(
 
 /** Cor e label por tipo de alerta */
 export const ALERTA_CONFIG: Record<Alerta['tipo'], { color: string; bg: string; label: string }> = {
-  dado_ausente:   { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Ausente' },
-  escala:         { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Escala' },
-  plausibilidade: { color: 'text-red-700',     bg: 'bg-red-50 border-red-200',      label: 'Plausibilidade' },
-  prazo:          { color: 'text-orange-700',  bg: 'bg-orange-50 border-orange-200', label: 'Prazo' },
+  dado_ausente:   { color: 'text-rose-700',    bg: 'bg-rose-50 border-rose-200',    label: 'Ausente' },
+  escala:         { color: 'text-rose-700',    bg: 'bg-rose-50 border-rose-200',    label: 'Escala' },
+  plausibilidade: { color: 'text-rose-700',    bg: 'bg-rose-50 border-rose-200',    label: 'Plausibilidade' },
+  prazo:          { color: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',  label: 'Prazo' },
   juridico:       { color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-200',    label: 'Jurídico' },
   outro:          { color: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',  label: 'Atenção' },
 };
