@@ -32,6 +32,9 @@ interface Cliente {
   // Data completa do próximo vencimento ('YYYY-MM-DD'). Avança um mês a cada parcela.
   proximo_vencimento?: string | null;
   repasse_pago_em?: string | null;
+  ultimo_repasse_pago?: string | null;
+  // Retrato do repasse antes da última baixa. Existe = dá para desfazer.
+  repasse_baixa_anterior?: { parcela_atual: number; proximo_vencimento: string | null } | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -1052,6 +1055,10 @@ export default function ImobiliariaRepasse() {
   // Fora da tabela de ativos = fora do total mensal e fora do e-mail automático.
   const foraDaCobranca = (c: any) => !ativos.some(a => a.id === c.id);
   const encerrados = clientes.filter(c => c.status === 'encerrado');
+  // Repasse quitado sai da tabela de ativos. Enquanto a baixa puder ser
+  // desfeita ele fica à vista aqui, senão um clique errado em Quitar Repasse
+  // só teria conserto pela busca.
+  const quitados = clientes.filter(c => (c as any).is_repasse !== true && c.repasse_baixa_anterior && c.status !== 'encerrado');
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
   // Busca em TODOS os clientes, não só nos ativos.
@@ -1189,6 +1196,35 @@ export default function ImobiliariaRepasse() {
     if (r?.encerrado) {
       alert(`Repasse de ${c.inquilino_nome} quitado: as ${r.total_parcelas} parcelas foram repassadas. Ele sai da lista de cobrança e a apólice continua ativa na carteira.`);
     }
+    load();
+  };
+
+  // Empurra a parcela em aberto para o mês seguinte, sem dar baixa. A conta da
+  // data fica na RPC, pelo mesmo motivo do Avançar Parcela.
+  const adiarVencimento = async (c: Cliente) => {
+    if (!c.proximo_vencimento) return;
+    if (!confirm(
+      `Adiar o vencimento de ${c.inquilino_nome} para o mês seguinte?\n\n` +
+      `Hoje vence em ${fmtDataISO(c.proximo_vencimento)}. A parcela ${c.parcela_atual}/${c.total_parcelas} continua em aberto, só muda de mês no portal da imobiliária.`
+    )) return;
+    const { error } = await supabase.rpc('adiar_vencimento_repasse', { p_id: c.id });
+    if (error) { alert(`Erro ao adiar o vencimento: ${error.message}`); return; }
+    load();
+  };
+
+  // Volta o cadastro ao que era antes da última baixa (parcela, vencimento e,
+  // se tinha sido quitado, a volta para a lista de cobrança).
+  const desfazerBaixa = async (c: Cliente) => {
+    const ant = c.repasse_baixa_anterior;
+    if (!ant) return;
+    if (!confirm(
+      `Desfazer a última baixa de ${c.inquilino_nome}?\n\n` +
+      `Ele volta para a parcela ${ant.parcela_atual}/${c.total_parcelas}` +
+      (ant.proximo_vencimento ? `, com vencimento em ${fmtDataISO(ant.proximo_vencimento)}` : '') +
+      `, e essa parcela volta a aparecer como em aberto para a imobiliária.`
+    )) return;
+    const { error } = await supabase.rpc('desfazer_baixa_repasse', { p_id: c.id });
+    if (error) { alert(`Erro ao desfazer a baixa: ${error.message}`); return; }
     load();
   };
 
@@ -1875,12 +1911,30 @@ export default function ImobiliariaRepasse() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-2 justify-end flex-wrap">
                         <button onClick={() => openEditStatus(c)}
                           className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors"
                           title="Atualizar status e apólice">
                           <Pencil size={12} className="inline mr-1" /> Status
                         </button>
+                        {(c as any).is_repasse && c.proximo_vencimento && (
+                          <button
+                            onClick={() => adiarVencimento(c)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-colors"
+                            title="Passa o vencimento desta parcela para o mês seguinte, sem dar baixa"
+                          >
+                            Adiar 1 mês
+                          </button>
+                        )}
+                        {c.repasse_baixa_anterior && (
+                          <button
+                            onClick={() => desfazerBaixa(c)}
+                            className="px-3 py-1.5 bg-white border border-slate-200 hover:border-amber-400 hover:text-amber-700 text-slate-500 text-xs font-bold rounded-xl transition-colors"
+                            title="Volta para a parcela e o vencimento de antes da última baixa"
+                          >
+                            Desfazer baixa
+                          </button>
+                        )}
                         {(c as any).is_repasse && (
                           <button
                             onClick={() => avancarParcela(c)}
@@ -1914,6 +1968,34 @@ export default function ImobiliariaRepasse() {
               </tfoot>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Repasses quitados com baixa ainda reversível */}
+      {quitados.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-7 py-4 border-b border-slate-100">
+            <p className="font-bold text-slate-800 text-sm">{quitados.length} repasse(s) quitado(s)</p>
+            <p className="text-xs font-bold text-slate-400 mt-0.5">Todas as parcelas foram repassadas. A apólice continua ativa na carteira.</p>
+          </div>
+          {quitados.map(c => (
+            <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap px-7 py-3 border-b border-slate-50 last:border-b-0">
+              <div className="min-w-0">
+                <p className="font-bold text-[13px] text-navy">{c.inquilino_nome}</p>
+                <p className="text-[11px] font-semibold text-slate-400">
+                  {c.total_parcelas}/{c.total_parcelas} · {fmtBRL(Number(c.valor_seguro))}
+                  {c.ultimo_repasse_pago ? ` · baixa em ${fmtDataISO(c.ultimo_repasse_pago)}` : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => desfazerBaixa(c)}
+                className="px-3 py-1.5 bg-white border border-slate-200 hover:border-amber-400 hover:text-amber-700 text-slate-500 text-xs font-bold rounded-xl transition-colors"
+                title="Volta este cliente para a lista de cobrança, na parcela de antes da baixa"
+              >
+                Desfazer baixa
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
