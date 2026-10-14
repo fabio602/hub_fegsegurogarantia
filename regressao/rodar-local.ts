@@ -33,6 +33,7 @@ const CAMPOS = [
   "vigencia_garantia_termo_inicial",
   "orgao_cnpj",
   "data_sessao_publica",
+  "data_limite_propostas",
 ] as const;
 type Campo = typeof CAMPOS[number];
 
@@ -49,7 +50,7 @@ function comparar(campo: Campo, esperado: unknown, obtido: unknown): boolean {
   if (campo === "valor_global_edital" || campo === "valor_garantia_proposta_calculado") {
     return typeof obtido === "number" && Math.abs((esperado as number) - obtido) <= 0.01;
   }
-  if (campo === "data_sessao_publica") {
+  if (campo === "data_sessao_publica" || campo === "data_limite_propostas") {
     return obtido != null && normalizarData(String(esperado)) === normalizarData(String(obtido));
   }
   return esperado === obtido;
@@ -73,6 +74,8 @@ for (const caso of gabarito.casos) {
 
   console.log(`\n■ ${caso.id}  (${text.length} págs, ${ms} ms)`);
   for (const c of CAMPOS) {
+    // Campo fora do "esperado" não é conferido nesse caso (o gabarito cresce campo a campo)
+    if (!(c in caso.esperado)) continue;
     const esp = caso.esperado[c];
     const obt = (dados as Record<string, unknown>)[c];
     const ok = comparar(c, esp, obt);
