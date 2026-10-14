@@ -185,13 +185,16 @@
         "exige_garantia_proposta": true,
         "data_sessao_publica": "2026-10-15T08:00",
         "data_limite_propostas": "2026-10-14T08:00",
-        "percentual_garantia_proposta": 1
+        "percentual_garantia_proposta": 1,
+        "valor_global_edital": 1352415.12,
+        "valor_garantia_proposta_calculado": 13524.15
       },
       "evidencias": {
         "exige_garantia_proposta": "TR item 10.1 b) (p.29) — 'Será exigida garantia de proposta como requisito de pré-habilitação'",
         "data_sessao_publica": "p.2 — 'DATA DE ABERTURA DAS PROPOSTAS – SESSÃO PÚBLICA: 08:00h DO DIA 15/10/2026'",
         "data_limite_propostas": "p.2 — 'DATA E HORA FINAL DAS PROPOSTAS: 08:00h DO DIA 14/10/2026 (HORÁRIO DE BRASÍLIA)'",
-        "percentual": "TR item 10.1 b) (p.30) — 'no valor não superior a um por cento do valor estimado para a contratação' (por extenso e como teto)"
+        "percentual": "TR item 10.1 b) (p.30) — 'no valor não superior a um por cento do valor estimado para a contratação' (por extenso e como teto)",
+        "valor_global": "TR item 14.1 (p.30-32) — tabela 'V. UNIT/MÊS | V. TOTAL (12 MESES)' com a coluna de total em branco; 9 itens somam R$ 112.701,26/mês × 12 = R$ 1.352.415,12 (cálculo, não número escrito no edital)"
       }
     }
   ]

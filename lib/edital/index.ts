@@ -15,6 +15,7 @@ import { extrairValorGlobal } from './regras/valor.ts';
 import { extrairIdentificacao } from './regras/identificacao.ts';
 import { extrairDatas } from './regras/datas.ts';
 import { extrairExecucao } from './regras/execucao.ts';
+import { extrairValorDaTabela } from './regras/tabela.ts';
 import { extrairLotes } from './regras/lotes.ts';
 import {
   addDeadlineAlerts, deduplicateBlockers, deriveExigeGarantia, enforcePlausibilityBand,
@@ -30,7 +31,12 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
   const ident = extrairIdentificacao(doc);
   const datas = extrairDatas(doc);
   const gar = extrairGarantia(doc);
-  const valor = extrairValorGlobal(doc);
+  const valorRotulo = extrairValorGlobal(doc);
+  // Sem total escrito: tenta a soma da tabela de itens (variação "total em branco")
+  const tabela = valorRotulo ? null : extrairValorDaTabela(doc);
+  const valor = valorRotulo ?? (tabela?.valor != null
+    ? { valor: tabela.valor, evidencia: tabela.evidencia, alternativos: [] as { valor: number; pagina: number }[] }
+    : null);
   const exec = extrairExecucao(doc);
   const lotes = gar.baseCalculo === 'por_lote' ? extrairLotes(doc) : [];
 
@@ -50,6 +56,14 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
   if (gar.cnpjDoCabecalho && gar.cnpj && gar.exige) {
     extracao.push(makeAlerta('outro', 'info', 'orgao_cnpj',
       'A cláusula de garantia não informa o CNPJ do beneficiário; usei o CNPJ do cabeçalho do edital. Confira se o segurado é o órgão ou uma secretaria.'));
+  }
+  if (tabela?.valor != null) {
+    const mensal = tabela.meses ? ` (${brl(tabela.soma)} por mês × ${tabela.meses} meses)` : '';
+    extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
+      `O edital não traz o valor total geral. Calculei pela tabela de itens (p. ${tabela.evidencia.pagina}): soma de ${tabela.itens.length} ${tabela.itens.length === 1 ? 'item' : 'itens'}${mensal} = ${brl(tabela.valor)}. Confira a tabela e, se possível, o valor no PNCP.`));
+  } else if (tabela?.mensalSemPrazo) {
+    extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
+      `A tabela de itens (p. ${tabela.evidencia.pagina}) traz só valores mensais (soma ${brl(tabela.soma)} por mês) e não diz por quantos meses. Informe o valor total ou o prazo do contrato.`));
   }
   if (valor?.alternativos.length) {
     extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
