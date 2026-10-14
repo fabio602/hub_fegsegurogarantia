@@ -55,6 +55,13 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
     extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
       `O edital traz outros valores totais: ${valor.alternativos.slice(0, 3).map(a => `${brl(a.valor)} (p. ${a.pagina})`).join(', ')}. Confira qual é o valor estimado da contratação.`));
   }
+  if (gar.percentual != null && gar.percentualCriterio === 'teto') {
+    extracao.push(makeAlerta('outro', 'atencao', 'percentual_garantia_proposta',
+      `O edital fixa só o teto da garantia ("até" ou "não superior a" ${String(gar.percentual).replace('.', ',')}%). Usei o teto no cálculo; confirme com o órgão se é esse o percentual exigido.`));
+  } else if (gar.percentual != null && gar.percentualCriterio === 'minimo') {
+    extracao.push(makeAlerta('outro', 'atencao', 'percentual_garantia_proposta',
+      `O edital fixa o mínimo da garantia ("não inferior a" ${String(gar.percentual).replace('.', ',')}%). Usei o mínimo no cálculo; confira se não há percentual maior no edital.`));
+  }
   if (gar.cnpjInvalido) {
     extracao.push(makeAlerta('outro', 'atencao', 'orgao_cnpj',
       `O CNPJ ${gar.cnpj} tem dígito verificador inválido (erro de digitação no edital ou de leitura). Confirme o CNPJ do órgão antes de pedir a minuta.`));
