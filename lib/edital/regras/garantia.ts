@@ -89,6 +89,8 @@ export interface ResultadoGarantia {
   exigeEvidencia: Evidencia | null;
   percentual: number | null;
   percentualEvidencia: Evidencia | null;
+  /** exato ("1%"), teto ("até 1%", "não superior a 1%") ou mínimo */
+  percentualCriterio: CriterioPercentual | null;
   baseCalculo: 'global' | 'por_item' | 'por_lote' | 'nao_especificado' | null;
   modalidades: string[] | null;
   vigenciaDias: number | null;
@@ -111,13 +113,40 @@ const ev = (doc: Documento, ini: number, fim: number, max = 200): Evidencia => (
 
 // ── Percentual ───────────────────────────────────────────────────────────────
 
+/** Percentual escrito por extenso, sem algarismo ("um por cento", "meio por cento"). */
+const EXTENSO: [RegExp, number][] = [
+  [/^um\s+e\s+meio/, 1.5],
+  [/^(?:cinco\s+decimos|zero\s+virgula\s+cinco|meio)/, 0.5],
+  [/^um/, 1], [/^dois/, 2], [/^tres/, 3], [/^quatro/, 4], [/^cinco/, 5],
+];
+const RE_PCT_EXTENSO = /\b(um\s+e\s+meio|cinco\s+decimos|zero\s+virgula\s+cinco|meio|um|dois|tres|quatro|cinco)\s+por\s+cento/g;
+
+/**
+ * Qualificador antes do número. A lei (art. 58 §1º) fala em "até 1%", e muitos editais
+ * copiam isso ("não superior a", "até", "no máximo"): o edital fixa só o TETO.
+ * "não inferior a" fixa o mínimo. Sem qualificador, o percentual é exato.
+ */
+const RE_TETO = /(?:nao\s+(?:podera\s+|devera\s+)?(?:ser\s+)?(?:superior|maior|exceder)\s+(?:a\s+)?|\bate\s+(?:o\s+limite\s+de\s+)?|limitad[oa]\s+a\s+|no\s+maximo\s+(?:de\s+)?|maximo\s+de\s+)(?:\(\s*)?$/;
+const RE_MINIMO = /(?:nao\s+(?:podera\s+|devera\s+)?(?:ser\s+)?inferior\s+a\s+|no\s+minimo\s+(?:de\s+)?|minimo\s+de\s+)(?:\(\s*)?$/;
+
+export type CriterioPercentual = 'exato' | 'teto' | 'minimo';
+
 function acharPercentual(doc: Documento) {
-  type Cand = { pct: number; ini: number; fim: number; score: number; ancora: number };
+  type Cand = { pct: number; ini: number; fim: number; score: number; ancora: number; criterio: CriterioPercentual };
   const cands: Cand[] = [];
+  const brutos: { pct: number; ini: number; fim: number; extenso: boolean }[] = [];
   for (const m of ocorrencias(doc, /(\d+(?:,\d+)?)\s*%/g)) {
     const pct = parsePercentual(m[0]);
-    if (pct == null || pct <= 0 || pct > 5) continue;
-    const i = m.index;
+    if (pct != null) brutos.push({ pct, ini: m.index, fim: m.index + m[0].length, extenso: false });
+  }
+  for (const m of ocorrencias(doc, RE_PCT_EXTENSO)) {
+    // "1% (um por cento)": o extenso só repete o número já lido
+    if (/%\s*\(?\s*$/.test(doc.busca.slice(Math.max(0, m.index - 6), m.index))) continue;
+    const pct = EXTENSO.find(([re]) => re.test(m[1]))?.[1];
+    if (pct != null) brutos.push({ pct, ini: m.index, fim: m.index + m[0].length, extenso: true });
+  }
+  for (const { pct, ini: i, fim } of brutos) {
+    if (pct <= 0 || pct > 5) continue;
     const antes = doc.busca.slice(Math.max(0, i - 350), i);
     // Âncora de proposta mais próxima antes do percentual
     const ancoras = [...antes.matchAll(RE_ANCORA_PROPOSTA)];
@@ -128,7 +157,11 @@ function acharPercentual(doc: Documento) {
     } else if (/art(?:igo|\.|s)?\W{0,3}\s*58\b/.test(antes) && /garantia/.test(antes)) {
       ancoraPos = i - antes.length + antes.search(/art(?:igo|\.|s)?\W{0,3}\s*58\b/);
     } else continue;
-    const entre = doc.busca.slice(ancoraPos, i);
+    let entre = doc.busca.slice(ancoraPos, i);
+    let criterio: CriterioPercentual = 'exato';
+    const teto = RE_TETO.exec(entre), minimo = RE_MINIMO.exec(entre);
+    if (teto) { criterio = 'teto'; entre = entre.slice(0, teto.index); }
+    else if (minimo) { criterio = 'minimo'; entre = entre.slice(0, minimo.index); }
     if (RE_OUTRA_GARANTIA.test(entre)) continue;
     if (/multa|inferior|superior|acrescimo|patrimonio|capital|desconto|lance|reajuste|indice|juros|consorcio/.test(entre)) continue;
 
@@ -137,7 +170,7 @@ function acharPercentual(doc: Documento) {
     if (/sera\s+exigid|exigida|correspondente|percentual|valor\s+da\s+garantia|devera\s+ser\s+de|garantia\s+de\s+\d/.test(doc.busca.slice(Math.max(ancoraPos, i - 160), i))) score += 2;
     if (/^\d+(?:,\d+)?\s*%\s*\(\s*[a-z ,]+por\s+cento\s*\)/.test(depois)) score += 2;
     if (/valor\s+(?:total\s+)?(?:estimado|de\s+referencia|da\s+contratacao|global|do\(?s?\)?\s+lote|dos?\s+itens)/.test(depois)) score += 3;
-    cands.push({ pct, ini: i, fim: i + m[0].length, score, ancora: ancoraPos });
+    cands.push({ pct, ini: i, fim, score, ancora: ancoraPos, criterio });
   }
   cands.sort((a, b) => b.score - a.score || a.ini - b.ini);
   return cands[0] ?? null;
@@ -260,7 +293,7 @@ function acharBase(doc: Documento, pctFim: number): ResultadoGarantia['baseCalcu
 
 export function extrairGarantia(doc: Documento): ResultadoGarantia {
   const r: ResultadoGarantia = {
-    exige: null, exigeEvidencia: null, percentual: null, percentualEvidencia: null,
+    exige: null, exigeEvidencia: null, percentual: null, percentualEvidencia: null, percentualCriterio: null,
     baseCalculo: null, modalidades: null, vigenciaDias: null, termoInicial: null, termoTrecho: null,
     vigenciaEvidencia: null, cnpj: null, cnpjEvidencia: null, cnpjDoCabecalho: false, cnpjInvalido: false, secaoPrincipal: null,
   };
@@ -284,6 +317,7 @@ export function extrairGarantia(doc: Documento): ResultadoGarantia {
   if (pct) {
     r.percentual = pct.pct;
     r.percentualEvidencia = ev(doc, pct.ancora, pct.fim);
+    r.percentualCriterio = pct.criterio;
     r.exige = true;
     r.exigeEvidencia = r.percentualEvidencia;
     r.baseCalculo = acharBase(doc, pct.fim);

@@ -55,14 +55,35 @@ export function extrairDatas(doc: Documento): ResultadoDatas {
     ev.data_sessao_publica = { trecho: trecho(doc, sessao.ini, sessao.fim, 160), pagina: paginaDe(doc, sessao.ini) };
   }
 
+  // Limite de propostas. Os editais variam a ordem e as palavras ("data e hora final das
+  // propostas", "horário limite para envio de propostas", "encerramento do recebimento de
+  // propostas"), então a regra aceita a família: [data/hora/prazo] + [final/limite/máximo]
+  // + [verbo de entrega opcional] + propostas. O verbo é opcional, mas sem ele o rótulo
+  // precisa começar por data/hora/prazo, para não pegar "classificação final das propostas".
+  const VERBO_ENTREGA = '(?:entrega|recebimento|envio|cadastramento|cadastro|apresentacao|acolhimento|insercao|submissao)';
   const limite = procurar(doc, [
-    { re: /(?:limite|prazo\s+final|data\s+final)\s+(?:para\s+)?(?:o\s+|a\s+)?(?:entrega|recebimento|envio|cadastramento|apresentacao|acolhimento)\s+(?:das|de)\s+propostas/g, peso: 5 },
+    { re: new RegExp(`(?:limite|prazo\\s+final|data\\s+final)\\s+(?:para\\s+)?(?:o\\s+|a\\s+)?${VERBO_ENTREGA}\\s+(?:das|de)\\s+propostas`, 'g'), peso: 5 },
+    { re: new RegExp(`(?:data|dia|hora(?:rio)?|prazo)\\s+(?:e\\s+hora(?:rio)?\\s+)?(?:final|limite|maxim[oa])\\s+(?:para\\s+)?(?:o\\s+|a\\s+)?(?:${VERBO_ENTREGA}\\s+)?(?:d[ao]s?|de)\\s+propostas`, 'g'), peso: 5 },
+    { re: new RegExp(`(?:termino|encerramento|fim)\\s+(?:do\\s+prazo\\s+)?(?:d[aeo]s?\\s+)?${VERBO_ENTREGA}\\s+(?:das|de)\\s+propostas`, 'g'), peso: 5 },
     { re: /(?:recebimento|acolhimento|entrega)\s+(?:das|de)\s+propostas\s+ate/g, peso: 4 },
   ], fim5)[0];
   let dataLimite: string | null = null;
   if (limite) {
     dataLimite = formatarDataHora(limite.data);
     ev.data_limite_propostas = { trecho: trecho(doc, limite.ini, limite.fim, 160), pagina: paginaDe(doc, limite.ini) };
+  } else if (sessao) {
+    // Variação relativa: "apresentarem propostas (...) até às 8 horas do mesmo dia" (da sessão).
+    // Não há data escrita; o dia é o da sessão e a hora vem da frase.
+    const rel = ocorrencias(doc, /propostas(?:[^.;]|\.(?=\S)){0,120}?\bate\s+(?:as\s+)?(\d{1,2})\s*(?:h|:|horas?)\s*(\d{2})?[^.;]{0,20}?\bdo\s+(?:mesmo\s+dia|dia\s+da\s+(?:sessao|abertura))/g, 0, fim5)[0];
+    if (rel) {
+      const hora = Number(rel[1]), minuto = rel[2] ? Number(rel[2]) : 0;
+      const data: DataHora = { ...sessao.data, hora, minuto };
+      const antesDaSessao = sessao.data.hora == null || hora * 60 + minuto <= sessao.data.hora * 60 + (sessao.data.minuto ?? 0);
+      if (hora <= 23 && minuto < 60 && antesDaSessao) {
+        dataLimite = formatarDataHora(data);
+        ev.data_limite_propostas = { trecho: trecho(doc, rel.index, rel.index + rel[0].length, 160), pagina: paginaDe(doc, rel.index) };
+      }
+    }
   }
 
   // Validade da proposta (art. 59): todos os valores, para detectar divergência entre corpo e anexos

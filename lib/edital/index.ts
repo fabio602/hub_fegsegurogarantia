@@ -15,6 +15,7 @@ import { extrairValorGlobal } from './regras/valor.ts';
 import { extrairIdentificacao } from './regras/identificacao.ts';
 import { extrairDatas } from './regras/datas.ts';
 import { extrairExecucao } from './regras/execucao.ts';
+import { extrairValorDaTabela } from './regras/tabela.ts';
 import { extrairLotes } from './regras/lotes.ts';
 import {
   addDeadlineAlerts, deduplicateBlockers, deriveExigeGarantia, enforcePlausibilityBand,
@@ -30,7 +31,12 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
   const ident = extrairIdentificacao(doc);
   const datas = extrairDatas(doc);
   const gar = extrairGarantia(doc);
-  const valor = extrairValorGlobal(doc);
+  const valorRotulo = extrairValorGlobal(doc);
+  // Sem total escrito: tenta a soma da tabela de itens (variação "total em branco")
+  const tabela = valorRotulo ? null : extrairValorDaTabela(doc);
+  const valor = valorRotulo ?? (tabela?.valor != null
+    ? { valor: tabela.valor, evidencia: tabela.evidencia, alternativos: [] as { valor: number; pagina: number }[] }
+    : null);
   const exec = extrairExecucao(doc);
   const lotes = gar.baseCalculo === 'por_lote' ? extrairLotes(doc) : [];
 
@@ -51,9 +57,24 @@ export function extrairEdital(paginas: string[], origem: 'texto' | 'ocr' = 'text
     extracao.push(makeAlerta('outro', 'info', 'orgao_cnpj',
       'A cláusula de garantia não informa o CNPJ do beneficiário; usei o CNPJ do cabeçalho do edital. Confira se o segurado é o órgão ou uma secretaria.'));
   }
+  if (tabela?.valor != null) {
+    const mensal = tabela.meses ? ` (${brl(tabela.soma)} por mês × ${tabela.meses} meses)` : '';
+    extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
+      `O edital não traz o valor total geral. Calculei pela tabela de itens (p. ${tabela.evidencia.pagina}): soma de ${tabela.itens.length} ${tabela.itens.length === 1 ? 'item' : 'itens'}${mensal} = ${brl(tabela.valor)}. Confira a tabela e, se possível, o valor no PNCP.`));
+  } else if (tabela?.mensalSemPrazo) {
+    extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
+      `A tabela de itens (p. ${tabela.evidencia.pagina}) traz só valores mensais (soma ${brl(tabela.soma)} por mês) e não diz por quantos meses. Informe o valor total ou o prazo do contrato.`));
+  }
   if (valor?.alternativos.length) {
     extracao.push(makeAlerta('outro', 'atencao', 'valor_global_edital',
       `O edital traz outros valores totais: ${valor.alternativos.slice(0, 3).map(a => `${brl(a.valor)} (p. ${a.pagina})`).join(', ')}. Confira qual é o valor estimado da contratação.`));
+  }
+  if (gar.percentual != null && gar.percentualCriterio === 'teto') {
+    extracao.push(makeAlerta('outro', 'atencao', 'percentual_garantia_proposta',
+      `O edital fixa só o teto da garantia ("até" ou "não superior a" ${String(gar.percentual).replace('.', ',')}%). Usei o teto no cálculo; confirme com o órgão se é esse o percentual exigido.`));
+  } else if (gar.percentual != null && gar.percentualCriterio === 'minimo') {
+    extracao.push(makeAlerta('outro', 'atencao', 'percentual_garantia_proposta',
+      `O edital fixa o mínimo da garantia ("não inferior a" ${String(gar.percentual).replace('.', ',')}%). Usei o mínimo no cálculo; confira se não há percentual maior no edital.`));
   }
   if (gar.cnpjInvalido) {
     extracao.push(makeAlerta('outro', 'atencao', 'orgao_cnpj',
@@ -226,4 +247,34 @@ export function corrigirCampo(d: EditalData, campo: keyof EditalData, valor: unk
     novo.valor_global_edital_pagina = 'manual';
   }
   return finalizarEdital(novo);
+}
+
+/** CNPJ com dígito verificador válido num texto de OCR (tolera espaços que o OCR insere). */
+export function cnpjNoTextoOcr(texto: string): string | null {
+  const re = /\d{2}\s?\.\s?\d{3}\s?\.\s?\d{3}\s?\/\s?\d{4}\s?-\s?\d{2}/g;
+  for (const m of texto.matchAll(re)) {
+    const d = m[0].replace(/\D/g, '');
+    const c = `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    if (c !== '56.123.874/0001-90' && cnpjValido(c)) return c;
+  }
+  return null;
+}
+
+/**
+ * Variação "CNPJ só no timbre": o cabeçalho das páginas é uma imagem, então o texto do PDF
+ * não traz o CNPJ do órgão. A tela lê o topo da página por OCR e passa o texto aqui.
+ * Só aplica quando o campo está vazio, não foi corrigido à mão e o CNPJ tem dígito válido.
+ */
+export function aplicarCnpjDoTimbre(d: EditalData, textoOcr: string, pagina: number): EditalData {
+  if (d.orgao_cnpj || d._editados?.includes('orgao_cnpj')) return d;
+  const cnpj = cnpjNoTextoOcr(textoOcr);
+  if (!cnpj) return d;
+  const linha = textoOcr.split('\n').find(l => l.replace(/\D/g, '').includes(cnpj.replace(/\D/g, '')))?.trim() ?? cnpj;
+  return finalizarEdital({
+    ...d,
+    orgao_cnpj: cnpj,
+    _evidencias: { ...(d._evidencias ?? {}), orgao_cnpj: { trecho: `Timbre da página (imagem, lido por OCR): ${linha}`, pagina } },
+    _alertas_extracao: [...(d._alertas_extracao ?? []), makeAlerta('outro', 'atencao', 'orgao_cnpj',
+      `O CNPJ ${cnpj} só aparece no timbre (imagem) do edital e foi lido por OCR; os dígitos verificadores conferem. Confirme se o segurado é o órgão ou uma secretaria.`)],
+  });
 }

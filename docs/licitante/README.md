@@ -17,6 +17,7 @@ PDF / imagem
        ├─ documento.ts            junta as páginas, tira cabeçalho/rodapé repetido
        ├─ regras/garantia.ts      exige?, %, base, modalidades, vigência, termo, CNPJ
        ├─ regras/valor.ts         valor estimado (rótulos fortes votam no número)
+       ├─ regras/tabela.ts        sem total escrito: soma da tabela de itens (× meses do cabeçalho)
        ├─ regras/datas.ts         sessão pública, limite de propostas, validade (art. 59)
        ├─ regras/identificacao.ts órgão, modalidade, nº, processo, objeto, portal
        ├─ regras/execucao.ts      garantia de execução (oportunidade de contrato)
@@ -24,6 +25,8 @@ PDF / imagem
        └─ travas.ts               travas portadas do analyze-edital
   └─ finalizarEdital / corrigirCampo  recalcula garantia, alertas e pendências
                                       a cada correção manual na tela
+  └─ sem CNPJ no texto? lib/pdf/timbre.ts  OCR só do topo das págs. 1 e 2 (timbre em imagem)
+       └─ aplicarCnpjDoTimbre             aceita só CNPJ com dígito verificador válido
 
 Minuta (Double Check)
   └─ lib/minuta/extrairMinuta.ts  seguradora, segurado, tomador, CNPJs, IS, prêmio,
@@ -64,6 +67,15 @@ corrigido fica marcado como "Informado manualmente" e não é derrubado pelas tr
   - garantia **adicional** (art. 59 §5º) e garantia de **execução** não são a de proposta;
   - valores "até R$ X", preço unitário e "Total sem BDI" não são o valor estimado;
   - na minuta, a majoração do endosso e as despesas de contenção não são a IS.
+- Variações de forma tratadas por **família**, não por edital (out/2026, caso Avelino Lopes):
+  - limite de propostas: qualquer "[data/hora/prazo] + [final/limite] + [envio…] + propostas",
+    "encerramento do recebimento de propostas" e a forma relativa "até às 8 horas do mesmo dia";
+    sem limite localizado, o alerta de prazo diz que está contando pela sessão;
+  - percentual por extenso ("um por cento") e com qualificador: "até"/"não superior a" = teto,
+    "não inferior a" = mínimo, sempre com alerta pedindo confirmação;
+  - valor só na tabela de itens com total em branco: soma das linhas e, se o unitário é mensal,
+    × os meses escritos no cabeçalho; sem os meses, o campo fica vazio. Sempre com alerta de cálculo;
+  - CNPJ só no timbre em imagem: OCR do topo da página na tela.
 - Base de cálculo por lote ou por item: o valor calculado é o **teto**. No Double Check,
   uma minuta abaixo do teto fica como "conferir", não como divergência.
 
@@ -74,14 +86,16 @@ corrigido fica marcado como "Informado manualmente" e não é derrubado pelas tr
 ~/.deno/bin/deno run -A --node-modules-dir=none regressao/rodar-local.ts --caso maraba-cp-148-2026 --json
 ```
 
-- `regressao/gabarito.json`: 5 editais × 8 campos, conferidos à mão.
+- `regressao/gabarito.json`: 6 editais, conferidos à mão. Um campo ausente do `esperado` de um
+  caso não é conferido nele (o gabarito de um edital novo cresce campo a campo).
 - `regressao/gabarito-minutas.json`: 7 minutas de 5 seguradoras.
 - Os PDFs ficam em `regressao/pdfs/` e `regressao/minutas/` e não vão para o git.
 - Casos adulterados (no próprio `rodar-local.ts`): a minuta de Mortugaba com um erro
   plantado de cada vez (CNPJ com dígito trocado, início às 24h do dia da sessão, data
   impossível, lote errado, edital errado, modalidade errada, prazo curto). Cada um prova
   que a regra correspondente pega o problema.
-- Placar em 11/10/2026: **117/117** (editais 41/41, minutas 63/63, Double Check 13/13).
+- Placar em 14/10/2026: **130/130** (editais 54/54 com o caso de Avelino Lopes, o campo
+  `data_limite_propostas` e as checagens do timbre; minutas 63/63; Double Check 13/13).
 
 Rode a bateria **antes e depois** de qualquer mudança nas regras. Quando um edital real
 vier errado, a correção é: adicionar o PDF em `regressao/pdfs/`, o caso no gabarito

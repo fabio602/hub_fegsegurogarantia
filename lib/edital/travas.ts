@@ -109,15 +109,18 @@ export function deduplicateBlockers(d: EditalData): void {
 export function addDeadlineAlerts(d: EditalData, agora = Date.now()): void {
   const limite = d.data_limite_propostas ?? d.data_sessao_publica;
   if (!limite) return;
+  // Sem limite de propostas localizado, o relógio corre pela sessão; o alerta avisa disso,
+  // porque há editais em que as propostas fecham um dia antes da sessão.
+  const nota = d.data_limite_propostas ? '' : ' Limite de propostas não localizado; prazo contado pela sessão pública, confira no edital.';
   const m = limite.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
   if (!m) return;
   const [, dd, mm, yy, h = '23', min = '59'] = m;
   const prazo = Date.UTC(+yy, +mm - 1, +dd, +h + 3, +min);
   const diffH = (prazo - agora) / 3_600_000;
   const alertas = getAlertas(d);
-  if (diffH < 0) alertas.unshift(makeAlerta('prazo', 'bloqueante', null, `PRAZO ENCERRADO: limite de propostas foi ${limite}.`));
-  else if (diffH < 2) alertas.unshift(makeAlerta('prazo', 'bloqueante', null, `URGENTE: limite de propostas em ${Math.round(diffH * 60)} minutos (${limite}).`));
-  else if (diffH < 24) alertas.unshift(makeAlerta('prazo', 'atencao', null, `ATENÇÃO: limite de propostas HOJE (${limite}), ${Math.round(diffH)}h restantes.`));
-  else if (diffH < 48) alertas.unshift(makeAlerta('prazo', 'info', null, `Limite de propostas: amanhã (${limite}).`));
+  if (diffH < 0) alertas.unshift(makeAlerta('prazo', 'bloqueante', null, `PRAZO ENCERRADO: limite de propostas foi ${limite}.${nota}`));
+  else if (diffH < 2) alertas.unshift(makeAlerta('prazo', 'bloqueante', null, `URGENTE: limite de propostas em ${Math.round(diffH * 60)} minutos (${limite}).${nota}`));
+  else if (diffH < 24) alertas.unshift(makeAlerta('prazo', 'atencao', null, `ATENÇÃO: limite de propostas HOJE (${limite}), ${Math.round(diffH)}h restantes.${nota}`));
+  else if (diffH < 48) alertas.unshift(makeAlerta('prazo', 'info', null, `Limite de propostas: amanhã (${limite}).${nota}`));
   d.alertas = alertas;
 }
