@@ -248,3 +248,33 @@ export function corrigirCampo(d: EditalData, campo: keyof EditalData, valor: unk
   }
   return finalizarEdital(novo);
 }
+
+/** CNPJ com dígito verificador válido num texto de OCR (tolera espaços que o OCR insere). */
+export function cnpjNoTextoOcr(texto: string): string | null {
+  const re = /\d{2}\s?\.\s?\d{3}\s?\.\s?\d{3}\s?\/\s?\d{4}\s?-\s?\d{2}/g;
+  for (const m of texto.matchAll(re)) {
+    const d = m[0].replace(/\D/g, '');
+    const c = `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    if (c !== '56.123.874/0001-90' && cnpjValido(c)) return c;
+  }
+  return null;
+}
+
+/**
+ * Variação "CNPJ só no timbre": o cabeçalho das páginas é uma imagem, então o texto do PDF
+ * não traz o CNPJ do órgão. A tela lê o topo da página por OCR e passa o texto aqui.
+ * Só aplica quando o campo está vazio, não foi corrigido à mão e o CNPJ tem dígito válido.
+ */
+export function aplicarCnpjDoTimbre(d: EditalData, textoOcr: string, pagina: number): EditalData {
+  if (d.orgao_cnpj || d._editados?.includes('orgao_cnpj')) return d;
+  const cnpj = cnpjNoTextoOcr(textoOcr);
+  if (!cnpj) return d;
+  const linha = textoOcr.split('\n').find(l => l.replace(/\D/g, '').includes(cnpj.replace(/\D/g, '')))?.trim() ?? cnpj;
+  return finalizarEdital({
+    ...d,
+    orgao_cnpj: cnpj,
+    _evidencias: { ...(d._evidencias ?? {}), orgao_cnpj: { trecho: `Timbre da página (imagem, lido por OCR): ${linha}`, pagina } },
+    _alertas_extracao: [...(d._alertas_extracao ?? []), makeAlerta('outro', 'atencao', 'orgao_cnpj',
+      `O CNPJ ${cnpj} só aparece no timbre (imagem) do edital e foi lido por OCR; os dígitos verificadores conferem. Confirme se o segurado é o órgão ou uma secretaria.`)],
+  });
+}

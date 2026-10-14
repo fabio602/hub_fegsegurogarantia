@@ -14,7 +14,7 @@
  * (lib/minuta) e, quando o caso aponta o edital de origem, o Double Check minuta × edital.
  */
 import { extractText } from "npm:unpdf";
-import { extrairEdital, finalizarEdital } from "../lib/edital/index.ts";
+import { extrairEdital, finalizarEdital, aplicarCnpjDoTimbre } from "../lib/edital/index.ts";
 import { extrairMinuta } from "../lib/minuta/extrairMinuta.ts";
 import { conferirMinuta } from "../lib/minuta/conferirMinuta.ts";
 import type { EditalData } from "../lib/editalSchema.ts";
@@ -91,6 +91,22 @@ for (const caso of gabarito.casos) {
     console.log(`  ${ok ? "✓" : "✗"} ${"lotes".padEnd(34)} esperado=${JSON.stringify(caso.esperado_lotes.map(l => l.valor))}  obtido=${JSON.stringify(obtidos.map(l => l.valor))}`);
   }
   if (json) console.log(JSON.stringify({ ...dados, _evidencias: undefined }, null, 2));
+}
+
+// ── CNPJ do timbre (imagem) ───────────────────────────────────────────────
+// O OCR roda no navegador; aqui entra o texto que o Tesseract devolveu para o topo da p. 1
+// de Avelino Lopes, e uma versão com um dígito trocado (OCR errado tem de ser recusado).
+{
+  const base = editais.get("avelino-lopes-pe-020-2026");
+  if (base) {
+    const ocr = "X * PREFEITURA MUNICIPAL DE\n| m ESTADO DO PIAUÍ ve AVELINO\n; === * PREFEITURA MUNICIPAL DE AVELINO LOPES\n— CNPJ: 06.554.281/0001-00 AN LOPES\n";
+    const ok = aplicarCnpjDoTimbre(base, ocr, 1).orgao_cnpj === "06.554.281/0001-00";
+    const recusa = aplicarCnpjDoTimbre(base, ocr.replace("06.554.281", "06.554.231"), 1).orgao_cnpj == null;
+    for (const [nome, passou] of [["timbre: CNPJ lido por OCR", ok], ["timbre: CNPJ com dígito errado é recusado", recusa]] as const) {
+      total++; if (passou) acertos++;
+      console.log(`  ${passou ? "✓" : "✗"} ${nome}`);
+    }
+  }
 }
 
 // ── Minutas ────────────────────────────────────────────────────────────────

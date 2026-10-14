@@ -12,7 +12,8 @@ import { setAnalysisContext, clearAnalysisContext } from '../lib/analysisContext
 import MinutaValidator from './MinutaValidator';
 import VisualizadorTrecho from './VisualizadorTrecho';
 import { type EditalData, type Alerta, type Evidencia, describeTriState, ALERTA_CONFIG, SEVERIDADE_ORDER, normalizeAlertas } from '../lib/editalSchema.ts';
-import { extrairEdital, finalizarEdital, corrigirCampo } from '../lib/edital/index.ts';
+import { extrairEdital, finalizarEdital, corrigirCampo, aplicarCnpjDoTimbre } from '../lib/edital/index.ts';
+import { ocrTimbre } from '../lib/pdf/timbre.ts';
 import { makeAlerta } from '../lib/edital/travas.ts';
 import { lerDocumentos, MAX_PAGINAS_OCR } from '../lib/pdf/lerDocumento.ts';
 import { encerrarOcr } from '../lib/pdf/ocr.ts';
@@ -231,6 +232,21 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       if (!lido.paginas.some(p => p.trim())) throw new Error('Não encontrei texto no arquivo. Confira se é o edital correto.');
       setProgresso('Procurando os dados do seguro…');
       let dados = extrairEdital(lido.paginas, lido.origem);
+      // CNPJ só no timbre (imagem): lê por OCR o topo das 2 primeiras páginas do PDF principal
+      const pdfPrincipal = files.find(f => f.type === 'application/pdf');
+      if (!dados.orgao_cnpj && lido.origem === 'texto' && pdfPrincipal && files[0] === pdfPrincipal) {
+        try {
+          setProgresso('Procurando o CNPJ no timbre do edital…');
+          const bytes = await pdfPrincipal.arrayBuffer();
+          for (const pagina of [1, 2]) {
+            if (pagina > (lido.inicioDeCada[1] ?? lido.paginas.length)) break;
+            dados = aplicarCnpjDoTimbre(dados, await ocrTimbre(bytes, pagina), pagina);
+            if (dados.orgao_cnpj) break;
+          }
+        } catch {
+          // OCR do timbre é um extra: se falhar, segue com o campo vazio para preencher à mão
+        }
+      }
       if (lido.paginasIgnoradas > 0) {
         dados = finalizarEdital({
           ...dados,
