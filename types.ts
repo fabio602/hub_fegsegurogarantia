@@ -139,6 +139,15 @@ export interface Prospect {
   judicial_process_number?: string;
   judicial_court?: string;
   limites_seguradoras?: string;
+  // Campos gravados pela prospecção automática do PNCP (source = 'pncp_auto').
+  orgao_licitante?: string | null;
+  valor_contrato?: number | null;
+  // Número de controle do PNCP (ex.: 01618704000195-1-000133/2026). Leads
+  // anteriores a 10/09/2026 trazem aqui o número do contrato, em outro formato.
+  numero_licitacao?: string | null;
+  // Data em que a homologação apareceu no PNCP (migração 107). Nula nos leads
+  // da regra antiga e nos que não vieram do PNCP.
+  data_homologacao?: string | null;
   tasks?: CRMTask[];
 }
 
