@@ -1516,6 +1516,20 @@
     if (error) throw error;
   }
 
+  // Quando o upload completa os três documentos da garantia, avisa a F&G por
+  // e-mail (Edge Function imobiliaria-docs-completos). A function confere no
+  // banco e manda uma vez só por cadastro; uma falha aqui não atrapalha a
+  // imobiliária, que já teve o documento gravado.
+  function avisarSeDocsCompletos(clientId) {
+    const c = todosClientes.find(x => x.id === clientId);
+    if (!c || !DOCS_DEF.every(d => c[d.key]) || c.docs_completos_avisado_em) return;
+    fetch(SUPABASE_URL + '/functions/v1/imobiliaria-docs-completos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ client_id: clientId }),
+    }).catch(e => console.error('[aviso docs completos]', e));
+  }
+
   // Quais linhas estão com o painel de rescisão aberto. A carteira é
   // re-renderizada inteira a cada upload, então sem isto o painel fecharia
   // sozinho no meio do preenchimento.
@@ -2352,6 +2366,7 @@
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
       await salvarCampoPortal(cId, docKey, urlData.publicUrl);
       await carregar();
+      avisarSeDocsCompletos(cId);
     } catch(e) { alert('Erro: ' + e.message); btn.style.display='inline'; spin.style.display='none'; }
   }
 
@@ -2720,6 +2735,7 @@
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
       await salvarCampoPortal(clientId, field, urlData.publicUrl);
       await carregar();
+      avisarSeDocsCompletos(clientId);
     } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '<svg class="ico ico-inline"><use href="#i-enviar"/></svg> Tentar novamente'; }
   }
 

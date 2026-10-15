@@ -5,9 +5,9 @@
 // e a vistoria de saída. Antes disso chegava por WhatsApp solto, sem documento,
 // e o corretor só descobria dias depois.
 //
-// A function grava o carimbo da solicitação e avisa o Fábio duas vezes: no
-// WhatsApp (para agir na hora) e por e-mail (que fica de registro, com os links
-// dos documentos para encaminhar à Fiantec).
+// A function grava o carimbo da solicitação e avisa o Fábio por e-mail, com os
+// links dos documentos para encaminhar à Fiantec. (O aviso por WhatsApp via
+// Z-API foi removido em 15/10/2026: o Z-API foi cancelado.)
 //
 // Não confundir com o distrato_url do bloco de renovação: aquele é o contrato
 // que chega ao fim da vigência e não será renovado. Este é a saída antecipada,
@@ -17,16 +17,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { copiasResidencial } from '../_shared/copiasResidencial.ts';
 
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const FABIO_EMAIL = 'fabio@fegsegurogarantia.com.br';
-const ZAPI_INSTANCE_ID = '3F7C45AF93AD91301C9696FEEDA07377';
-const ZAPI_TOKEN = '8E9F5BD8488D8591141B0834';
-const ZAPI_CLIENT_TOKEN = 'F1febfc77e5734fc38a3de6979b7c9bd8S';
-const ALERT_PHONES = ['5515997402635', '5515998618659'];
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 
@@ -37,16 +32,6 @@ const json = (body: unknown, status = 200) =>
 const esc = (s: string) => (s || '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/\n/g, '<br>');
-
-const avisarWhats = async (mensagem: string) => {
-  await Promise.all(ALERT_PHONES.map((phone) =>
-    fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Client-Token': ZAPI_CLIENT_TOKEN },
-      body: JSON.stringify({ phone, message: mensagem }),
-    }).catch(() => {}),
-  ));
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -76,8 +61,8 @@ serve(async (req) => {
     const obs = ((cliente as any).rescisao_obs || '').trim();
     const nome = cliente.inquilino_nome || '—';
     const apolice = cliente.numero_apolice || '—';
-    // A tabela não guarda o endereço completo — só CEP e número.
-    const imovel = [cliente.numero_imovel, cliente.cep].filter(Boolean).join(' — ') || '—';
+    // Endereço completo desde a migração 102; cadastros antigos só têm CEP e número.
+    const imovel = (cliente as any).endereco_imovel || [cliente.numero_imovel, cliente.cep].filter(Boolean).join(', ') || '—';
     const agora = new Date().toISOString();
 
     const html = `
@@ -120,9 +105,7 @@ serve(async (req) => {
         </div>
       </div>`;
 
-    // Cópias adicionais do módulo residencial (residencial_config, migração 044).
-    const copiasCco = await copiasResidencial();
-    await fetch('https://api.resend.com/emails', {
+    const envio = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_KEY}` },
       body: JSON.stringify({
@@ -131,17 +114,10 @@ serve(async (req) => {
         subject: `🔴 Rescisão solicitada — ${nome} (${parceiro?.name || 'imobiliária'})`,
         html,
       }),
-    }).catch(() => {});
-
-    await avisarWhats(
-      `🔴 *Rescisão solicitada*\n\n` +
-      `*Inquilino:* ${nome}\n` +
-      `*Imobiliária:* ${parceiro?.name || '—'}\n` +
-      `*Apólice:* ${apolice}\n` +
-      (obs ? `*Obs:* ${obs}\n` : '') +
-      `\n📎 Distrato: ${distrato}\n📎 Vistoria: ${vistoria}\n\n` +
-      `Informe a Fiantec para cancelar a apólice.`,
-    );
+    });
+    // O e-mail é o único aviso que chega ao Fábio. Se falhar, a rescisão não
+    // é carimbada e a imobiliária vê o erro e pode tentar de novo.
+    if (!envio.ok) return json({ error: 'Não foi possível avisar a F&G agora. Tente novamente em instantes.' }, 502);
 
     // Carimbo por último: se algo acima falhar, o pedido continua "não enviado"
     // e a imobiliária ainda vê o botão em vez de achar que já avisou.
