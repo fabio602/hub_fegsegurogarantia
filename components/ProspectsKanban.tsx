@@ -158,6 +158,27 @@ const classeSeloHomologacao = (dias: number): string => {
 
 type LeadSort = 'recent' | 'oldest' | 'homologacao';
 
+// O Supabase devolve no máximo 1.000 linhas por consulta. Sem paginar, o
+// Kanban mostrava só os 1.000 leads mais recentes e a checagem de duplicados
+// do import CSV ignorava o resto. Busca página a página até acabar.
+const PAGINA_PROSPECTS = 1000;
+async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]> {
+    const todos: T[] = [];
+    for (let de = 0; ; de += PAGINA_PROSPECTS) {
+        const { data, error } = await supabase
+            .from('prospects')
+            .select(colunas)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: true }) // desempate estável entre páginas
+            .range(de, de + PAGINA_PROSPECTS - 1);
+        if (error) throw error;
+        const pagina = (data || []) as T[];
+        todos.push(...pagina);
+        if (pagina.length < PAGINA_PROSPECTS) break;
+    }
+    return todos;
+}
+
 interface ProspectsKanbanProps {
     onProductChange?: (product: string) => void;
     onConvertToSale?: (data: {
@@ -483,9 +504,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const fetchProspects = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('prospects').select('*').order('created_at', { ascending: false });
-            if (error) throw error;
-            setProspects(data || []);
+            const data = await buscarTodosProspects<Prospect>('*');
+            setProspects(data);
             // Fallback: quando não há "tempo na coluna" salvo em memória,
             // usamos `status_entered_at` (quando existir) senão `created_at` apenas para não ficar vazio.
             setLeadEnteredAtMs(prev => {
@@ -1027,7 +1047,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setImporting(true);
         try {
             // Fetch existing leads to check for duplicates
-            const { data: existingLeads } = await supabase.from('prospects').select('cnpj, email');
+            const existingLeads = await buscarTodosProspects<{ cnpj?: string | null; email?: string | null }>('cnpj, email');
             const existingCnpjs = new Set((existingLeads || []).map(l => l.cnpj?.replace(/\D/g, '')).filter(Boolean));
             const existingEmails = new Set((existingLeads || []).map(l => l.email?.toLowerCase()).filter(Boolean));
 
