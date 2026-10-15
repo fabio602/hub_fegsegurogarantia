@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
@@ -106,6 +106,57 @@ const PRODUCT_BADGE: Record<string, string> = {
     'Energia':                    'bg-emerald-50 text-emerald-700 border-emerald-200',
     'Seguro de crédito':          'bg-purple-50 text-purple-700 border-purple-200',
 };
+
+// ---- Leads do PNCP: homologação e edital ----
+// Janela de abordagem: até 10 dias da homologação é o lead mais quente (é a
+// validade da fila da prospecção automática); até 30 dias ainda vale tentar,
+// porque o art. 96, §3º, da Lei 14.133 dá no mínimo um mês da homologação
+// para apresentar o seguro garantia. Depois disso o card fica neutro.
+const HOMOLOGACAO_QUENTE_DIAS = 10;
+const HOMOLOGACAO_MORNA_DIAS = 30;
+
+/** Dias corridos entre a data 'AAAA-MM-DD' e hoje, no fuso do navegador. */
+const diasDesdeData = (data?: string | null): number | null => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(data || '');
+    if (!m) return null;
+    const dia = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    if (Number.isNaN(dia.getTime())) return null;
+    const hoje = new Date();
+    const hojeZero = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    return Math.round((hojeZero.getTime() - dia.getTime()) / 86400000);
+};
+
+/** 'AAAA-MM-DD' para 'DD/MM'. */
+const dataCurtaBr = (data?: string | null): string => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(data || '');
+    return m ? `${m[3]}/${m[2]}` : '';
+};
+
+const rotuloDias = (dias: number): string => {
+    if (dias <= 0) return 'hoje';
+    if (dias === 1) return 'há 1 dia';
+    return `há ${dias} dias`;
+};
+
+/**
+ * Link da página da licitação no PNCP a partir do número de controle
+ * ("CNPJ-1-SEQUENCIAL/ANO"). Os leads da regra antiga guardam o número do
+ * contrato, em outro formato, e não geram link.
+ */
+const urlEditalPncp = (numero?: string | null): string | null => {
+    const m = /^(\d{14})-\d+-(\d+)\/(\d{4})$/.exec((numero || '').trim());
+    if (!m) return null;
+    return `https://pncp.gov.br/app/editais/${m[1]}/${m[3]}/${Number(m[2])}`;
+};
+
+/** Classe do selo de homologação conforme a idade (classes inteiras, sem interpolação). */
+const classeSeloHomologacao = (dias: number): string => {
+    if (dias <= HOMOLOGACAO_QUENTE_DIAS) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (dias <= HOMOLOGACAO_MORNA_DIAS) return 'bg-amber-50 text-amber-700 border-amber-200';
+    return 'bg-slate-50 text-slate-500 border-slate-200';
+};
+
+type LeadSort = 'recent' | 'oldest' | 'homologacao';
 
 interface ProspectsKanbanProps {
     onProductChange?: (product: string) => void;
@@ -266,7 +317,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     // Ordenação por "tempo na coluna" (aproximação via `created_at`).
-    const [leadAgeSort, setLeadAgeSort] = useState<'recent' | 'oldest'>('recent');
+    const [leadAgeSort, setLeadAgeSort] = useState<LeadSort>('recent');
+    // Filtro rápido: mostrar só os leads do PNCP com homologação registrada.
+    const [soHomologadasPncp, setSoHomologadasPncp] = useState(false);
     // Guarda quando o lead "entrou" na coluna (atualizado quando você move o card).
     // Se recarregar a página, cai para `created_at` (fallback) até você mover novamente.
     const [leadEnteredAtMs, setLeadEnteredAtMs] = useState<Record<string, number>>({});
@@ -1116,7 +1169,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.cnpj || '').includes(searchQuery);
-        return matchesProduct && matchesSearch;
+        const matchesHomologadas = !soHomologadasPncp ||
+            (p.source === 'pncp_auto' && !!p.data_homologacao);
+        return matchesProduct && matchesSearch && matchesHomologadas;
     });
 
     if (loading) {
@@ -1174,13 +1229,26 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
                         <select
                             value={leadAgeSort}
-                            onChange={(e) => setLeadAgeSort(e.target.value === 'oldest' ? 'oldest' : 'recent')}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setLeadAgeSort(v === 'oldest' ? 'oldest' : v === 'homologacao' ? 'homologacao' : 'recent');
+                            }}
                             className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all cursor-pointer"
                         >
                             <option value="recent">Menor tempo primeiro</option>
                             <option value="oldest">Maior tempo primeiro</option>
+                            <option value="homologacao">Homologação mais recente (PNCP)</option>
                         </select>
                     </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={soHomologadasPncp}
+                            onChange={(e) => setSoHomologadasPncp(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
+                    </label>
                 </div>
             </div>
 
@@ -1194,6 +1262,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         }
                         return p.status === column.id;
                     }).sort((a, b) => {
+                        // 'homologacao' => leads do PNCP com homologação mais recente primeiro
+                        // (empate: maior valor homologado); os demais vêm depois, pelo tempo na coluna.
+                        if (leadAgeSort === 'homologacao') {
+                            const ha = a.data_homologacao || '';
+                            const hb = b.data_homologacao || '';
+                            if (ha && hb) {
+                                if (ha !== hb) return ha < hb ? 1 : -1;
+                                return (Number(b.valor_contrato) || 0) - (Number(a.valor_contrato) || 0);
+                            }
+                            if (ha) return -1;
+                            if (hb) return 1;
+                        }
                         // 'recent' => maior data primeiro (menor tempo na coluna primeiro)
                         // 'oldest' => menor data primeiro (maior tempo na coluna primeiro)
                         const ta = getLeadEnteredAtMs(a);
@@ -1201,7 +1281,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         if (!ta && !tb) return 0;
                         if (!ta) return 1;
                         if (!tb) return -1;
-                        return leadAgeSort === 'recent' ? (tb - ta) : (ta - tb);
+                        return leadAgeSort === 'oldest' ? (ta - tb) : (tb - ta);
                     });
                     const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
                     const headerClass = colorToHeader(column.color);
@@ -1356,6 +1436,52 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 )}
                                             </div>
                                         )}
+
+                                        {/* Grupo PNCP: homologação, valor homologado e edital */}
+                                        {prospect.source === 'pncp_auto' && (() => {
+                                            const dias = diasDesdeData(prospect.data_homologacao);
+                                            const linkEdital = urlEditalPncp(prospect.numero_licitacao);
+                                            const valorHomologado = Number(prospect.valor_contrato) || 0;
+                                            return (
+                                                <div className="flex flex-col gap-1.5">
+                                                    {dias !== null ? (
+                                                        <span
+                                                            className={`self-start inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border ${classeSeloHomologacao(dias)}`}
+                                                            title="Data em que a homologação apareceu no PNCP"
+                                                        >
+                                                            Homologada em {dataCurtaBr(prospect.data_homologacao)} · {rotuloDias(dias)}
+                                                        </span>
+                                                    ) : (
+                                                        <span
+                                                            className="self-start inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-50 text-slate-500 border-slate-200"
+                                                            title="Lead anterior a 10/09/2026, captado pelo contrato publicado (pode já estar com contrato assinado)"
+                                                        >
+                                                            PNCP · regra antiga (contrato)
+                                                        </span>
+                                                    )}
+                                                    <div className="flex items-center justify-between gap-2 min-w-0">
+                                                        {valorHomologado > 0 ? (
+                                                            <span className="text-[11px] text-slate-600 truncate" title={prospect.orgao_licitante || undefined}>
+                                                                {dias !== null ? 'Homologado' : 'Contrato'} {formatCurrency(valorHomologado)}
+                                                            </span>
+                                                        ) : <span />}
+                                                        {linkEdital && (
+                                                            <a
+                                                                href={linkEdital}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                draggable={false}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="Abrir a licitação no PNCP (edital e anexos)"
+                                                                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-800 hover:underline"
+                                                            >
+                                                                Ver edital <ExternalLink size={11} />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Grupo 3: valor estimado e idade do lead */}
                                         <div className="flex items-center justify-between border-t border-slate-100 pt-2">
