@@ -1504,6 +1504,18 @@
 
   let todosClientes = [];
 
+  // Grava um campo de documento do cadastro pela RPC (migração 105).
+  // O portal usa a chave anon, que só pode LER imobiliaria_clientes: o
+  // .update() direto era descartado em silêncio pelo RLS e o documento
+  // enviado nunca aparecia como recebido. A RPC só aceita os campos de
+  // documento, só em cadastro desta imobiliária e só com link do bucket.
+  async function salvarCampoPortal(clientId, campo, valor) {
+    const { error } = await client.rpc('imobiliaria_portal_salvar_campo', {
+      p_client_id: clientId, p_partner_id: Number(session.id), p_campo: campo, p_valor: valor,
+    });
+    if (error) throw error;
+  }
+
   // Quais linhas estão com o painel de rescisão aberto. A carteira é
   // re-renderizada inteira a cada upload, então sem isto o painel fecharia
   // sozinho no meio do preenchimento.
@@ -2296,8 +2308,12 @@
   }
 
   function renderDocsPendentes(cs) {
+    // Só quem ainda deve algum documento. Com os três enviados o cliente sai da
+    // lista; antes ficava aqui para sempre, com selo "Completo", e parecia
+    // que o portal continuava pedindo.
     const pendentes = cs.filter(c => temGarantiaLocaticia(c) &&
-      (c.status_garantia === 'aprovado' || c.status_garantia === 'emitido'));
+      (c.status_garantia === 'aprovado' || c.status_garantia === 'emitido') &&
+      !DOCS_DEF.every(d => c[d.key]));
     const area = document.getElementById('docs-pending-area');
     if (!pendentes.length) { area.innerHTML = ''; return; }
     area.innerHTML = `<div class="docs-pending" style="margin-bottom:20px">
@@ -2334,7 +2350,7 @@
       const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType:'application/pdf', upsert:true });
       if (upErr) throw upErr;
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
-      await client.from('imobiliaria_clientes').update({ [docKey]: urlData.publicUrl }).eq('id', cId);
+      await salvarCampoPortal(cId, docKey, urlData.publicUrl);
       await carregar();
     } catch(e) { alert('Erro: ' + e.message); btn.style.display='inline'; spin.style.display='none'; }
   }
@@ -2702,7 +2718,7 @@
       const { error: upErr } = await client.storage.from('imobiliaria-docs').upload(path, file, { contentType: file.type, upsert: true });
       if (upErr) throw upErr;
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
-      await client.from('imobiliaria_clientes').update({ [field]: urlData.publicUrl }).eq('id', clientId);
+      await salvarCampoPortal(clientId, field, urlData.publicUrl);
       await carregar();
     } catch(e) { alert('Erro ao enviar: ' + e.message); if (label) label.innerHTML = '<svg class="ico ico-inline"><use href="#i-enviar"/></svg> Tentar novamente'; }
   }
@@ -2729,9 +2745,7 @@
         .upload(path, file, { contentType: file.type, upsert: true });
       if (upErr) throw upErr;
       const { data: urlData } = client.storage.from('imobiliaria-docs').getPublicUrl(path);
-      const { error: dbErr } = await client.from('imobiliaria_clientes')
-        .update({ [field]: urlData.publicUrl }).eq('id', clientId);
-      if (dbErr) throw dbErr;
+      await salvarCampoPortal(clientId, field, urlData.publicUrl);
       rescisaoAberta.add(clientId); // o painel precisa continuar aberto
       await carregar();
     } catch(e) {
@@ -2745,8 +2759,7 @@
   async function salvarObsRescisao(clientId, el) {
     const texto = (el.value || '').trim();
     try {
-      await client.from('imobiliaria_clientes')
-        .update({ rescisao_obs: texto || null }).eq('id', clientId);
+      await salvarCampoPortal(clientId, 'rescisao_obs', texto);
       const c = todosClientes.find(x => x.id === clientId);
       if (c) c.rescisao_obs = texto || null;
     } catch(e) { console.error('[rescisao obs]', e); }
@@ -2798,20 +2811,20 @@
         <button onclick="toggleRescisao('${c.id}')"
           style="padding:7px 14px;background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;"
           onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fff'">
-          <svg class="ico ico-inline"><use href="#i-alerta"/></svg> Solicitar rescisão
+          <svg class="ico ico-inline"><use href="#i-doc"/></svg> Enviar distrato
         </button>`;
     }
 
     const docs = [
       { key: 'rescisao_distrato_url', label: 'Termo de distrato assinado' },
-      { key: 'rescisao_vistoria_url', label: 'Vistoria de saída' },
+      { key: 'rescisao_vistoria_url', label: 'Termo de vistoria final (saída)' },
     ];
     const completo = docs.every(d => c[d.key]);
 
     return `
       <div style="padding:16px 18px;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-          <span style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;"><svg class="ico ico-inline"><use href="#i-alerta"/></svg> Rescisão de contrato</span>
+          <span style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.3px;"><svg class="ico ico-inline"><use href="#i-alerta"/></svg> Distrato / rescisão do contrato</span>
           <button onclick="toggleRescisao('${c.id}')" style="background:none;border:none;color:#94a3b8;font-size:16px;font-weight:600;cursor:pointer;line-height:1;" title="Fechar">×</button>
         </div>
 
