@@ -62,40 +62,103 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
     { id: 'Sem e-mail válido', title: 'Sem e-mail válido', color: 'fg_blue_2', protected: true },
 ];
 
+// Até a migração 108 as colunas ficavam só no localStorage de cada navegador
+// (apesar do nome "shared" na chave). Agora a lista vive na tabela
+// kanban_colunas e todos veem o mesmo quadro. O localStorage serve apenas para
+// importar, uma única vez por navegador, as colunas criadas à mão antes disso.
 const STORAGE_KEY = 'kanban_columns_v1_shared';
-const BACKUP_KEY = 'kanban_columns_backup_pre_pncp_auto';
+const IMPORT_FLAG = 'kanban_colunas_importadas_v1';
+
+/** Garante as colunas fixas (Novos Leads e as das automações), sem reordenar as demais. */
+const garantirColunasFixas = (cols: KanbanColumn[]): KanbanColumn[] => {
+    const fixas = [DEFAULT_COLUMNS[0], ...REQUIRED_COLUMNS];
+    const faltantes = fixas.filter(f => !cols.some(c => c.id === f.id));
+    if (!faltantes.length) return cols;
+    const semNovos = faltantes.filter(f => f.id !== 'Novos Leads');
+    const temNovos = faltantes.some(f => f.id === 'Novos Leads');
+    return [...(temNovos ? [DEFAULT_COLUMNS[0]] : []), ...cols, ...semNovos];
+};
+
+/** Lê a configuração antiga deste navegador (só para a importação única). */
+const lerColunasLocais = (): KanbanColumn[] | null => {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('kanban_columns_v1_Seguro_Garantia');
+        if (!saved) return null;
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter(c => c && typeof c.id === 'string' && typeof c.title === 'string') : null;
+    } catch { return null; }
+};
+
+/** Estado inicial enquanto o banco não responde. */
+const loadColumns = (): KanbanColumn[] => garantirColunasFixas(lerColunasLocais() || DEFAULT_COLUMNS.filter(c => c.protected));
+
+type ColunaDb = { id: string; title: string; color: string; protected: boolean; ordem: number };
+
+const doDb = (r: ColunaDb): KanbanColumn => ({ id: r.id, title: r.title, color: r.color, protected: r.protected || undefined });
+
+const buscarColunasDb = async (): Promise<ColunaDb[] | null> => {
+    const { data, error } = await supabase
+        .from('kanban_colunas')
+        .select('id, title, color, protected, ordem')
+        .order('ordem', { ascending: true })
+        .order('created_at', { ascending: true });
+    if (error) { console.error('Erro ao carregar colunas do Kanban:', error); return null; }
+    return (data || []) as ColunaDb[];
+};
 
 /**
- * Acrescenta as colunas obrigatórias que faltarem na configuração salva,
- * sem apagar nem reordenar as que já existem (as novas entram no final).
- * Antes da primeira fusão, guarda uma cópia da configuração original.
+ * Carrega as colunas compartilhadas. Na primeira abertura de cada navegador,
+ * envia para o banco as colunas que só existiam nele:
+ * - se o banco ainda só tem as colunas fixas, a ordem deste navegador vira a do quadro;
+ * - senão, as colunas que faltam entram no fim, sem mexer nas que já existem.
  */
-const mergeRequiredColumns = (cols: KanbanColumn[], savedRaw: string | null): KanbanColumn[] => {
-    const faltantes = REQUIRED_COLUMNS.filter(req => !cols.some(c => c.id === req.id));
-    if (!faltantes.length) return cols;
-    try {
-        if (savedRaw && !localStorage.getItem(BACKUP_KEY)) {
-            localStorage.setItem(BACKUP_KEY, savedRaw);
+const carregarColunasCompartilhadas = async (): Promise<KanbanColumn[] | null> => {
+    let rows = await buscarColunasDb();
+    if (!rows) return null;
+
+    let jaImportou = true;
+    try { jaImportou = localStorage.getItem(IMPORT_FLAG) === '1'; } catch { /* ignore */ }
+
+    if (!jaImportou) {
+        const locais = lerColunasLocais();
+        let ok = true;
+        if (locais && locais.length) {
+            const porId = new Map(rows.map(r => [r.id, r]));
+            const soFixas = rows.every(r => r.protected);
+            if (soFixas) {
+                const todas = locais.map((c, i) => ({
+                    id: c.id,
+                    title: c.title,
+                    color: c.color || 'fg_blue_2',
+                    protected: !!porId.get(c.id)?.protected,
+                    ordem: (i + 1) * 10,
+                }));
+                const { error } = await supabase.from('kanban_colunas').upsert(todas, { onConflict: 'id' });
+                if (error) { ok = false; console.error('Erro ao importar colunas do Kanban:', error); }
+            } else {
+                const maxOrdem = Math.max(0, ...rows.map(r => r.ordem));
+                const novas = locais
+                    .filter(c => !porId.has(c.id))
+                    .map((c, i) => ({ id: c.id, title: c.title, color: c.color || 'fg_blue_2', protected: false, ordem: maxOrdem + (i + 1) * 10 }));
+                if (novas.length) {
+                    const { error } = await supabase.from('kanban_colunas').upsert(novas, { onConflict: 'id', ignoreDuplicates: true });
+                    if (error) { ok = false; console.error('Erro ao importar colunas do Kanban:', error); }
+                }
+            }
+            if (ok) rows = (await buscarColunasDb()) || rows;
         }
-    } catch { /* ignore */ }
-    const merged = [...cols, ...faltantes];
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* ignore */ }
-    return merged;
+        // Só marca como importado se deu certo; senão tenta de novo na próxima abertura.
+        if (ok) { try { localStorage.setItem(IMPORT_FLAG, '1'); } catch { /* ignore */ } }
+    }
+
+    return garantirColunasFixas(rows.map(doDb));
 };
 
-const loadColumns = (): KanbanColumn[] => {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) return mergeRequiredColumns(JSON.parse(saved), saved);
-        // Migrar config anterior (por produto)
-        const legacy = localStorage.getItem('kanban_columns_v1_Seguro_Garantia');
-        if (legacy) return mergeRequiredColumns(JSON.parse(legacy), legacy);
-    } catch { /* ignore */ }
-    return DEFAULT_COLUMNS;
-};
-
-const saveColumns = (cols: KanbanColumn[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cols));
+/** Grava a ordem atual de todas as colunas. */
+const salvarOrdemColunas = async (cols: KanbanColumn[]) => {
+    const linhas = cols.map((c, i) => ({ id: c.id, title: c.title, color: c.color, protected: !!c.protected, ordem: i * 10 }));
+    const { error } = await supabase.from('kanban_colunas').upsert(linhas, { onConflict: 'id' });
+    if (error) throw error;
 };
 
 const PRODUCT_TYPES = ['Seguro Garantia', 'Judicial Depósito Recursal', 'Energia', 'Seguro de crédito'] as const;
@@ -348,6 +411,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [editingColId, setEditingColId] = useState<string | null>(null);
     const [editingColTitle, setEditingColTitle] = useState('');
 
+    // Colunas compartilhadas (tabela kanban_colunas). Recarrega ao voltar para a
+    // aba, para pegar colunas criadas, renomeadas ou movidas por outro usuário.
+    const recarregarColunas = async () => {
+        const cols = await carregarColunasCompartilhadas();
+        if (cols) setColumns(cols);
+    };
+    useEffect(() => {
+        recarregarColunas();
+        const aoFocar = () => { if (document.visibilityState === 'visible') recarregarColunas(); };
+        document.addEventListener('visibilitychange', aoFocar);
+        return () => document.removeEventListener('visibilitychange', aoFocar);
+    }, []);
+
     // CSV Import State
     const [csvProductType, setCsvProductType] = useState<string>('Seguro Garantia');
     const [importing, setImporting] = useState(false);
@@ -566,12 +642,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     };
 
     // ---- Column management ----
-    const handleAddColumn = () => {
+    const handleAddColumn = async () => {
         if (!newColTitle.trim()) return;
         const id = `col_${Date.now()}`;
-        const updated = [...columns, { id, title: newColTitle.trim(), color: newColColor }];
-        setColumns(updated);
-        saveColumns(updated);
+        const novaCol = { id, title: newColTitle.trim(), color: newColColor };
+        const ordem = columns.length * 10;
+        const { error } = await supabase.from('kanban_colunas').insert({ ...novaCol, protected: false, ordem });
+        if (error) {
+            console.error('Erro ao criar coluna:', error);
+            alert('Não foi possível criar a coluna. Tente de novo.');
+            return;
+        }
+        setColumns([...columns, novaCol]);
         setNewColTitle('');
         setNewColColor('fg_blue_2');
         setIsAddColumnOpen(false);
@@ -602,9 +684,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             setProspects(prev => prev.map(p => p.status === colId ? { ...p, status: 'Novos Leads' } : p));
         }
 
-        const updated = columns.filter(c => c.id !== colId);
-        setColumns(updated);
-        saveColumns(updated);
+        const { error } = await supabase.from('kanban_colunas').delete().eq('id', colId);
+        if (error) {
+            console.error('Erro ao excluir coluna:', error);
+            alert('Não foi possível excluir a coluna. Tente de novo.');
+            recarregarColunas();
+            return;
+        }
+        setColumns(columns.filter(c => c.id !== colId));
     };
 
     // ---- Drag & Drop for CARDS ----
@@ -643,7 +730,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             const [draggedCol] = updatedColumns.splice(draggedIdx, 1);
             updatedColumns.splice(targetIdx, 0, draggedCol);
             setColumns(updatedColumns);
-            saveColumns(updatedColumns);
+            salvarOrdemColunas(updatedColumns).catch(err => {
+                console.error('Erro ao salvar a ordem das colunas:', err);
+                alert('Não foi possível salvar a nova ordem das colunas.');
+                recarregarColunas();
+            });
         }
         setDraggingCol(null);
     };
@@ -668,12 +759,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             cancelRenameColumn();
             return;
         }
-        setColumns(prev => {
-            const updated = prev.map(c => (c.id === colId ? { ...c, title: nextTitle } : c));
-            saveColumns(updated);
-            return updated;
-        });
+        setColumns(prev => prev.map(c => (c.id === colId ? { ...c, title: nextTitle } : c)));
         cancelRenameColumn();
+        supabase.from('kanban_colunas')
+            .update({ title: nextTitle, updated_at: new Date().toISOString() })
+            .eq('id', colId)
+            .then(({ error }) => {
+                if (error) {
+                    console.error('Erro ao renomear coluna:', error);
+                    alert('Não foi possível renomear a coluna.');
+                    recarregarColunas();
+                }
+            });
     };
 
     const handleDrop = async (e: React.DragEvent, statusId: string) => {
