@@ -1,5 +1,5 @@
 import React from 'react';
-import { whatsappUrlFromPhone } from '../utils/whatsapp';
+import { whatsappUrlFromPhone, formatarTelefoneBr } from '../utils/whatsapp';
 
 type Props = {
     phone: string | null | undefined;
@@ -17,7 +17,10 @@ const WhatsAppPhoneLink: React.FC<Props> = ({ phone, display, className = '' }) 
         return display != null ? <span className={className}>{display}</span> : null;
     }
     const url = whatsappUrlFromPhone(raw);
-    const shown = display !== undefined && display !== null ? display : raw;
+    // Sem `display`, mostra o número formatado e com o nono dígito do celular
+    // antigo (cadastro da Receita), para quem lê e disca à mão. Se o número não
+    // for um telefone brasileiro inequívoco, mostra como veio.
+    const shown = display !== undefined && display !== null ? display : (formatarTelefoneBr(raw) ?? raw);
     if (!url) {
         return <span className={className}>{shown}</span>;
     }

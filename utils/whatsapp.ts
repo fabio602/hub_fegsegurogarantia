@@ -22,6 +22,40 @@ function noveDigitos(dddMaisNumero: string): string {
 }
 
 /**
+ * Telefone brasileiro formatado para leitura e discagem, já com o nono dígito
+ * do celular antigo: "4196221372" vira "(41) 99622-1372" e "1535551234" vira
+ * "(15) 3555-1234".
+ *
+ * Só formata o que for inequívoco: 10 ou 11 dígitos (com ou sem 55 na frente)
+ * e DDD válido (11 a 99, sem zero). Qualquer outra coisa (0800, ramal, dois
+ * números no mesmo campo, texto) volta `null`, e quem chama mostra o original.
+ */
+export function formatarTelefoneBr(phone: string | null | undefined): string | null {
+    if (!phone) return null;
+    const bruto = String(phone).trim();
+    let d = phoneDigitsOnly(bruto);
+    if (d.startsWith('55') && (d.length === 12 || d.length === 13)) {
+        d = d.slice(2);
+    } else if (bruto.startsWith('+')) {
+        // "+55 4007-2221" (número de capital, sem DDD) e DDI estrangeiro: não mexe.
+        return null;
+    }
+    if (d.length !== 10 && d.length !== 11) return null;
+    if (!/^[1-9][1-9]/.test(d)) return null;
+    // Assinante começando com 0 ou 1 não é telefone (ex.: "4700000001").
+    if (!/^[2-9]/.test(d.slice(2))) return null;
+    d = noveDigitos(d);
+    const ddd = d.slice(0, 2);
+    const assinante = d.slice(2);
+    if (assinante.length === 9) {
+        // Celular de 9 dígitos sempre começa com 9.
+        if (!assinante.startsWith('9')) return null;
+        return `(${ddd}) ${assinante.slice(0, 5)}-${assinante.slice(5)}`;
+    }
+    return `(${ddd}) ${assinante.slice(0, 4)}-${assinante.slice(4)}`;
+}
+
+/**
  * URL https://wa.me/... para abrir conversa no WhatsApp.
  * Heurística Brasil: 10 ou 11 dígitos sem DDI → nono dígito quando for
  * celular antigo, depois prefixo 55.
