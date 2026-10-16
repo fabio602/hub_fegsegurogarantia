@@ -75,6 +75,108 @@ function molde(o: {
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>F&G Seguro Garantia</title></head><body style="margin:0;padding:0;background-color:#EDEAE4;"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EDEAE4;padding:40px 16px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;"><tr><td style="background-color:#C69C6D;height:5px;border-radius:4px 4px 0 0;"></td></tr><tr><td style="background-color:#1B263B;padding:36px 48px 28px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="color:#C69C6D;font-size:10px;letter-spacing:4px;text-transform:uppercase;font-family:Arial,sans-serif;margin-bottom:6px;">${o.eyebrow}</div><div style="color:#FFFFFF;font-size:24px;font-weight:bold;letter-spacing:1px;font-family:Georgia,serif;">F&amp;G Seguro Garantia</div></td><td align="right" style="vertical-align:middle;"><div style="border:1px solid #C69C6D;padding:6px 14px;border-radius:2px;"><span style="color:#C69C6D;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">${o.badge}</span></div></td></tr></table></td></tr><tr><td style="background-color:#243347;padding:48px 48px 40px;text-align:center;">${faixaTagline}<div style="color:#FFFFFF;font-size:28px;font-weight:bold;font-family:Georgia,serif;line-height:1.35;">${o.titulo}</div></td></tr><tr><td style="background-color:#C69C6D;height:1px;"></td></tr><tr><td style="background-color:#FFFFFF;padding:44px 48px;"><p style="margin:0 0 20px 0;color:#1B263B;font-size:16px;line-height:1.75;font-family:Georgia,serif;">Olá, <strong>[NOME_CONTATO]</strong>!</p>${o.corpo}${botao}</td></tr><tr><td style="background-color:#C69C6D;height:1px;"></td></tr><tr><td style="background-color:#1B263B;padding:28px 48px;"><div style="color:#FFFFFF;font-size:15px;font-weight:bold;font-family:Georgia,serif;margin-bottom:4px;">Fábio Lima</div><div style="color:#C69C6D;font-size:9px;letter-spacing:3px;text-transform:uppercase;font-family:Arial,sans-serif;margin-bottom:8px;">Fundador, F&amp;G Seguro Garantia</div><div style="color:#8FA8C0;font-size:11px;font-family:Arial,sans-serif;margin-bottom:14px;">Corretora especialista em Seguro Garantia</div><a href="tel:+5515998618659" style="color:#8FA8C0;font-size:12px;text-decoration:none;font-family:Arial,sans-serif;display:block;margin-bottom:6px;">📱 (15) 99861-8659</a><a href="https://fegsegurogarantia.com.br" style="color:#8FA8C0;font-size:12px;text-decoration:none;font-family:Arial,sans-serif;display:block;">🌐 fegsegurogarantia.com.br</a></td></tr><tr><td style="background-color:#141E2E;padding:16px 48px;border-radius:0 0 4px 4px;"><p style="margin:0;color:#3D5166;font-size:10px;line-height:1.7;font-family:Arial,sans-serif;text-align:center;">${o.rodape} &nbsp;·&nbsp; <a href="mailto:fabio@fegsegurogarantia.com.br?subject=Descadastrar" style="color:#3D5166;text-decoration:underline;">Descadastrar</a></p></td></tr><tr><td style="background-color:#C69C6D;height:3px;border-radius:0 0 4px 4px;"></td></tr></table></td></tr></table></body></html>`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TESTE A/B: VERSÃO SIMPLES ("cara de e-mail pessoal")
+//
+// O molde acima tem visual de newsletter (faixas, selo 01/05, título grande,
+// botão). Em prospecção fria isso tende a ir para a aba Promoções e a ser
+// lido como marketing. A versão simples usa o MESMO texto da etapa, sem
+// banner, título nem botão: só parágrafos, um link de WhatsApp em texto e a
+// assinatura em texto.
+//
+// Quem entra no teste: contatos da trilha `garantia` vindos da prospecção
+// automática do PNCP (origem `pncp_auto`) criados a partir de AB_INICIO. A
+// variante é fixa por contato (último dígito hexadecimal do id: ímpar =
+// simples, par = molde), então a pessoa recebe a trilha inteira numa só
+// versão. Para medir, compare as respostas recebidas por variante; a regra
+// do id permite reconstruir a divisão sem coluna nova no banco.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AB_INICIO = '2026-10-16';
+const AB_TRILHA = 'garantia';
+const AB_ORIGEM = 'pncp_auto';
+
+type Variante = 'molde' | 'simples';
+
+/** Variante do contato no teste A/B. Fora do teste, sempre 'molde'. */
+function varianteDoContato(c: { id: string; trilha?: string | null; origem?: string | null; created_at?: string | null }): Variante {
+  if (String(c.trilha ?? 'garantia') !== AB_TRILHA) return 'molde';
+  if (c.origem !== AB_ORIGEM) return 'molde';
+  const criado = c.created_at
+    ? new Date(c.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    : '';
+  if (!criado || criado < AB_INICIO) return 'molde';
+  const ultimo = parseInt(String(c.id).replace(/-/g, '').slice(-1), 16);
+  return Number.isNaN(ultimo) || ultimo % 2 === 0 ? 'molde' : 'simples';
+}
+
+const PS = 'margin:0 0 14px 0;color:#222222;font-size:14px;line-height:1.6;font-family:Arial,sans-serif;';
+
+/**
+ * Converte o corpo da etapa (feito para o molde) em HTML simples: parágrafos
+ * sem cor de marca e tabelas viradas em parágrafos de texto.
+ */
+function simplificarCorpo(corpo: string): string {
+  return corpo
+    // Tabela (ex.: comparativo da etapa 4): cada célula vira um parágrafo.
+    .replace(/<table[\s\S]*?<\/table>/gi, (tabela) => {
+      const celulas = [...tabela.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+        .map((m) => m[1]
+          .replace(/<\/p>\s*<p[^>]*>/gi, '<br>')
+          .replace(/<\/?p[^>]*>/gi, '')
+          .trim())
+        .filter(Boolean);
+      return celulas.map((t) => `<p style="${PS}">${t}</p>`).join('');
+    })
+    .replace(/<p[^>]*>/gi, `<p style="${PS}">`)
+    .replace(/<strong[^>]*>/gi, '<strong>');
+}
+
+/** Monta a versão simples. Mesmo conteúdo do molde, sem visual de newsletter. */
+function moldeSimples(o: { corpo: string; cta: string | null; ctaLink: string }): string {
+  const linhaWhats = o.cta
+    ? `<p style="${PS}">Se preferir, me chama no WhatsApp: <a href="${o.ctaLink}" style="color:#1a56b0;">(15) 99861-8659</a></p>`
+    : '';
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"></head><body style="margin:0;padding:16px;background-color:#FFFFFF;">`
+    + `<div style="max-width:600px;">`
+    + `<p style="${PS}">Olá, [NOME_CONTATO]!</p>`
+    + simplificarCorpo(o.corpo)
+    + linhaWhats
+    + `<p style="margin:20px 0 0 0;color:#222222;font-size:14px;line-height:1.5;font-family:Arial,sans-serif;">Fábio Lima<br>F&amp;G Seguro Garantia<br>(15) 99861-8659 · fegsegurogarantia.com.br</p>`
+    + `<p style="margin:24px 0 0 0;color:#888888;font-size:11px;line-height:1.5;font-family:Arial,sans-serif;">Se não quiser mais receber estes e-mails, é só responder com a palavra <a href="mailto:fabio@fegsegurogarantia.com.br?subject=Descadastrar" style="color:#888888;">descadastrar</a>.</p>`
+    + `</div></body></html>`;
+}
+
+/**
+ * Versão em texto simples do e-mail, enviada junto com o HTML. Filtros de
+ * spam desconfiam de mensagem só em HTML, e alguns leitores mostram o texto.
+ */
+function htmlParaTexto(html: string): string {
+  return html
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    // Links lado a lado no HTML (telefone e site na assinatura) viram linhas.
+    .replace(/<\/a>\s*<a /gi, '</a>\n<a ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n\n')
+    .replace(/<a [^>]*href="(?:tel:|mailto:)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi, '$1')
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, txt: string) => {
+      const t = txt.replace(/<[^>]+>/g, '').trim();
+      return t && href.includes(t.replace(/^https?:\/\//, '')) ? t : `${t} (${href})`;
+    })
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /** Dois dígitos: 1 -> "01". */
 function dd(n: number): string {
   return String(n).padStart(2, '0');
@@ -104,6 +206,7 @@ function montarEmail(
   cidade = '',
   site = '',
   gancho = '',
+  variante: Variante = 'molde',
 ): { assunto: string; html: string } {
   const assunto = personalizar(etapa.assunto, nome, empresa, cidade, site).replaceAll('[GANCHO_ADESAO]', '');
 
@@ -122,6 +225,11 @@ function montarEmail(
     .replaceAll('[GANCHO_ADESAO]', ganchoHtml)
     .replaceAll('{{PF}}', PF)
     .replaceAll('{{P}}', P);
+
+  if (variante === 'simples') {
+    const simples = moldeSimples({ corpo, cta: etapa.cta_texto, ctaLink: etapa.cta_link || WHATSAPP });
+    return { assunto, html: personalizar(simples, nome, empresa, cidade, site) };
+  }
 
   const html = molde({
     eyebrow: trilha.eyebrow,
@@ -168,7 +276,13 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_API_KEY}` },
-      body: JSON.stringify({ from: `F&G Seguro Garantia <${FROM_EMAIL}>`, to: [to], bcc: [BCC_EMAIL], subject, html }),
+      body: JSON.stringify({
+        from: `F&G Seguro Garantia <${FROM_EMAIL}>`, to: [to], bcc: [BCC_EMAIL], subject, html,
+        // Versão em texto junto com o HTML: filtros de spam desconfiam de e-mail só em HTML.
+        text: htmlParaTexto(html),
+        // Descadastro no cabeçalho: o Gmail e outros mostram o "cancelar inscrição" nativo.
+        headers: { 'List-Unsubscribe': `<mailto:${FROM_EMAIL}?subject=Descadastrar>` },
+      }),
     });
     if (!r.ok) console.error('Resend:', r.status, await r.text());
     return r.ok;
@@ -299,6 +413,8 @@ Deno.serve(async (req) => {
       const cidadePrev = String(body.cidade ?? '');
       const sitePrev   = String(body.site ?? '');
       const ganchoPrev = String(body.gancho_adesao ?? '');
+      // Prévia/teste da versão simples do A/B: { variante: 'simples' }.
+      const variantePrev: Variante = body.variante === 'simples' ? 'simples' : 'molde';
       const ordem   = body.ordem ? Number(body.ordem) : null;
       const alvo    = ordem ? etapas.filter(e => e.ordem === ordem) : etapas;
       if (!alvo.length) return json({ success: false, error: `Etapa ${ordem} não existe ou está inativa` }, 404);
@@ -306,7 +422,7 @@ Deno.serve(async (req) => {
       const montados = alvo.map(e => ({
         ordem: e.ordem,
         dia: e.dia,
-        ...montarEmail(trilha, e, etapas.length, nome, empresa, cidadePrev, sitePrev, ganchoPrev),
+        ...montarEmail(trilha, e, etapas.length, nome, empresa, cidadePrev, sitePrev, ganchoPrev, variantePrev),
       }));
 
       if (body.modo === 'preview') {
@@ -328,7 +444,7 @@ Deno.serve(async (req) => {
     if (body.contact_id) {
       const { data: c } = await supabase
         .from('email_cadencia')
-        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha, cidade, site, gancho_adesao')
+        .select('id, nome_contato, nome_empresa, email, email_1_sent, trilha, cidade, site, gancho_adesao, origem, created_at')
         .eq('id', body.contact_id)
         .single();
 
@@ -343,15 +459,16 @@ Deno.serve(async (req) => {
 
       const { trilha, etapas } = carregada;
       const primeira = etapas[0];
+      const variante = varianteDoContato(c as any);
       const { assunto, html } = montarEmail(
         trilha, primeira, etapas.length, c.nome_contato, c.nome_empresa,
         String((c as any).cidade ?? ''), String((c as any).site ?? ''),
-        String((c as any).gancho_adesao ?? ''),
+        String((c as any).gancho_adesao ?? ''), variante,
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
         const erroRegistro = await registrarEnvio(supabase, c.id, primeira.ordem);
-        console.log(`[cadencia/${slug}] ✅ E${primeira.ordem} imediato -> ${c.email}`);
+        console.log(`[cadencia/${slug}] ✅ E${primeira.ordem} imediato (${variante}) -> ${c.email}`);
         if (erroRegistro) {
           // O e-mail saiu: responder success:false faria o chamador marcar
           // falha de envio e a etapa 1 sairia de novo amanha.
@@ -452,7 +569,7 @@ Deno.serve(async (req) => {
 
     const { data: contatos, error: errContatos } = await supabase
       .from('email_cadencia')
-      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site, gancho_adesao')
+      .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site, gancho_adesao, origem, created_at')
       .eq('ativo', true)
       .gte('data_inicio', limiteInicio)
       .lte('data_inicio', today);
@@ -482,7 +599,7 @@ Deno.serve(async (req) => {
       if (!atual || dia > atual) ultimoEnvio.set(e.contato_id, dia);
     }
 
-    let totalSent = 0, totalErrors = 0;
+    let totalSent = 0, totalErrors = 0, totalSimples = 0;
     const semRegistro: EnvioSemRegistro[] = [];
 
     for (const c of contatos) {
@@ -502,16 +619,18 @@ Deno.serve(async (req) => {
       const pendente = etapas.find(e => e.dia <= decorridos && !jaEnviado.has(`${c.id}:${e.ordem}`));
       if (!pendente) continue;
 
+      const variante = varianteDoContato(c as any);
       const { assunto, html } = montarEmail(
         trilha, pendente, etapas.length, c.nome_contato, c.nome_empresa,
         String((c as any).cidade ?? ''), String((c as any).site ?? ''),
-        String((c as any).gancho_adesao ?? ''),
+        String((c as any).gancho_adesao ?? ''), variante,
       );
       const ok = await sendEmail(c.email, assunto, html);
       if (ok) {
         const erroRegistro = await registrarEnvio(supabase, c.id, pendente.ordem);
-        console.log(`[cadencia/${slug}] ✅ E${pendente.ordem} -> ${c.email}`);
+        console.log(`[cadencia/${slug}] ✅ E${pendente.ordem} (${variante}) -> ${c.email}`);
         totalSent++;
+        if (variante === 'simples') totalSimples++;
         if (erroRegistro) semRegistro.push({ contatoId: c.id, email: c.email, ordem: pendente.ordem, erro: erroRegistro });
       } else totalErrors++;
 
@@ -521,7 +640,12 @@ Deno.serve(async (req) => {
     await avisarEnvioSemRegistro(semRegistro);
     await registrarExecucao(supabase, {
       contatos_elegiveis: contatos.length, enviados: totalSent, erros: totalErrors, sem_registro: semRegistro.length,
-      detalhes: semRegistro.length ? { sem_registro: semRegistro } : undefined,
+      detalhes: (semRegistro.length || totalSimples)
+        ? {
+            ...(semRegistro.length ? { sem_registro: semRegistro } : {}),
+            ...(totalSimples ? { ab_simples_enviados: totalSimples } : {}),
+          }
+        : undefined,
     });
     return json({ success: true, sent: totalSent, errors: totalErrors, sem_registro: semRegistro.length });
   } catch (err) {
