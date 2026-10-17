@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
@@ -284,6 +284,22 @@ async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]>
     return todos;
 }
 
+// ---- Toques manuais (WhatsApp e e-mail enviados à mão) ----
+// Cada "Confirmar" no card grava uma linha em prospect_toques. O card mostra o
+// último toque de cada canal e fica em alerta quando o último contato passou
+// de TOQUE_ALERTA_DIAS sem o lead mudar de situação.
+type CanalToque = 'whatsapp' | 'email';
+const TOQUE_ALERTA_DIAS = 3;
+interface ToqueCanal { em: string; autor: string | null }
+interface ToquesDoLead { whatsapp?: ToqueCanal; email?: ToqueCanal; total: number; ultimo: string }
+
+const diasDesdeTimestamp = (ts?: string | null): number | null => {
+    if (!ts) return null;
+    const t = Date.parse(ts);
+    if (Number.isNaN(t)) return null;
+    return Math.max(0, Math.floor((Date.now() - t) / 86400000));
+};
+
 interface ProspectsKanbanProps {
     onProductChange?: (product: string) => void;
     onConvertToSale?: (data: {
@@ -454,6 +470,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     // (aguardando o 1º e-mail) ou travado (trilha já iniciada).
     const [cadenciaPorLead, setCadenciaPorLead] = useState<Record<string, CadenciaDoLead>>({});
     const [soAguardandoE1, setSoAguardandoE1] = useState(false);
+
+    // Toques manuais por lead, nome curto de cada usuário e o botão em confirmação.
+    const [toquesPorLead, setToquesPorLead] = useState<Record<string, ToquesDoLead>>({});
+    const [nomePorEmail, setNomePorEmail] = useState<Record<string, string>>({});
+    const [confirmandoToque, setConfirmandoToque] = useState<{ id: string; canal: CanalToque } | null>(null);
+    const [salvandoToque, setSalvandoToque] = useState(false);
+    const [soSemContato, setSoSemContato] = useState(false);
     const [leadEmailLicitacao, setLeadEmailLicitacao] = useState<Prospect | null>(null);
     const [emailLicPara, setEmailLicPara] = useState('');
     const [emailLicNome, setEmailLicNome] = useState('');
@@ -627,6 +650,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         fetchProspects();
         fetchTasks();
         fetchCadencia();
+        fetchToques();
+        fetchNomesUsuarios();
     }, []);
 
     useEffect(() => {
@@ -662,6 +687,80 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             console.error('Error fetching prospects:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    /** Último toque de cada canal por lead, a partir de prospect_toques. */
+    const montarToques = (linhas: { prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }[]) => {
+        const mapa: Record<string, ToquesDoLead> = {};
+        for (const l of linhas) {
+            const atual = mapa[l.prospect_id] || { total: 0, ultimo: l.created_at };
+            atual.total += 1;
+            if (l.created_at > atual.ultimo) atual.ultimo = l.created_at;
+            const anterior = atual[l.canal];
+            if (!anterior || l.created_at > anterior.em) atual[l.canal] = { em: l.created_at, autor: l.autor_email };
+            mapa[l.prospect_id] = atual;
+        }
+        return mapa;
+    };
+
+    const fetchToques = async () => {
+        try {
+            const linhas = await buscarTodasLinhas<{ prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }>(
+                'prospect_toques', 'prospect_id, canal, autor_email, created_at');
+            setToquesPorLead(montarToques(linhas));
+        } catch (error) {
+            console.error('Error fetching toques:', error);
+        }
+    };
+
+    const fetchNomesUsuarios = async () => {
+        try {
+            const { data, error } = await supabase.from('sellers').select('name, email');
+            if (error) throw error;
+            const mapa: Record<string, string> = {};
+            for (const s of data || []) {
+                if (s.email && s.name) mapa[String(s.email).toLowerCase()] = String(s.name).trim().split(/\s+/)[0];
+            }
+            setNomePorEmail(mapa);
+        } catch (error) {
+            console.error('Error fetching sellers:', error);
+        }
+    };
+
+    const nomeCurto = (email: string | null): string => {
+        if (!email) return '';
+        const e = email.toLowerCase();
+        return nomePorEmail[e] || e.split('@')[0];
+    };
+
+    const registrarToque = async (prospect: Prospect, canal: CanalToque) => {
+        if (salvandoToque) return;
+        setSalvandoToque(true);
+        try {
+            const { data, error } = await supabase
+                .from('prospect_toques')
+                .insert({ prospect_id: prospect.id, canal })
+                .select('prospect_id, canal, autor_email, created_at')
+                .single();
+            if (error) throw error;
+            setToquesPorLead(prev => {
+                const atual: ToquesDoLead = prev[prospect.id]
+                    ? { ...prev[prospect.id] }
+                    : { total: 0, ultimo: data.created_at };
+                atual.total += 1;
+                atual.ultimo = data.created_at;
+                atual[canal] = { em: data.created_at, autor: data.autor_email };
+                return { ...prev, [prospect.id]: atual };
+            });
+            setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ult_contato: data.created_at } : p));
+            toast(canal === 'whatsapp' ? 'WhatsApp registrado no card.' : 'E-mail registrado no card.', 'success');
+        } catch (error) {
+            console.error('Error registrando toque:', error);
+            toast('Não consegui registrar o contato. Tente de novo.', 'error');
+        } finally {
+            setSalvandoToque(false);
+            setConfirmandoToque(null);
         }
     };
 
@@ -1483,7 +1582,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         const matchesHomologadas = !soHomologadasPncp ||
             (p.source === 'pncp_auto' && !!p.data_homologacao);
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
-        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando;
+        const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
+        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato;
     });
 
     // Tags existentes nos leads carregados, da mais usada para a menos usada.
@@ -1583,6 +1683,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
                         />
                         <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={soSemContato}
+                            onChange={(e) => setSoSemContato(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
                     </label>
                 </div>
             </div>
@@ -1880,6 +1989,90 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                             </div>
                                                         );
                                                     })()}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Grupo toques: WhatsApp e e-mail enviados à mão, com confirmação */}
+                                        {(() => {
+                                            const t = toquesPorLead[prospect.id];
+                                            const diasUltimo = t ? diasDesdeTimestamp(t.ultimo) : null;
+                                            const emAlerta = diasUltimo !== null && diasUltimo >= TOQUE_ALERTA_DIAS;
+                                            const confirmando = confirmandoToque?.id === prospect.id ? confirmandoToque.canal : null;
+                                            const selo = (canal: CanalToque, toque: ToqueCanal) => (
+                                                <span
+                                                    key={canal}
+                                                    title={`${canal === 'whatsapp' ? 'WhatsApp' : 'E-mail'} enviado em ${new Date(toque.em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`}
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-50 text-slate-600 border-slate-200"
+                                                >
+                                                    {canal === 'whatsapp' ? <MessageCircle size={10} /> : <Mail size={10} />}
+                                                    {canal === 'whatsapp' ? 'WhatsApp' : 'E-mail'} {diaMesBrDeTimestamp(toque.em)}
+                                                    {toque.autor ? ` · ${nomeCurto(toque.autor)}` : ''}
+                                                </span>
+                                            );
+                                            return (
+                                                <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                    {t && (
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {t.whatsapp && selo('whatsapp', t.whatsapp)}
+                                                            {t.email && selo('email', t.email)}
+                                                            <span className="text-[10px] font-bold text-slate-400">
+                                                                {t.total} {t.total === 1 ? 'contato' : 'contatos'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {emAlerta && (
+                                                        <span
+                                                            className="self-start inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-700 border-amber-200"
+                                                            title={`Último contato há ${diasUltimo} dias. Hora de cobrar retorno ou mudar o card de coluna.`}
+                                                        >
+                                                            <Clock size={10} /> Último contato há {diasUltimo} dias
+                                                        </span>
+                                                    )}
+                                                    {confirmando ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                disabled={salvandoToque}
+                                                                onClick={(e) => { e.stopPropagation(); registrarToque(prospect, confirmando); }}
+                                                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors disabled:opacity-60"
+                                                            >
+                                                                {salvandoToque ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                                                                Confirmar {confirmando === 'whatsapp' ? 'WhatsApp' : 'e-mail'} enviado
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                disabled={salvandoToque}
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque(null); }}
+                                                                className="text-[11px] font-bold text-slate-500 hover:text-slate-700"
+                                                            >
+                                                                Cancelar
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'whatsapp' }); }}
+                                                                title="Registrar que um WhatsApp foi enviado a este lead"
+                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                            >
+                                                                <MessageCircle size={12} /> WhatsApp
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'email' }); }}
+                                                                title="Registrar que um e-mail foi enviado a este lead"
+                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                            >
+                                                                <Mail size={12} /> E-mail
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })()}
