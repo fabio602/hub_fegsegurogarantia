@@ -129,17 +129,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                             <input autoFocus type="text" placeholder="Ex: Ligar para confirmar proposta" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/25" />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Quando?</label>
-                                <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold/25" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo</label>
-                                <div className="flex items-center h-[38px] px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-500 italic">
-                                    Selecione abaixo ↓
-                                </div>
-                            </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Quando?</label>
+                            <input type="datetime-local" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/25" />
                         </div>
 
                         <div className="space-y-1 pt-1">
@@ -156,15 +148,16 @@ const TaskManager: React.FC<TaskManagerProps> = ({ prospectId, saleId, saleIds, 
                             </select>
                         </div>
 
-                        <div className="space-y-2 pt-1">
-                            <div className="flex flex-wrap gap-2">
+                        <div className="space-y-1 pt-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo</label>
+                            <div className="grid grid-cols-3 gap-2">
                                 {TASK_TYPES.map(type => (
                                     <button
                                         key={type.value}
                                         type="button"
                                         onClick={() => setNewTask({...newTask, type: type.value})}
-                                        className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all gap-1 ${newTask.type === type.value 
-                                            ? `${type.color} ring-2 ring-offset-1 ring-gold/30 scale-105` 
+                                        className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all gap-1 ${newTask.type === type.value 
+                                            ? `${type.color} ring-2 ring-offset-1 ring-gold/30` 
                                             : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:bg-slate-50'}`}
                                     >
                                         {type.icon}
