@@ -61,17 +61,14 @@ interface Modelo {
  */
 const FALLBACK: Record<string, Modelo> = {
   renewal: {
-    assunto: '[EMOJI] Sua apólice de [PRODUTO] vence em [DIAS] (F&G Corretora)',
+    assunto: '[EMOJI] Sua apólice de [PRODUTO][REFERENCIA] vence em [DIAS] (F&G Corretora)',
     titulo: '[EMOJI] Aviso de vencimento: [DIAS]',
     corpo_html: `<p>Olá, <strong>[NOME]</strong>.</p>
-<p>Sua apólice de <strong>[PRODUTO]</strong>[SEGURADORA] está se aproximando do vencimento. Queremos garantir que você não fique sem cobertura.</p>
-<div class="highlight">
-  <strong>📅 Vencimento:</strong> [VENCIMENTO]<br/>
-  <strong>⏳ Dias restantes:</strong> [DIAS]
-</div>
-<p>Entre em contato conosco agora para iniciar a renovação sem burocracia.</p>`,
-    cta_texto: 'Renovar agora via WhatsApp',
-    cta_link: 'https://wa.me/5515998618659?text=Ol%C3%A1!%20Preciso%20renovar%20minha%20ap%C3%B3lice%20de%20[PRODUTO_URL].',
+<p>A apólice abaixo vence em <strong>[VENCIMENTO]</strong>. Seguem os dados para você identificar de qual se trata:</p>
+[DETALHES]
+[ORIENTACAO]`,
+    cta_texto: 'Falar com a F&G pelo WhatsApp',
+    cta_link: 'https://wa.me/5515998618659?text=Ol%C3%A1!%20Sobre%20o%20vencimento%20da%20minha%20ap%C3%B3lice%20de%20[PRODUTO_URL].',
   },
   prospect_intro: {
     assunto: '🛡️ Seguro Garantia para [EMPRESA] (F&G Corretora)',
@@ -127,6 +124,78 @@ function montar(modelo: Modelo, vars: Record<string, string>) {
   }
 }
 
+// ─── Dados da apólice (aviso de vencimento) ─────────────────────────────────
+// Busca a venda pelo saleId e monta o bloco com os dados que identificam a
+// apólice. Campo vazio não vira linha: o cliente nunca vê "Contrato: ".
+
+function esc(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** Tira espaço e pontuação solta do fim ("018/2026." vira "018/2026"). */
+function limpo(v: unknown): string {
+  return typeof v === 'string' ? v.trim().replace(/[\s.,;]+$/, '') : ''
+}
+
+const MODALIDADE: Record<string, string> = {
+  Performance: 'Garantia de Execução de Contrato (Performance)',
+  Licitante: 'Garantia do Licitante (Proposta)',
+  Judicial: 'Garantia Judicial',
+}
+
+function ehExecucao(tipo: string) {
+  return /performance|execu/i.test(tipo)
+}
+
+async function carregarVenda(db: any, saleId: number) {
+  try {
+    const { data } = await db.from('sales')
+      // '*' de propósito: "is" é palavra reservada e há colunas em camelCase.
+      .select('*')
+      .eq('id', saleId).maybeSingle()
+    return data
+  } catch (err) {
+    console.error(`[email-followup] Falha ao ler a venda ${saleId}:`, err)
+    return null
+  }
+}
+
+function blocoDetalhes(v: any, vencimento: string, dias: string): string {
+  const tipo = limpo(v?.tipo)
+  const inicio = v?.vigencia_inicio ? fmtDate(v.vigencia_inicio) : ''
+  const fim = vencimento
+  const linhas: [string, string][] = [
+    ['Modalidade', MODALIDADE[tipo] || tipo],
+    ['Seguradora', limpo(v?.seguradora)],
+    ['Tomador', [limpo(v?.nome), limpo(v?.cnpj) ? `CNPJ ${limpo(v.cnpj)}` : ''].filter(Boolean).join(', ')],
+    ['Segurado', limpo(v?.segurado) || limpo(v?.orgaoLicitante)],
+    ['Contrato nº', limpo(v?.numeroContrato)],
+    ['Objeto', limpo(v?.objetoContrato)],
+    ['Valor do contrato', limpo(v?.valorContrato)],
+    ['Processo', limpo(v?.process_number)],
+    ['Importância segurada', limpo(v?.is)],
+    ['Vigência da apólice', inicio && fim ? `${inicio} a ${fim}` : fim ? `até ${fim}` : ''],
+    ['Dias restantes', dias],
+  ]
+  const html = linhas
+    .filter(([, valor]) => valor)
+    .map(([rotulo, valor]) => `<strong>${rotulo}:</strong> ${esc(valor)}`)
+    .join('<br/>\n  ')
+  return `<div class="highlight">\n  ${html}\n</div>`
+}
+
+/** O que pedir ao cliente depende da modalidade: execução segue o contrato. */
+function orientacao(tipo: string): string {
+  if (ehExecucao(tipo)) {
+    return `<p>A garantia de execução acompanha o prazo do contrato. Para sabermos o próximo passo, pode nos confirmar:</p>
+<ul style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 12px;padding-left:20px">
+  <li>O contrato foi prorrogado ou a obra/serviço ainda está em andamento? Se sim, nos envie o termo aditivo para providenciarmos o endosso de prorrogação antes do vencimento.</li>
+  <li>O contrato já foi concluído e recebido pelo órgão? Se sim, basta nos avisar.</li>
+</ul>`
+  }
+  return `<p>Se precisar manter a cobertura após essa data, fale com a gente para providenciarmos a renovação.</p>`
+}
+
 /** Avulso é escrito pelo usuário na hora, então não passa pela tabela. */
 function customHtml(nome: string, message: string) {
   const escaped = message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>')
@@ -157,14 +226,31 @@ serve(async (req) => {
       const d = daysLeft ?? 0
       const prod = produto || 'seguro'
       const modelo = await carregarModelo(db, 'renewal')
+      const venda = saleId ? await carregarVenda(db, Number(saleId)) : null
+      const venc = vencimento ? fmtDate(vencimento) : ''
+      const dias = `${d} dia${d !== 1 ? 's' : ''}`
+      const contrato = limpo(venda?.numeroContrato)
+      const segurado = limpo(venda?.segurado) || limpo(venda?.orgaoLicitante)
+      const referencia = contrato
+        ? ` do contrato ${contrato}${segurado ? ` (${segurado})` : ''}`
+        : segurado ? ` (${segurado})` : ''
       const montado = montar(modelo, {
         NOME: nome,
         PRODUTO: prod,
-        PRODUTO_URL: encodeURIComponent(prod),
-        VENCIMENTO: vencimento ? fmtDate(vencimento) : '',
-        DIAS: `${d} dia${d !== 1 ? 's' : ''}`,
+        PRODUTO_URL: encodeURIComponent(`${prod}${contrato ? `, contrato ${contrato}` : ''}`),
+        VENCIMENTO: venc,
+        DIAS: dias,
         EMOJI: d <= 7 ? '🔴' : d <= 30 ? '🟠' : '🟡',
         SEGURADORA: seguradora ? ` (${seguradora})` : '',
+        REFERENCIA: referencia,
+        SEGURADO: esc(segurado),
+        CONTRATO: esc(contrato),
+        OBJETO: esc(limpo(venda?.objetoContrato)),
+        IS: esc(limpo(venda?.is)),
+        DETALHES: venda
+          ? blocoDetalhes(venda, venc, dias)
+          : `<div class="highlight">\n  <strong>📅 Vencimento:</strong> ${venc}<br/>\n  <strong>⏳ Dias restantes:</strong> ${dias}\n</div>`,
+        ORIENTACAO: orientacao(venda?.tipo || prod),
       })
       subject = montado.subject
       html = montado.html
