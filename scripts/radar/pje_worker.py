@@ -90,6 +90,9 @@ JANELA_POSICAO = "-2400,-2400"   # fora da área visível; headless não passa p
 LOCALE = "pt-BR"
 FUSO = "America/Sao_Paulo"
 TZ = ZoneInfo(FUSO)
+# O PJe consultado é o do TRF3, que cobre só SP e MS (decisão 76).
+UFS_TRF3 = ("SP", "MS")
+ERRO_UF_FORA = "UF fora do TRF3"
 
 CLASSES = {1116: "EXECUÇÃO FISCAL", 1118: "EMBARGOS À EXECUÇÃO FISCAL"}
 # a listagem identifica a classe pela sigla; o código é confirmado no detalhe,
@@ -272,12 +275,14 @@ class Supabase:
     def concluidas_hoje(self) -> int:
         inicio_dia = agora().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
         r = self._req("GET", "radar_pje_fila", "contagem do dia",
-                      params={"select": "id", "finalizado_em": f"gte.{inicio_dia}", "limit": 1},
+                      params={"select": "id", "finalizado_em": f"gte.{inicio_dia}", "limit": 1,
+                              # recusa por UF não consultou o PJe, então não gasta a cota
+                              "or": f'(erro.is.null,erro.neq."{ERRO_UF_FORA}")'},
                       headers={"Prefer": "count=exact"})
         return int((r.headers.get("content-range") or "*/0").split("/")[-1] or 0)
 
     def empresa(self, cnpj: str) -> dict | None:
-        linhas = self.get("radar_empresas", select="cnpj,nome_devedor,razao_social,dossie_status", cnpj=f"eq.{cnpj}", limit=1)
+        linhas = self.get("radar_empresas", select="cnpj,nome_devedor,razao_social,dossie_status,uf", cnpj=f"eq.{cnpj}", limit=1)
         return linhas[0] if linhas else None
 
 
@@ -787,6 +792,20 @@ def executar_com_bloqueio(sb: Supabase, pw, headless: bool, emp: dict, fila: dic
                 pass
 
 
+def uf_no_trf3(emp: dict) -> bool:
+    """O worker só consulta o PJe do TRF3, que cobre SP e MS (decisão 76)."""
+    return (emp.get("uf") or "").strip().upper() in UFS_TRF3
+
+
+def recusar_fora_do_trf3(sb: Supabase, fila: dict, emp: dict) -> None:
+    """Marca erro sem consultar o PJe e sem gastar a cota do dia."""
+    fim = agora().isoformat()
+    log(f"{emp['cnpj']}: UF {emp.get('uf') or '(vazia)'} fora do TRF3; item da fila marcado como erro, PJe não consultado")
+    sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"},
+             {"status": "erro", "erro": ERRO_UF_FORA, "finalizado_em": fim})
+    sb.patch("radar_empresas", {"cnpj": f"eq.{emp['cnpj']}"}, {"dossie_status": "erro", "atualizado_em": fim})
+
+
 def finalizar_fila(sb: Supabase, fila: dict, cnpj: str, resultado: dict | None, erro: Exception | None) -> None:
     fim = agora().isoformat()
     if erro is None and resultado is not None:
@@ -810,6 +829,12 @@ def modo_cnpj(sb: Supabase, pw, headless: bool, cnpj: str, debug: bool, max_deta
         log(f"CNPJ {cnpj} não está em radar_empresas")
         return 2
     fila = sb.fila_da_empresa(cnpj)
+    if not uf_no_trf3(emp):
+        if fila:
+            recusar_fora_do_trf3(sb, fila, emp)
+        else:
+            log(f"{cnpj}: UF {emp.get('uf') or '(vazia)'} fora do TRF3; PJe não consultado")
+        return 2
     ctrl = ControleBloqueio()
     if fila:
         sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"}, {"status": "processando", "iniciado_em": agora().isoformat()})
@@ -846,6 +871,9 @@ def modo_fila(sb: Supabase, pw, headless: bool, debug: bool) -> None:
         emp = sb.empresa(fila["cnpj"])
         if not emp:
             sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"}, {"status": "erro", "erro": "empresa não encontrada", "finalizado_em": agora().isoformat()})
+            continue
+        if not uf_no_trf3(emp):
+            recusar_fora_do_trf3(sb, fila, emp)
             continue
         try:
             resultado = executar_com_bloqueio(sb, pw, headless, emp, fila, ctrl, debug)

@@ -21,6 +21,8 @@ interface Props {
 
 const secao = 'text-[10px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5';
 const botaoCopiar = 'p-1 rounded-md text-slate-600 hover:text-navy hover:bg-slate-100 transition-colors';
+// UFs cobertas pelo PJe do TRF3, o único que o worker consulta.
+const UFS_TRF3 = ['SP', 'MS'];
 
 interface AdvogadoAgrupado {
   nome: string;
@@ -369,6 +371,8 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
   const ocupado = salvando !== null;
   const leitura = leituraDossie(empresa);
   const naFila = empresa.dossie_status === 'fila';
+  // O worker só consulta o PJe do TRF3, que cobre SP e MS (decisão 76).
+  const noTrf3 = UFS_TRF3.includes((empresa.uf ?? '').trim().toUpperCase());
   const prontoRecente = (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos') && !dossieAntigo(empresa.dossie_em);
   const rotuloBusca = naFila ? 'Na fila' : (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos') ? 'Atualizar' : 'Buscar processos';
   const movimentosDo = (processoId: number) => movimentos.filter(m => m.processo_id === processoId).slice(0, 15);
@@ -493,12 +497,16 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                   </span>
                   {empresa.dossie_em && <span className="text-[11px] text-slate-600">em {formatDataHoraBr(empresa.dossie_em)}</span>}
                 </div>
-                <button type="button" onClick={buscarProcessos} disabled={naFila || prontoRecente || enfileirando}
-                  title={naFila ? 'Já está na fila do worker' : prontoRecente ? 'Dossiê atualizado há menos de 30 dias' : 'Coloca a empresa na fila do PJe com prioridade máxima'}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                  {enfileirando ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Search size={13} aria-hidden="true" />}
-                  {rotuloBusca}
-                </button>
+                {noTrf3 ? (
+                  <button type="button" onClick={buscarProcessos} disabled={naFila || prontoRecente || enfileirando}
+                    title={naFila ? 'Já está na fila do worker' : prontoRecente ? 'Dossiê atualizado há menos de 30 dias' : 'Coloca a empresa na fila do PJe com prioridade máxima'}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    {enfileirando ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Search size={13} aria-hidden="true" />}
+                    {rotuloBusca}
+                  </button>
+                ) : (
+                  <p className="text-[11px] font-medium text-slate-600">Busca de processos disponível só para SP e MS (TRF3)</p>
+                )}
               </div>
 
               {alertaSemAdvogado(empresa.qtd_execucoes_sem_advogado) && (
@@ -522,7 +530,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                 <p className="text-sm text-slate-600"><Loader2 size={14} aria-hidden="true" className="inline animate-spin mr-1" /> Carregando processos...</p>
               ) : processos.length === 0 ? (
                 <p className="text-sm text-slate-600">
-                  {empresa.dossie_status === 'nenhum' && 'Ainda não consultado. Use "Buscar processos" para colocar na fila do worker.'}
+                  {empresa.dossie_status === 'nenhum' && (noTrf3 ? 'Ainda não consultado. Use "Buscar processos" para colocar na fila do worker.' : 'Não consultado: o PJe do TRF3 só cobre SP e MS.')}
                   {empresa.dossie_status === 'fila' && 'Na fila do worker do PJe. O resultado aparece aqui quando a consulta terminar.'}
                   {empresa.dossie_status === 'erro' && 'A consulta falhou três vezes. Tente de novo com "Buscar processos".'}
                   {empresa.dossie_status === 'sem_processos' && 'Nenhum processo das classes Execução Fiscal ou Embargos localizado.'}

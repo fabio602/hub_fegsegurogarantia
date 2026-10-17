@@ -393,3 +393,19 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     página, teto de 5): sem isso um processo com muitas partes esconderia o
     advogado na 2ª página e criaria alerta falso de "execução sem advogado"
     (decisão 72).
+76. **Fila do PJe só para SP e MS** (migração 114, 17/10/2026). Passo 1 da
+    expansão do Radar para outras UFs: antes de gravar qualquer UF nova, a
+    fila do dossiê judicial foi travada no TRF3, o único tribunal que o
+    worker consulta, que cobre SP e MS. Sem isso, as 256 empresas do Norte e
+    Nordeste com garantia (medição de 17/10/2026, competência 202606)
+    entrariam em `radar_pje_fila` pela seleção diária, ordenadas por score, e
+    gastariam a cota do worker procurando processo onde ele não está. A trava
+    tem três camadas: `radar_enfileirar_dossies()` foi recriada a partir da
+    versão em produção com `uf in ('SP', 'MS')` e nada mais; o worker, se
+    pegar empresa de outra UF (enfileirada à mão ou antes da migração), marca
+    o item como `erro` com o motivo "UF fora do TRF3" sem abrir o PJe, e essa
+    recusa não conta no teto diário; e o drawer só mostra "Buscar processos"
+    para SP e MS, trocando o botão pelo aviso "Busca de processos disponível
+    só para SP e MS (TRF3)". MS entra na lista por ser TRF3, embora a base
+    hoje só tenha SP. Outros tribunais ficam para quando houver worker para
+    eles.
