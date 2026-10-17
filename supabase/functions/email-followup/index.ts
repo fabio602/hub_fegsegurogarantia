@@ -150,7 +150,8 @@ function ehExecucao(tipo: string) {
 async function carregarVenda(db: any, saleId: number) {
   try {
     const { data } = await db.from('sales')
-      .select('nome, cnpj, tipo, seguradora, "is", segurado, "orgaoLicitante", "numeroContrato", "objetoContrato", "valorContrato", process_number, court, vigencia_inicio, vigencia_fim')
+      // '*' de propósito: "is" é palavra reservada e há colunas em camelCase.
+      .select('*')
       .eq('id', saleId).maybeSingle()
     return data
   } catch (err) {
