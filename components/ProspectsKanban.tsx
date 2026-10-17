@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
+import { useToast } from './Toast.tsx';
 
 interface KanbanColumn {
     id: string;
@@ -221,6 +222,47 @@ const classeSeloHomologacao = (dias: number): string => {
 
 type LeadSort = 'recent' | 'oldest' | 'homologacao';
 
+// ---- E-mail da licitação: o 1º contato dos leads do PNCP ----
+// O lead do PNCP entra no Kanban sem receber nada. Quem manda o primeiro
+// e-mail é o Fábio, pelo botão do card, conferindo os dados da licitação na
+// prévia. Esse envio conta como o E1 da trilha `garantia`; o cron segue do E2.
+//
+// "Aguardando 1º e-mail" não é coluna no banco: é não ter nenhuma linha em
+// email_envios com ordem 1 para o contato daquele lead.
+type EstadoE1 = 'oculto' | 'aguardando' | 'iniciada';
+
+interface CadenciaDoLead {
+    contatoId: string | null;
+    /** timestamptz do envio da ordem 1, ou null se a trilha não começou. */
+    iniciadaEm: string | null;
+}
+
+/** timestamptz -> 'DD/MM' em BRT. Um envio das 21h de São Paulo é 00h do dia
+ *  seguinte em UTC: formatar a string crua mostraria a data errada. */
+const diaMesBrDeTimestamp = (ts?: string | null): string => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit',
+    });
+};
+
+/** Lê o Supabase página a página: email_cadencia e email_envios já passam de 1.000 linhas. */
+async function buscarTodasLinhas<T>(tabela: string, colunas: string, filtrar?: (q: any) => any): Promise<T[]> {
+    const todos: T[] = [];
+    for (let de = 0; ; de += PAGINA_PROSPECTS) {
+        let q = supabase.from(tabela).select(colunas).range(de, de + PAGINA_PROSPECTS - 1);
+        if (filtrar) q = filtrar(q);
+        const { data, error } = await q;
+        if (error) throw error;
+        const pagina = (data || []) as T[];
+        todos.push(...pagina);
+        if (pagina.length < PAGINA_PROSPECTS) break;
+    }
+    return todos;
+}
+
 // O Supabase devolve no máximo 1.000 linhas por consulta. Sem paginar, o
 // Kanban mostrava só os 1.000 leads mais recentes e a checagem de duplicados
 // do import CSV ignorava o resto. Busca página a página até acabar.
@@ -404,6 +446,23 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [leadAgeSort, setLeadAgeSort] = useState<LeadSort>('recent');
     // Filtro rápido: mostrar só os leads do PNCP com homologação registrada.
     const [soHomologadasPncp, setSoHomologadasPncp] = useState(false);
+
+    // ── E-mail da licitação ──────────────────────────────────────────────────
+    // Estado da trilha de cada lead, para o card saber se o botão está livre
+    // (aguardando o 1º e-mail) ou travado (trilha já iniciada).
+    const [cadenciaPorLead, setCadenciaPorLead] = useState<Record<string, CadenciaDoLead>>({});
+    const [soAguardandoE1, setSoAguardandoE1] = useState(false);
+    const [leadEmailLicitacao, setLeadEmailLicitacao] = useState<Prospect | null>(null);
+    const [emailLicPara, setEmailLicPara] = useState('');
+    const [emailLicNome, setEmailLicNome] = useState('');
+    const [emailLicAssunto, setEmailLicAssunto] = useState('');
+    const [emailLicCorpo, setEmailLicCorpo] = useState('');
+    const [emailLicHtml, setEmailLicHtml] = useState('');
+    const [emailLicAvisos, setEmailLicAvisos] = useState<string[]>([]);
+    const [emailLicCarregando, setEmailLicCarregando] = useState(false);
+    const [emailLicEnviando, setEmailLicEnviando] = useState(false);
+    const [emailLicErro, setEmailLicErro] = useState('');
+    const { toast } = useToast();
     // Guarda quando o lead "entrou" na coluna (atualizado quando você move o card).
     // Se recarregar a página, cai para `created_at` (fallback) até você mover novamente.
     const [leadEnteredAtMs, setLeadEnteredAtMs] = useState<Record<string, number>>({});
@@ -565,6 +624,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     useEffect(() => { 
         fetchProspects();
         fetchTasks();
+        fetchCadencia();
     }, []);
 
     useEffect(() => {
@@ -601,6 +661,51 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         } finally {
             setLoading(false);
         }
+    };
+
+    /**
+     * Qual lead já teve o primeiro e-mail e qual ainda espera.
+     *
+     * Duas leituras em vez de um join: o PostgREST só aceita embed com chave
+     * estrangeira declarada, e email_envios.contato_id não tem uma. Como as
+     * duas tabelas já passam de 1.000 linhas, as duas paginam.
+     */
+    const fetchCadencia = async () => {
+        try {
+            const contatos = await buscarTodasLinhas<{ id: string; prospect_id: string | null }>(
+                'email_cadencia', 'id, prospect_id');
+            const envios = await buscarTodasLinhas<{ contato_id: string; enviado_em: string }>(
+                'email_envios', 'contato_id, enviado_em', (q) => q.eq('ordem', 1));
+            const envioPorContato = new Map(envios.map(e => [e.contato_id, e.enviado_em]));
+            const mapa: Record<string, CadenciaDoLead> = {};
+            for (const c of contatos) {
+                if (!c.prospect_id) continue;
+                const iniciadaEm = envioPorContato.get(c.id) ?? null;
+                // Um lead pode ter mais de um contato (recadastro): vale o que
+                // já começou a trilha, senão o primeiro que apareceu.
+                const atual = mapa[c.prospect_id];
+                if (!atual || (!atual.iniciadaEm && iniciadaEm)) {
+                    mapa[c.prospect_id] = { contatoId: c.id, iniciadaEm };
+                }
+            }
+            setCadenciaPorLead(mapa);
+        } catch (error) {
+            console.error('Error fetching cadencia:', error);
+        }
+    };
+
+    /**
+     * Estado do botão "E-mail da licitação" no card.
+     * Só leads da prospecção automática do PNCP têm esse primeiro contato;
+     * Radar, garimpo, manual, saúde e energia não mudam nada.
+     */
+    const estadoE1 = (p: Prospect): { estado: EstadoE1; iniciadaEm: string | null } => {
+        if (p.source !== 'pncp_auto') return { estado: 'oculto', iniciadaEm: null };
+        const c = cadenciaPorLead[p.id];
+        // Sem linha na cadência (lead manual antigo) também espera: a função
+        // cria a linha na hora do envio.
+        if (c?.iniciadaEm) return { estado: 'iniciada', iniciadaEm: c.iniciadaEm };
+        return { estado: 'aguardando', iniciadaEm: null };
     };
 
     const fetchTasks = async () => {
@@ -1278,6 +1383,91 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         finally { setSavingLead(false); }
     };
 
+    // ── E-mail da licitação: prévia e envio ──────────────────────────────────
+
+    /** Chama a Edge Function. Devolve o corpo da resposta e o status HTTP. */
+    const chamarCadencia = async (body: Record<string, unknown>) => {
+        const { data, error } = await supabase.functions.invoke('prospecting-cadence', { body });
+        if (error) {
+            // A função responde 409/422 com a mensagem no corpo; o supabase-js
+            // trata status >= 400 como erro e esconde o corpo no context.
+            let msg = error.message || 'Erro ao falar com a função.';
+            try {
+                const corpo = await (error as { context?: Response }).context?.json?.();
+                if (corpo?.error) msg = corpo.error;
+            } catch { /* mantém a mensagem genérica */ }
+            return { ok: false as const, erro: msg };
+        }
+        if (data?.success === false) return { ok: false as const, erro: data.error || 'A função recusou o envio.' };
+        return { ok: true as const, data };
+    };
+
+    const abrirEmailLicitacao = async (prospect: Prospect) => {
+        setOpenMenuId(null);
+        setLeadEmailLicitacao(prospect);
+        setEmailLicPara(''); setEmailLicNome(''); setEmailLicAssunto(''); setEmailLicCorpo('');
+        setEmailLicHtml(''); setEmailLicAvisos([]); setEmailLicErro('');
+        setEmailLicCarregando(true);
+        const r = await chamarCadencia({ modo: 'licitacao_preview', prospect_id: prospect.id });
+        setEmailLicCarregando(false);
+        if (!r.ok) { setEmailLicErro(r.erro); return; }
+        setEmailLicPara(r.data.para || '');
+        setEmailLicNome(r.data.nome_contato || '');
+        setEmailLicAssunto(r.data.assunto || '');
+        setEmailLicCorpo(r.data.corpo_texto || '');
+        setEmailLicHtml(r.data.html || '');
+        setEmailLicAvisos(r.data.avisos || []);
+    };
+
+    const fecharEmailLicitacao = () => {
+        setLeadEmailLicitacao(null);
+        setEmailLicHtml(''); setEmailLicAvisos([]); setEmailLicErro('');
+    };
+
+    // Prévia refeita a cada edição, com folga de 600 ms para não chamar a
+    // função a cada tecla. A prévia é o que o envio manda, então ela precisa
+    // acompanhar o que está escrito na tela.
+    useEffect(() => {
+        if (!leadEmailLicitacao) return;
+        if (!emailLicAssunto && !emailLicCorpo) return;
+        const id = setTimeout(async () => {
+            setEmailLicCarregando(true);
+            const r = await chamarCadencia({
+                modo: 'licitacao_preview',
+                prospect_id: leadEmailLicitacao.id,
+                email: emailLicPara,
+                nome_contato: emailLicNome,
+                assunto: emailLicAssunto,
+                corpo: emailLicCorpo,
+            });
+            setEmailLicCarregando(false);
+            if (!r.ok) { setEmailLicErro(r.erro); return; }
+            setEmailLicErro('');
+            setEmailLicHtml(r.data.html || '');
+            setEmailLicAvisos(r.data.avisos || []);
+        }, 600);
+        return () => clearTimeout(id);
+    }, [leadEmailLicitacao?.id, emailLicPara, emailLicNome, emailLicAssunto, emailLicCorpo]);
+
+    const enviarEmailLicitacao = async () => {
+        if (!leadEmailLicitacao) return;
+        setEmailLicEnviando(true);
+        setEmailLicErro('');
+        const r = await chamarCadencia({
+            modo: 'licitacao_enviar',
+            prospect_id: leadEmailLicitacao.id,
+            email: emailLicPara,
+            nome_contato: emailLicNome,
+            assunto: emailLicAssunto,
+            corpo: emailLicCorpo,
+        });
+        setEmailLicEnviando(false);
+        if (!r.ok) { setEmailLicErro(r.erro); return; }
+        toast(`E-mail da licitação enviado para ${r.data.para}. A trilha segue sozinha do 2º e-mail em diante.`, 'success');
+        fecharEmailLicitacao();
+        await Promise.all([fetchProspects(), fetchCadencia()]);
+    };
+
     const filteredProspects = prospects.filter(p => {
         const matchesProduct = !productFilter ||
             p.product_type === productFilter ||
@@ -1288,7 +1478,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (p.cnpj || '').includes(searchQuery);
         const matchesHomologadas = !soHomologadasPncp ||
             (p.source === 'pncp_auto' && !!p.data_homologacao);
-        return matchesProduct && matchesSearch && matchesHomologadas;
+        const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
+        return matchesProduct && matchesSearch && matchesHomologadas && matchesAguardando;
     });
 
     if (loading) {
@@ -1468,6 +1659,32 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     </div>
                                 </div>
                                 <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
+
+                                {/* A fila do dia: leads do PNCP que entraram e ainda não
+                                    receberam o primeiro e-mail. Conta sobre todos os leads,
+                                    não sobre a coluna, para o número não mudar com o filtro
+                                    ligado (senão viraria sempre o total filtrado). */}
+                                {column.id === 'Novos Leads' && (() => {
+                                    const naFila = prospects.filter(p => estadoE1(p).estado === 'aguardando').length;
+                                    if (!naFila && !soAguardandoE1) return null;
+                                    return (
+                                        <button
+                                            type="button"
+                                            draggable={false}
+                                            onClick={(e) => { e.stopPropagation(); setSoAguardandoE1(v => !v); }}
+                                            title={soAguardandoE1
+                                                ? 'Mostrar todos os leads de novo'
+                                                : 'Filtrar só os leads que esperam o primeiro e-mail'}
+                                            className={`mt-1 self-start inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
+                                                soAguardandoE1
+                                                    ? 'bg-amber-400 text-navy border-amber-300'
+                                                    : 'bg-white/15 text-white border-white/25 hover:bg-white/25'
+                                            }`}
+                                        >
+                                            <Clock size={11} /> Aguardando 1º e-mail ({naFila})
+                                        </button>
+                                    );
+                                })()}
                             </div>
 
                             {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
@@ -1596,6 +1813,46 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                             </a>
                                                         )}
                                                     </div>
+
+                                                    {/* E-mail da licitação: o 1º contato, enviado à mão.
+                                                        Aguardando = botão livre; trilha iniciada = travado
+                                                        com a data, porque o E1 já saiu e o cron cuida do resto. */}
+                                                    {(() => {
+                                                        const { estado, iniciadaEm } = estadoE1(prospect);
+                                                        if (estado === 'oculto') return null;
+                                                        if (estado === 'iniciada') {
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    title={`Trilha iniciada em ${diaMesBrDeTimestamp(iniciadaEm)}`}
+                                                                    className="self-start inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed"
+                                                                >
+                                                                    <CheckCircle2 size={12} /> Trilha iniciada em {diaMesBrDeTimestamp(iniciadaEm)}
+                                                                </button>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span
+                                                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-700 border-amber-200"
+                                                                    title="O lead entrou sem receber e-mail e está na fila do primeiro contato"
+                                                                >
+                                                                    <Clock size={10} /> Aguardando 1º e-mail
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={false}
+                                                                    onClick={(e) => { e.stopPropagation(); abrirEmailLicitacao(prospect); }}
+                                                                    title="Abrir a prévia do e-mail desta licitação"
+                                                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors"
+                                                                >
+                                                                    <Mail size={12} /> E-mail da licitação
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             );
                                         })()}
@@ -1792,6 +2049,141 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 </ModalPortal>
             )}
 
+            {/* ── MODAL DO E-MAIL DA LICITAÇÃO ──
+                O primeiro contato do lead do PNCP. Nada sai daqui sem o clique
+                em Enviar: a esquerda edita, a direita mostra exatamente o que
+                vai sair, montado pela própria Edge Function que envia. */}
+            {leadEmailLicitacao && (
+                <ModalPortal>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="flex justify-between items-center p-6 border-b border-gold/20 bg-gold/10">
+                              <div className="min-w-0">
+                                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                      <Mail size={20} className="text-gold" /> E-mail da licitação
+                                  </h3>
+                                  <p className="text-sm text-slate-500 font-medium mt-1 truncate">
+                                      {leadEmailLicitacao.company || leadEmailLicitacao.name}
+                                      {leadEmailLicitacao.orgao_licitante ? ` · ${leadEmailLicitacao.orgao_licitante}` : ''}
+                                  </p>
+                                  <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                      Este envio conta como o 1º e-mail da trilha. O 2º sai sozinho em 3 dias.
+                                  </p>
+                              </div>
+                              <button onClick={fecharEmailLicitacao} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm shrink-0">
+                                  <X size={20} />
+                              </button>
+                          </div>
+
+                          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden">
+                              {/* Esquerda: o que o Fábio ajusta */}
+                              <div className="p-6 overflow-y-auto custom-scroll space-y-4 border-r border-slate-100">
+                                  <div className="space-y-1.5">
+                                      <label className="text-sm font-bold text-slate-700">Para</label>
+                                      <input
+                                          type="email"
+                                          value={emailLicPara}
+                                          onChange={(e) => setEmailLicPara(e.target.value)}
+                                          placeholder="contato@empresa.com.br"
+                                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all"
+                                      />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                      <label className="text-sm font-bold text-slate-700">Nome do contato</label>
+                                      <input
+                                          type="text"
+                                          value={emailLicNome}
+                                          onChange={(e) => setEmailLicNome(e.target.value)}
+                                          placeholder="Nome que abre o Olá"
+                                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all"
+                                      />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                      <label className="text-sm font-bold text-slate-700">Assunto</label>
+                                      <input
+                                          type="text"
+                                          value={emailLicAssunto}
+                                          onChange={(e) => setEmailLicAssunto(e.target.value)}
+                                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all"
+                                      />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                      <label className="text-sm font-bold text-slate-700">Corpo</label>
+                                      <textarea
+                                          value={emailLicCorpo}
+                                          onChange={(e) => setEmailLicCorpo(e.target.value)}
+                                          rows={14}
+                                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all resize-y leading-relaxed"
+                                      />
+                                      <p className="text-[11px] text-slate-400 font-medium">
+                                          Uma linha em branco separa os parágrafos. O objeto da licitação vem inteiro do PNCP: apare o que não precisa.
+                                      </p>
+                                  </div>
+                              </div>
+
+                              {/* Direita: o e-mail como ele vai chegar */}
+                              <div className="p-6 overflow-hidden flex flex-col bg-slate-50/50">
+                                  <div className="flex items-center justify-between mb-2">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prévia</span>
+                                      {emailLicCarregando && <Loader2 size={14} className="animate-spin text-gold" />}
+                                  </div>
+                                  <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white overflow-hidden">
+                                      {emailLicHtml ? (
+                                          <iframe
+                                              title="Prévia do e-mail da licitação"
+                                              srcDoc={emailLicHtml}
+                                              sandbox=""
+                                              className="w-full h-full border-0"
+                                          />
+                                      ) : (
+                                          <div className="h-full flex items-center justify-center text-slate-400 text-sm font-bold">
+                                              {emailLicCarregando ? 'Montando a prévia...' : 'Sem prévia'}
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="border-t border-slate-100 bg-slate-50 p-5 space-y-3">
+                              {emailLicAvisos.length > 0 && (
+                                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                                      {emailLicAvisos.map((a, i) => (
+                                          <p key={i} className="text-[12px] text-amber-800 font-bold flex items-start gap-2">
+                                              <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {a}
+                                          </p>
+                                      ))}
+                                  </div>
+                              )}
+                              {emailLicErro && (
+                                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                                      <p className="text-[12px] text-rose-800 font-bold flex items-start gap-2">
+                                          <AlertCircle size={13} className="mt-0.5 shrink-0" /> {emailLicErro}
+                                      </p>
+                                  </div>
+                              )}
+                              <div className="flex justify-end gap-3">
+                                  <button
+                                      onClick={fecharEmailLicitacao}
+                                      disabled={emailLicEnviando}
+                                      className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                                  >
+                                      Cancelar
+                                  </button>
+                                  <button
+                                      onClick={enviarEmailLicitacao}
+                                      disabled={emailLicEnviando || emailLicCarregando || !emailLicPara.trim() || !emailLicHtml}
+                                      className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50"
+                                  >
+                                      {emailLicEnviando ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} />}
+                                      {emailLicEnviando ? 'Enviando...' : 'Enviar'}
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                </ModalPortal>
+            )}
+
             {/* ── EDIT LEAD MODAL ── */}
             {isEditModalOpen && editingLead && (
                 <ModalPortal>
@@ -1807,7 +2199,33 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                       </p>
                                   )}
                               </div>
-                              <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                              <div className="flex items-center gap-3 shrink-0">
+                                  {(() => {
+                                      const { estado, iniciadaEm } = estadoE1(editingLead);
+                                      if (estado === 'oculto') return null;
+                                      if (estado === 'iniciada') {
+                                          return (
+                                              <span
+                                                  title={`Trilha iniciada em ${diaMesBrDeTimestamp(iniciadaEm)}`}
+                                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-xl border bg-slate-50 text-slate-400 border-slate-200"
+                                              >
+                                                  <CheckCircle2 size={13} /> Trilha iniciada em {diaMesBrDeTimestamp(iniciadaEm)}
+                                              </span>
+                                          );
+                                      }
+                                      return (
+                                          <button
+                                              type="button"
+                                              onClick={() => { const lead = editingLead; fecharEdicaoLead(); abrirEmailLicitacao(lead); }}
+                                              title="Abrir a prévia do e-mail desta licitação"
+                                              className="inline-flex items-center gap-2 text-[12px] font-bold px-4 py-2 rounded-xl bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors"
+                                          >
+                                              <Mail size={14} /> E-mail da licitação
+                                          </button>
+                                      );
+                                  })()}
+                                  <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
+                              </div>
                           </div>
                           <div className="p-8 overflow-y-auto custom-scroll flex-1">
                               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8">

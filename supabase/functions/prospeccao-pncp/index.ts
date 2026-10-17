@@ -183,6 +183,10 @@ interface Config {
   dispensa_valor_prioritario: number;
   monitor_validade_dias: number;
   incluir_srp: boolean;
+  // false (padrao): o lead entra no Kanban e na trilha sem receber nada, e
+  // espera o e-mail da licitacao, enviado a mao pelo card. true: comportamento
+  // antigo, o E1 generico sai na entrada. E o rollback sem deploy.
+  envio_imediato: boolean;
 }
 
 interface Contrato {
@@ -806,6 +810,7 @@ async function enviarRelatorio(o: {
   enviados: number;
   semEmail: number;
   foraPerfil: number;
+  aguardandoManual: number;
   avisos: string[];
   anexoBase64: string;
 }): Promise<boolean> {
@@ -825,7 +830,13 @@ async function enviarRelatorio(o: {
       <table style="width:100%;border-collapse:collapse;font-size:14px">
         ${linha('Contratos coletados (apos filtros de valor/UF)', o.coletados)}
         ${linha('CNPJs consultados na BrasilAPI', o.enriquecidos)}
-        ${linha(o.dryRun ? 'Seriam enviados' : 'Enviados para a trilha', o.enviados)}
+        ${linha(
+          o.dryRun ? 'Seriam enviados'
+            : o.aguardandoManual >= o.enviados && o.enviados > 0 ? 'Entraram no Kanban'
+            : 'Enviados para a trilha',
+          o.enviados,
+        )}
+        ${o.aguardandoManual ? linha('Aguardando 1o e-mail (envio manual pelo card)', o.aguardandoManual) : ''}
         ${linha('Sem e-mail valido', o.semEmail)}
         ${linha('Fora do perfil (CNAE)', o.foraPerfil)}
         ${linha('Bounces ate agora', 0)}
@@ -843,7 +854,11 @@ async function enviarRelatorio(o: {
       body: JSON.stringify({
         from: `F&G Seguro Garantia <${FROM_EMAIL}>`,
         to: [o.para],
-        subject: `Prospeccao PNCP ${o.dataRef}: ${o.enviados} ${o.dryRun ? 'na lista (dry run)' : 'enviados'}, ${o.semEmail} sem e-mail`,
+        subject: `Prospeccao PNCP ${o.dataRef}: ${o.enviados} ${
+          o.dryRun ? 'na lista (dry run)'
+            : o.aguardandoManual >= o.enviados && o.enviados > 0 ? 'aguardando o 1o e-mail'
+            : 'enviados'
+        }, ${o.semEmail} sem e-mail`,
         html,
         attachments: [{ filename: `${o.dataRef}.xlsx`, content: o.anexoBase64 }],
       }),
@@ -1311,8 +1326,9 @@ async function processarFila(
         continue;
       }
       await inserirLead(supabase, execId, config, contrato, empresa, 'enviado',
-        ids.okEnvio ? '' : 'Primeiro e-mail falhou; o cron da cadencia tenta amanha',
-        ids.prospectId, ids.contatoId, ids.okEnvio ? 'enviado' : 'falha_envio_1');
+        ids.aguardandoManual || ids.okEnvio ? '' : 'Primeiro e-mail falhou; o cron da cadencia tenta amanha',
+        ids.prospectId, ids.contatoId,
+        ids.aguardandoManual ? 'aguardando_manual' : (ids.okEnvio ? 'enviado' : 'falha_envio_1'));
       enviados++;
     }
 
@@ -1408,7 +1424,14 @@ async function inserirLead(
 }
 
 /**
- * Insere no Kanban e na trilha e dispara o primeiro e-mail.
+ * Insere no Kanban e na trilha.
+ *
+ * Com config.envio_imediato = false (o padrao), para aqui: a linha da cadencia
+ * nasce com ativo = false e nada e enviado. O lead fica "aguardando 1o e-mail"
+ * esperando o e-mail da licitacao, que o Fabio manda pelo card do Kanban e que
+ * conta como o E1 da trilha. Com a flag ligada, dispara o E1 generico na hora,
+ * como antes.
+ *
  * Em falha retorna null e preenche falha.motivo; o prospect recem-criado e
  * apagado para o CNPJ nao ficar como "conhecido" na dedup do dia seguinte.
  */
@@ -1418,7 +1441,7 @@ async function enviarLead(
   contrato: Contrato,
   empresa: Empresa,
   falha: { motivo: string },
-): Promise<{ prospectId: string; contatoId: string; okEnvio: boolean } | null> {
+): Promise<{ prospectId: string; contatoId: string; okEnvio: boolean; aguardandoManual: boolean } | null> {
   const { data: prospect, error: pErr } = await supabase.from('prospects').insert({
     name: empresa.socio || empresa.razao_social,
     company: empresa.nome_fantasia || empresa.razao_social,
@@ -1465,7 +1488,10 @@ async function enviarLead(
     origem: 'pncp_auto',
     trilha: config.trilha,
     data_inicio: hojeBRT(),
-    ativo: true,
+    // Aguardando o 1o e-mail = ativo false e nenhuma linha em email_envios.
+    // Sem coluna nova: e o estado que o cron ignora e que a tela usa para
+    // marcar o lead na fila do dia.
+    ativo: config.envio_imediato,
     prospect_id: prospect.id,
   }).select('id').single();
   if (cErr || !contato) {
@@ -1474,6 +1500,12 @@ async function enviarLead(
     const { error: dErr } = await supabase.from('prospects').delete().eq('id', prospect.id);
     if (dErr) console.error('[prospect] falha ao desfazer', prospect.id, dErr.message);
     return null;
+  }
+
+  // Sem envio_imediato o lead para aqui, esperando o e-mail da licitacao.
+  if (!config.envio_imediato) {
+    console.log(`[lead] ${contrato.cnpj} aguardando o 1o e-mail (envio manual)`);
+    return { prospectId: prospect.id as string, contatoId: contato.id as string, okEnvio: true, aguardandoManual: true };
   }
 
   // Primeiro e-mail agora, pela funcao que ja existe. Templates e cadencia
@@ -1491,7 +1523,7 @@ async function enviarLead(
     console.error('[cadence]', e);
   }
 
-  return { prospectId: prospect.id as string, contatoId: contato.id as string, okEnvio };
+  return { prospectId: prospect.id as string, contatoId: contato.id as string, okEnvio, aguardandoManual: false };
 }
 
 // ─── Fase 3: finalizacao (XLSX + relatorio) ──────────────────────────────────
@@ -1515,6 +1547,8 @@ async function finalizar(
   const semEmail = leads.filter((l) => l.resultado === 'sem_email').length;
   const foraPerfil = leads.filter((l) => l.resultado === 'fora_do_perfil').length;
   const enviados = leads.filter((l) => l.resultado === 'enviado' || l.resultado === 'dry_run').length;
+  // Fila do dia: leads que entraram e estao esperando o e-mail da licitacao.
+  const aguardandoManual = leads.filter((l) => l.resend_status === 'aguardando_manual').length;
 
   const avisosAntigos: string[] = Array.isArray(exec.detalhes?.avisos) ? exec.detalhes.avisos : [];
   const todosAvisos = [...new Set([...avisosAntigos, ...avisos])];
@@ -1533,7 +1567,7 @@ async function finalizar(
     dataRef, dryRun,
     coletados: Number(exec.coletados ?? 0),
     enriquecidos: Number(exec.enriquecidos ?? 0),
-    enviados, semEmail, foraPerfil,
+    enviados, semEmail, foraPerfil, aguardandoManual,
     avisos: todosAvisos,
     anexoBase64: xlsxB64,
   });
@@ -1547,7 +1581,7 @@ async function finalizar(
     detalhes: { ...(exec.detalhes ?? {}), avisos: todosAvisos, finalizada_em: new Date().toISOString() },
   }).eq('id', execId);
 
-  console.log(`[prospeccao-pncp] execucao ${execId} finalizada: ${enviados} enviados, ${semEmail} sem e-mail, ${foraPerfil} fora do perfil`);
+  console.log(`[prospeccao-pncp] execucao ${execId} finalizada: ${enviados} no funil (${aguardandoManual} aguardando o 1o e-mail), ${semEmail} sem e-mail, ${foraPerfil} fora do perfil`);
 }
 
 // ─── Orquestracao de um tique ────────────────────────────────────────────────
