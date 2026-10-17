@@ -28,6 +28,13 @@ const WHATSAPP = 'https://wa.me/5515998618659';
 /** Nunca mandar dois e-mails para o mesmo contato com menos dias que isso entre eles. */
 const INTERVALO_MINIMO_DIAS = 2;
 
+/**
+ * Teto diário de envios usado quando a reputacao_envio não responde ou não
+ * traz a coluna. O valor de verdade mora no banco (migração 111) para poder
+ * mudar sem deploy; esta constante é só o chão seguro.
+ */
+const LIMITE_DIARIO_PADRAO = 50;
+
 interface Trilha {
   slug: string;
   nome: string;
@@ -677,11 +684,61 @@ async function registrarEnvio(supabase: SupabaseClient, contatoId: string, ordem
   return erro;
 }
 
+/**
+ * Envios ja feitos, lidos em lotes.
+ *
+ * Antes era um `.in('contato_id', [...])` com o id de TODO contato elegivel.
+ * Com 718 contatos isso virava uma query string de ~27 KB, acima do limite de
+ * URL do PostgREST, que respondia 400 — e o `abortar()` derrubava a rodada.
+ * O cron abortou assim todo dia util de 05/10 a 16/10/2026, 12 dias, sem
+ * mandar nenhum e-mail e sem ninguem notar, porque a falha so aparecia na
+ * tabela de execucoes.
+ *
+ * 100 ids por lote dao ~4 KB de query string, com folga larga. Erro em
+ * qualquer lote estoura para o chamador: lista parcial faria o cron achar que
+ * a etapa nunca foi enviada e reenviar.
+ */
+const LOTE_LEITURA_ENVIOS = 100;
+
+async function lerEnviosEmLotes(
+  supabase: SupabaseClient,
+  contatoIds: string[],
+): Promise<{ contato_id: string; ordem: number; enviado_em: string }[]> {
+  const todos: { contato_id: string; ordem: number; enviado_em: string }[] = [];
+  for (let i = 0; i < contatoIds.length; i += LOTE_LEITURA_ENVIOS) {
+    const lote = contatoIds.slice(i, i + LOTE_LEITURA_ENVIOS);
+    const { data, error } = await supabase
+      .from('email_envios')
+      .select('contato_id, ordem, enviado_em')
+      .in('contato_id', lote);
+    if (error) throw new Error(`lote ${i / LOTE_LEITURA_ENVIOS + 1}: ${error.message}`);
+    todos.push(...(data ?? []) as typeof todos);
+  }
+  return todos;
+}
+
+/** Instante do inicio do dia de hoje em BRT, em ISO, para contar o que ja saiu. */
+function inicioDoDiaBRT(): string {
+  const [ano, mes, dia] = todayBRT().split('-').map(Number);
+  // BRT e UTC-3 o ano todo desde 2019 (nao ha mais horario de verao).
+  return new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0)).toISOString();
+}
+
 interface EnvioSemRegistro { contatoId: string; email: string; ordem: number; erro: string; }
 
 interface ResumoExecucao {
   contatos_elegiveis?: number; enviados?: number; erros?: number; sem_registro?: number;
   abortada?: boolean; detalhes?: Record<string, unknown>;
+}
+
+/** Quantos e-mails a cadencia ja gravou hoje, para o teto valer entre rodadas. */
+async function envioHojeContados(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from('email_envios')
+    .select('contato_id', { count: 'exact', head: true })
+    .gte('enviado_em', inicioDoDiaBRT());
+  if (error) throw new Error(`Falha ao contar os envios de hoje: ${error.message}`);
+  return count ?? 0;
 }
 
 /**
@@ -973,6 +1030,11 @@ Deno.serve(async (req) => {
     // falhar por três dias, ninguém recebe três e-mails de uma vez.
     const today = todayBRT();
 
+    // Teto diário de volume, lido da reputacao_envio na trava de pausa abaixo.
+    // Sem ele a rodada manda uma etapa para CADA contato com etapa vencida —
+    // hoje 723 de uma vez, 6x o pico histórico do domínio.
+    let limiteDiario = LIMITE_DIARIO_PADRAO;
+
     // Sábado e domingo não sai prospecção: chega para acumular, ninguém na
     // construtora lê, e caixa sem engajamento piora a reputação do domínio.
     // As etapas não se perdem — a trilha compara o dia devido com a data de
@@ -1001,7 +1063,9 @@ Deno.serve(async (req) => {
     // automação rodando sozinha.
     {
       const { data: rep } = await supabase
-        .from('reputacao_envio').select('pausado, pausado_motivo').limit(1).maybeSingle();
+        .from('reputacao_envio')
+        .select('pausado, pausado_motivo, limite_diario_envios').limit(1).maybeSingle();
+      limiteDiario = Number(rep?.limite_diario_envios ?? LIMITE_DIARIO_PADRAO);
       if (rep?.pausado) {
         const motivo = String(rep.pausado_motivo ?? 'sem motivo registrado');
         console.log(`[cadencia] pausada pela reputacao global do dominio: ${motivo}`);
@@ -1055,12 +1119,19 @@ Deno.serve(async (req) => {
     const limiteInicio = new Date(Date.parse(today + 'T00:00:00Z') - maiorDia * 86400000)
       .toISOString().split('T')[0];
 
+    // Ordem de atendimento: contato que entrou mais recentemente primeiro.
+    // Com fila acumulada o teto diário não dá para todos, e quem entrou ontem
+    // ainda lembra da empresa; quem entrou há três semanas esfriou. Se a ordem
+    // fosse a natural (mais antigo primeiro), o lead quente esperaria a fila
+    // inteira de leads frios.
     const { data: contatos, error: errContatos } = await supabase
       .from('email_cadencia')
       .select('id, nome_contato, nome_empresa, email, trilha, data_inicio, cidade, site, gancho_adesao, origem, created_at')
       .eq('ativo', true)
       .gte('data_inicio', limiteInicio)
-      .lte('data_inicio', today);
+      .lte('data_inicio', today)
+      .order('data_inicio', { ascending: false })
+      .order('id', { ascending: true }); // desempate estável
 
     if (errContatos) return abortar(`Falha ao ler os contatos: ${errContatos.message}`);
     if (!contatos?.length) {
@@ -1068,14 +1139,33 @@ Deno.serve(async (req) => {
       return json({ success: true, sent: 0, errors: 0 });
     }
 
-    // Envios já feitos, em uma consulta só.
+    // Envios já feitos, lidos em lotes de 100 ids.
     // Esta leitura e a trava contra reenvio: em erro, abortar e a unica
     // saida segura (lista vazia reenviaria a etapa 1 para todo mundo).
-    const { data: envios, error: errEnvios } = await supabase
-      .from('email_envios')
-      .select('contato_id, ordem, enviado_em')
-      .in('contato_id', contatos.map(c => c.id));
-    if (errEnvios) return abortar(`Falha ao ler os envios: ${errEnvios.message}`);
+    let envios: { contato_id: string; ordem: number; enviado_em: string }[];
+    try {
+      envios = await lerEnviosEmLotes(supabase, contatos.map(c => c.id));
+    } catch (e) {
+      return abortar(`Falha ao ler os envios: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // Quanto do teto de hoje ainda sobra. Conta o que já está gravado para o
+    // teto valer mesmo se o cron rodar duas vezes no mesmo dia.
+    let jaEnviadosHoje: number;
+    try {
+      jaEnviadosHoje = await envioHojeContados(supabase);
+    } catch (e) {
+      return abortar(e instanceof Error ? e.message : String(e));
+    }
+    const saldoDoDia = Math.max(0, limiteDiario - jaEnviadosHoje);
+    if (saldoDoDia === 0) {
+      console.log(`[cadencia] teto diário de ${limiteDiario} já atingido hoje (${jaEnviadosHoje} enviados)`);
+      await registrarExecucao(supabase, {
+        contatos_elegiveis: contatos.length,
+        detalhes: { teto_diario: limiteDiario, ja_enviados_hoje: jaEnviadosHoje, atingido: true },
+      });
+      return json({ success: true, sent: 0, teto_diario: limiteDiario, ja_enviados_hoje: jaEnviadosHoje });
+    }
 
     const jaEnviado = new Set((envios ?? []).map(e => `${e.contato_id}:${e.ordem}`));
 
@@ -1087,7 +1177,7 @@ Deno.serve(async (req) => {
       if (!atual || dia > atual) ultimoEnvio.set(e.contato_id, dia);
     }
 
-    let totalSent = 0, totalErrors = 0, totalSimples = 0;
+    let totalSent = 0, totalErrors = 0, totalSimples = 0, naoCouberamNoTeto = 0;
     const semRegistro: EnvioSemRegistro[] = [];
 
     for (const c of contatos) {
@@ -1108,6 +1198,13 @@ Deno.serve(async (req) => {
       if (!pendente) continue;
 
       const variante = varianteDoContato(c as any);
+      // Teto do dia. Fica aqui, depois de achar a etapa pendente, para o
+      // contato sem nada a enviar não consumir vaga da fila.
+      if (totalSent >= saldoDoDia) {
+        naoCouberamNoTeto++;
+        continue;
+      }
+
       const { assunto, html } = montarEmail(
         trilha, pendente, etapas.length, c.nome_contato, c.nome_empresa,
         String((c as any).cidade ?? ''), String((c as any).site ?? ''),
@@ -1128,14 +1225,18 @@ Deno.serve(async (req) => {
     await avisarEnvioSemRegistro(semRegistro);
     await registrarExecucao(supabase, {
       contatos_elegiveis: contatos.length, enviados: totalSent, erros: totalErrors, sem_registro: semRegistro.length,
-      detalhes: (semRegistro.length || totalSimples)
-        ? {
-            ...(semRegistro.length ? { sem_registro: semRegistro } : {}),
-            ...(totalSimples ? { ab_simples_enviados: totalSimples } : {}),
-          }
-        : undefined,
+      detalhes: {
+        teto_diario: limiteDiario,
+        ja_enviados_hoje: jaEnviadosHoje,
+        ...(naoCouberamNoTeto ? { nao_couberam_no_teto: naoCouberamNoTeto } : {}),
+        ...(semRegistro.length ? { sem_registro: semRegistro } : {}),
+        ...(totalSimples ? { ab_simples_enviados: totalSimples } : {}),
+      },
     });
-    return json({ success: true, sent: totalSent, errors: totalErrors, sem_registro: semRegistro.length });
+    return json({
+      success: true, sent: totalSent, errors: totalErrors, sem_registro: semRegistro.length,
+      teto_diario: limiteDiario, nao_couberam_no_teto: naoCouberamNoTeto,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[prospecting-cadence]', msg);
