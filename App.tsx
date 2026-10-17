@@ -177,10 +177,18 @@ const BadgeDot = ({ count }: { count: number }) => {
     );
 };
 
+/** Lê a tela do endereço (#prospeccao). Valor desconhecido ou vazio = Visão Geral. */
+const viewDaUrl = (): View => {
+  const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
+  return h && Object.prototype.hasOwnProperty.call(VIEW_TITLES, h) ? (h as View) : 'dashboard';
+};
+
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [activeView, setActiveView] = useState<View>('dashboard');
+  // A tela aberta fica no endereço (ex.: hub.fegsegurogarantia.com/#prospeccao),
+  // para que atualizar a página (F5) volte para a mesma tela e não para a Visão Geral.
+  const [activeView, setActiveView] = useState<View>(viewDaUrl);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
   // Módulos liberados para quem está logado. `null` = vê tudo.
@@ -311,6 +319,26 @@ const App: React.FC = () => {
 
   // Keep ref in sync so realtime callback can read current view
   useEffect(() => { activeViewRef.current = activeView; }, [activeView]);
+
+  // Grava a tela aberta no endereço. Cada troca de tela vira uma entrada do
+  // histórico, então o botão Voltar do navegador volta para a tela anterior do HUB.
+  useEffect(() => {
+    // Trava: link de login/convite do Supabase traz o token depois do # (tem "=").
+    // Esse endereço nunca é sobrescrito; o Supabase lê e limpa sozinho.
+    if (window.location.hash.includes('=')) return;
+    const alvo = activeView === 'dashboard' ? '' : `#${activeView}`;
+    if (window.location.hash !== alvo) {
+      window.history.pushState(null, '', window.location.pathname + window.location.search + alvo);
+    }
+  }, [activeView]);
+
+  // Botões Voltar/Avançar do navegador: segue o endereço. Se a pessoa não tiver
+  // acesso à tela do endereço, o useEffect de permissões devolve para a Visão Geral.
+  useEffect(() => {
+    const aoNavegar = () => setActiveView(viewDaUrl());
+    window.addEventListener('popstate', aoNavegar);
+    return () => window.removeEventListener('popstate', aoNavegar);
+  }, []);
 
   // Realtime: listen for new inbound WhatsApp messages
   useEffect(() => {
