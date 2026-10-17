@@ -214,7 +214,7 @@ export default function ProspeccaoEmail() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Prospecção Email</h2>
+          <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Contatos nas Trilhas</h2>
           <p className="text-slate-500 font-semibold mt-1 text-sm">
             Cadência automática de e-mails. Cada contato segue a trilha do produto escolhido
           </p>

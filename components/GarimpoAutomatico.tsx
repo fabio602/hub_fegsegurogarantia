@@ -307,7 +307,7 @@ export default function GarimpoAutomatico() {
             <div className="flex flex-col lg:flex-row justify-between gap-4 items-start">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                        <Pickaxe className="text-gold" size={30} /> Garimpo Automático
+                        <Pickaxe className="text-gold" size={30} /> Garimpo Google Maps
                     </h2>
                     <p className="text-slate-500 font-medium">
                         Campanhas de prospecção automática (Google Maps e CCEE). O estoque enche sozinho e o envio diário respeita o limite de cada campanha.
