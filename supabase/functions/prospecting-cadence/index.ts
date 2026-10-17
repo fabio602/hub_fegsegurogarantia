@@ -308,6 +308,17 @@ function dataBr(iso: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
 }
 
+/**
+ * timestamptz -> 'DD/MM/AAAA' em BRT. O enviado_em é gravado em UTC, e um
+ * envio das 21h59 de São Paulo cai no dia seguinte em UTC: formatar a string
+ * crua mostraria a data errada para quem está no Brasil.
+ */
+function dataBrDeTimestamp(ts: string): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return dataBr(String(ts).slice(0, 10));
+  return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
 /** Dia e mês de hoje em BRT, para a linha gravada na observação do lead. */
 function diaMesBRT(): string {
   const [ano, mes, dia] = todayBRT().split('-');
@@ -398,6 +409,27 @@ function textoParaHtml(texto: string): string {
     .join('\n');
 }
 
+/**
+ * Caminho de volta: o corpo em HTML vira texto puro para a textarea da tela,
+ * um parágrafo por linha em branco. O que o Fábio editar ali volta por
+ * textoParaHtml, que escapa de novo.
+ */
+function corpoParaTexto(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    // O &amp; sai por último, senão "&amp;lt;" viraria "<".
+    .replaceAll('&amp;', '&')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /** Listas de classificação de e-mail da prospecção, para os avisos da prévia. */
 interface ConfigAvisos {
   contador: string[];
@@ -473,6 +505,7 @@ function primeiroNome(nome: string): string {
 interface MontagemLicitacao {
   assunto: string;
   html: string;
+  corpoTexto: string;
   para: string;
   nomeContato: string;
   avisos: string[];
@@ -525,13 +558,22 @@ async function montarEmailLicitacao(
 
   // Assunto e corpo vindos da tela já estão editados; sem eles, valem os da
   // etapa, com os placeholders da licitação resolvidos.
-  const assunto = body.assunto !== undefined && String(body.assunto).trim()
-    ? String(body.assunto)
-    : resolverLicitacao(etapa.assunto, dados, false);
+  //
+  // O texto editado também passa pelo resolvedor: se o Fábio digitar
+  // [VALOR] ou {{? ... }} à mão, funciona igual, e nada sai cru. A ordem é
+  // escapar primeiro e resolver depois — os colchetes e as chaves atravessam
+  // o escape intactos, e assim o valor é escapado uma vez só.
+  const assunto = resolverLicitacao(
+    body.assunto !== undefined && String(body.assunto).trim()
+      ? String(body.assunto)
+      : etapa.assunto,
+    dados, false);
 
-  const corpo = body.corpo !== undefined && String(body.corpo).trim()
-    ? textoParaHtml(String(body.corpo))
-    : resolverLicitacao(etapa.corpo_html ?? '', dados, true);
+  const corpo = resolverLicitacao(
+    body.corpo !== undefined && String(body.corpo).trim()
+      ? textoParaHtml(String(body.corpo))
+      : (etapa.corpo_html ?? ''),
+    dados, true);
 
   // Este e-mail sai no molde navy/dourado, como os demais da casa. A variante
   // simples do teste A/B continua valendo só para o que o cron manda (E2 em
@@ -563,6 +605,9 @@ async function montarEmailLicitacao(
 
   return {
     ...montado,
+    // Texto puro do corpo, com os dados já trocados: é o que a tela abre na
+    // textarea para o Fábio ajustar.
+    corpoTexto: corpoParaTexto(personalizar(corpo, nomeContato || nomeEmpresa, nomeEmpresa)),
     para,
     nomeContato,
     avisos,
@@ -750,6 +795,7 @@ Deno.serve(async (req) => {
         success: true,
         assunto: m.assunto,
         html: m.html,
+        corpo_texto: m.corpoTexto,
         para: m.para,
         nome_contato: m.nomeContato,
         avisos: m.avisos,
@@ -825,7 +871,7 @@ Deno.serve(async (req) => {
       if (jaEnviado) {
         return json({
           success: false,
-          error: `Trilha já iniciada em ${dataBr(String(jaEnviado.enviado_em).slice(0, 10))}. O primeiro e-mail deste lead já saiu.`,
+          error: `Trilha já iniciada em ${dataBrDeTimestamp(String(jaEnviado.enviado_em))}. O primeiro e-mail deste lead já saiu.`,
           trilha_iniciada_em: jaEnviado.enviado_em,
         }, 409);
       }
