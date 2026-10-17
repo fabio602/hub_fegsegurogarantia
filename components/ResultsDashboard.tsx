@@ -3301,7 +3301,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                 <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h2 className="text-3xl font-black text-slate-800">Prospecção Ativa</h2>
+                            <h2 className="text-3xl font-black text-slate-800">Kanban de Leads</h2>
                             <p className="text-slate-500 font-medium">Gestão de contatos e captação de novos clientes no formato Kanban.</p>
                         </div>
                         <button

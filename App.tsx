@@ -104,6 +104,9 @@ type View =
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
 const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
+// Telas do subgrupo Prospecção que aparecem no menu. `pncp-prospeccao` e `pnpc`
+// continuam no código, mas saíram do menu (ver docs/menu/MENU-PROSPECCAO.md).
+const PROSPECCAO_VIEWS: View[] = ['prospeccao', 'pncp-auto', 'radar', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 // Operacao de seguro auto encerrada em 31/08/2026 (indicacao para o parceiro).
 // O historico de vendas continua no banco; para reabrir o menu, basta true.
@@ -124,14 +127,14 @@ const VIEW_TITLES: Record<View, string> = {
   formularios: 'Formulários para Clientes',
   carteira: 'Carteira de Clientes',
   posvenda: 'Pós-venda',
-  prospeccao: 'Prospecção',
+  prospeccao: 'Kanban de Leads',
   radar: 'Radar PGFN',
-  'radar-advogados': 'Radar · Advogados do TRF3',
-  'prospeccao-email': 'Prospecção Email',
+  'radar-advogados': 'Advogados TRF3',
+  'prospeccao-email': 'Contatos nas Trilhas',
   'email-trilhas': 'Trilhas de E-mail',
   'pncp-prospeccao': 'Prospecção PNCP',
-  'pncp-auto': 'Prospecção Automática',
-  garimpo: 'Garimpo Automático',
+  'pncp-auto': 'PNCP Automático',
+  garimpo: 'Garimpo Google Maps',
   pnpc: 'PNPC',
   'seg-licitante': 'Seguro Licitante',
   'seg-contrato': 'Seguro de Contrato',
@@ -177,10 +180,24 @@ const BadgeDot = ({ count }: { count: number }) => {
     );
 };
 
+// Telas que saíram do menu: quem tinha uma delas no endereço (F5, favorito)
+// cai no Kanban de Leads em vez de numa tela sem item no menu.
+const VIEWS_FORA_DO_MENU: Partial<Record<View, View>> = {
+  'pncp-prospeccao': 'prospeccao',
+  pnpc: 'prospeccao',
+};
+
 /** Lê a tela do endereço (#prospeccao). Valor desconhecido ou vazio = Visão Geral. */
 const viewDaUrl = (): View => {
   const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  return h && Object.prototype.hasOwnProperty.call(VIEW_TITLES, h) ? (h as View) : 'dashboard';
+  if (!h || !Object.prototype.hasOwnProperty.call(VIEW_TITLES, h)) return 'dashboard';
+  const destino = VIEWS_FORA_DO_MENU[h as View];
+  if (destino) {
+    // replaceState: o endereço antigo não fica no histórico (o Voltar não cai nele de novo).
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + `#${destino}`);
+    return destino;
+  }
+  return h as View;
 };
 
 const App: React.FC = () => {
@@ -377,7 +394,7 @@ const App: React.FC = () => {
   // Auto-expand the group that contains the active view
   useEffect(() => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
-    if (['prospeccao', 'radar', 'radar-advogados', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
+    if (PROSPECCAO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
     if (['seg-licitante', 'seg-contrato'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
     if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
@@ -513,6 +530,13 @@ const App: React.FC = () => {
     </button>
   );
 
+  // ── Rótulo de seção dentro de um sub-grupo (só texto, não clicável) ──
+  const NavSectionLabel: React.FC<{ label: string }> = ({ label }) => (
+    <div className="px-4 pt-3 pb-1 text-[9px] font-black tracking-widest uppercase text-slate-500 select-none">
+      {label}
+    </div>
+  );
+
   // ── Collapsible sub-group inside a NavGroup ───────────────────────
   const NavSubGroup: React.FC<{
     groupKey: string;
@@ -596,17 +620,19 @@ const App: React.FC = () => {
                 <NavSubGroup
                   groupKey="prospeccao"
                   label="Prospecção"
-                  isGroupActive={['prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc'].includes(activeView)}
+                  isGroupActive={PROSPECCAO_VIEWS.includes(activeView)}
                 >
-                  <NavSubItem view="prospeccao" label="Prospecção Ativa" />
-                  <NavSubItem view="radar" label="Radar" icon={<Radar size={12} aria-hidden="true" />} />
-                  <NavSubItem view="radar-advogados" label="Radar · Advogados" icon={<Scale size={12} aria-hidden="true" />} />
-                  <NavSubItem view="prospeccao-email" label="Prospecção Email" />
+                  <NavSubItem view="prospeccao" label="Kanban de Leads" />
+                  <NavSectionLabel label="Licitações" />
+                  <NavSubItem view="pncp-auto" label="PNCP Automático" />
+                  <NavSectionLabel label="Garantia Judicial Fiscal" />
+                  <NavSubItem view="radar" label="Radar PGFN" icon={<Radar size={12} aria-hidden="true" />} />
+                  <NavSubItem view="radar-advogados" label="Advogados TRF3" icon={<Scale size={12} aria-hidden="true" />} />
+                  <NavSectionLabel label="Outras Fontes" />
+                  <NavSubItem view="garimpo" label="Garimpo Google Maps" />
+                  <NavSectionLabel label="E-mail" />
                   <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
-                  <NavSubItem view="pncp-prospeccao" label="Prospecção PNCP" />
-                  <NavSubItem view="pncp-auto" label="Prospecção Automática" />
-                  <NavSubItem view="garimpo" label="Garimpo Automático" />
-                  <NavSubItem view="pnpc" label="PNPC" />
+                  <NavSubItem view="prospeccao-email" label="Contatos nas Trilhas" />
                 </NavSubGroup>
                 <NavSubItem view="directory" label="Seguradoras" />
                 <NavSubItem view="banks" label="Bancos Garantidores" />

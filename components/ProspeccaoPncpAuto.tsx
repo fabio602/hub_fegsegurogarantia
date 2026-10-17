@@ -157,7 +157,7 @@ export default function ProspeccaoPncpAuto() {
             <div className="flex flex-col lg:flex-row justify-between gap-4 items-start">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
-                        <Bot className="text-gold" size={30} /> Prospecção Automática PNCP
+                        <Bot className="text-gold" size={30} /> PNCP Automático
                     </h2>
                     <p className="text-slate-500 font-medium">
                         Todo dia às 07h: vencedores de licitação do dia anterior entram na trilha de e-mail.
