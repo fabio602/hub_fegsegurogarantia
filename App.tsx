@@ -180,10 +180,24 @@ const BadgeDot = ({ count }: { count: number }) => {
     );
 };
 
+// Telas que saíram do menu: quem tinha uma delas no endereço (F5, favorito)
+// cai no Kanban de Leads em vez de numa tela sem item no menu.
+const VIEWS_FORA_DO_MENU: Partial<Record<View, View>> = {
+  'pncp-prospeccao': 'prospeccao',
+  pnpc: 'prospeccao',
+};
+
 /** Lê a tela do endereço (#prospeccao). Valor desconhecido ou vazio = Visão Geral. */
 const viewDaUrl = (): View => {
   const h = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  return h && Object.prototype.hasOwnProperty.call(VIEW_TITLES, h) ? (h as View) : 'dashboard';
+  if (!h || !Object.prototype.hasOwnProperty.call(VIEW_TITLES, h)) return 'dashboard';
+  const destino = VIEWS_FORA_DO_MENU[h as View];
+  if (destino) {
+    // replaceState: o endereço antigo não fica no histórico (o Voltar não cai nele de novo).
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + `#${destino}`);
+    return destino;
+  }
+  return h as View;
 };
 
 const App: React.FC = () => {
