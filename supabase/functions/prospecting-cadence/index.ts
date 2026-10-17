@@ -271,6 +271,307 @@ async function carregarTrilha(
   return { trilha: t as Trilha, etapas: (etapas ?? []) as Etapa[] };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// E-MAIL DA LICITAÇÃO: o 1º contato dos leads do PNCP, enviado à mão.
+//
+// Os leads da prospecção automática do PNCP não recebem mais o E1 genérico no
+// instante em que entram. O Fábio abre a prévia no card do Kanban, confere os
+// dados daquela licitação, ajusta destinatário e texto e envia. Esse envio
+// CONTA como o E1 da trilha `garantia` (ordem 1 em email_envios), e a trilha
+// segue sozinha a partir do E2 (dia 3), pelo cron de sempre.
+//
+// O conteúdo mora na trilha `licitacao` (migração 109), que nasceu com
+// ativo = false justamente para o cron não varrê-la: quem dispara é a tela,
+// pelos modos `licitacao_preview` e `licitacao_enviar`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Placeholders próprios da trilha `licitacao`, lidos das colunas do prospect. */
+const CHAVES_LICITACAO = [
+  'ORGAO', 'OBJETO', 'OBJETO_CURTO', 'VALOR', 'NUMERO_LICITACAO', 'DATA_HOMOLOGACAO',
+] as const;
+
+function escaparHtml(s: string): string {
+  return s
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function brl(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/** 'AAAA-MM-DD' -> 'DD/MM/AAAA'. Sem new Date(): o fuso viraria o dia. */
+function dataBr(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+}
+
+/** Dia e mês de hoje em BRT, para a linha gravada na observação do lead. */
+function diaMesBRT(): string {
+  const [ano, mes, dia] = todayBRT().split('-');
+  return `${dia}/${mes}`;
+}
+
+/** 'DD/MM/AAAA HH:MM' em BRT — o formato do histórico de observações do Kanban. */
+function timestampObservacao(): string {
+  const agora = new Date();
+  const d = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const h = agora.toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit',
+  });
+  return `${d} ${h}`;
+}
+
+/**
+ * Objeto encurtado para o assunto: até `max` caracteres, cortando na última
+ * palavra inteira. Objeto do PNCP costuma ter 300 caracteres e não cabe na
+ * linha de assunto de nenhum cliente de e-mail.
+ */
+function objetoCurto(objeto: string, max = 60): string {
+  const limpo = objeto.replace(/\s+/g, ' ').trim();
+  if (limpo.length <= max) return limpo;
+  const corte = limpo.slice(0, max);
+  const ultimoEspaco = corte.lastIndexOf(' ');
+  return (ultimoEspaco > max * 0.5 ? corte.slice(0, ultimoEspaco) : corte).replace(/[\s,;.:-]+$/, '');
+}
+
+/** Dados da licitação de um lead, já formatados para texto. */
+function dadosLicitacao(p: Record<string, unknown>): Record<string, string> {
+  const texto = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim();
+  // O objeto entra no meio da frase ("para [OBJETO], no valor de ..."), e o
+  // objeto do PNCP quase sempre termina em ponto. Sem tirar, sai ".,".
+  const objeto = texto(p.objeto_contrato).replace(/[\s.;,:]+$/, '');
+  const valorNum = Number(p.valor_contrato ?? 0);
+  return {
+    ORGAO:            texto(p.orgao_licitante),
+    OBJETO:           objeto,
+    OBJETO_CURTO:     objetoCurto(objeto),
+    // Valor ausente ou zerado conta como vazio: a decisão é não escrever
+    // "R$ 0,00" para um cliente.
+    VALOR:            Number.isFinite(valorNum) && valorNum > 0 ? brl(valorNum) : '',
+    NUMERO_LICITACAO: texto(p.numero_licitacao),
+    DATA_HOMOLOGACAO: dataBr(texto(p.data_homologacao)),
+  };
+}
+
+/**
+ * Troca os placeholders da licitação.
+ *
+ * `{{? ... }}` marca um trecho condicional: se algum placeholder dentro dele
+ * estiver vazio, o trecho inteiro cai. É o que impede a frase de sair com
+ * "no valor de R$ 0,00" ou com [VALOR] cru. Placeholder vazio que esteja
+ * FORA de um trecho condicional sai como vazio, nunca cru.
+ *
+ * `html` liga o escape: órgão e objeto vêm do PNCP em texto livre e trazem
+ * "&" e "<" com frequência.
+ */
+function resolverLicitacao(texto: string, dados: Record<string, string>, html: boolean): string {
+  const vazio = (chave: string) => !(dados[chave] ?? '').trim();
+  const trechoTemVazio = (trecho: string) =>
+    CHAVES_LICITACAO.some((k) => trecho.includes(`[${k}]`) && vazio(k));
+
+  let saida = texto.replace(/\{\{\?([\s\S]*?)\}\}/g, (_m, dentro: string) =>
+    trechoTemVazio(dentro) ? '' : dentro);
+
+  for (const k of CHAVES_LICITACAO) {
+    const valor = dados[k] ?? '';
+    saida = saida.replaceAll(`[${k}]`, html ? escaparHtml(valor) : valor);
+  }
+  return saida;
+}
+
+/**
+ * Corpo editado na tela chega como texto puro, um parágrafo por linha em
+ * branco. Vira HTML escapado nos mesmos parágrafos do molde.
+ */
+function textoParaHtml(texto: string): string {
+  const paragrafos = texto.replace(/\r\n/g, '\n').split(/\n\s*\n/)
+    .map((p) => p.trim()).filter(Boolean);
+  if (!paragrafos.length) return '';
+  return paragrafos
+    .map((p, i) => {
+      const estilo = i === paragrafos.length - 1 ? '{{PF}}' : '{{P}}';
+      return `<p style="${estilo}">${escaparHtml(p).replaceAll('\n', '<br>')}</p>`;
+    })
+    .join('\n');
+}
+
+/** Listas de classificação de e-mail da prospecção, para os avisos da prévia. */
+interface ConfigAvisos {
+  contador: string[];
+  genericos: string[];
+  gratuitos: string[];
+}
+
+async function carregarConfigAvisos(supabase: SupabaseClient): Promise<ConfigAvisos> {
+  const { data } = await supabase.from('prospeccao_pncp_config')
+    .select('email_padroes_contador, email_prefixos_genericos, email_provedores_gratuitos')
+    .eq('id', 1).maybeSingle();
+  return {
+    contador:  (data?.email_padroes_contador ?? []) as string[],
+    genericos: (data?.email_prefixos_genericos ?? []) as string[],
+    gratuitos: (data?.email_provedores_gratuitos ?? []) as string[],
+  };
+}
+
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Avisos mostrados acima do botão Enviar. Não bloqueiam: a decisão de mandar
+ * para a caixa do contador ou para um gmail é do Fábio, caso a caso. A mesma
+ * classificação que a prospecção usa no relatório diário.
+ */
+function avisosDoEnvio(
+  email: string,
+  dados: Record<string, string>,
+  cfg: ConfigAvisos,
+): string[] {
+  const avisos: string[] = [];
+  const e = email.toLowerCase().trim();
+  const [prefixo, dominio] = e.includes('@') ? e.split('@') : ['', ''];
+
+  if (cfg.contador.some((t) => {
+    const p = t.toLowerCase().trim();
+    return p && (prefixo.includes(p) || dominio.includes(p));
+  })) {
+    avisos.push('Parece e-mail de contabilidade: quem lê pode não ser quem decide na empresa.');
+  } else if (cfg.genericos.some((t) => {
+    const p = t.toLowerCase().trim();
+    return p && prefixo.startsWith(p);
+  })) {
+    avisos.push('Parece caixa de setor (fiscal, jurídico), não de uma pessoa.');
+  } else if (cfg.gratuitos.some((t) => {
+    const p = t.toLowerCase().trim();
+    // Domínio exato: 'includes' faria gmail.com casar com naoegmail.com.br.
+    return p && dominio === p;
+  })) {
+    avisos.push('E-mail de provedor gratuito (gmail, hotmail e afins), não o domínio da empresa.');
+  }
+
+  const faltando: string[] = [];
+  if (!dados.NUMERO_LICITACAO) faltando.push('número da licitação');
+  if (!dados.ORGAO)            faltando.push('órgão');
+  if (!dados.OBJETO)           faltando.push('objeto');
+  if (!dados.VALOR)            faltando.push('valor');
+  if (faltando.length) {
+    avisos.push(`Sem ${faltando.join(', ')} no cadastro do lead: a frase sai sem essa parte.`);
+  }
+  return avisos;
+}
+
+/** Primeiro nome, para o "Olá, Fulano!" não virar o nome completo em caixa alta. */
+function primeiroNome(nome: string): string {
+  const limpo = (nome || '').trim().split(/\s+/)[0] ?? '';
+  if (!limpo) return '';
+  return limpo.length > 2 && limpo === limpo.toUpperCase()
+    ? limpo.charAt(0) + limpo.slice(1).toLowerCase()
+    : limpo;
+}
+
+interface MontagemLicitacao {
+  assunto: string;
+  html: string;
+  para: string;
+  nomeContato: string;
+  avisos: string[];
+  variante: Variante;
+  prospect: Record<string, unknown>;
+  contato: Record<string, unknown> | null;
+}
+
+/**
+ * Monta o e-mail da licitação de um lead. Usada pelos dois modos, para a
+ * prévia mostrar exatamente o que o envio manda.
+ *
+ * O `contato` pode não existir ainda (lead manual antigo, sem linha em
+ * email_cadencia): a montagem funciona, e quem cria a linha é o envio.
+ */
+async function montarEmailLicitacao(
+  supabase: SupabaseClient,
+  body: Record<string, unknown>,
+): Promise<{ erro: string; status: number } | MontagemLicitacao> {
+  const prospectId = String(body.prospect_id ?? '').trim();
+  if (!prospectId) return { erro: 'prospect_id é obrigatório', status: 400 };
+
+  const { data: p, error: pErr } = await supabase.from('prospects')
+    .select('id, name, company, email, decisor, source, description, orgao_licitante, objeto_contrato, valor_contrato, numero_licitacao, data_homologacao')
+    .eq('id', prospectId).maybeSingle();
+  if (pErr) return { erro: `Falha ao ler o lead: ${pErr.message}`, status: 500 };
+  if (!p)   return { erro: 'Lead não encontrado', status: 404 };
+
+  const carregada = await carregarTrilha(supabase, 'licitacao');
+  if (!carregada) return { erro: 'Trilha "licitacao" não encontrada. Rode a migração 109.', status: 404 };
+  const { trilha, etapas } = carregada;
+  const etapa = etapas.find((e) => e.ordem === 1);
+  if (!etapa) return { erro: 'A trilha "licitacao" não tem a etapa 1 ativa', status: 400 };
+
+  const { data: contato } = await supabase.from('email_cadencia')
+    .select('id, nome_contato, nome_empresa, email, trilha, origem, created_at, ativo, data_inicio')
+    .eq('prospect_id', prospectId)
+    .order('created_at', { ascending: true })
+    .limit(1).maybeSingle();
+
+  const para = String(
+    body.email ?? contato?.email ?? p.email ?? '',
+  ).trim();
+  const nomeContato = String(
+    body.nome_contato ?? contato?.nome_contato ?? primeiroNome(String(p.decisor ?? p.name ?? '')) ?? '',
+  ).trim();
+  const nomeEmpresa = String(contato?.nome_empresa ?? p.company ?? p.name ?? '').trim();
+
+  const dados = dadosLicitacao(p as Record<string, unknown>);
+
+  // Assunto e corpo vindos da tela já estão editados; sem eles, valem os da
+  // etapa, com os placeholders da licitação resolvidos.
+  const assunto = body.assunto !== undefined && String(body.assunto).trim()
+    ? String(body.assunto)
+    : resolverLicitacao(etapa.assunto, dados, false);
+
+  const corpo = body.corpo !== undefined && String(body.corpo).trim()
+    ? textoParaHtml(String(body.corpo))
+    : resolverLicitacao(etapa.corpo_html ?? '', dados, true);
+
+  // Este e-mail sai no molde navy/dourado, como os demais da casa. A variante
+  // simples do teste A/B continua valendo só para o que o cron manda (E2 em
+  // diante): aqui o texto é conferido e ajustado à mão, lead por lead.
+  const variante: Variante = body.variante === 'simples' ? 'simples' : 'molde';
+
+  const montado = montarEmail(
+    trilha,
+    { ...etapa, assunto, corpo_html: corpo },
+    etapas.length,
+    nomeContato || nomeEmpresa,
+    nomeEmpresa,
+    '', '', '',
+    variante,
+  );
+
+  const cfg = await carregarConfigAvisos(supabase);
+  const avisos = avisosDoEnvio(para, dados, cfg);
+  // Quem já está no braço "simples" do A/B recebeu o aviso: o E1 vai no molde
+  // e os seguintes, não. Visível na prévia para a decisão ser consciente.
+  if (variante === 'molde' && varianteDoContato({
+    id: String(contato?.id ?? ''),
+    trilha: String(contato?.trilha ?? 'garantia'),
+    origem: String(contato?.origem ?? ''),
+    created_at: contato?.created_at ? String(contato.created_at) : null,
+  }) === 'simples') {
+    avisos.push('Este lead está no braço "versão simples" do teste A/B: os e-mails seguintes da trilha sairão sem o layout de newsletter.');
+  }
+
+  return {
+    ...montado,
+    para,
+    nomeContato,
+    avisos,
+    variante,
+    prospect: p as Record<string, unknown>,
+    contato: (contato ?? null) as Record<string, unknown> | null,
+  };
+}
+
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
     const r = await fetch('https://api.resend.com/emails', {
@@ -438,6 +739,147 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 500));
       }
       return json({ success: true, trilha: trilha.slug, enviados, para });
+    }
+
+    // ── MODO PRÉVIA DA LICITAÇÃO: monta e devolve, sem enviar nada.
+    // Nada sai desta função sem o clique em Enviar na tela.
+    if (body.modo === 'licitacao_preview') {
+      const m = await montarEmailLicitacao(supabase, body);
+      if ('erro' in m) return json({ success: false, error: m.erro }, m.status);
+      return json({
+        success: true,
+        assunto: m.assunto,
+        html: m.html,
+        para: m.para,
+        nome_contato: m.nomeContato,
+        avisos: m.avisos,
+        variante: m.variante,
+      });
+    }
+
+    // ── MODO ENVIO DA LICITAÇÃO: envia e abre a trilha `garantia` no E1.
+    //
+    // A ordem importa. Primeiro as recusas (formato, blocklist, trilha já
+    // iniciada), depois o envio, e só com o envio aceito as gravações. Se a
+    // ordem fosse outra, um erro no meio deixaria o contato marcado como
+    // contatado sem que o e-mail tenha saído, e o E2 sairia no lugar do E1.
+    if (body.modo === 'licitacao_enviar') {
+      const para = String(body.email ?? '').trim();
+      if (!RE_EMAIL.test(para)) {
+        return json({ success: false, error: `E-mail com formato inválido: ${para || '(vazio)'}` }, 422);
+      }
+
+      // Blocklist: endereço que já deu bounce ou reclamou de spam não recebe
+      // de novo, nem por envio manual. Comparação em memória e sem distinção
+      // de caixa — a tabela é pequena e `ilike` trataria o "_" do endereço
+      // como curinga.
+      const { data: bloqueados, error: bErr } = await supabase
+        .from('email_blocklist').select('email, motivo');
+      if (bErr) return json({ success: false, error: `Falha ao ler a blocklist: ${bErr.message}` }, 500);
+      const bloqueio = (bloqueados ?? []).find(
+        (b) => String(b.email ?? '').trim().toLowerCase() === para.toLowerCase());
+      if (bloqueio) {
+        const motivo = String(bloqueio.motivo ?? '').trim();
+        return json({
+          success: false,
+          error: `${para} está na lista de bloqueio${motivo ? `: ${motivo}` : ''}. Não enviei.`,
+        }, 422);
+      }
+
+      const m = await montarEmailLicitacao(supabase, body);
+      if ('erro' in m) return json({ success: false, error: m.erro }, m.status);
+
+      const prospectId  = String(m.prospect.id);
+      const emailAntigo = String(m.prospect.email ?? '').trim();
+      const nomeContato = m.nomeContato || String(m.prospect.company ?? '').trim();
+      const nomeEmpresa = String(m.contato?.nome_empresa ?? m.prospect.company ?? m.prospect.name ?? '').trim();
+      const hoje = todayBRT();
+
+      // Lead manual antigo não tem linha na cadência: cria agora, já na
+      // trilha `garantia`, que é a que segue do E2 em diante. ativo = false
+      // até o envio dar certo, para o cron não achar a etapa 1 pendente caso
+      // o Resend recuse.
+      let contatoId = m.contato ? String(m.contato.id) : '';
+      if (!contatoId) {
+        const { data: novo, error: cErr } = await supabase.from('email_cadencia').insert({
+          nome_contato: nomeContato || nomeEmpresa,
+          nome_empresa: nomeEmpresa,
+          email: para,
+          origem: 'pncp_auto',
+          trilha: 'garantia',
+          data_inicio: hoje,
+          ativo: false,
+          prospect_id: prospectId,
+        }).select('id').single();
+        if (cErr || !novo) {
+          return json({ success: false, error: `Falha ao criar o contato na trilha: ${cErr?.message ?? 'insert sem retorno'}` }, 500);
+        }
+        contatoId = String(novo.id);
+      }
+
+      // Trava contra o segundo clique e contra duas abas abertas no mesmo
+      // lead: a ordem 1 em email_envios é o registro de que a trilha começou.
+      const { data: jaEnviado, error: eErr } = await supabase.from('email_envios')
+        .select('enviado_em').eq('contato_id', contatoId).eq('ordem', 1).maybeSingle();
+      if (eErr) return json({ success: false, error: `Falha ao checar os envios: ${eErr.message}` }, 500);
+      if (jaEnviado) {
+        return json({
+          success: false,
+          error: `Trilha já iniciada em ${dataBr(String(jaEnviado.enviado_em).slice(0, 10))}. O primeiro e-mail deste lead já saiu.`,
+          trilha_iniciada_em: jaEnviado.enviado_em,
+        }, 409);
+      }
+
+      const ok = await sendEmail(para, m.assunto, m.html);
+      if (!ok) {
+        return json({ success: false, error: 'O Resend recusou o envio. Nada foi gravado; tente de novo.' }, 502);
+      }
+
+      // Daqui para baixo o e-mail JÁ SAIU. Cada falha de gravação é relatada,
+      // mas nenhuma pode virar success:false: a tela mostraria erro e o Fábio
+      // clicaria outra vez, enviando o mesmo e-mail duas vezes.
+      const problemas: string[] = [];
+
+      const { error: upCadErr } = await supabase.from('email_cadencia').update({
+        email: para,
+        nome_contato: nomeContato || nomeEmpresa,
+        ativo: true,
+        data_inicio: hoje,
+      }).eq('id', contatoId);
+      if (upCadErr) problemas.push(`email_cadencia: ${upCadErr.message}`);
+
+      const erroRegistro = await registrarEnvio(supabase, contatoId, 1);
+      if (erroRegistro) {
+        problemas.push(erroRegistro);
+        await avisarEnvioSemRegistro([{ contatoId, email: para, ordem: 1, erro: erroRegistro }]);
+      }
+
+      const trocouEmail = !!emailAntigo && emailAntigo.toLowerCase() !== para.toLowerCase();
+      const campos: Record<string, unknown> = {};
+      if (emailAntigo.toLowerCase() !== para.toLowerCase()) campos.email = para;
+
+      // A linha fica no histórico de observações do lead, no formato que o
+      // Kanban lê ([DD/MM/AAAA HH:MM] texto).
+      const linhas = [`E-mail da licitação enviado em ${diaMesBRT()} para ${para}`];
+      if (trocouEmail) linhas.push(`E-mail anterior: ${emailAntigo}`);
+      const nota = `[${timestampObservacao()}] ${linhas.join('\n')}`;
+      const descricaoAtual = String(m.prospect.description ?? '').trim();
+      campos.description = descricaoAtual ? `${descricaoAtual}\n${nota}` : nota;
+
+      const { error: upProsErr } = await supabase.from('prospects')
+        .update(campos).eq('id', prospectId);
+      if (upProsErr) problemas.push(`prospects: ${upProsErr.message}`);
+
+      console.log(`[cadencia/licitacao] ✅ E1 manual -> ${para} (lead ${prospectId})`);
+
+      return json({
+        success: true,
+        para,
+        contato_id: contatoId,
+        data_inicio: hoje,
+        email_trocado: trocouEmail ? emailAntigo : null,
+        problemas: problemas.length ? problemas : undefined,
+      });
     }
 
     // ── MODO IMEDIATO: dispara a primeira etapa agora, para um contato recém-criado.
