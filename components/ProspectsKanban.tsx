@@ -1796,7 +1796,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {isEditModalOpen && editingLead && (
                 <ModalPortal>
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                           <div className="flex justify-between items-center p-6 border-b border-gold/20 bg-gold/10">
                               <div>
                                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit2 size={20} className="text-gold" />Editar Lead</h3>
@@ -1810,8 +1810,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                               <button onClick={fecharEdicaoLead} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm cursor-pointer"><X size={20} /></button>
                           </div>
                           <div className="p-8 overflow-y-auto custom-scroll flex-1">
-                              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                                  <div className="lg:col-span-3">
+                              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8">
+                                  <div className="min-w-0">
                                       <form id="edit-lead-form" onSubmit={handleSaveEdit}>
                                           <LeadFormFields form={editLeadForm} setForm={setEditLeadForm} columns={columns} hideObservation />
                                       </form>
@@ -1958,7 +1958,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                           </div>
                                       </div>
                                   </div>
-                                  <div className="lg:col-span-2 border-l border-slate-100 pl-8">
+                                  <div className="min-w-0 lg:border-l lg:border-slate-100 lg:pl-8">
                                       <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />
                                   </div>
                               </div>
