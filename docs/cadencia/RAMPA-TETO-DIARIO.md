@@ -27,16 +27,44 @@ Sem deploy. O valor vale na próxima rodada do cron, 09:00 BRT.
 
 Dois limites, e o que manda é o mais apertado dos dois — que é o do Resend:
 
-| Métrica | Limite do Resend | Trava do HUB hoje |
+| Métrica | Limite do Resend | Trava do HUB |
 | --- | --- | --- |
-| Bounce | **menos de 4%** | 15% (`bounce_max_percentual`) |
-| Reclamação de spam | **menos de 0,08%** | não tem trava própria |
+| Bounce | menos de 4% | **3%** (`bounce_max_percentual`) |
+| Reclamação de spam | menos de 0,08% | não tem trava própria |
 
-**Atenção:** a trava automática do HUB está em 15%, quase 4x o limite do
-Resend. Ela não vai pausar nada numa faixa em que o Resend já considera o
-domínio problemático. Para a rampa, use os números do Resend como critério, não
-o fato de o HUB não ter pausado. Baixar `bounce_max_percentual` para perto de 4
-é uma conversa à parte, que não foi feita.
+`bounce_max_percentual` foi de 15 para **3** em 16/10/2026, por decisão do
+Fábio, para ficar abaixo do limite de 4% do Resend em vez de quase 4x acima
+dele. A trava de reclamação de spam ficou para outro dia: hoje reclamação só
+entra na trava somada aos bounces, sem limite próprio, e 0,08% é apertado
+demais para o gatilho absoluto de 5 enxergar.
+
+O valor mora em `reputacao_envio` e é editável na tela Garimpo Automático, sem
+deploy. Este documento registra a intenção; a fonte da verdade é o banco.
+
+### O que 3% custa em pausas
+
+A trava pausa **toda** a prospecção automática (PNCP, garimpo e cadência) se
+qualquer um dos dois gatilhos estourar, e sai da pausa só à mão:
+
+- **absoluto:** `bounces >= bounce_min_quantidade` (5), em qualquer volume;
+- **percentual:** `envios >= envios_minimos_avaliacao` (20) **e** taxa do dia
+  acima de `bounce_max_percentual` (3%).
+
+O percentual é medido **no dia**, sobre o volume do dia. Com o teto em 50, 3%
+são 1,5 e-mails: **2 bounces num dia já pausam tudo.** Isso é mais rígido que
+o limite do Resend, que é a taxa da conta ao longo do tempo, não a de um dia.
+
+Medido nos 26 dias com bounce entre 03/09 e 16/10/2026: 3 dias já pausariam
+pelo gatilho absoluto (5 bounces) e **outros 7 passariam a pausar** por causa
+do 3%. Em volume de 50/dia o aperto é maior, porque qualquer dia com 2 bounces
+estoura — e 17 dos 26 tiveram 2 ou mais.
+
+Ou seja: espere pausas com alguma frequência, talvez semanais. Pausa não é
+perda de dado, é a automação parada até alguém religar na tela. Se virar
+incômodo, o ajuste certo **não** é afrouxar o 3%, e sim subir
+`envios_minimos_avaliacao` de 20 para ~100, para o gatilho percentual só opinar
+com amostra que significa algo e deixar o gatilho absoluto cobrir o volume
+pequeno. Não foi feito.
 
 0,08% de reclamação é pouca coisa: em 250 e-mails na semana, **uma** reclamação
 já passa do limite. Reclamação pesa muito mais que bounce.
