@@ -437,6 +437,8 @@ const LeadFormFields = ({
 const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) => {
 
     const [productFilter, setProductFilter] = useState<string>('');
+    // Filtro por tag (ex.: "consultores", "imobiliarias", "pncp"). Vazio = todas.
+    const [tagFilter, setTagFilter] = useState<string>('');
     const [columns, setColumns] = useState<KanbanColumn[]>(() => loadColumns());
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [tasks, setTasks] = useState<CRMTask[]>([]);
@@ -1475,12 +1477,27 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         const matchesSearch = (p.company?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            (p.cnpj || '').includes(searchQuery);
+            (p.cnpj || '').includes(searchQuery) ||
+            (p.tags || []).some(t => (t || '').toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesTag = !tagFilter || (p.tags || []).includes(tagFilter);
         const matchesHomologadas = !soHomologadasPncp ||
             (p.source === 'pncp_auto' && !!p.data_homologacao);
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
-        return matchesProduct && matchesSearch && matchesHomologadas && matchesAguardando;
+        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando;
     });
+
+    // Tags existentes nos leads carregados, da mais usada para a menos usada.
+    const tagOptions: { tag: string; qtd: number }[] = (() => {
+        const contagem = new Map<string, number>();
+        for (const p of prospects) {
+            for (const t of p.tags || []) {
+                if (!t) continue;
+                contagem.set(t, (contagem.get(t) || 0) + 1);
+            }
+        }
+        return Array.from(contagem, ([tag, qtd]) => ({ tag, qtd }))
+            .sort((x, y) => y.qtd - x.qtd || x.tag.localeCompare(y.tag, 'pt-BR'));
+    })();
 
     if (loading) {
         return (
@@ -1507,6 +1524,16 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     >
                         <option value="">Todos os produtos</option>
                         {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                    </select>
+                    {/* Tag filter */}
+                    <select
+                        value={tagFilter}
+                        onChange={e => setTagFilter(e.target.value)}
+                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                        title="Filtrar por tag"
+                    >
+                        <option value="">Todas as tags</option>
+                        {tagOptions.map(({ tag, qtd }) => <option key={tag} value={tag}>{tag} ({qtd})</option>)}
                     </select>
                     <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
                     <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
