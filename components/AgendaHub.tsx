@@ -860,6 +860,14 @@ const AgendaHub: React.FC = () => {
                     placeholder="Cargo/Função"
                     className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/25 focus:border-gold"
                   />
+                  {/* Sem um botão de envio o navegador ignora o Enter (há dois campos) e o cadastro nunca era salvo */}
+                  <button
+                    type="submit"
+                    disabled={!newStaffName.trim()}
+                    className="px-4 py-2 bg-navy hover:bg-navy-light text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-40"
+                  >
+                    Salvar
+                  </button>
                   <button
                     type="button"
                     onClick={() => setAddingStaff(false)}
