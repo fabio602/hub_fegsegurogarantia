@@ -532,7 +532,7 @@ const App: React.FC = () => {
 
   // ── Rótulo de seção dentro de um sub-grupo (só texto, não clicável) ──
   const NavSectionLabel: React.FC<{ label: string }> = ({ label }) => (
-    <div className="px-4 pt-3 pb-1 text-[9px] font-black tracking-widest uppercase text-slate-500 select-none">
+    <div className="px-4 mt-3 pt-2 pb-1 text-[9px] font-black tracking-widest uppercase text-gold/70 select-none border-t border-gold/15">
       {label}
     </div>
   );
