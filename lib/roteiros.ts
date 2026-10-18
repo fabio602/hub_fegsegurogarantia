@@ -134,6 +134,15 @@ export const tipoTelefone = (normalizado: string): TipoTelefone => {
     return 'erro';
 };
 
+/** (DD) XXXX-XXXX para fixo e (DD) XXXXX-XXXX para celular; número com erro volta como veio. */
+export const formatarTelefone = (bruto?: string | null): string => {
+    const n = normalizarTelefone(bruto);
+    const tipo = tipoTelefone(n);
+    if (tipo === 'erro') return (bruto || '').trim();
+    const corte = tipo === 'celular' ? 7 : 6;
+    return `(${n.slice(0, 2)}) ${n.slice(2, corte)}-${n.slice(corte)}`;
+};
+
 export const linkWhatsApp = (normalizado: string, texto: string): string =>
     `https://wa.me/55${normalizado}?text=${encodeURIComponent(texto)}`;
 

@@ -4,7 +4,7 @@ import { Prospect } from '../types';
 import ModalPortal from './ModalPortal.tsx';
 import {
     Roteiro, GrupoRoteiro, camposDoLead, preencherRoteiro, escolherRoteiro, variacaoDoLead,
-    normalizarTelefone, tipoTelefone, linkWhatsApp, linkEmail,
+    normalizarTelefone, tipoTelefone, formatarTelefone, linkWhatsApp, linkEmail,
 } from '../lib/roteiros.ts';
 
 // Modal dos roteiros de abordagem do card (spec em docs/kanban/ROTEIROS-CARD.md).
@@ -129,6 +129,7 @@ const KanbanRoteiroModal: React.FC<Props> = ({
                             <p className="text-sm text-slate-500 font-medium mt-1 truncate">
                                 {lead.company || lead.name}
                                 {lead.decisor ? ` · ${lead.decisor}` : ''}
+                                {modo === 'whatsapp' && lead.phonenumber ? ` · ${formatarTelefone(lead.phonenumber)}` : ''}
                             </p>
                         </div>
                         <button onClick={onFechar} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shadow-sm shrink-0">
@@ -171,7 +172,7 @@ const KanbanRoteiroModal: React.FC<Props> = ({
                                         <span className="text-sm font-bold text-slate-600">{lead.phonenumber || 'Sem telefone'}</span>
                                     ) : (
                                         <a href={`tel:+55${telefone}`} className="inline-flex items-center gap-1.5 text-sm font-black text-navy hover:text-gold-dark">
-                                            <Phone size={14} /> {lead.phonenumber}
+                                            <Phone size={14} /> {formatarTelefone(lead.phonenumber)}
                                         </a>
                                     )}
                                     {tipoFone === 'fixo' && (
