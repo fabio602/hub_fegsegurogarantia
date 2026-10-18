@@ -7,6 +7,8 @@ import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
 import { useToast } from './Toast.tsx';
+import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
+import { Roteiro, grupoDoLead, normalizarTelefone, tipoTelefone } from '../lib/roteiros.ts';
 
 interface KanbanColumn {
     id: string;
@@ -284,14 +286,22 @@ async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]>
     return todos;
 }
 
-// ---- Toques manuais (WhatsApp e e-mail enviados à mão) ----
+// ---- Toques manuais (WhatsApp, e-mail e ligação feitos à mão) ----
 // Cada "Confirmar" no card grava uma linha em prospect_toques. O card mostra o
 // último toque de cada canal e fica em alerta quando o último contato passou
 // de TOQUE_ALERTA_DIAS sem o lead mudar de situação.
-type CanalToque = 'whatsapp' | 'email';
+type CanalToque = 'whatsapp' | 'email' | 'ligacao';
 const TOQUE_ALERTA_DIAS = 3;
 interface ToqueCanal { em: string; autor: string | null }
-interface ToquesDoLead { whatsapp?: ToqueCanal; email?: ToqueCanal; total: number; ultimo: string }
+interface ToquesDoLead {
+    whatsapp?: ToqueCanal; email?: ToqueCanal; ligacao?: ToqueCanal;
+    qtd: Partial<Record<CanalToque, number>>; total: number; ultimo: string;
+}
+const ROTULO_CANAL: Record<CanalToque, string> = { whatsapp: 'WhatsApp', email: 'E-mail', ligacao: 'Ligação' };
+
+/** Data (AAAA-MM-DD) do horário de São Paulo, para contar os toques do dia. */
+const diaSaoPaulo = (ts: string | number | Date): string =>
+    new Date(ts).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
 const diasDesdeTimestamp = (ts?: string | null): number | null => {
     if (!ts) return null;
@@ -477,6 +487,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [confirmandoToque, setConfirmandoToque] = useState<{ id: string; canal: CanalToque } | null>(null);
     const [salvandoToque, setSalvandoToque] = useState(false);
     const [soSemContato, setSoSemContato] = useState(false);
+    // E-mail de quem está logado e WhatsApps registrados hoje por autor (horário de SP).
+    const [meuEmail, setMeuEmail] = useState('');
+    const [whatsHojePorAutor, setWhatsHojePorAutor] = useState<Record<string, number>>({});
+    // Roteiros de abordagem (energia, imobiliárias e consultores) e o modal aberto.
+    const [roteiros, setRoteiros] = useState<Roteiro[]>([]);
+    const [roteiroAberto, setRoteiroAberto] = useState<{ leadId: string; modo: ModoRoteiro } | null>(null);
     const [leadEmailLicitacao, setLeadEmailLicitacao] = useState<Prospect | null>(null);
     const [emailLicPara, setEmailLicPara] = useState('');
     const [emailLicNome, setEmailLicNome] = useState('');
@@ -652,6 +668,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         fetchCadencia();
         fetchToques();
         fetchNomesUsuarios();
+        supabase.auth.getUser().then(({ data }) => setMeuEmail((data.user?.email || '').toLowerCase()));
+        fetchRoteiros();
     }, []);
 
     useEffect(() => {
@@ -694,8 +712,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const montarToques = (linhas: { prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }[]) => {
         const mapa: Record<string, ToquesDoLead> = {};
         for (const l of linhas) {
-            const atual = mapa[l.prospect_id] || { total: 0, ultimo: l.created_at };
+            const atual = mapa[l.prospect_id] || { qtd: {}, total: 0, ultimo: l.created_at };
             atual.total += 1;
+            atual.qtd[l.canal] = (atual.qtd[l.canal] || 0) + 1;
             if (l.created_at > atual.ultimo) atual.ultimo = l.created_at;
             const anterior = atual[l.canal];
             if (!anterior || l.created_at > anterior.em) atual[l.canal] = { em: l.created_at, autor: l.autor_email };
@@ -709,8 +728,29 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             const linhas = await buscarTodasLinhas<{ prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }>(
                 'prospect_toques', 'prospect_id, canal, autor_email, created_at');
             setToquesPorLead(montarToques(linhas));
+            const hoje = diaSaoPaulo(Date.now());
+            const porAutor: Record<string, number> = {};
+            for (const l of linhas) {
+                if (l.canal !== 'whatsapp' || !l.autor_email || diaSaoPaulo(l.created_at) !== hoje) continue;
+                const autor = l.autor_email.toLowerCase();
+                porAutor[autor] = (porAutor[autor] || 0) + 1;
+            }
+            setWhatsHojePorAutor(porAutor);
         } catch (error) {
             console.error('Error fetching toques:', error);
+        }
+    };
+
+    const fetchRoteiros = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('prospect_roteiros')
+                .select('grupo, canal, etapa, variacao, assunto, corpo')
+                .eq('ativo', true);
+            if (error) throw error;
+            setRoteiros((data || []) as Roteiro[]);
+        } catch (error) {
+            console.error('Error fetching roteiros:', error);
         }
     };
 
@@ -734,8 +774,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         return nomePorEmail[e] || e.split('@')[0];
     };
 
-    const registrarToque = async (prospect: Prospect, canal: CanalToque) => {
-        if (salvandoToque) return;
+    /** Grava o toque. Devolve true quando gravou, para o modal de roteiro poder fechar. */
+    const registrarToque = async (prospect: Prospect, canal: CanalToque): Promise<boolean> => {
+        if (salvandoToque) return false;
         setSalvandoToque(true);
         try {
             const { data, error } = await supabase
@@ -746,18 +787,25 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             if (error) throw error;
             setToquesPorLead(prev => {
                 const atual: ToquesDoLead = prev[prospect.id]
-                    ? { ...prev[prospect.id] }
-                    : { total: 0, ultimo: data.created_at };
+                    ? { ...prev[prospect.id], qtd: { ...prev[prospect.id].qtd } }
+                    : { qtd: {}, total: 0, ultimo: data.created_at };
                 atual.total += 1;
+                atual.qtd[canal] = (atual.qtd[canal] || 0) + 1;
                 atual.ultimo = data.created_at;
                 atual[canal] = { em: data.created_at, autor: data.autor_email };
                 return { ...prev, [prospect.id]: atual };
             });
             setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ult_contato: data.created_at } : p));
-            toast(canal === 'whatsapp' ? 'WhatsApp registrado no card.' : 'E-mail registrado no card.', 'success');
+            if (canal === 'whatsapp' && data.autor_email) {
+                const autor = String(data.autor_email).toLowerCase();
+                setWhatsHojePorAutor(prev => ({ ...prev, [autor]: (prev[autor] || 0) + 1 }));
+            }
+            toast(`${ROTULO_CANAL[canal]} registrad${canal === 'ligacao' ? 'a' : 'o'} no card.`, 'success');
+            return true;
         } catch (error) {
             console.error('Error registrando toque:', error);
             toast('Não consegui registrar o contato. Tente de novo.', 'error');
+            return false;
         } finally {
             setSalvandoToque(false);
             setConfirmandoToque(null);
@@ -2002,11 +2050,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             const selo = (canal: CanalToque, toque: ToqueCanal) => (
                                                 <span
                                                     key={canal}
-                                                    title={`${canal === 'whatsapp' ? 'WhatsApp' : 'E-mail'} enviado em ${new Date(toque.em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`}
+                                                    title={`${ROTULO_CANAL[canal]} em ${new Date(toque.em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`}
                                                     className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-50 text-slate-600 border-slate-200"
                                                 >
-                                                    {canal === 'whatsapp' ? <MessageCircle size={10} /> : <Mail size={10} />}
-                                                    {canal === 'whatsapp' ? 'WhatsApp' : 'E-mail'} {diaMesBrDeTimestamp(toque.em)}
+                                                    {canal === 'whatsapp' ? <MessageCircle size={10} /> : canal === 'ligacao' ? <Phone size={10} /> : <Mail size={10} />}
+                                                    {ROTULO_CANAL[canal]} {diaMesBrDeTimestamp(toque.em)}
                                                     {toque.autor ? ` · ${nomeCurto(toque.autor)}` : ''}
                                                 </span>
                                             );
@@ -2016,6 +2064,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {t.whatsapp && selo('whatsapp', t.whatsapp)}
                                                             {t.email && selo('email', t.email)}
+                                                            {t.ligacao && selo('ligacao', t.ligacao)}
                                                             <span className="text-[10px] font-bold text-slate-400">
                                                                 {t.total} {t.total === 1 ? 'contato' : 'contatos'}
                                                             </span>
@@ -2051,7 +2100,32 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 Cancelar
                                                             </button>
                                                         </div>
-                                                    ) : (
+                                                    ) : grupoDoLead(prospect.source) ? (() => {
+                                                        // Leads dos garimpos: os botões abrem o roteiro do grupo.
+                                                        const celular = tipoTelefone(normalizarTelefone(prospect.phonenumber)) === 'celular';
+                                                        return (
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={false}
+                                                                    onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: celular ? 'whatsapp' : 'ligacao' }); }}
+                                                                    title={celular ? 'Abrir a mensagem de WhatsApp deste lead' : 'Telefone fixo ou incompleto: abrir o roteiro de ligação'}
+                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                >
+                                                                    {celular ? <><MessageCircle size={12} /> WhatsApp</> : <><Phone size={12} /> Ligação</>}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={false}
+                                                                    onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: prospect.email ? 'email' : 'sem-email' }); }}
+                                                                    title="Abrir o e-mail deste lead"
+                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                >
+                                                                    <Mail size={12} /> E-mail
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })() : (
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 type="button"
@@ -2268,6 +2342,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                   </div>
                 </ModalPortal>
             )}
+
+            {/* ── MODAL DOS ROTEIROS (leads dos garimpos) ── */}
+            {roteiroAberto && (() => {
+                const lead = prospects.find(p => p.id === roteiroAberto.leadId);
+                const grupo = lead ? grupoDoLead(lead.source) : null;
+                if (!lead || !grupo) return null;
+                const t = toquesPorLead[lead.id];
+                return (
+                    <KanbanRoteiroModal
+                        lead={lead}
+                        grupo={grupo}
+                        modo={roteiroAberto.modo}
+                        roteiros={roteiros}
+                        whatsEnviados={t?.qtd.whatsapp || 0}
+                        ultimoWhatsEm={t?.whatsapp?.em}
+                        whatsHoje={whatsHojePorAutor[meuEmail] || 0}
+                        remetentePadrao={nomePorEmail[meuEmail] || ''}
+                        salvando={salvandoToque}
+                        onRegistrar={(canal) => registrarToque(lead, canal)}
+                        onTrocarModo={(modo) => setRoteiroAberto({ leadId: lead.id, modo })}
+                        onFechar={() => setRoteiroAberto(null)}
+                    />
+                );
+            })()}
 
             {/* ── MODAL DO E-MAIL DA LICITAÇÃO ──
                 O primeiro contato do lead do PNCP. Nada sai daqui sem o clique
