@@ -19,8 +19,9 @@ const LIMITE_WHATS_DIA = 30;
 const ROTULO_ETAPA: Record<number, string> = { 1: '1º contato', 2: 'Retomada', 3: 'Última mensagem' };
 const CHAVE_REMETENTE = 'kanban_roteiro_remetente';
 
-const lerRemetenteSalvo = (): string => {
-    try { return localStorage.getItem(CHAVE_REMETENTE) || ''; } catch { return ''; }
+/** Nome que a pessoa digitou alguma vez; null quando nunca alterou. */
+const lerRemetenteSalvo = (): string | null => {
+    try { return localStorage.getItem(CHAVE_REMETENTE); } catch { return null; }
 };
 const salvarRemetente = (nome: string) => {
     try { localStorage.setItem(CHAVE_REMETENTE, nome); } catch { /* navegador sem storage */ }
@@ -58,8 +59,10 @@ const KanbanRoteiroModal: React.FC<Props> = ({
     lead, grupo, modo, roteiros, whatsEnviados, ultimoWhatsEm, whatsHoje,
     remetentePadrao, salvando, onRegistrar, onTrocarModo, onFechar,
 }) => {
-    const [remetenteManual, setRemetenteManual] = useState(lerRemetenteSalvo);
-    const remetente = remetentePadrao || remetenteManual.trim();
+    // O nome digitado no modal vale daí em diante, inclusive para quem está em sellers.
+    const [remetenteEditado, setRemetenteEditado] = useState<string | null>(lerRemetenteSalvo);
+    const remetenteCampo = remetenteEditado ?? remetentePadrao;
+    const remetente = remetenteCampo.trim();
     const [texto, setTexto] = useState('');
     const [assunto, setAssunto] = useState('');
     const [confirmandoLigacao, setConfirmandoLigacao] = useState(false);
@@ -107,8 +110,8 @@ const KanbanRoteiroModal: React.FC<Props> = ({
         : modo === 'ligacao' ? 'Ligação'
         : 'E-mail';
     const Icone = modo === 'whatsapp' ? MessageCircle : modo === 'ligacao' ? Phone : Mail;
-    const precisaRemetente = !remetentePadrao && modo !== 'sem-email' && !(modo === 'whatsapp' && cicloEncerrado);
-    const faltaRemetente = precisaRemetente && !remetente;
+    const mostraRemetente = modo !== 'sem-email' && !(modo === 'whatsapp' && cicloEncerrado);
+    const faltaRemetente = mostraRemetente && !remetente;
     const classeCampo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
 
     return (
@@ -148,13 +151,13 @@ const KanbanRoteiroModal: React.FC<Props> = ({
                             <p className="text-sm font-bold text-slate-700">Ciclo de mensagens encerrado para este lead.</p>
                         )}
 
-                        {precisaRemetente && (
+                        {mostraRemetente && (
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-slate-700">Seu nome</label>
                                 <input
                                     type="text"
-                                    value={remetenteManual}
-                                    onChange={(e) => { setRemetenteManual(e.target.value); salvarRemetente(e.target.value.trim()); }}
+                                    value={remetenteCampo}
+                                    onChange={(e) => { setRemetenteEditado(e.target.value); salvarRemetente(e.target.value); }}
                                     placeholder="Como você se apresenta na mensagem"
                                     className={classeCampo}
                                 />
