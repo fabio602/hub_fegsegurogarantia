@@ -7,6 +7,8 @@ import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
 import { useToast } from './Toast.tsx';
+import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
+import { Roteiro, grupoDoLead, normalizarTelefone, tipoTelefone } from '../lib/roteiros.ts';
 
 interface KanbanColumn {
     id: string;
@@ -488,6 +490,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     // E-mail de quem está logado e WhatsApps registrados hoje por autor (horário de SP).
     const [meuEmail, setMeuEmail] = useState('');
     const [whatsHojePorAutor, setWhatsHojePorAutor] = useState<Record<string, number>>({});
+    // Roteiros de abordagem (energia, imobiliárias e consultores) e o modal aberto.
+    const [roteiros, setRoteiros] = useState<Roteiro[]>([]);
+    const [roteiroAberto, setRoteiroAberto] = useState<{ leadId: string; modo: ModoRoteiro } | null>(null);
     const [leadEmailLicitacao, setLeadEmailLicitacao] = useState<Prospect | null>(null);
     const [emailLicPara, setEmailLicPara] = useState('');
     const [emailLicNome, setEmailLicNome] = useState('');
@@ -664,6 +669,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         fetchToques();
         fetchNomesUsuarios();
         supabase.auth.getUser().then(({ data }) => setMeuEmail((data.user?.email || '').toLowerCase()));
+        fetchRoteiros();
     }, []);
 
     useEffect(() => {
@@ -732,6 +738,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             setWhatsHojePorAutor(porAutor);
         } catch (error) {
             console.error('Error fetching toques:', error);
+        }
+    };
+
+    const fetchRoteiros = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('prospect_roteiros')
+                .select('grupo, canal, etapa, variacao, assunto, corpo')
+                .eq('ativo', true);
+            if (error) throw error;
+            setRoteiros((data || []) as Roteiro[]);
+        } catch (error) {
+            console.error('Error fetching roteiros:', error);
         }
     };
 
@@ -2081,7 +2100,32 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 Cancelar
                                                             </button>
                                                         </div>
-                                                    ) : (
+                                                    ) : grupoDoLead(prospect.source) ? (() => {
+                                                        // Leads dos garimpos: os botões abrem o roteiro do grupo.
+                                                        const celular = tipoTelefone(normalizarTelefone(prospect.phonenumber)) === 'celular';
+                                                        return (
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={false}
+                                                                    onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: celular ? 'whatsapp' : 'ligacao' }); }}
+                                                                    title={celular ? 'Abrir a mensagem de WhatsApp deste lead' : 'Telefone fixo ou incompleto: abrir o roteiro de ligação'}
+                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                >
+                                                                    {celular ? <><MessageCircle size={12} /> WhatsApp</> : <><Phone size={12} /> Ligação</>}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={false}
+                                                                    onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: prospect.email ? 'email' : 'sem-email' }); }}
+                                                                    title="Abrir o e-mail deste lead"
+                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                >
+                                                                    <Mail size={12} /> E-mail
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })() : (
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 type="button"
@@ -2298,6 +2342,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                   </div>
                 </ModalPortal>
             )}
+
+            {/* ── MODAL DOS ROTEIROS (leads dos garimpos) ── */}
+            {roteiroAberto && (() => {
+                const lead = prospects.find(p => p.id === roteiroAberto.leadId);
+                const grupo = lead ? grupoDoLead(lead.source) : null;
+                if (!lead || !grupo) return null;
+                const t = toquesPorLead[lead.id];
+                return (
+                    <KanbanRoteiroModal
+                        lead={lead}
+                        grupo={grupo}
+                        modo={roteiroAberto.modo}
+                        roteiros={roteiros}
+                        whatsEnviados={t?.qtd.whatsapp || 0}
+                        ultimoWhatsEm={t?.whatsapp?.em}
+                        whatsHoje={whatsHojePorAutor[meuEmail] || 0}
+                        remetentePadrao={nomePorEmail[meuEmail] || ''}
+                        salvando={salvandoToque}
+                        onRegistrar={(canal) => registrarToque(lead, canal)}
+                        onTrocarModo={(modo) => setRoteiroAberto({ leadId: lead.id, modo })}
+                        onFechar={() => setRoteiroAberto(null)}
+                    />
+                );
+            })()}
 
             {/* ── MODAL DO E-MAIL DA LICITAÇÃO ──
                 O primeiro contato do lead do PNCP. Nada sai daqui sem o clique
