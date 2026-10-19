@@ -64,6 +64,11 @@ MAX_MOVIMENTOS_POR_PROCESSO = 15
 TETO_DIARIO = 150
 BLOQUEIO_ESPERA_S = 60 * 60
 BLOQUEIOS_MAX_DIA = 3
+# 502/503/504 = consulta fora do ar (nginx do tribunal), não bloqueio nem erro
+# da empresa: a empresa volta para pendente sem gastar tentativa (decisão 78)
+STATUS_SITE_FORA = (502, 503, 504)
+SITE_FORA_ESPERA_S = 2 * 60 * 60
+TRECHO_CORPO_LOG = 300
 MAX_TENTATIVAS_EMPRESA = 3
 DATA_AUTUACAO_DE = "2021-01-01"
 ANO_INICIAL = 2021
@@ -201,6 +206,34 @@ class SemFila(Exception):
     pass
 
 
+class SiteFora(Exception):
+    """A consulta respondeu 502/503/504. Não herda de RuntimeError de propósito:
+    os trechos que engolem RuntimeError (detalhe e polos indisponíveis) deixam
+    esta passar e a empresa inteira volta para a fila."""
+
+    def __init__(self, status: int, onde: str, etapa: str):
+        super().__init__(f"HTTP {status} em {onde}")
+        self.status = status
+        self.etapa = etapa   # "checagem" (página inicial) ou "consulta" (API, no meio da empresa)
+
+
+def trecho_corpo(corpo: str) -> str:
+    """Primeiros caracteres do corpo numa linha só, para o log."""
+    return " ".join((corpo or "").split())[:TRECHO_CORPO_LOG]
+
+
+def conferir_resposta(status: int, corpo: str, onde: str, etapa: str) -> None:
+    """Loga toda resposta diferente de 200 com o começo do corpo e classifica:
+    Access Denied -> Bloqueado; 502/503/504 -> SiteFora. O resto fica com quem chamou."""
+    if status != 200:
+        log(f"   HTTP {status} em {onde}: {trecho_corpo(corpo)!r}")
+    inicio = (corpo or "")[:2000].lower()
+    if status == 403 or "access denied" in inicio or "edgesuite.net" in inicio:
+        raise Bloqueado(f"Access Denied em {onde} (HTTP {status})")
+    if status in STATUS_SITE_FORA:
+        raise SiteFora(status, onde, etapa)
+
+
 # ---------------------------------------------------------------------------
 # Supabase (REST, service role)
 # ---------------------------------------------------------------------------
@@ -302,10 +335,19 @@ class PjeApi:
         self.app_anterior = app_da_frente()
 
     def abrir_spa(self) -> None:
-        """Carrega o aplicativo uma vez para renovar os cookies do Akamai."""
+        """Carrega o aplicativo uma vez para renovar os cookies do Akamai.
+        É também a checagem do site antes da primeira busca da empresa: a resposta
+        da própria navegação diz se a consulta está no ar, sem requisição a mais."""
         page = self.context.pages[0] if self.context.pages else self.context.new_page()
         pausa_requisicao("abrir consulta")
-        page.goto(URL_BASE + "/", wait_until="domcontentloaded", timeout=90_000)
+        resp = page.goto(URL_BASE + "/", wait_until="domcontentloaded", timeout=90_000)
+        if resp is not None:
+            corpo = ""
+            try:
+                corpo = resp.text()
+            except Exception:
+                pass
+            conferir_resposta(resp.status, corpo, "página inicial", "checagem")
         try:
             page.wait_for_load_state("networkidle", timeout=30_000)
         except PwTimeout:
@@ -324,8 +366,7 @@ class PjeApi:
             corpo = r.text()
         except Exception:
             pass
-        if r.status == 403 or "access denied" in corpo[:2000].lower() or "edgesuite.net" in corpo[:2000].lower():
-            raise Bloqueado(f"Access Denied em {caminho} (HTTP {r.status})")
+        conferir_resposta(r.status, corpo, caminho, "consulta")
         if r.status != 200:
             raise RuntimeError(f"{motivo}: HTTP {r.status} em {caminho}")
         try:
@@ -605,7 +646,8 @@ def buscar_periodo(api: PjeApi, cnpj: str, de: str | None, ate: str | None = Non
 
 def processar_empresa(sb: Supabase, context: BrowserContext, emp: dict, debug: bool = False,
                       max_detalhes: int = MAX_DETALHES_POR_EMPRESA) -> dict:
-    """Consulta o PJe para uma empresa e grava tudo. Levanta Bloqueado se o Akamai barrar."""
+    """Consulta o PJe para uma empresa e grava tudo. Levanta Bloqueado se o Akamai barrar
+    e SiteFora se a consulta responder 502/503/504."""
     cnpj = emp["cnpj"]
     inicio = time.time()
     api = PjeApi(context, debug=debug)
@@ -700,6 +742,28 @@ def dormir_ate_janela() -> None:
     seg = max(60, (alvo - a).total_seconds())
     log(f"fora da janela ({JANELA_INICIO_H:02d}h-{JANELA_FIM_H:02d}h): dormindo até {alvo.strftime('%d/%m %H:%M')}")
     time.sleep(seg)
+
+
+def dormir_site_fora() -> None:
+    """Espera 2 h para testar o site de novo. Se o próximo teste cairia fora da
+    janela, dorme até a abertura dela (o teste seguinte é a checagem da próxima empresa)."""
+    a = agora()
+    alvo = a + timedelta(seconds=SITE_FORA_ESPERA_S)
+    if alvo.date() == a.date() and JANELA_INICIO_H <= alvo.hour < JANELA_FIM_H:
+        log(f"   site fora: dormindo {SITE_FORA_ESPERA_S // 3600} h, novo teste às {alvo.strftime('%H:%M')}")
+        time.sleep(SITE_FORA_ESPERA_S)
+    else:
+        log(f"   site fora: o teste de {alvo.strftime('%H:%M')} cairia fora da janela; próximo teste na abertura dela")
+        dormir_ate_janela()
+
+
+def devolver_por_site_fora(sb: Supabase, fila: dict, cnpj: str, s: SiteFora) -> None:
+    """Empresa volta para pendente como estava: sem erro e sem contar tentativa."""
+    quando = "antes da consulta" if s.etapa == "checagem" else "no meio da consulta"
+    log(f"!! site fora: HTTP {s.status} ({quando}, {s}); {cnpj} volta para pendente sem contar tentativa")
+    # a tentativa volta explicitamente ao valor lido da fila antes da consulta
+    sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"},
+             {"status": "pendente", "erro": None, "tentativas": int(fila.get("tentativas") or 0)})
 
 
 def _osascript(script: str) -> str:
@@ -840,6 +904,12 @@ def modo_cnpj(sb: Supabase, pw, headless: bool, cnpj: str, debug: bool, max_deta
         sb.patch("radar_pje_fila", {"id": f"eq.{fila['id']}"}, {"status": "processando", "iniciado_em": agora().isoformat()})
     try:
         resultado = executar_com_bloqueio(sb, pw, headless, emp, fila, ctrl, debug, max_detalhes)
+    except SiteFora as s:
+        if fila:
+            devolver_por_site_fora(sb, fila, cnpj, s)
+        else:
+            log(f"!! site fora: HTTP {s.status} ({s}); {cnpj} não consultado")
+        return 4
     except Exception as e:  # erro inesperado
         log(f"!! erro em {cnpj}: {e!r}")
         if fila:
@@ -877,6 +947,10 @@ def modo_fila(sb: Supabase, pw, headless: bool, debug: bool) -> None:
             continue
         try:
             resultado = executar_com_bloqueio(sb, pw, headless, emp, fila, ctrl, debug)
+        except SiteFora as s:
+            devolver_por_site_fora(sb, fila, fila["cnpj"], s)
+            dormir_site_fora()
+            continue
         except Exception as e:
             log(f"!! erro em {fila['cnpj']}: {e!r}")
             finalizar_fila(sb, fila, fila["cnpj"], None, e)
