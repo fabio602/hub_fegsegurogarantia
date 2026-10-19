@@ -970,6 +970,22 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         }
     };
 
+    // Busca o cliente na carteira (vendas já registradas) pelo CNPJ, com ou sem
+    // máscara, pegando a venda mais recente. Usada ao digitar o CNPJ e ao importar PDF.
+    const buscarClienteCarteira = async (cnpj: string) => {
+        const digits = cnpj.replace(/\D/g, '');
+        if (digits.length !== 14) return null;
+        const mascarado = digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        const { data } = await supabase
+            .from('sales')
+            .select('nome, telefone, email, decisor')
+            .in('cnpj', [mascarado, digits])
+            .not('nome', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+        return data && data.length > 0 ? data[0] : null;
+    };
+
     const handleCnpjChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         setFormData(prev => ({ ...prev, cnpj: raw }));
@@ -984,15 +1000,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
         setCnpjLookupStatus('searching');
         try {
-            const { data } = await supabase
-                .from('sales')
-                .select('nome, telefone, email, decisor')
-                .eq('cnpj', raw)
-                .not('nome', 'is', null)
-                .limit(1);
+            const client = await buscarClienteCarteira(raw);
 
-            if (data && data.length > 0) {
-                const client = data[0];
+            if (client) {
                 const filled = new Set<string>();
                 setFormData(prev => {
                     const updated = { ...prev };
@@ -1087,6 +1097,30 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             if (vf) { updates.vigencia_fim = vf; filled.push('vigencia_fim'); }
 
             setFormData(prev => ({ ...prev, ...updates }));
+
+            // Completa contato com a carteira: só telefone, e-mail e decisor, e só se vazios.
+            // Nome, segurado e valores ficam com o que veio da apólice.
+            if (data.cnpj) {
+                try {
+                    const client = await buscarClienteCarteira(data.cnpj);
+                    if (client) {
+                        const atual = { ...formData, ...updates };
+                        const contato: Partial<typeof formData> = {};
+                        const daCarteira: string[] = [];
+                        if (client.telefone && !atual.telefone) { contato.telefone = client.telefone; daCarteira.push('telefone'); }
+                        if (client.email && !atual.email) { contato.email = client.email; daCarteira.push('email'); }
+                        if (client.decisor && !atual.decisor) { contato.decisor = client.decisor; daCarteira.push('decisor'); }
+                        if (daCarteira.length > 0) {
+                            setFormData(prev => ({ ...prev, ...contato }));
+                            filled.push(`da carteira: ${daCarteira.join(', ')}`);
+                            setAutoFilledFields(prev => new Set([...prev, ...daCarteira]));
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Busca na carteira falhou:', err);
+                }
+            }
+
             setImportedFields(filled);
         } catch (err) {
             console.error('Import PDF error:', err);
