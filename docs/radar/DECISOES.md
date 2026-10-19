@@ -409,3 +409,40 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     só para SP e MS (TRF3)". MS entra na lista por ser TRF3, embora a base
     hoje só tenha SP. Outros tribunais ficam para quando houver worker para
     eles.
+77. **Pendência: consolidação pela API REST estoura o tempo** (17/10/2026). Na
+    gravação das UFs do Norte, Nordeste e MS (competência 202606), a chamada
+    `rpc/radar_consolidar_empresas` que o `pgfn_ingest.py` faz no fim de cada
+    rodada falhou com `57014 canceling statement due to statement timeout`: o
+    papel `authenticator` do PostgREST tem `statement_timeout=8s`, e a função
+    reagrega a competência inteira (todas as UFs, não só a da rodada) e
+    recalcula o score linha a linha, o que passa de 8 s com ~31 mil empresas.
+    A função é atômica, então a falha se desfaz sem efeito; as inscrições já
+    gravadas ficam. Desta vez as 17 UFs foram gravadas sem consolidar e a
+    consolidação rodou uma única vez pela ferramenta de SQL, como `postgres`,
+    sem o limite. **A próxima ingestão trimestral precisa de outra forma de
+    consolidar** (por exemplo, consolidar só os CNPJs da rodada, rodar a
+    consolidação pelo SQL depois da ingestão ou por um job agendado no
+    banco); do jeito que está, o script grava as inscrições e sai com erro.
+    Efeito colateral conhecido da consolidação inteira: ela recalcula o score
+    de todas as empresas da competência, e o componente "inscrição nos
+    últimos 24 meses" depende da data do dia; em 17/10/2026 isso derrubou o
+    score de 1.236 empresas de SP cuja inscrição mais recente completou 24
+    meses depois do cálculo de setembro (e corrigiu 1 desatualizada).
+78. **Consulta fora do ar não conta como erro da empresa** (18/10/2026). Desde
+    17/10 o host `pje1g-consultapublica.trf3.jus.br` responde `503 Service
+    Temporarily Unavailable` do nginx do tribunal em tudo, inclusive na página
+    inicial, enquanto o Akamai na frente dele responde normalmente; o 2º grau e
+    a consulta antiga (`pje1g.trf3.jus.br`) seguem no ar e a API não mudou
+    (`/v1/processos?page=0&documento=...`, conferido no 2º grau). O worker
+    tratava o 503 como erro comum: gastava tentativa e, na terceira, marcava a
+    empresa como `erro` (62 empresas de SP e MS). Agora: a navegação para a
+    página inicial, que o worker já fazia para renovar os cookies, serve de
+    checagem antes da primeira busca; se ela ou qualquer chamada da API no meio
+    da empresa responder 502, 503 ou 504, a empresa volta para `pendente` sem
+    erro e sem contar tentativa, o log registra "site fora: HTTP <status>" e o
+    worker dorme 2 h antes de testar de novo (se o teste cair depois das 23 h,
+    dorme até as 7 h). O 503 não herda de `RuntimeError` para não ser engolido
+    nos trechos que pulam detalhe ou polo indisponível. Toda resposta diferente
+    de 200 passa a ir para o log com os primeiros 300 caracteres do corpo. O
+    tratamento do 403/Access Denied (pausa de 1 h, até 3 por dia) e dos demais
+    erros não mudou. As 62 empresas com erro não foram recolocadas na fila.
