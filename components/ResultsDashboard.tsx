@@ -1069,7 +1069,15 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
 
             if (data.nome) { updates.nome = data.nome; filled.push('nome'); }
             if (data.cnpj) { updates.cnpj = data.cnpj; filled.push('cnpj'); }
-            if (data.orgao_licitante) { updates.orgaoLicitante = data.orgao_licitante; filled.push('orgao_licitante'); }
+            if (data.orgao_licitante) {
+                // O mesmo segurado alimenta o campo do Licitante e o do quadro de contrato (Performance)
+                updates.orgaoLicitante = data.orgao_licitante;
+                updates.segurado = data.orgao_licitante;
+                filled.push('orgao_licitante');
+            }
+            if (data.numero_contrato) { updates.numeroContrato = data.numero_contrato; filled.push('numero_contrato'); }
+            if (data.objeto_contrato) { updates.objetoContrato = data.objeto_contrato; filled.push('objeto_contrato'); }
+            if (data.valor_contrato) { updates.valorContrato = data.valor_contrato; filled.push('valor_contrato'); }
             if (data.seguradora) { updates.seguradora = normalizarSeguradora(data.seguradora, insurers.map(i => i.nome)); filled.push('seguradora'); }
             if (data.premio) { updates.premio = data.premio; filled.push('premio'); }
             if (data.valor_garantia) { updates.is = data.valor_garantia; filled.push('is'); }
