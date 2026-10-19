@@ -20,8 +20,11 @@ Campos a extrair:
 - vigencia_fim: data fim de vigência (formato dd/mm/aaaa)
 - num_apolice: número da apólice
 - num_proposta: número da proposta
+- numero_contrato: número do contrato administrativo garantido (ex.: "040/2026"), só o número, sem "Contrato nº". Só preencha se estiver escrito no documento.
+- objeto_contrato: descrição do objeto do contrato (o que será executado, fornecido ou prestado), em uma frase curta. Só preencha se o documento DESCREVER o objeto; se ele só remeter ao contrato (ex.: "serviços descritos no objeto do Contrato nº X"), use "".
+- valor_contrato: valor total do contrato garantido em reais (formato R$ 100.000,00). Só preencha se estiver escrito no documento; nunca calcule a partir da importância segurada.
 
-Se um campo não estiver disponível, use string vazia "".
+Se um campo não estiver disponível, use string vazia "". Nunca deduza nem estime valores.
 Retorne APENAS o JSON, sem nenhum texto antes ou depois.`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
