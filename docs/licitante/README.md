@@ -34,6 +34,21 @@ Minuta (Double Check)
   └─ lib/minuta/conferirMinuta.ts confere contra o edital → veredicto
 ```
 
+## Importação de minuta/apólice no Registro de Vendas
+
+Desde 19/10/2026 o botão "Importar Minuta ou Apólice" (ResultsDashboard) usa o **mesmo leitor**
+(`lerDocumento` + `extrairMinuta`), no navegador, sem IA. Antes chamava a Edge Function
+`parse-documento-seguro` (Claude Haiku), que continua publicada mas não é mais usada pela tela.
+
+- Preenche tomador, CNPJ, segurado (campo do Licitante e do quadro de contrato), seguradora,
+  IS, prêmio, vigência e, na modalidade contrato, número, objeto e valor do contrato.
+- Número do contrato: só quando vem logo após "Contrato (Principal/Administrativo) nº", sem
+  edital/pregão/processo no meio. Objeto: só quando a apólice o **descreve** ("que tem por
+  objeto…"); se só remete ao contrato, fica vazio. Valor do contrato: só com rótulo explícito.
+- Depois de ler, completa telefone, e-mail e decisor pela carteira (venda mais recente do CNPJ).
+- PDF com assinatura CMS/PKCS#7 envolvendo o arquivo é desembrulhado em `lerDocumento`.
+- PDF que não for reconhecido: entra no gabarito como os demais (ver "Seguradora nova").
+
 ## O que o Double Check confere
 
 | Item | Regra |
@@ -88,13 +103,13 @@ corrigido fica marcado como "Informado manualmente" e não é derrubado pelas tr
 
 - `regressao/gabarito.json`: 6 editais, conferidos à mão. Um campo ausente do `esperado` de um
   caso não é conferido nele (o gabarito de um edital novo cresce campo a campo).
-- `regressao/gabarito-minutas.json`: 7 minutas de 5 seguradoras.
+- `regressao/gabarito-minutas.json`: 10 minutas de 6 seguradoras (Sombrero e a AXA de tabela quebrada entraram em 19/10/2026).
 - Os PDFs ficam em `regressao/pdfs/` e `regressao/minutas/` e não vão para o git.
 - Casos adulterados (no próprio `rodar-local.ts`): a minuta de Mortugaba com um erro
   plantado de cada vez (CNPJ com dígito trocado, início às 24h do dia da sessão, data
   impossível, lote errado, edital errado, modalidade errada, prazo curto). Cada um prova
   que a regra correspondente pega o problema.
-- Placar em 14/10/2026: **130/130** (editais 54/54 com o caso de Avelino Lopes, o campo
+- Placar em 19/10/2026: **172/172** (minutas 105/105 com Sombrero e AXA Ouro Branco). Em 14/10/2026: **130/130** (editais 54/54 com o caso de Avelino Lopes, o campo
   `data_limite_propostas` e as checagens do timbre; minutas 63/63; Double Check 13/13).
 
 Rode a bateria **antes e depois** de qualquer mudança nas regras. Quando um edital real

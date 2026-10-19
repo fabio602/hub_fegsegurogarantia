@@ -38,6 +38,12 @@ export interface MinutaExtraida {
   modalidade_texto: string | null;
   /** Números de edital/pregão citados no objeto ("013/2026") */
   edital_refs: string[];
+  /** Só na modalidade contrato: número do contrato garantido ("040/2026", "072/2026/AGEVAP") */
+  numero_contrato: string | null;
+  /** Só quando a apólice DESCREVE o objeto ("que tem por objeto a prestação de…"); remissão pura fica null */
+  objeto_contrato: string | null;
+  /** Valor do contrato principal, só quando escrito com rótulo ("valor do contrato R$ …") */
+  valor_contrato: number | null;
   evidencias: Record<string, Evidencia>;
 }
 
@@ -73,6 +79,7 @@ const SEGURADORAS: { re: RegExp; nome: string }[] = [
   { re: /infinite\s+seguradora/g, nome: 'Infinite Seguradora S.A.' },
   { re: /newe\s+seguros/g, nome: 'Newe Seguros S.A.' },
   { re: /too\s+seguros/g, nome: 'Too Seguros S.A.' },
+  { re: /sombrero/g, nome: 'Sombrero Seguros S.A.' },
 ];
 
 /** Nome de órgão/entidade pública ou associação (candidato a segurado). */
@@ -99,6 +106,10 @@ const buscaLinha = (doc: Documento, i: number) => {
 function limparNome(s: string): string {
   return s
     .replace(RE_CNPJ, ' ')
+    // "SERVICOS DE LIMPEZA LTDA CPF/CNPJ 40.631…" → o rótulo vem DEPOIS do nome
+    .replace(/\s+(?:cpf\s*(?:ou|\/)\s*cnpj|cnpj)\s*(?:n[ºªo°]*)?\s*:?\s*$/i, '')
+    // "Tomador ZK CONSERVACAO E" / "Segurado OURO BRANCO CAMARA": rótulo sem dois-pontos
+    .replace(/^\s*(?:Tomador|Segurado)\s+(?=[A-ZÀ-Þ]{2})/, '')
     .replace(/^.*?(?:cpf\s*(?:ou|\/)\s*cnpj|cnpj)\s*(?:n[ºªo°]*)?\s*:?/i, '')
     .replace(/^\s*(?:nome(?:\s+do\s+(?:segurado|tomador))?|segurado|tomador|ao\s+segurado)\s*:\s*/i, '')
     .replace(/\s+/g, ' ')
@@ -180,12 +191,24 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
     if (letras.length < 4 || letras.replace(/[^A-ZÀ-Þ]/g, '').length / letras.length < 0.7) continue;
     // Nome quebrado em duas linhas: junta a continuação (maiúsculas, sem rótulo nem número)
     let completo = nome;
-    const prox = doc.linhas[i + 1]?.texto.trim() ?? '';
+    // "MUNICIPAL CPF/CNPJ 23.964.950/0001-31": a continuação vem antes do rótulo do CNPJ
+    const prox = limparNome(doc.linhas[i + 1]?.texto ?? '').trim();
     const proxDob = prox.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (prox && i + 1 <= ultimaLinha && !/\d/.test(prox) && prox.length < 80 && prox === prox.toUpperCase()
         && /[A-Z]{3}/.test(prox) && !RE_ROTULO.test(proxDob) && !RE_ORGAO.test(proxDob) && !RE_EMPRESA.test(proxDob)
         && !/seguradora|seguros|corretor|dados|apolice|modalidade|objeto|cobertura/.test(proxDob)) {
       completo = `${nome} ${prox}`;
+    }
+    // Nome quebrado com o sufixo só na 2ª linha ("…DE PRODUTOS" / "HOSPITALARES LTDA"):
+    // junta a linha anterior quando ela é só nome em maiúsculas, sem rótulo nem número
+    if (RE_EMPRESA.test(dob) && i > 0) {
+      const ant = limparNome(doc.linhas[i - 1].texto);
+      const antDob = ant.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      if (ant.length >= 3 && ant.length < 100 && !/\d/.test(ant) && !/:/.test(ant) && ant === ant.toUpperCase()
+          && /[A-Z]{2}/.test(ant) && !RE_ROTULO.test(antDob) && !RE_ORGAO.test(antDob) && !RE_EMPRESA.test(antDob)
+          && !/seguradora|seguros|corretor|dados|apolice|modalidade|objeto|cobertura|garantia|tomador|segurado/.test(antDob)) {
+        completo = `${ant} ${completo}`;
+      }
     }
     if (RE_EMPRESA.test(dob)) empresas.push({ nome: completo, linha: i });
     else if (RE_ORGAO.test(dob)) orgaos.push({ nome: completo.replace(/^A\s+(?=\S)/, ''), linha: i });
@@ -243,6 +266,7 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
       // "premio" dentro de "valor do premio" já foi contado
       .filter((c, k, arr) => k === 0 || c.pos >= arr[k - 1].pos + arr[k - 1].rot.length);
     if (cols.length < 2) continue;
+    let lida = false;
     for (let k = i + 1; k <= i + 3 && k < doc.linhas.length; k++) {
       const vals = [...doc.linhas[k].texto.matchAll(RE_DINHEIRO)];
       if (vals.length < cols.length) continue;
@@ -251,7 +275,27 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
         const pos = doc.linhas[k].inicio + vals[j].index!;
         if (c.tipo === 'is') votar(votosIS, v, pesoIS(c.rot), pos); else votar(votosPremio, v, pesoPremio(c.rot), pos);
       });
+      lida = true;
       break;
+    }
+    // Linha da tabela quebrada (AXA): nome da cobertura em várias linhas e cada valor numa
+    // linha. Junta os valores das linhas seguintes, na ordem, até completar as colunas.
+    // Para em outro cabeçalho ou em despesa de salvamento/contenção.
+    if (!lida && cols.length === 2 && cols[0].tipo === 'is' && cols[1].tipo === 'premio') {
+      const juntos: { v: number | null; pos: number }[] = [];
+      for (let k = i + 1; k <= i + 8 && k < doc.linhas.length && juntos.length < 2; k++) {
+        const b = buscaLinha(doc, k);
+        if (/despesa|contencao|salvamento/.test(b) || RE_IS.test(b) || new RegExp(RE_PREMIO.source).test(b)) break;
+        RE_IS.lastIndex = 0;
+        for (const v of doc.linhas[k].texto.matchAll(RE_DINHEIRO)) {
+          if (juntos.length < 2) juntos.push({ v: parseBRL(v[0]), pos: doc.linhas[k].inicio + v.index! });
+        }
+      }
+      RE_IS.lastIndex = 0;
+      if (juntos.length === 2) {
+        votar(votosIS, juntos[0].v, pesoIS(cols[0].rot), juntos[0].pos);
+        votar(votosPremio, juntos[1].v, pesoPremio(cols[1].rot), juntos[1].pos);
+      }
     }
   }
   // Rótulo seguido de valor (mesma linha ou a seguinte, até 60 caracteres)
@@ -337,6 +381,46 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
     if (!ev.edital_ref) marcar('edital_ref', m.index, m.index + m[0].length);
   }
 
+  // ── Dados do contrato (só modalidade contrato) ───────────────────────────
+  let numero_contrato: string | null = null;
+  let objeto_contrato: string | null = null;
+  let valor_contrato: number | null = null;
+  if (modalidade === 'contrato') {
+    // "Contrato n.° Contrato Administrativo nº 040/2026", "Contrato Principal n.º 072/2026/AGEVAP".
+    // O número tem de vir logo depois, sem edital/pregão/processo no meio (esses são a licitação).
+    for (const m of ocorrencias(doc, /\bcontrato\b/g, 0, corte)) {
+      const ini = m.index + m[0].length;
+      const janela = doc.busca.slice(ini, ini + 70);
+      const n = /(\d{1,6}\s*\/\s*\d{4}(?:\/[a-z]{2,10})?)/.exec(janela);
+      if (!n) continue;
+      const entre = janela.slice(0, n.index);
+      if (!/^\s*(?:principal\s+|administrativo\s+)?n\s*[.º°o]*/.test(entre)) continue;
+      if (/edital|pregao|concorrencia|processo|licitat|apostilamento|tomada|dispensa|\.\s/.test(entre)) continue;
+      numero_contrato = doc.texto.slice(ini + n.index, ini + n.index + n[0].length).replace(/\s/g, '');
+      marcar('numero_contrato', m.index, ini + n.index + n[0].length);
+      break;
+    }
+    // Objeto só quando DESCRITO ("que tem por objeto a prestação de…"); remissão não conta
+    const ob = /(?:que\s+tem\s+(?:por|como)\s+objeto|tendo\s+(?:por|como)\s+objeto|cujo\s+objeto\s+(?:e|sera)|com\s+o\s+objeto\s+de)\s*:?\s*/.exec(frente);
+    if (ob) {
+      const ini = ob.index + ob[0].length;
+      const resto = frente.slice(ini, ini + 500);
+      const fim = /,\s*(?:oriund|descrit|conforme|firmad|celebrad)|\.\s|;|\n\s*\n/.exec(resto);
+      const bruto = doc.texto.slice(ini, ini + (fim ? fim.index : resto.length)).replace(/\s+/g, ' ').trim();
+      if (bruto.length >= 10 && fim) {
+        objeto_contrato = bruto.charAt(0).toUpperCase() + bruto.slice(1);
+        marcar('objeto_contrato', ini, ini + bruto.length);
+      }
+    }
+    // Valor só com rótulo explícito; nunca deduzido da importância segurada
+    const vc = /valor\s+(?:global\s+|total\s+|inicial\s+)?do\s+contrato(?:\s+principal)?\s*(?:e\s+de|:)?\s*(?:de\s+)?/.exec(frente);
+    if (vc) {
+      const ini = vc.index + vc[0].length;
+      const v = new RegExp('^(?:' + RE_DINHEIRO.source + ')').exec(doc.texto.slice(ini, ini + 30));
+      if (v) { valor_contrato = parseBRL(v[0]); marcar('valor_contrato', ini, ini + v[0].length); }
+    }
+  }
+
   return {
     seguradora,
     tipo_documento,
@@ -354,6 +438,9 @@ export function extrairMinuta(paginas: string[]): MinutaExtraida {
     modalidade,
     modalidade_texto,
     edital_refs,
+    numero_contrato,
+    objeto_contrato,
+    valor_contrato,
     evidencias: ev,
   };
 }

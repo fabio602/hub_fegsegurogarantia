@@ -14,9 +14,10 @@
         "vigencia_inicio": "01/06/2026",
         "vigencia_fim": "29/08/2031",
         "modalidade": "contrato",
-        "vigencia_inicio_24h": true
+        "vigencia_inicio_24h": true,
+        "numero_contrato": null
       },
-      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 113.463,61 R$ 113.463,61'; 'PRÊMIO TOTAL R$ 12.501,20'; '01/06/2026 INÍCIO VIGÊNCIA 29/08/2031 FIM DE VIGÊNCIA'"
+      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 113.463,61 R$ 113.463,61'; 'PRÊMIO TOTAL R$ 12.501,20'; '01/06/2026 INÍCIO VIGÊNCIA 29/08/2031 FIM DE VIGÊNCIA' | contrato (out/2026): 'Contrato Principal n.º EM PRODUÇÃO' não tem número; o 90003/2026 é do pregão"
     },
     {
       "arquivo": "allseg-9180.pdf",
@@ -83,9 +84,11 @@
         "vigencia_inicio": "10/08/2026",
         "vigencia_fim": "08/11/2030",
         "modalidade": "contrato",
-        "vigencia_inicio_24h": true
+        "vigencia_inicio_24h": true,
+        "numero_contrato": "072/2026/AGEVAP",
+        "objeto_contrato": "A prestação de serviço de execução de ações de restauração florestal no escopo do Programa Produtores de Água e Floresta, nos municípios de Rio Claro/RJ, Mendes/RJ, Engenheiro Paulo de Frontin/RJ, Miguel Pereira/RJ e Vassouras/RJ"
       },
-      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 895.353,11 R$ 895.353,11'; 'PRÊMIO TOTAL R$ 45.655,65'"
+      "evidencias": "p.2: 'EXECUTANTE + TRABALHISTA R$ 895.353,11 R$ 895.353,11'; 'PRÊMIO TOTAL R$ 45.655,65' | contrato (out/2026): p.2 'Contrato Principal n.º 072/2026/AGEVAP, que tem por objeto a prestação de serviço de execução de ações de restauração florestal ... Vassouras/RJ, oriundo do Edital'"
     },
     {
       "arquivo": "axa-707540c5-cotacao.pdf",
@@ -146,6 +149,63 @@
         "vigencia_inicio_24h": true
       },
       "evidencias": "p.3: 'LICITANTE R$ 83.386,03 R$ 210,18'; CNPJ colado ao nome ('04.283.578/0001-53MUNICIPIO DE NHAMUNDA')"
+    },
+    {
+      "arquivo": "sombrero-silves-apolice.pdf",
+      "esperado": {
+        "seguradora": "Sombrero Seguros S.A.",
+        "tipo_documento": "apolice",
+        "tomador": "S A REPRESENTACAO E COMERCIO DE PRODUTOS HOSPITALARES LTDA",
+        "tomador_cnpj": "37.143.460/0001-89",
+        "segurado": "MUNICIPIO DE SILVES",
+        "segurado_cnpj": "04.477.634/0001-90",
+        "valor_garantia": 21337.32,
+        "premio": 190,
+        "vigencia_inicio": "22/10/2026",
+        "vigencia_fim": "22/01/2027",
+        "vigencia_inicio_24h": true,
+        "modalidade": "licitante",
+        "numero_contrato": null
+      },
+      "evidencias": "p.2: 'Dados do Segurado Nome:MUNICIPIO DE SILVES CNPJ/CPF: 04.477.634/0001-90'; 'Limite Máximo de Garantia até o valor de R$ 21.337,32'; p.4 (bloco que caía fora do corte de 3 páginas da IA): 'Modalidade: LICITAÇÕES - CIRC. 662 / Vigência: Das 24h de 22/10/2026 a 24h de 22/01/2027 / Prêmio: R$ 190,00'; CNPJ da Sombrero 37.960.905/0001-13 no rodapé não é tomador"
+    },
+    {
+      "arquivo": "sombrero-silves-cotacao.pdf",
+      "esperado": {
+        "seguradora": null,
+        "tipo_documento": "cotacao",
+        "tomador": "S A REPRESENTACAO E COMERCIO DE PRODUTOS HOSPITALARES LTDA",
+        "tomador_cnpj": "37.143.460/0001-89",
+        "segurado": "MUNICIPIO DE SILVES",
+        "segurado_cnpj": "04.477.634/0001-90",
+        "valor_garantia": 21337.32,
+        "premio": 190,
+        "vigencia_inicio": "22/10/2026",
+        "vigencia_fim": "22/01/2027",
+        "modalidade": "licitante"
+      },
+      "evidencias": "Resumo da cotação 202600000995734: o nome da seguradora não aparece no documento (seguradora null é o certo); tomador quebrado em 'S A REPRESENTACAO E COMERCIO DE PRODUTOS' / 'HOSPITALARES LTDA'; 'R$ 190,00 R$ 21.337,32 ... 22/10/2026 - 22/01/2027'"
+    },
+    {
+      "arquivo": "axa-zk-ourobranco.pdf",
+      "esperado": {
+        "seguradora": "AXA Seguros S.A.",
+        "tipo_documento": "apolice",
+        "tomador": "ZK CONSERVACAO E SERVICOS DE LIMPEZA LTDA",
+        "tomador_cnpj": "40.631.598/0001-31",
+        "segurado": "OURO BRANCO CAMARA MUNICIPAL",
+        "segurado_cnpj": "23.964.950/0001-31",
+        "valor_garantia": 18000,
+        "premio": 1178.01,
+        "vigencia_inicio": "25/09/2026",
+        "vigencia_fim": "24/12/2027",
+        "vigencia_inicio_24h": true,
+        "modalidade": "contrato",
+        "numero_contrato": "040/2026",
+        "objeto_contrato": null,
+        "valor_contrato": null
+      },
+      "evidencias": "p.1: 'Tomador ZK CONSERVACAO E' / 'SERVICOS DE LIMPEZA LTDA CPF/CNPJ 40.631.598/0001-31'; 'Segurado OURO BRANCO CAMARA' / 'MUNICIPAL CPF/CNPJ 23.964.950/0001-31'; 'Início da vigência 25/09/2026 às 24h'; p.2: 'objeto do Contrato n.° Contrato Administrativo nº 040/2026' (objeto só remete ao contrato: null); p.4: 'Prêmio Total R$ 1.178,01'; p.5 tabela quebrada: 'Cobertura LMI Prêmio' ... 'R$ 18.000,00' ... 'R$ 628,27'; armadilha: Despesas de Salvamento R$ 1.000,00 não é a IS"
     }
   ]
 }
