@@ -95,13 +95,16 @@ function extractPdfIfCmsWrapped(pdfBase64: string): string {
  * (SUSEP ramo 775), idênticas em toda apólice — incluí-las desperdiça ~92%
  * dos tokens sem nenhum ganho de qualidade.
  *
- * Usa 3 páginas por padrão. Com 2 páginas o Valor Prêmio vinha sempre vazio
+ * Usa 5 páginas por padrão. Com 2 páginas o Valor Prêmio vinha sempre vazio
  * nas apólices da AllSeg: p.1 é a carta de rosto, p.2 tem a face (tomador,
  * segurado, IS, vigências) e o DEMONSTRATIVO DE PRÊMIO só aparece na p.3.
+ * Com 3 páginas a Sombrero perdia prêmio e vigência: p.1 carta e assinaturas,
+ * p.2 segurado/tomador/LMG, p.3 continuação do objeto e o bloco de modalidade,
+ * vigência e prêmio só aparece na p.4.
  *
  * Fallback: qualquer erro no pdf-lib devolve o PDF original intacto.
  */
-async function trimToFirstPages(pdfBytes: Uint8Array, maxPages = 3): Promise<{ bytes: Uint8Array; totalPages: number }> {
+async function trimToFirstPages(pdfBytes: Uint8Array, maxPages = 5): Promise<{ bytes: Uint8Array; totalPages: number }> {
   try {
     const srcDoc = await PDFDocument.load(pdfBytes);
     const total  = srcDoc.getPageCount();
@@ -155,9 +158,9 @@ Deno.serve(async (req: Request) => {
     // 1. Desempacota assinatura digital CMS, se presente
     const cleanPdfBase64 = extractPdfIfCmsWrapped(pdf_base64);
 
-    // 2. Corta o PDF nas primeiras 3 páginas (face da apólice + demonstrativo
-    //    de prêmio). Reduz ~92% dos tokens sem perder nenhum campo relevante.
-    const MAX_PAGINAS = 3;
+    // 2. Corta o PDF nas primeiras 5 páginas (face da apólice + demonstrativo
+    //    de prêmio, que na Sombrero fica na p.4). As demais são condições gerais.
+    const MAX_PAGINAS = 5;
     const cleanBytes = b64ToBytes(cleanPdfBase64);
     const { bytes: trimmedBytes, totalPages } = await trimToFirstPages(cleanBytes, MAX_PAGINAS);
     const trimmedBase64 = bytesToB64(trimmedBytes);
