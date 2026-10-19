@@ -31,6 +31,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { formatCurrency, parseNumber } from '../utils/formatters';
 import { normalizarSeguradora, seguradoraNoPainel } from '../utils/seguradoras';
+import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
+import { extrairMinuta } from '../lib/minuta/extrairMinuta.ts';
 
 /**
  * Percentual de comissão derivado de comissão ÷ prêmio, já como texto para o
@@ -1040,30 +1042,24 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setImportingPdf(true);
         setImportedFields([]);
         try {
-            // Convert to base64 via FileReader (mais robusto)
-            const b64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const result = reader.result as string;
-                    // result = "data:application/pdf;base64,XXXX" — pegar só o XXXX
-                    resolve(result.split(',')[1]);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-
-            // Call Edge Function via fetch direto (mais confiável para payloads grandes)
-            const fnUrl = 'https://hfjvwibucplyhsvnwfor.supabase.co/functions/v1/parse-documento-seguro';
-            const fnRes = await fetch(fnUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pdf_base64: b64 }),
-            });
-            if (!fnRes.ok) {
-                const errText = await fnRes.text();
-                throw new Error(`HTTP ${fnRes.status}: ${errText}`);
-            }
-            const data = await fnRes.json();
+            // Leitura por regras, no navegador: sem IA e sem rede (mesmo leitor do Double Check
+            // do Seguro Licitante, lib/minuta). Antes chamava a Edge Function parse-documento-seguro.
+            const lido = await lerDocumento(file);
+            const m = extrairMinuta(lido.paginas);
+            const brl = (v: number | null) => (v == null ? '' : formatCurrency(v));
+            const data = {
+                nome: m.tomador ?? '',
+                cnpj: m.tomador_cnpj ?? '',
+                orgao_licitante: m.segurado ?? '',
+                seguradora: m.seguradora ?? '',
+                premio: brl(m.premio),
+                valor_garantia: brl(m.valor_garantia),
+                vigencia_inicio: m.vigencia_inicio ?? '',
+                vigencia_fim: m.vigencia_fim ?? '',
+                numero_contrato: m.numero_contrato ?? '',
+                objeto_contrato: m.objeto_contrato ?? '',
+                valor_contrato: brl(m.valor_contrato),
+            };
 
             // Convert dd/mm/aaaa → yyyy-mm-dd
             const toISO = (s: string) => {
@@ -1122,6 +1118,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             }
 
             setImportedFields(filled);
+            if (filled.length === 0) {
+                toast('Não reconheci nenhum dado neste PDF. Preencha à mão e me mande o arquivo para ensinar o leitor.', 'warning');
+            }
         } catch (err) {
             console.error('Import PDF error:', err);
             toast(`Erro ao importar o PDF: ${String(err)}`, 'error');

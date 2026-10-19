@@ -58,8 +58,29 @@ async function ocrDoPdf(bytes: ArrayBuffer, totalPaginas: number, progresso?: Pr
   return { paginas, ignoradas: totalPaginas - limite };
 }
 
+/**
+ * Muitas apólices vêm com assinatura digital CMS/PKCS#7 envolvendo o PDF: o arquivo não
+ * começa com "%PDF-" e o PDF de verdade está dentro. Recorta do primeiro "%PDF-" até o
+ * último "%%EOF". Se já é um PDF comum (ou não há marcador), devolve os bytes como vieram.
+ * Portado da Edge Function parse-documento-seguro.
+ */
+export function desembrulharPdfAssinado(bytes: ArrayBuffer): ArrayBuffer {
+  const b = new Uint8Array(bytes);
+  const ehPdf = (i: number) => b[i] === 0x25 && b[i + 1] === 0x50 && b[i + 2] === 0x44 && b[i + 3] === 0x46 && b[i + 4] === 0x2d;
+  if (ehPdf(0)) return bytes;
+  let ini = -1;
+  for (let i = 0; i < b.length - 4; i++) if (ehPdf(i)) { ini = i; break; }
+  if (ini < 0) return bytes;
+  let fim = b.length;
+  for (let i = b.length - 1; i > ini + 4; i--) {
+    // "%%EOF"
+    if (b[i] === 0x46 && b[i - 1] === 0x4f && b[i - 2] === 0x45 && b[i - 3] === 0x25 && b[i - 4] === 0x25) { fim = i + 1; break; }
+  }
+  return bytes.slice(ini, fim);
+}
+
 export async function lerDocumento(arquivo: File, progresso?: Progresso): Promise<DocumentoLido> {
-  const bytes = await arquivo.arrayBuffer();
+  const bytes = desembrulharPdfAssinado(await arquivo.arrayBuffer());
 
   if (TIPOS_IMAGEM.includes(arquivo.type)) {
     progresso?.('Lendo a imagem por OCR…');
