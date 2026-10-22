@@ -43,6 +43,7 @@ import { CommandCenter } from './components/CommandCenter.tsx';
 // quando o usuario abre a aba. ResultsDashboard fica eager porque e a tela
 // inicial (goals) e carregaria no primeiro paint de qualquer jeito.
 const Calculator = lazy(() => import('./components/Calculator'));
+const PropostaGarantia = lazy(() => import('./components/PropostaGarantia.tsx'));
 const NominationLetter = lazy(() => import('./components/NominationLetter'));
 const InsuranceDirectory = lazy(() => import('./components/InsuranceDirectory'));
 const BanksDirectory = lazy(() => import('./components/BanksDirectory'));
@@ -89,7 +90,7 @@ type View =
   | 'dashboard'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
-  | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'radar-advogados' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato'
+  | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'radar-advogados' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato' | 'seg-proposta'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -103,7 +104,7 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato', 'seg-proposta'];
 // Telas do subgrupo Prospecção que aparecem no menu. `pncp-prospeccao` e `pnpc`
 // continuam no código, mas saíram do menu (ver docs/menu/MENU-PROSPECCAO.md).
 const PROSPECCAO_VIEWS: View[] = ['prospeccao', 'pncp-auto', 'radar', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email'];
@@ -138,6 +139,7 @@ const VIEW_TITLES: Record<View, string> = {
   pnpc: 'PNPC',
   'seg-licitante': 'Seguro Licitante',
   'seg-contrato': 'Seguro de Contrato',
+  'seg-proposta': 'Gerar Proposta',
   auto: 'Seguro AUTO',
   'auto-seguradoras': 'Seguradoras AUTO',
   residential: 'Seguro Residencial / Locatícia',
@@ -395,7 +397,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
     if (PROSPECCAO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
-    if (['seg-licitante', 'seg-contrato'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
+    if (['seg-licitante', 'seg-contrato', 'seg-proposta'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
     if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
     if (RESIDENCIAL_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, residencial: true }));
@@ -609,10 +611,11 @@ const App: React.FC = () => {
                 <NavSubGroup
                   groupKey="cotacoes"
                   label="Cotações"
-                  isGroupActive={['seg-licitante', 'seg-contrato'].includes(activeView)}
+                  isGroupActive={['seg-licitante', 'seg-contrato', 'seg-proposta'].includes(activeView)}
                 >
                   <NavSubItem view="seg-licitante" label="Seguro Licitante" />
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
+                  <NavSubItem view="seg-proposta" label="Gerar Proposta" />
                 </NavSubGroup>
                 <NavSubItem view="goals" label="Registro de Vendas" />
                 <NavSubItem view="carteira" label="Carteira de Clientes" />
@@ -959,6 +962,7 @@ const App: React.FC = () => {
               {vista === 'banks' && <BanksDirectory />}
               {vista === 'letter' && <NominationLetter />}
               {vista === 'calculator' && <Calculator />}
+              {vista === 'seg-proposta' && <PropostaGarantia />}
               {vista === 'endosso-allseg' && <EndossoAllseg />}
               {vista === 'formularios' && <Formularios />}
 
