@@ -474,8 +474,21 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [tasks, setTasks] = useState<CRMTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    // Ordenação por "tempo na coluna" (aproximação via `created_at`).
-    const [leadAgeSort, setLeadAgeSort] = useState<LeadSort>('recent');
+    // Ordenação do quadro. Padrão: homologação mais recente (PNCP), que põe no
+    // topo o lead com contrato ainda por assinar e, no empate, o de maior valor;
+    // leads sem homologação seguem pelo tempo na coluna. A escolha de cada
+    // usuário fica salva no navegador.
+    const [leadAgeSort, setLeadAgeSortState] = useState<LeadSort>(() => {
+        try {
+            const salvo = localStorage.getItem('kanban_ordem_v1');
+            if (salvo === 'recent' || salvo === 'oldest' || salvo === 'homologacao') return salvo;
+        } catch { /* ignore */ }
+        return 'homologacao';
+    });
+    const setLeadAgeSort = (v: LeadSort) => {
+        setLeadAgeSortState(v);
+        try { localStorage.setItem('kanban_ordem_v1', v); } catch { /* ignore */ }
+    };
     // Filtro rápido: mostrar só os leads do PNCP com homologação registrada.
     const [soHomologadasPncp, setSoHomologadasPncp] = useState(false);
 
