@@ -632,6 +632,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
 
+    // Filtro de cada coluna pelas bolinhas do cabeçalho ("coluna:bloco").
+    // Coluna sem nenhum escolhido mostra todos os blocos.
+    const [filtrosColuna, setFiltrosColuna] = useState<Set<string>>(new Set());
+    const alternarFiltroColuna = (chave: string) => {
+        setFiltrosColuna(prev => {
+            const novo = new Set(prev);
+            if (novo.has(chave)) novo.delete(chave); else novo.add(chave);
+            return novo;
+        });
+    };
+
     // Blocos recolhidos ("coluna:bloco"), lembrados só neste navegador.
     const [blocosRecolhidos, setBlocosRecolhidos] = useState<Set<string>>(() => {
         try {
@@ -1926,6 +1937,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     const contatadosHoje = agrupar
                         ? columnProspects.filter(p => { const t = toquesPorLead[p.id]; return t && diaSaoPaulo(t.ultimo) === hojeSP; }).length
                         : 0;
+                    const contagemBlocos: Record<BlocoLead, number> = { contatar: 0, aguardando: 0, retomar: 0 };
+                    if (agrupar) for (const p of columnProspects) contagemBlocos[blocoDoLead(toquesPorLead[p.id], p)] += 1;
+                    const blocoFiltrado = (b: BlocoLead) => filtrosColuna.has(`${column.id}:${b}`);
+                    const colunaComFiltro = agrupar && ORDEM_BLOCOS.some(blocoFiltrado);
 
                     return (
                         <div 
@@ -1996,6 +2011,46 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     <p className="text-[11px] font-bold opacity-90" title="Leads desta coluna com contato registrado hoje">
                                         Hoje: {contatadosHoje} {contatadosHoje === 1 ? 'contato feito' : 'contatos feitos'}
                                     </p>
+                                )}
+                                {agrupar && columnProspects.length > 0 && (
+                                    <div className="mt-1 flex items-center gap-1.5">
+                                        {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => {
+                                            const ativo = blocoFiltrado(b);
+                                            return (
+                                                <button
+                                                    key={b}
+                                                    type="button"
+                                                    draggable={false}
+                                                    onClick={(e) => { e.stopPropagation(); alternarFiltroColuna(`${column.id}:${b}`); }}
+                                                    title={ativo ? `Tirar o filtro "${BLOCO_INFO[b].titulo}" desta coluna` : `Mostrar nesta coluna só "${BLOCO_INFO[b].titulo}"`}
+                                                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors ${
+                                                        ativo
+                                                            ? 'bg-white text-navy border-white'
+                                                            : colunaComFiltro
+                                                                ? 'bg-white/10 text-white/60 border-white/15 hover:bg-white/20'
+                                                                : 'bg-white/15 text-white border-white/25 hover:bg-white/25'
+                                                    }`}
+                                                >
+                                                    <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} />
+                                                    {contagemBlocos[b]}
+                                                </button>
+                                            );
+                                        })}
+                                        {colunaComFiltro && (
+                                            <button
+                                                type="button"
+                                                draggable={false}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFiltrosColuna(prev => new Set([...prev].filter(k => !k.startsWith(`${column.id}:`))));
+                                                }}
+                                                title="Mostrar todos os leads desta coluna"
+                                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-white/80 hover:text-white"
+                                            >
+                                                <X size={11} /> Todos
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
 
                                 {/* A fila do dia: leads do PNCP que entraram e ainda não
@@ -2360,9 +2415,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 if (!agrupar) return columnProspects.map(renderCard);
                                 const porBloco: Record<BlocoLead, Prospect[]> = { contatar: [], aguardando: [], retomar: [] };
                                 for (const p of columnProspects) porBloco[blocoDoLead(toquesPorLead[p.id], p)].push(p);
+                                if (colunaComFiltro && !ORDEM_BLOCOS.some(b => blocoFiltrado(b) && porBloco[b].length)) {
+                                    return <p className="text-center text-xs font-bold text-slate-400 py-6">Nenhum lead neste filtro</p>;
+                                }
                                 return ORDEM_BLOCOS.map(bloco => {
                                     const lista = porBloco[bloco];
                                     if (!lista.length) return null;
+                                    if (colunaComFiltro && !blocoFiltrado(bloco)) return null;
                                     const info = BLOCO_INFO[bloco];
                                     const chave = `${column.id}:${bloco}`;
                                     const recolhido = blocosRecolhidos.has(chave);
