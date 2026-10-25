@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle, ChevronDown } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
@@ -325,6 +325,26 @@ interface ToquesDoLead {
 }
 const ROTULO_CANAL: Record<CanalToque, string> = { whatsapp: 'WhatsApp', email: 'E-mail', ligacao: 'Ligação' };
 
+// ---- Blocos dentro da coluna do vendedor ----
+// Fora de "Novos Leads", cada coluna separa os cards em três blocos, calculados
+// pelos toques já registrados (o vendedor não arrasta nada):
+//  - contatar:  nenhum toque ainda;
+//  - aguardando: último toque há menos de TOQUE_ALERTA_DIAS;
+//  - retomar:   último toque há TOQUE_ALERTA_DIAS dias ou mais.
+type BlocoLead = 'contatar' | 'aguardando' | 'retomar';
+const ORDEM_BLOCOS: BlocoLead[] = ['contatar', 'retomar', 'aguardando'];
+const BLOCO_INFO: Record<BlocoLead, { titulo: string; dica: string; ponto: string; faixa: string }> = {
+    contatar:   { titulo: 'Para contatar',       dica: 'Ainda sem nenhum WhatsApp, e-mail ou ligação registrado.', ponto: 'bg-sky-500',     faixa: 'border-l-sky-500' },
+    retomar:    { titulo: 'Retomar',             dica: `Último contato há ${TOQUE_ALERTA_DIAS} dias ou mais. Hora de cobrar retorno.`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
+    aguardando: { titulo: 'Aguardando resposta', dica: `Contato feito há menos de ${TOQUE_ALERTA_DIAS} dias. Nada a fazer agora.`, ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
+};
+const blocoDoLead = (t?: ToquesDoLead): BlocoLead => {
+    if (!t) return 'contatar';
+    const dias = diasDesdeTimestamp(t.ultimo);
+    return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
+};
+const BLOCOS_STORAGE_KEY = 'kanban_blocos_recolhidos_v1';
+
 /** Data (AAAA-MM-DD) do horário de São Paulo, para contar os toques do dia. */
 const diaSaoPaulo = (ts: string | number | Date): string =>
     new Date(ts).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
@@ -603,6 +623,23 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     // Bulk Selection State
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+
+    // Blocos recolhidos ("coluna:bloco"), lembrados só neste navegador.
+    const [blocosRecolhidos, setBlocosRecolhidos] = useState<Set<string>>(() => {
+        try {
+            const salvo = localStorage.getItem(BLOCOS_STORAGE_KEY);
+            const lista = salvo ? JSON.parse(salvo) : [];
+            return new Set(Array.isArray(lista) ? lista : []);
+        } catch { return new Set(); }
+    });
+    const alternarBloco = (chave: string) => {
+        setBlocosRecolhidos(prev => {
+            const novo = new Set(prev);
+            if (novo.has(chave)) novo.delete(chave); else novo.add(chave);
+            try { localStorage.setItem(BLOCOS_STORAGE_KEY, JSON.stringify([...novo])); } catch { /* sem armazenamento */ }
+            return novo;
+        });
+    };
 
     // Add Column Modal
     const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
@@ -1843,6 +1880,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     });
                     const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
                     const headerClass = colorToHeader(column.color);
+                    // Colunas de vendedor se organizam em blocos; Novos Leads e o arquivo seguem como lista única.
+                    const agrupar = column.id !== 'Novos Leads' && !verArquivoPncp;
+                    const hojeSP = diaSaoPaulo(Date.now());
+                    const contatadosHoje = agrupar
+                        ? columnProspects.filter(p => { const t = toquesPorLead[p.id]; return t && diaSaoPaulo(t.ultimo) === hojeSP; }).length
+                        : 0;
 
                     return (
                         <div 
@@ -1909,6 +1952,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     </div>
                                 </div>
                                 <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
+                                {agrupar && columnProspects.length > 0 && (
+                                    <p className="text-[11px] font-bold opacity-90" title="Leads desta coluna com contato registrado hoje">
+                                        Hoje: {contatadosHoje} {contatadosHoje === 1 ? 'contato feito' : 'contatos feitos'}
+                                    </p>
+                                )}
 
                                 {/* A fila do dia: leads do PNCP que entraram e ainda não
                                     receberam o primeiro e-mail. Conta sobre todos os leads,
@@ -1939,8 +1987,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                             {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
                             <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
-                                {columnProspects.map(prospect => {
+                                {(() => {
+                                const renderCard = (prospect: Prospect) => {
                                     const isSelected = selectedLeadIds.has(prospect.id);
+                                    const faixaBloco = agrupar ? `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[prospect.id])].faixa}` : '';
                                     const enteredAtMs = getLeadEnteredAtMs(prospect);
                                     const ageLabel = formatLeadAge(enteredAtMs);
                                     return (
@@ -1951,7 +2001,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         onDragEnd={handleDragEnd}
                                         onClick={() => { if (selectionMode) toggleLeadSelection(prospect.id); else handleOpenEdit(prospect); }}
                                         title={selectionMode ? undefined : 'Clique para editar o lead'}
-                                        className={`rounded-xl p-3 shadow-sm border transition-all flex flex-col gap-2 cursor-pointer active:cursor-grabbing ${isSelected ? 'bg-rose-50 border-rose-400 shadow-md ring-2 ring-rose-300' : 'bg-white border-slate-200 hover:shadow-md hover:border-gold/40'}`}
+                                        className={`rounded-xl p-3 shadow-sm border ${faixaBloco} transition-all flex flex-col gap-2 cursor-pointer active:cursor-grabbing ${isSelected ? 'bg-rose-50 border-rose-400 shadow-md ring-2 ring-rose-300' : 'bg-white border-slate-200 hover:shadow-md hover:border-gold/40'}`}
                                     >
                                         {/* Grupo 1: empresa, ramo e produto */}
                                         <div className="flex items-start justify-between gap-2">
@@ -2244,7 +2294,35 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         </div>
                                     </div>
                                     );
-                                })}
+                                };
+                                if (!agrupar) return columnProspects.map(renderCard);
+                                const porBloco: Record<BlocoLead, Prospect[]> = { contatar: [], aguardando: [], retomar: [] };
+                                for (const p of columnProspects) porBloco[blocoDoLead(toquesPorLead[p.id])].push(p);
+                                return ORDEM_BLOCOS.map(bloco => {
+                                    const lista = porBloco[bloco];
+                                    if (!lista.length) return null;
+                                    const info = BLOCO_INFO[bloco];
+                                    const chave = `${column.id}:${bloco}`;
+                                    const recolhido = blocosRecolhidos.has(chave);
+                                    return (
+                                        <div key={bloco} className="flex flex-col gap-1">
+                                            <button
+                                                type="button"
+                                                draggable={false}
+                                                onClick={(e) => { e.stopPropagation(); alternarBloco(chave); }}
+                                                title={info.dica}
+                                                className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-navy transition-colors"
+                                            >
+                                                <span className={`w-2 h-2 rounded-full ${info.ponto}`} />
+                                                <span>{info.titulo}</span>
+                                                <span className="text-slate-400">· {lista.length}</span>
+                                                <ChevronDown size={12} className={`ml-auto transition-transform ${recolhido ? '-rotate-90' : ''}`} />
+                                            </button>
+                                            {!recolhido && lista.map(renderCard)}
+                                        </div>
+                                    );
+                                });
+                                })()}
                                 {columnProspects.length === 0 && !isDragging && (
                                     <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                                         <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-2">
