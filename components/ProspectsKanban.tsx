@@ -336,7 +336,7 @@ const ORDEM_BLOCOS: BlocoLead[] = ['contatar', 'retomar', 'aguardando'];
 const BLOCO_INFO: Record<BlocoLead, { titulo: string; dica: string; ponto: string; faixa: string }> = {
     contatar:   { titulo: 'Para contatar',       dica: 'Ainda sem nenhum WhatsApp, e-mail ou ligação registrado.', ponto: 'bg-sky-500',     faixa: 'border-l-sky-500' },
     retomar:    { titulo: 'Retomar',             dica: `Último contato há ${TOQUE_ALERTA_DIAS} dias ou mais. Hora de cobrar retorno.`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
-    aguardando: { titulo: 'Aguardando resposta', dica: `Contato feito há menos de ${TOQUE_ALERTA_DIAS} dias. Nada a fazer agora.`, ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
+    aguardando: { titulo: 'Em contato', dica: `Contato feito há menos de ${TOQUE_ALERTA_DIAS} dias. Aguardando retorno do lead.`, ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
 };
 const blocoDoLead = (t?: ToquesDoLead): BlocoLead => {
     if (!t) return 'contatar';
@@ -2224,7 +2224,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors disabled:opacity-60"
                                                             >
                                                                 {salvandoToque ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                                                                Confirmar {confirmando === 'whatsapp' ? 'WhatsApp' : 'e-mail'} enviado
+                                                                Confirmar {confirmando === 'whatsapp' ? 'WhatsApp enviado' : confirmando === 'ligacao' ? 'ligação feita' : 'e-mail enviado'}
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -2280,6 +2280,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                             >
                                                                 <Mail size={12} /> E-mail
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'ligacao' }); }}
+                                                                title="Registrar que você ligou para este lead"
+                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                            >
+                                                                <Phone size={12} /> Ligação
                                                             </button>
                                                         </div>
                                                     )}
