@@ -338,7 +338,15 @@ const BLOCO_INFO: Record<BlocoLead, { titulo: string; dica: string; ponto: strin
     retomar:    { titulo: 'Retomar',             dica: `Último contato há ${TOQUE_ALERTA_DIAS} dias ou mais. Hora de cobrar retorno.`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
     aguardando: { titulo: 'Em contato', dica: `Contato feito há menos de ${TOQUE_ALERTA_DIAS} dias. Aguardando retorno do lead.`, ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
 };
-const blocoDoLead = (t?: ToquesDoLead): BlocoLead => {
+const blocoDoLead = (t?: ToquesDoLead, p?: Prospect): BlocoLead => {
+    // Situação escolhida à mão vale até o próximo toque registrado depois dela.
+    const manual = p?.situacao_manual;
+    const manualEm = p?.situacao_manual_em ? Date.parse(p.situacao_manual_em) : NaN;
+    if (manual && !Number.isNaN(manualEm) && (!t || Date.parse(t.ultimo) <= manualEm)) {
+        if (manual !== 'aguardando') return manual;
+        const dias = diasDesdeTimestamp(p?.situacao_manual_em);
+        return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
+    }
     if (!t) return 'contatar';
     const dias = diasDesdeTimestamp(t.ultimo);
     return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
@@ -1144,6 +1152,23 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             console.error('Error updating status:', error);
             fetchProspects();
         }
+    };
+
+    /** Situação escolhida à mão no menu do card (vale até o próximo toque). */
+    const definirSituacao = async (prospect: Prospect, bloco: BlocoLead) => {
+        setOpenMenuId(null);
+        const em = new Date().toISOString();
+        const { error } = await supabase
+            .from('prospects')
+            .update({ situacao_manual: bloco, situacao_manual_em: em })
+            .eq('id', prospect.id);
+        if (error) {
+            console.error('Erro ao mudar a situação do lead:', error);
+            toast('Não consegui mudar a situação. Tente de novo.', 'error');
+            return;
+        }
+        setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, situacao_manual: bloco, situacao_manual_em: em } : p));
+        toast(`Lead marcado como "${BLOCO_INFO[bloco].titulo}".`, 'success');
     };
 
     const handleMoveToColumn = async (prospectId: string, newStatus: string) => {
@@ -1990,7 +2015,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 {(() => {
                                 const renderCard = (prospect: Prospect) => {
                                     const isSelected = selectedLeadIds.has(prospect.id);
-                                    const faixaBloco = agrupar ? `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[prospect.id])].faixa}` : '';
+                                    const faixaBloco = agrupar ? `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[prospect.id], prospect)].faixa}` : '';
                                     const enteredAtMs = getLeadEnteredAtMs(prospect);
                                     const ageLabel = formatLeadAge(enteredAtMs);
                                     return (
@@ -2032,6 +2057,19 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     </button>
                                                     {openMenuId === prospect.id && (
                                                         <div className="absolute right-0 top-8 z-50 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
+                                                            {agrupar && (() => {
+                                                                const atual = blocoDoLead(toquesPorLead[prospect.id], prospect);
+                                                                return (
+                                                                    <div className="border-b border-slate-100 pb-1">
+                                                                        <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marcar como</p>
+                                                                        {ORDEM_BLOCOS.filter(b => b !== atual).map(b => (
+                                                                            <button key={b} onClick={() => definirSituacao(prospect, b)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                                                                                <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} /> {BLOCO_INFO[b].titulo}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                             <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mover para</p>
                                                             {columns.filter(col => col.id !== prospect.status).map(col => (
                                                                 <button key={col.id} onClick={() => handleMoveToColumn(prospect.id, col.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -2306,7 +2344,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 };
                                 if (!agrupar) return columnProspects.map(renderCard);
                                 const porBloco: Record<BlocoLead, Prospect[]> = { contatar: [], aguardando: [], retomar: [] };
-                                for (const p of columnProspects) porBloco[blocoDoLead(toquesPorLead[p.id])].push(p);
+                                for (const p of columnProspects) porBloco[blocoDoLead(toquesPorLead[p.id], p)].push(p);
                                 return ORDEM_BLOCOS.map(bloco => {
                                     const lista = porBloco[bloco];
                                     if (!lista.length) return null;

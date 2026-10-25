@@ -135,6 +135,9 @@ export interface Prospect {
   segmento?: string;
   decisor?: string;
   ult_contato?: string;
+  // Situação escolhida à mão no Kanban (migração 120); vale até o próximo toque.
+  situacao_manual?: 'contatar' | 'aguardando' | 'retomar' | null;
+  situacao_manual_em?: string | null;
   product_type?: string;
   judicial_process_number?: string;
   judicial_court?: string;
