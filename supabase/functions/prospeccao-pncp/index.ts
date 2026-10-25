@@ -237,6 +237,8 @@ interface Vencedor {
   valor: number;
   porte: string;
   materialOuServico: string;
+  // dataResultado mais recente dos resultados desse CNPJ (AAAA-MM-DD).
+  dataResultado: string;
 }
 
 interface Empresa {
@@ -524,9 +526,11 @@ async function resolverVencedores(h: Homologada, fimMs: number): Promise<Vencedo
       if (cnpj.length !== 14) continue;
 
       const valor = Number(r.valorTotalHomologado ?? 0) || 0;
+      const dataResultado = String(r.dataResultado ?? '').slice(0, 10);
       const atual = porCnpj.get(cnpj);
       if (atual) {
         atual.valor += valor;
+        if (dataResultado > atual.dataResultado) atual.dataResultado = dataResultado;
       } else {
         porCnpj.set(cnpj, {
           cnpj,
@@ -534,6 +538,7 @@ async function resolverVencedores(h: Homologada, fimMs: number): Promise<Vencedo
           valor,
           porte: String(r.porteFornecedorNome ?? ''),
           materialOuServico: String(item.materialOuServicoNome ?? ''),
+          dataResultado,
         });
       }
     }
@@ -951,7 +956,14 @@ async function coletarHomologacoes(
         valor_estimado: h.valorEstimado,
         valor_homologado: h.valorHomologado,
         homologado: true,
-        homologado_em: h.dataHomologacao || dataRef,
+        // Data PROVISORIA: o dia em que a licitacao apareceu no feed de
+        // atualizacoes. A data real da homologacao (dataResultado) so e
+        // conhecida no passo 2, quando o vencedor e lido, e substitui esta.
+        // Antes gravava raw.dataAtualizacao, que pode ser de meses atras: a
+        // licitacao entrava ja vencida e era descartada no mesmo dia sem
+        // nenhuma sondagem (985 casos ate 25/10/2026, um deles de R$ 154 mi
+        // com resultado publicado uma semana antes).
+        homologado_em: dataRef,
         prioritario: h.prioritario,
         situacao: h.processo,
         srp: h.srp,
@@ -1038,15 +1050,27 @@ async function coletarHomologacoes(
     }
 
     const principal = vencedores[0];
+    // Data real da homologacao: o dataResultado mais recente entre os
+    // vencedores. Sem ele (orgao nao informou), mantem a data do feed.
+    const dataResultado = vencedores.reduce((m, v) => (v.dataResultado > m ? v.dataResultado : m), '');
+    // Resultado publicado ha mais tempo que a validade: a licitacao so
+    // reapareceu no feed por outra edicao. O contrato provavelmente ja foi
+    // assinado e a garantia ja foi entregue, entao nao vira lead.
+    const resultadoAntigo = !!dataResultado && dataResultado < validade;
     await supabase.from('pncp_monitor').update({
       vencedor_cnpj: principal.cnpj,
       vencedor_nome: principal.nome,
       vencedor_porte: principal.porte,
       material_ou_servico: principal.materialOuServico,
+      ...(dataResultado ? { homologado_em: dataResultado } : {}),
+      ...(resultadoAntigo
+        ? { descartado_em: new Date().toISOString(), descartado_motivo: `Resultado antigo (publicado em ${dataResultado})` }
+        : {}),
       checado_em: new Date().toISOString(),
       checagens: Number(linha.checagens ?? 0) + 1,
     }).eq('id', linha.id);
 
+    if (resultadoAntigo) continue;
     novosVencedores.push({ linha: linha as Record<string, unknown>, vencedores });
   }
 
