@@ -245,6 +245,8 @@ interface Empresa {
   razao_social: string;
   nome_fantasia: string;
   telefone: string;
+  // Segundo telefone da Receita (ddd_telefone_2). Vazio na maioria dos CNPJs.
+  telefone_2: string;
   cidade: string;
   uf: string;
   cnae_principal: string;
@@ -567,6 +569,7 @@ function parseBrasilApi(d: Record<string, unknown>): Empresa {
     razao_social: String(d.razao_social ?? ''),
     nome_fantasia: String(d.nome_fantasia ?? ''),
     telefone: String(d.ddd_telefone_1 ?? '').trim(),
+    telefone_2: String(d.ddd_telefone_2 ?? '').trim(),
     cidade: String(d.municipio ?? ''),
     uf: String(d.uf ?? ''),
     cnae_principal: String(d.cnae_fiscal ?? ''),
@@ -1263,6 +1266,7 @@ async function processarFila(
           razao_social: String(cacheRow.razao_social ?? ''),
           nome_fantasia: String(cacheRow.nome_fantasia ?? ''),
           telefone: String(cacheRow.telefone ?? ''),
+          telefone_2: String(cacheRow.telefone_2 ?? ''),
           cidade: String(cacheRow.cidade ?? ''),
           uf: String(cacheRow.uf ?? ''),
           cnae_principal: String(cacheRow.cnae_principal ?? ''),
@@ -1392,6 +1396,7 @@ async function salvarCache(supabase: SupabaseClient, cnpj: string, e: Empresa) {
     razao_social: e.razao_social,
     nome_fantasia: e.nome_fantasia,
     telefone: e.telefone || null,
+    telefone_2: e.telefone_2 || null,
     cidade: e.cidade,
     uf: e.uf,
     cnae_principal: e.cnae_principal,
@@ -1472,6 +1477,7 @@ async function enviarLead(
     cnpj: formatCnpj(contrato.cnpj),
     email: empresa.email,
     phonenumber: empresa.telefone || null,
+    telefone_2: empresa.telefone_2 && empresa.telefone_2 !== empresa.telefone ? empresa.telefone_2 : null,
     city: empresa.cidade || contrato.municipio,
     state: empresa.uf || contrato.uf,
     status: 'Novos Leads',

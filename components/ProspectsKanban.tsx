@@ -270,6 +270,28 @@ async function buscarTodasLinhas<T>(tabela: string, colunas: string, filtrar?: (
 // do import CSV ignorava o resto. Busca página a página até acabar.
 const PAGINA_PROSPECTS = 1000;
 
+// Telefones do lead que valem tentar: phonenumber e telefone_2, sem repetidos
+// e sem os marcados como inexistentes; celular primeiro, depois fixo, depois
+// número com formato estranho. Usado no card e nos botões de roteiro.
+interface TelefoneLead { bruto: string; digitos: string; tipo: 'celular' | 'fixo' | 'erro' }
+function telefonesDoLead(p: Prospect): { validos: TelefoneLead[]; temInvalido: boolean } {
+    const invalidos = new Set(p.telefones_invalidos || []);
+    const vistos = new Set<string>();
+    const validos: TelefoneLead[] = [];
+    let temInvalido = false;
+    for (const bruto of [p.phonenumber, p.telefone_2]) {
+        if (!bruto || bruto === 'nan') continue;
+        const digitos = normalizarTelefone(bruto);
+        if (!digitos || vistos.has(digitos)) continue;
+        vistos.add(digitos);
+        if (invalidos.has(digitos)) { temInvalido = true; continue; }
+        validos.push({ bruto, digitos, tipo: tipoTelefone(digitos) });
+    }
+    const ordem = { celular: 0, fixo: 1, erro: 2 } as const;
+    validos.sort((a, b) => ordem[a.tipo] - ordem[b.tipo]);
+    return { validos, temInvalido };
+}
+
 // Status de quem saiu do quadro pelo arquivamento automático (migração 118).
 // Não é coluna do Kanban: o filtro principal esconde esses leads.
 const STATUS_ARQUIVO_PNCP = 'Arquivo PNCP';
@@ -797,6 +819,16 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     };
 
     /** Grava o toque. Devolve true quando gravou, para o modal de roteiro poder fechar. */
+    // "Não existe": tira o número do card de todo mundo e guarda para medir
+    // depois qual fonte (telefone 1 ou 2 da Receita) erra mais.
+    const marcarTelefoneInexistente = async (prospect: Prospect, digitos: string) => {
+        if (!window.confirm(`Marcar o número ${digitos} como inexistente? Ele some do card para toda a equipe.`)) return;
+        const novos = Array.from(new Set([...(prospect.telefones_invalidos || []), digitos]));
+        const { error } = await supabase.from('prospects').update({ telefones_invalidos: novos }).eq('id', prospect.id);
+        if (error) { alert('Não foi possível marcar o número: ' + error.message); return; }
+        setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, telefones_invalidos: novos } : p));
+    };
+
     const registrarToque = async (prospect: Prospect, canal: CanalToque): Promise<boolean> => {
         if (salvandoToque) return false;
         setSalvandoToque(true);
@@ -1975,19 +2007,39 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         </div>
 
                                         {/* Grupo 2: contato principal */}
-                                        {((prospect.decisor && prospect.decisor !== 'nan') || (prospect.phonenumber && prospect.phonenumber !== 'nan')) && (
-                                            <div className="flex flex-col gap-1">
-                                                {prospect.decisor && prospect.decisor !== 'nan' && (
-                                                    <p className="text-[12px] text-slate-600 truncate">{prospect.decisor}</p>
-                                                )}
-                                                {prospect.phonenumber && prospect.phonenumber !== 'nan' && (
-                                                    <div className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
-                                                        <Phone size={12} className="text-slate-400 shrink-0" />
-                                                        <WhatsAppPhoneLink phone={prospect.phonenumber} className="truncate min-w-0 text-[12px] text-slate-600" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const { validos, temInvalido } = telefonesDoLead(prospect);
+                                            const temDecisor = !!prospect.decisor && prospect.decisor !== 'nan';
+                                            if (!temDecisor && !validos.length && !temInvalido) return null;
+                                            return (
+                                                <div className="flex flex-col gap-1">
+                                                    {temDecisor && (
+                                                        <p className="text-[12px] text-slate-600 truncate">{prospect.decisor}</p>
+                                                    )}
+                                                    {validos.map(tel => (
+                                                        <div key={tel.digitos} className="flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                                            <Phone size={12} className="text-slate-400 shrink-0" />
+                                                            <WhatsAppPhoneLink phone={tel.bruto} className="truncate min-w-0 text-[12px] text-slate-600" />
+                                                            <span className="shrink-0 text-[10px] font-bold text-slate-400">
+                                                                {tel.tipo === 'celular' ? 'celular' : tel.tipo === 'fixo' ? 'fixo' : 'incompleto'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                draggable={false}
+                                                                onClick={(e) => { e.stopPropagation(); marcarTelefoneInexistente(prospect, tel.digitos); }}
+                                                                title="Marcar este número como inexistente: ele some do card para toda a equipe"
+                                                                className="ml-auto shrink-0 text-[10px] font-bold text-slate-400 hover:text-rose-600 transition-colors"
+                                                            >
+                                                                não existe
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    {!validos.length && temInvalido && (
+                                                        <p className="text-[11px] font-bold text-amber-700">Nenhum telefone válido: tente o e-mail</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Grupo PNCP: homologação, valor homologado e edital */}
                                         {prospect.source === 'pncp_auto' && (() => {
@@ -2136,7 +2188,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         </div>
                                                     ) : grupoDoLead(prospect.source) ? (() => {
                                                         // Leads dos garimpos: os botões abrem o roteiro do grupo.
-                                                        const celular = tipoTelefone(normalizarTelefone(prospect.phonenumber)) === 'celular';
+                                                        const celular = telefonesDoLead(prospect).validos[0]?.tipo === 'celular';
                                                         return (
                                                             <div className="flex items-center gap-2">
                                                                 <button
@@ -2385,7 +2437,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 const t = toquesPorLead[lead.id];
                 return (
                     <KanbanRoteiroModal
-                        lead={lead}
+                        // O roteiro usa o melhor telefone válido (celular primeiro), não
+                        // necessariamente o phonenumber, que pode ter sido marcado como inexistente.
+                        lead={{ ...lead, phonenumber: telefonesDoLead(lead).validos[0]?.bruto || '' }}
                         grupo={grupo}
                         modo={roteiroAberto.modo}
                         roteiros={roteiros}
