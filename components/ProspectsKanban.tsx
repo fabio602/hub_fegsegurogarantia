@@ -1872,6 +1872,21 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 </div>
             </div>
 
+            {/* Legenda das cores da bordinha dos cards (blocos das colunas de vendedor) */}
+            {!verArquivoPncp && (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 mb-3 text-[12px] text-slate-500">
+                    {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
+                        <span key={b} className="inline-flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
+                            <span className="font-bold text-slate-700">{BLOCO_INFO[b].titulo}:</span>
+                            {b === 'contatar' ? 'sem contato registrado'
+                                : b === 'aguardando' ? `contato nos últimos ${TOQUE_ALERTA_DIAS} dias`
+                                : `${TOQUE_ALERTA_DIAS} dias ou mais sem contato`}
+                        </span>
+                    ))}
+                </div>
+            )}
+
             {/* Kanban Board */}
             <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start">
                 {columns.map(column => {
