@@ -2027,8 +2027,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                         ativo
                                                             ? 'bg-white text-navy border-white'
                                                             : colunaComFiltro
-                                                                ? 'bg-white/10 text-white/60 border-white/15 hover:bg-white/20'
-                                                                : 'bg-white/15 text-white border-white/25 hover:bg-white/25'
+                                                                ? 'bg-white/15 text-current border-white/30 opacity-60 hover:opacity-100'
+                                                                : 'bg-white/20 text-current border-white/40 hover:bg-white/30'
                                                     }`}
                                                 >
                                                     <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} />
@@ -2045,7 +2045,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     setFiltrosColuna(prev => new Set([...prev].filter(k => !k.startsWith(`${column.id}:`))));
                                                 }}
                                                 title="Mostrar todos os leads desta coluna"
-                                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-white/80 hover:text-white"
+                                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-current opacity-80 hover:opacity-100"
                                             >
                                                 <X size={11} /> Todos
                                             </button>
