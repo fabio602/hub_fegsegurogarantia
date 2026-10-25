@@ -269,6 +269,10 @@ async function buscarTodasLinhas<T>(tabela: string, colunas: string, filtrar?: (
 // Kanban mostrava só os 1.000 leads mais recentes e a checagem de duplicados
 // do import CSV ignorava o resto. Busca página a página até acabar.
 const PAGINA_PROSPECTS = 1000;
+
+// Status de quem saiu do quadro pelo arquivamento automático (migração 118).
+// Não é coluna do Kanban: o filtro principal esconde esses leads.
+const STATUS_ARQUIVO_PNCP = 'Arquivo PNCP';
 async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]> {
     const todos: T[] = [];
     for (let de = 0; ; de += PAGINA_PROSPECTS) {
@@ -487,6 +491,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [confirmandoToque, setConfirmandoToque] = useState<{ id: string; canal: CanalToque } | null>(null);
     const [salvandoToque, setSalvandoToque] = useState(false);
     const [soSemContato, setSoSemContato] = useState(false);
+    // Leads do PNCP arquivados (homologação antiga, sem contato) ficam fora do
+    // quadro. A caixa "Ver arquivo PNCP" traz de volta para consulta: como
+    // 'Arquivo PNCP' não é coluna, eles aparecem em Novos Leads e podem ser
+    // arrastados para qualquer coluna, o que os tira do arquivo.
+    const [verArquivoPncp, setVerArquivoPncp] = useState(false);
     // E-mail de quem está logado e WhatsApps registrados hoje por autor (horário de SP).
     const [meuEmail, setMeuEmail] = useState('');
     const [whatsHojePorAutor, setWhatsHojePorAutor] = useState<Record<string, number>>({});
@@ -1631,7 +1640,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (p.source === 'pncp_auto' && !!p.data_homologacao);
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
         const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
-        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato;
+        const matchesArquivo = verArquivoPncp ? p.status === STATUS_ARQUIVO_PNCP : p.status !== STATUS_ARQUIVO_PNCP;
+        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo;
     });
 
     // Tags existentes nos leads carregados, da mais usada para a menos usada.
@@ -1740,6 +1750,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
                         />
                         <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads do PNCP com homologação há mais de 30 dias e sem contato, tirados do quadro automaticamente">
+                        <input
+                            type="checkbox"
+                            checked={verArquivoPncp}
+                            onChange={(e) => setVerArquivoPncp(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">
+                            Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
+                        </span>
                     </label>
                 </div>
             </div>
