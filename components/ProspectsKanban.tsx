@@ -2299,7 +2299,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     draggable={false}
                                                                     onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: celular ? 'whatsapp' : 'ligacao' }); }}
                                                                     title={celular ? 'Abrir a mensagem de WhatsApp deste lead' : 'Telefone fixo ou incompleto: abrir o roteiro de ligação'}
-                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                    className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                                 >
                                                                     {celular ? <><MessageCircle size={12} /> WhatsApp</> : <><Phone size={12} /> Ligação</>}
                                                                 </button>
@@ -2308,20 +2308,20 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     draggable={false}
                                                                     onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: prospect.email ? 'email' : 'sem-email' }); }}
                                                                     title="Abrir o e-mail deste lead"
-                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                    className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                                 >
                                                                     <Mail size={12} /> E-mail
                                                                 </button>
                                                             </div>
                                                         );
                                                     })() : (
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex flex-wrap items-center gap-1.5">
                                                             <button
                                                                 type="button"
                                                                 draggable={false}
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'whatsapp' }); }}
                                                                 title="Registrar que um WhatsApp foi enviado a este lead"
-                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                             >
                                                                 <MessageCircle size={12} /> WhatsApp
                                                             </button>
@@ -2330,7 +2330,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 draggable={false}
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'email' }); }}
                                                                 title="Registrar que um e-mail foi enviado a este lead"
-                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                             >
                                                                 <Mail size={12} /> E-mail
                                                             </button>
@@ -2339,7 +2339,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 draggable={false}
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'ligacao' }); }}
                                                                 title="Registrar que você ligou para este lead"
-                                                                className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
                                                             >
                                                                 <Phone size={12} /> Ligação
                                                             </button>
