@@ -148,6 +148,10 @@ export interface Prospect {
   // Data em que a homologação apareceu no PNCP (migração 107). Nula nos leads
   // da regra antiga e nos que não vieram do PNCP.
   data_homologacao?: string | null;
+  // Segundo telefone da Receita e números marcados como inexistentes no card
+  // (migração 119). telefones_invalidos guarda só dígitos, sem o 55.
+  telefone_2?: string | null;
+  telefones_invalidos?: string[] | null;
   tasks?: CRMTask[];
 }
 
