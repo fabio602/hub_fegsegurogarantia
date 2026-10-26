@@ -1194,6 +1194,18 @@ async function processarFila(
 ): Promise<void> {
   const provedores = criarProvedoresEmail();
 
+  // Fila por frescor (migracao 121): traz as sobras ainda validas de dias
+  // anteriores, tira repetidos e CNPJs ja conhecidos, e renumera com a
+  // homologacao mais recente primeiro. Sem isso, o que passava do limite
+  // diario ficava pendente para sempre e o limite era gasto por valor, com
+  // licitacao de 60 dias na frente da de 3 dias. Em dry run a fila real nao
+  // e mexida.
+  if (!dryRun) {
+    const { data: prio, error: prioErr } = await supabase.rpc('pncp_fila_priorizar', { p_execucao: execId });
+    if (prioErr) console.error('[fila] priorizar:', prioErr.message);
+    else console.log('[fila] priorizada:', JSON.stringify(prio));
+  }
+
   // Contadores acumulados da execucao.
   const { data: execRow } = await supabase.from('prospeccao_pncp_execucoes')
     .select('enriquecidos, erros, detalhes').eq('id', execId).single();
