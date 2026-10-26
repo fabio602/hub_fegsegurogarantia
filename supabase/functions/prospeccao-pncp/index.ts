@@ -77,6 +77,18 @@ const MODALIDADES: { id: number; nome: string }[] = [
 ];
 const MODALIDADES_DISPENSA = new Set([8, 9]);
 
+// situacaoCompraId do PNCP (Manual de Integracao, tabela 7.13): 1 Divulgada,
+// 2 Revogada, 3 Anulada, 4 Suspensa. As tres ultimas nao geram contrato, logo
+// nao geram garantia: nao entram no monitor e, se ja estavam, saem.
+const SITUACOES_COMPRA_ENCERRADAS = new Map<number, string>([
+  [2, 'Revogada'], [3, 'Anulada'], [4, 'Suspensa'],
+]);
+
+// situacaoCompraItem do PNCP (tabela 7.14): 2 Homologado, 3 Anulado/Revogado/
+// Cancelado, 4 Deserto, 5 Fracassado. Se TODOS os itens estao em 3, 4 ou 5, a
+// licitacao terminou sem vencedor e nao adianta continuar sondando.
+const SITUACOES_ITEM_SEM_VENCEDOR = new Set([3, 4, 5]);
+
 // Itens sondados por licitacao, do maior valor para o menor. Licitacao de
 // registro de precos passa de 100 itens; sondar todos estouraria o tique sem
 // mudar o resultado, porque o lead que interessa esta nos itens grandes.
@@ -182,6 +194,8 @@ interface Config {
   valor_prioritario: number;
   dispensa_valor_prioritario: number;
   monitor_validade_dias: number;
+  // Sondagens sem vencedor antes de desistir da licitacao (migracao 074).
+  monitor_max_checagens: number;
   incluir_srp: boolean;
   // false (padrao): o lead entra no Kanban e na trilha sem receber nada, e
   // espera o e-mail da licitacao, enviado a mao pelo card. true: comportamento
@@ -226,6 +240,8 @@ interface Homologada {
   valorEstimado: number;
   dataHomologacao: string;
   processo: string;
+  // situacaoCompraNome do PNCP (ex.: "Divulgada no PNCP").
+  situacao: string;
   prioritario: boolean;
   srp: boolean;
 }
@@ -318,6 +334,13 @@ async function fetchLista(url: string, fimMs?: number): Promise<Record<string, u
   return r.estado === 'ok' && Array.isArray(r.body) ? r.body as Record<string, unknown>[] : [];
 }
 
+/** Agrupa numeros de controle por nome da situacao, para um update por grupo. */
+function agruparPorSituacao(m: Map<string, string>): Map<string, string[]> {
+  const g = new Map<string, string[]>();
+  for (const [numero, situacao] of m) g.set(situacao, [...(g.get(situacao) ?? []), numero]);
+  return g;
+}
+
 /** Normaliza para casar termo sem depender de acento nem de caixa. */
 function normalizar(s: string): string {
   return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -343,9 +366,21 @@ function filtrarPagina(
   body: Record<string, unknown>,
   config: Config,
   modalidade: { id: number; nome: string },
+  encerradas: Map<string, string>,
 ): Homologada[] {
   const achadas: Homologada[] = [];
   for (const raw of ((body.data as Record<string, unknown>[]) ?? [])) {
+    // Revogada, anulada ou suspensa: guarda o numero para tirar do monitor
+    // caso ja esteja la (a licitacao reaparece no feed quando muda de
+    // situacao) e nao deixa entrar de novo.
+    const situacaoId = Number(raw.situacaoCompraId ?? 1) || 1;
+    const encerrada = SITUACOES_COMPRA_ENCERRADAS.get(situacaoId);
+    if (encerrada) {
+      const nc = String(raw.numeroControlePNCP ?? '');
+      if (nc) encerradas.set(nc, String(raw.situacaoCompraNome ?? encerrada));
+      continue;
+    }
+
     // Sem valor homologado a licitacao ainda nao terminou: nao interessa hoje,
     // e volta a aparecer na varredura do dia em que for homologada.
     const valorHomologado = Number(raw.valorTotalHomologado ?? 0) || 0;
@@ -391,6 +426,7 @@ function filtrarPagina(
       valorEstimado: Number(raw.valorTotalEstimado ?? 0) || 0,
       dataHomologacao: String(raw.dataAtualizacao ?? raw.dataAtualizacaoGlobal ?? '').slice(0, 10),
       processo: String(raw.processo ?? ''),
+      situacao: String(raw.situacaoCompraNome ?? ''),
       prioritario: valorHomologado >= tetoPrioritario,
       srp: raw.srp === true,
     });
@@ -413,6 +449,7 @@ async function varrerAtualizacoes(
   inicioMs: number,
 ): Promise<{
   achadas: Homologada[];
+  encerradas: Map<string, string>;
   cursor: Record<string, number>;
   completa: boolean;
   paginasLidas: number;
@@ -420,6 +457,7 @@ async function varrerAtualizacoes(
 }> {
   const dataParam = dataRef.replaceAll('-', '');
   const achadas: Homologada[] = [];
+  const encerradas = new Map<string, string>();
   const novoCursor = { ...cursor };
   let paginasLidas = 0;
   let paginasFalhas = 0;
@@ -451,7 +489,7 @@ async function varrerAtualizacoes(
     if (primeira.estado === 'vazio') { novoCursor[chave] = -1; continue; }
 
     paginasLidas++;
-    achadas.push(...filtrarPagina(primeira.body, config, modalidade));
+    achadas.push(...filtrarPagina(primeira.body, config, modalidade, encerradas));
     novoCursor[chave] = feitas + 1;
 
     const totalPaginas = Math.max(1, Number(primeira.body.totalPaginas) || 1);
@@ -473,7 +511,7 @@ async function varrerAtualizacoes(
         const r = respostas[i];
         if (r.estado === 'ok') {
           paginasLidas++;
-          achadas.push(...filtrarPagina(r.body, config, modalidade));
+          achadas.push(...filtrarPagina(r.body, config, modalidade, encerradas));
           if (!houveBuraco) ultimaBoa = lote[i];
         } else if (r.estado === 'vazio') {
           if (!houveBuraco) ultimaBoa = lote[i];
@@ -493,7 +531,7 @@ async function varrerAtualizacoes(
   // Completa de verdade so quando toda modalidade chegou ao fim.
   if (completa) completa = MODALIDADES.every((m) => novoCursor[String(m.id)] === -1);
 
-  return { achadas, cursor: novoCursor, completa, paginasLidas, paginasFalhas };
+  return { achadas, encerradas, cursor: novoCursor, completa, paginasLidas, paginasFalhas };
 }
 
 /**
@@ -503,10 +541,24 @@ async function varrerAtualizacoes(
  * Varios itens podem ter vencedores diferentes: cada CNPJ vira um lead, com o
  * valor somado do que ele levou.
  */
-async function resolverVencedores(h: Homologada, fimMs: number): Promise<Vencedor[]> {
+async function resolverVencedores(
+  h: Homologada, fimMs: number,
+): Promise<{ vencedores: Vencedor[]; semVencedorPossivel: string }> {
   const base = `${PNCP_ITENS}/orgaos/${h.orgaoCnpj}/compras/${h.ano}/${h.sequencial}`;
   const itens = await fetchLista(`${base}/itens?pagina=1&tamanhoPagina=${PNCP_PAGE_SIZE}`, fimMs);
-  if (!itens.length) return [];
+  if (!itens.length) return { vencedores: [], semVencedorPossivel: '' };
+
+  // Todos os itens desertos, fracassados ou cancelados: acabou sem vencedor.
+  // So vale quando a pagina trouxe a licitacao inteira (menos itens que o
+  // tamanho da pagina); com mais itens, um da pagina 2 pode ter vencedor.
+  const situacoesItens = itens.map((it) => Number(it.situacaoCompraItem ?? 0) || 0);
+  if (
+    itens.length < PNCP_PAGE_SIZE &&
+    situacoesItens.every((sid) => SITUACOES_ITEM_SEM_VENCEDOR.has(sid))
+  ) {
+    const nomes = [...new Set(itens.map((it) => String(it.situacaoCompraItemNome ?? '')).filter(Boolean))];
+    return { vencedores: [], semVencedorPossivel: `Itens sem vencedor (${nomes.join(', ') || 'deserto/fracassado/cancelado'})` };
+  }
 
   const comResultado = itens
     .filter((it) => it.temResultado === true)
@@ -546,7 +598,7 @@ async function resolverVencedores(h: Homologada, fimMs: number): Promise<Vencedo
     }
   }
 
-  return [...porCnpj.values()].sort((a, b) => b.valor - a.valor);
+  return { vencedores: [...porCnpj.values()].sort((a, b) => b.valor - a.valor), semVencedorPossivel: '' };
 }
 
 // ─── Cadastro na BrasilAPI (sem e-mail; a Receita retirou o campo de la) ─────
@@ -968,7 +1020,10 @@ async function coletarHomologacoes(
         // com resultado publicado uma semana antes).
         homologado_em: dataRef,
         prioritario: h.prioritario,
-        situacao: h.processo,
+        // Antes gravava o numero do processo aqui. A coluna guarda a situacao
+        // da contratacao no PNCP; o processo tem coluna propria (migracao 120).
+        situacao: h.situacao || null,
+        processo: h.processo || null,
         srp: h.srp,
       }));
       for (let i = 0; i < linhas.length; i += 200) {
@@ -976,6 +1031,28 @@ async function coletarHomologacoes(
           .upsert(linhas.slice(i, i + 200), { onConflict: 'numero_controle_pncp', ignoreDuplicates: true });
         if (error) console.error('[monitor]', error.message);
       }
+    }
+
+    // Licitacoes que o feed mostrou revogadas, anuladas ou suspensas: saem do
+    // monitor se ainda nao viraram lead. Lead ja criado fica no Kanban, onde a
+    // equipe decide (o aviso no relatorio diz quantas foram).
+    if (v.encerradas.size) {
+      let saiu = 0;
+      for (const [situacaoNome, numeros] of agruparPorSituacao(v.encerradas)) {
+        for (let i = 0; i < numeros.length; i += 200) {
+          const { count } = await supabase.from('pncp_monitor')
+            .update({
+              situacao: situacaoNome,
+              descartado_em: new Date().toISOString(),
+              descartado_motivo: `Licitacao ${situacaoNome.toLowerCase()} no PNCP`,
+            }, { count: 'exact' })
+            .in('numero_controle_pncp', numeros.slice(i, i + 200))
+            .is('descartado_em', null)
+            .eq('enfileirado', false);
+          saiu += Number(count ?? 0);
+        }
+      }
+      if (saiu) avisos.push(`${saiu} licitacao(oes) saiu(ram) do monitor por estar revogada, anulada ou suspensa no PNCP.`);
     }
 
     detalhes.varredura = v.cursor;
@@ -1037,17 +1114,28 @@ async function coletarHomologacoes(
       valorHomologado: Number(linha.valor_homologado ?? 0),
       valorEstimado: Number(linha.valor_estimado ?? 0),
       dataHomologacao: String(linha.homologado_em ?? ''),
-      processo: String(linha.situacao ?? ''),
+      processo: String(linha.processo ?? ''),
+      situacao: String(linha.situacao ?? ''),
       prioritario: linha.prioritario === true,
       srp: linha.srp === true,
     };
 
-    const vencedores = await resolverVencedores(h, fimVencedoresMs);
+    const { vencedores, semVencedorPossivel } = await resolverVencedores(h, fimVencedoresMs);
     if (!vencedores.length) {
-      // Homologada sem resultado publicado: o orgao ainda nao subiu o vencedor.
-      // Fica para o proximo tique ate a validade expirar.
+      const checagens = Number(linha.checagens ?? 0) + 1;
+      const teto = Number(config.monitor_max_checagens ?? 120) || 120;
+      // Tres saidas: acabou sem vencedor (deserto/fracassado/cancelado),
+      // estourou o teto de sondagens, ou ainda nao publicou (tenta de novo).
+      // Sem o teto, 60 licitacoes chegaram a 560 sondagens e ocupavam o topo
+      // da fila a cada tique, atrasando as homologacoes novas.
+      const motivo = semVencedorPossivel
+        || (checagens >= teto ? `Sem vencedor apos ${checagens} sondagens` : '');
       await supabase.from('pncp_monitor')
-        .update({ checado_em: new Date().toISOString(), checagens: Number(linha.checagens ?? 0) + 1 })
+        .update({
+          checado_em: new Date().toISOString(),
+          checagens,
+          ...(motivo ? { descartado_em: new Date().toISOString(), descartado_motivo: motivo } : {}),
+        })
         .eq('id', linha.id);
       continue;
     }
@@ -1152,7 +1240,7 @@ async function coletarHomologacoes(
       numeroLicitacao: String(p.numero_controle_pncp ?? ''),
       municipio: String(p.municipio ?? ''),
       uf: String(p.uf ?? ''),
-      processo: String(p.situacao ?? ''),
+      processo: String(p.processo ?? ''),
       numeroControlePncp: String(p.numero_controle_pncp ?? ''),
       dataHomologacao: String(p.homologado_em ?? ''),
       modalidade: String(p.modalidade_nome ?? ''),
