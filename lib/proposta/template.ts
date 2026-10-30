@@ -2,6 +2,7 @@
 // Documento autônomo, com CSS próprio: é impresso dentro de um iframe, fora do
 // shell do HUB, para não herdar o sidebar nem a escala de 80% do index.css.
 import logoBege from './logo-bege.svg?raw';
+import { FECHAMENTO, INCLUSO, ordenarMotivos, paragrafoMotivo } from './estruturacao.ts';
 
 export interface DadosProposta {
   numero: string;
@@ -16,6 +17,8 @@ export interface DadosProposta {
   honorarios: number;
   total: number;
   observacoes?: string | null;
+  motivosEstruturacao?: string[] | null;
+  clausulaEspecial?: string | null;
 }
 
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -26,6 +29,20 @@ const esc = (s?: string | null) =>
 function campo(rotulo: string, valor?: string | null, larg = 1): string {
   if (!valor || !valor.trim()) return '';
   return `<div class="f" style="grid-column:span ${larg}"><span>${rotulo}</span><b>${esc(valor)}</b></div>`;
+}
+
+// Quadro que explica o honorário: só sai com honorário e ao menos um motivo marcado.
+function quadroEstruturacao(d: DadosProposta): string {
+  const motivos = ordenarMotivos(d.motivosEstruturacao);
+  if (d.honorarios <= 0 || motivos.length === 0) return '';
+  const li = (t: string) => `<li>${esc(t)}</li>`;
+  return `<section class="card est"><h2>Estruturação do Seguro</h2>
+    <p>A estruturação é o trabalho de preparar a empresa para conseguir o limite necessário junto às seguradoras. Ela envolve:</p>
+    <ol>${INCLUSO.map(li).join('')}</ol>
+    <h3>Por que este caso exige estruturação</h3>
+    ${motivos.map(m => `<p>${esc(paragrafoMotivo(m, d.clausulaEspecial))}</p>`).join('')}
+    ${FECHAMENTO.map(t => `<p class="nota">${esc(t)}</p>`).join('')}
+  </section>`;
 }
 
 export function htmlProposta(d: DadosProposta): string {
@@ -60,6 +77,11 @@ tr.total td{background:var(--navy);color:#fff;font-weight:600;font-size:15px;bor
 tr.total td:first-child{border-radius:9px 0 0 9px}
 tr.total td:last-child{border-radius:0 9px 9px 0}
 .obs{white-space:pre-wrap;margin:0}
+.est p{margin:0 0 5px}
+.est ol{margin:0 0 6px;padding-left:20px}
+.est li{margin-bottom:2px}
+.est h3{margin:8px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.est .nota{font-size:11.5px;color:var(--muted)}
 .sig p{margin:0;font-size:11px;color:var(--muted)}
 footer{text-align:center;font-size:11.5px;color:var(--muted);padding-top:4px}
 footer b{color:var(--navy)}
@@ -83,6 +105,7 @@ footer b{color:var(--navy)}
       <tr class="total"><td>Valor Total da Proposta</td><td>${brl(d.total)}</td></tr>
     </tbody></table>
   </section>
+  ${quadroEstruturacao(d)}
   ${obs ? `<section class="card"><h2>Observações</h2><p class="obs">${esc(obs)}</p></section>` : ''}
   <section class="card sig"><h2>Condições e Sigilo</h2>
     <p>Esta proposta é confidencial e destinada exclusivamente ao tomador indicado. As informações e os materiais elaborados pela F&amp;G Seguro Garantia não podem ser repassados a terceiros sem autorização prévia da corretora. Os valores dependem da aprovação final da seguradora e da manutenção das condições informadas até a emissão. Os dados recebidos são tratados conforme a LGPD (Lei 13.709/2018) e usados apenas para análise de crédito, subscrição e emissão da garantia.</p>
