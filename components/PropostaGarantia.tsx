@@ -3,6 +3,7 @@ import { FileText, Save, Printer, Plus, Copy, FolderOpen, Search } from 'lucide-
 import { supabase } from '../lib/supabase.ts';
 import { useToast } from './Toast.tsx';
 import { imprimirProposta, type DadosProposta } from '../lib/proposta/template.ts';
+import { CLAUSULA_EXEMPLO, MOTIVOS, ordenarMotivos, type MotivoEstruturacao } from '../lib/proposta/estruturacao.ts';
 
 // Gerar Proposta (menu Cotações): Controle Interno fica só na tela; o PDF leva
 // tomador, vigência, resumo de valores, observações e o rodapé padrão.
@@ -27,6 +28,8 @@ interface Proposta {
   vigencia_inicio: string | null;
   vigencia_fim: string | null;
   observacoes: string | null;
+  estruturacao_motivos: string[] | null;
+  estruturacao_clausula: string | null;
   status: 'aberta' | 'aceita' | 'recusada';
   autor_email: string | null;
   created_at: string;
@@ -39,12 +42,14 @@ interface Form {
   numero: string | null;
   is: string; taxa: string; prazo: string; pmin: string; pcot: string; com: string; hon: string;
   empresa: string; cnpj: string; resp: string; ini: string; fim: string; obs: string;
+  motivos: MotivoEstruturacao[]; clausula: string;
 }
 
 const FORM_VAZIO: Form = {
   id: null, numero: null,
   is: '', taxa: '2,00', prazo: '365', pmin: '', pcot: '', com: '40,00', hon: '0,00',
   empresa: '', cnpj: '', resp: '', ini: '', fim: '', obs: '',
+  motivos: [], clausula: '',
 };
 
 // Aceita "150.000,00", "150000", "2,5" e "2.5".
@@ -150,6 +155,7 @@ const PropostaGarantia: React.FC = () => {
     com: dec(p.comissao_perc), hon: dec(p.honorario_perc, p.honorario_perc != null && !Number.isInteger(r2(p.honorario_perc * 100)) ? 3 : 2),
     empresa: p.tomador_nome, cnpj: p.tomador_cnpj ?? '', resp: p.responsavel ?? '',
     ini: p.vigencia_inicio ?? '', fim: p.vigencia_fim ?? '', obs: p.observacoes ?? '',
+    motivos: ordenarMotivos(p.estruturacao_motivos), clausula: p.estruturacao_clausula ?? '',
   });
 
   const paraPdf = (p: Proposta): DadosProposta => ({
@@ -158,13 +164,25 @@ const PropostaGarantia: React.FC = () => {
     vigenciaInicio: p.vigencia_inicio, vigenciaFim: p.vigencia_fim,
     importanciaSegurada: Number(p.importancia_segurada), premio: Number(p.premio),
     honorarios: Number(p.honorario_valor), total: Number(p.total), observacoes: p.observacoes,
+    motivosEstruturacao: p.estruturacao_motivos, clausulaEspecial: p.estruturacao_clausula,
   });
+
+  const alternarMotivo = (id: MotivoEstruturacao) =>
+    setF(prev => {
+      const tem = prev.motivos.includes(id);
+      const motivos = ordenarMotivos(tem ? prev.motivos.filter(m => m !== id) : [...prev.motivos, id]);
+      const clausula = !tem && id === 'clausula_especial' && !prev.clausula.trim() ? CLAUSULA_EXEMPLO : prev.clausula;
+      return { ...prev, motivos, clausula };
+    });
 
   const salvar = async (gerarPdf: boolean) => {
     if (!f.empresa.trim()) { toast('Preencha o nome da empresa do tomador.', 'warning'); return; }
     if (c.IS <= 0) { toast('Preencha a Importância Segurada.', 'warning'); return; }
     if (c.premio <= 0) { toast('O prêmio ficou zerado. Confira taxa e prazo ou informe o prêmio cotado.', 'warning'); return; }
     if (f.ini && f.fim && diasEntre(f.ini, f.fim) <= 0) { toast('O fim da vigência está antes do início.', 'warning'); return; }
+    if (c.honorarios > 0 && f.motivos.includes('clausula_especial') && !f.clausula.trim()) {
+      toast('Descreva a cláusula fora do padrão ou desmarque essa opção.', 'warning'); return;
+    }
     setSalvando(true);
     const registro = {
       tomador_nome: f.empresa.trim(), tomador_cnpj: f.cnpj || null, responsavel: f.resp.trim() || null,
@@ -173,6 +191,8 @@ const PropostaGarantia: React.FC = () => {
       comissao_perc: num(f.com), comissao_valor: c.comissao,
       honorario_perc: num(f.hon), honorario_valor: c.honorarios, total: c.total,
       vigencia_inicio: f.ini || null, vigencia_fim: f.fim || null, observacoes: f.obs.trim() || null,
+      estruturacao_motivos: c.honorarios > 0 ? f.motivos : [],
+      estruturacao_clausula: c.honorarios > 0 && f.motivos.includes('clausula_especial') ? f.clausula.trim() || null : null,
     };
     const q = f.id
       ? supabase.from('propostas').update(registro).eq('id', f.id).select().single()
@@ -280,6 +300,37 @@ const PropostaGarantia: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {c.honorarios > 0 && (
+          <fieldset className="border border-linha rounded-xl p-4 space-y-3">
+            <legend className="px-2 text-sm font-black text-navy">Motivo da estruturação</legend>
+            <p className="text-xs text-slate-500">Cada opção marcada gera no PDF o quadro "Estruturação do Seguro", explicando ao cliente por que existe o honorário.</p>
+            <div className="grid gap-2 grid-cols-1 md:grid-cols-2 xl:grid-cols-5">
+              {MOTIVOS.map(m => {
+                const marcado = f.motivos.includes(m.id);
+                return (
+                  <label key={m.id} className={`flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer ${marcado ? 'border-gold bg-areia-clara' : 'border-linha bg-white hover:bg-areia-clara'}`}>
+                    <input type="checkbox" className="mt-1 accent-navy" checked={marcado} onChange={() => alternarMotivo(m.id)} />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-navy">{m.rotulo}</span>
+                      <span className="block text-[10px] text-slate-500">{m.dica}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {f.motivos.includes('clausula_especial') && (
+              <Campo id="pg-clausula" rotulo="Cláusula fora do padrão" dica="Entra no texto do PDF: escreva como o cliente vai ler">
+                <input id="pg-clausula" className={inputCls} value={f.clausula} onChange={set('clausula')} placeholder={CLAUSULA_EXEMPLO} />
+              </Campo>
+            )}
+            {f.motivos.length === 0 && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Há honorário, mas nenhum motivo marcado: o PDF vai mostrar o valor sem explicar a estruturação.
+              </p>
+            )}
+          </fieldset>
+        )}
 
         <Campo id="pg-obs" rotulo="Observações" dica="Em branco, o quadro não sai no PDF">
           <textarea id="pg-obs" rows={3} className={inputCls} value={f.obs} onChange={set('obs')} placeholder="Escreva aqui observações ou condições adicionais..." />
