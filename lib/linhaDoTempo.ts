@@ -58,13 +58,14 @@ const ROTULO_TRILHA: Record<string, string> = {
     garantia: 'Garantia', energia: 'Energia', locaticia: 'Locatícia', consultores: 'Consultores',
     judicial: 'Judicial', endosso: 'Endosso', 'risco-engenharia': 'Risco de engenharia',
 };
-const ROTULO_ORIGEM: Record<string, string> = {
+export const ROTULO_ORIGEM: Record<string, string> = {
     pncp_auto: 'PNCP (vencedor de licitação)',
     radar: 'Radar PGFN',
     garimpo_energia: 'Garimpo de energia',
     garimpo_imobiliarias: 'Garimpo de imobiliárias',
     garimpo_consultores: 'Garimpo de consultores',
     whatsapp: 'WhatsApp',
+    'Formulario site (Instagram)': 'Formulário do site',
 };
 const EVENTO_RESEND: Record<string, { titulo: string; tom: EventoLinha['tom'] }> = {
     bounced_permanent: { titulo: 'E-mail voltou: endereço não recebe', tom: 'alerta' },
