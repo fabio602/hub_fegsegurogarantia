@@ -9,6 +9,7 @@ import ModalPortal from './ModalPortal.tsx';
 import { useToast } from './Toast.tsx';
 import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
 import KanbanComoFoiModal, { ContextoContato, DadosContato } from './KanbanComoFoiModal.tsx';
+import LeadLinhaDoTempo from './LeadLinhaDoTempo.tsx';
 import {
     CanalContato, RESUMO_RESULTADO, RESULTADOS_COM_RESPOSTA, JANELA_DESISTENCIA_DIAS, ROTULO_ETAPA,
     ROTULO_MOTIVO_PERDA, MOTIVOS_PERDA, etapaAposResultado, hojeSaoPaulo, somarDiasUteis, rotuloDia,
@@ -3193,8 +3194,16 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                           </div>
                                       </div>
                                   </div>
-                                  <div className="min-w-0 lg:border-l lg:border-slate-100 lg:pl-8">
-                                      <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />
+                                  <div className="min-w-0 lg:border-l lg:border-slate-100 lg:pl-8 space-y-8">
+                                      <LeadLinhaDoTempo
+                                          lead={prospects.find(p => p.id === editingLead.id) || editingLead}
+                                          observacoes={editObservationEntries}
+                                          nomeDe={nomeCurto}
+                                          versao={toquesPorLead[editingLead.id]?.total ?? 0}
+                                      />
+                                      <div className="pt-6 border-t border-slate-100">
+                                          <TaskManager prospectId={editingLead.id} onTaskChange={fetchTasks} />
+                                      </div>
                                   </div>
                               </div>
                           </div>
