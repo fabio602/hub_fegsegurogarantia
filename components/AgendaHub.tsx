@@ -16,6 +16,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import AgendaStaffGrid, { AgendaStaffGridItem } from './AgendaStaffGrid';
+import ResumoDoDia from './ResumoDoDia.tsx';
 
 type AgendaStatus = 'pending' | 'completed';
 const TZ_BR = 'America/Sao_Paulo';
@@ -160,6 +161,8 @@ const AgendaHub: React.FC = () => {
 
   const todayYmdInBrt = useMemo(() => ymdFromDateInBrt(new Date()), []);
   const [weekAnchorUtc, setWeekAnchorUtc] = useState(() => brtMondayOf(todayYmdInBrt)); // Monday anchor (UTC at 12:00 BRT)
+  // Resumo do dia da prospecção (contatos, leads recebidos e encerrados por pessoa).
+  const [resumoAberto, setResumoAberto] = useState(false);
 
   const { mondayYmd, ymds: weekDaysYmd, weekStartIso, weekEndExclusiveIso } = useMemo(
     () => brtYmdRange(weekAnchorUtc),
@@ -768,6 +771,7 @@ const AgendaHub: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      {resumoAberto && <ResumoDoDia onFechar={() => setResumoAberto(false)} />}
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-col lg:flex-row">
           <div>
@@ -781,6 +785,14 @@ const AgendaHub: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 self-start lg:self-center">
+            <button
+              type="button"
+              onClick={() => setResumoAberto(true)}
+              className="mr-2 px-4 py-2 rounded-xl bg-navy hover:bg-navy-light text-areia border border-gold/35 text-sm font-bold transition-colors"
+              title="O que a equipe fez na prospecção no dia"
+            >
+              Resumo do dia
+            </button>
             <button
               type="button"
               onClick={(e) => {
