@@ -10,6 +10,7 @@ import { useToast } from './Toast.tsx';
 import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
 import KanbanComoFoiModal, { ContextoContato, DadosContato } from './KanbanComoFoiModal.tsx';
 import LeadLinhaDoTempo from './LeadLinhaDoTempo.tsx';
+import ResumoDoDia from './ResumoDoDia.tsx';
 import { ROTULO_ORIGEM } from '../lib/linhaDoTempo.ts';
 import {
     CanalContato, RESUMO_RESULTADO, RESULTADOS_COM_RESPOSTA, JANELA_DESISTENCIA_DIAS, ROTULO_ETAPA, ROTULO_RESULTADO,
@@ -643,6 +644,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [qtdPegar, setQtdPegar] = useState(10);
     const [origemPegar, setOrigemPegar] = useState('');
     const [pegando, setPegando] = useState(false);
+    const [resumoAberto, setResumoAberto] = useState(false);
     const trocarModo = (m: ModoKanban) => {
         setModo(m);
         try { localStorage.setItem(MODO_STORAGE_KEY, m); } catch { /* sem armazenamento */ }
@@ -1192,15 +1194,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         if (!col || col.protected) return;
 
         const leadsInCol = prospects.filter(p => p.status === colId).length;
+        // Coluna de alguém da equipe: os leads vão para a coluna principal da
+        // pessoa e continuam com ela (dono e etapa). Sem coluna principal, voltam
+        // para a fila e deixam de ter dono.
+        const dono = (col.responsavel_email || '').toLowerCase();
+        const destino = dono
+            ? columns.find(c => c.id !== colId && (c.responsavel_email || '').toLowerCase() === dono && !c.etapa_padrao)
+            : undefined;
+        const destinoId = destino?.id || 'Novos Leads';
+        const destinoTitulo = destino?.title || 'Novos Leads';
         const msg = leadsInCol > 0
-            ? `A coluna "${col.title}" tem ${leadsInCol} lead(s). Eles serão movidos para "Novos Leads". Deseja continuar?`
+            ? `A coluna "${col.title}" tem ${leadsInCol} lead(s). Eles serão movidos para "${destinoTitulo}"${!destino && dono ? ' e voltam para a fila, sem dono' : ''}. Deseja continuar?`
             : `Deseja excluir a coluna "${col.title}"?`;
 
         if (!confirm(msg)) return;
 
-        // Move leads to Novos Leads
         if (leadsInCol > 0) {
-            await supabase.from('prospects').update({ status: 'Novos Leads' }).eq('status', colId);
+            const { data: movidos, error: erroMover } = await supabase.from('prospects').update({ status: destinoId }).eq('status', colId)
+                .select('id, status, responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em');
+            if (erroMover) {
+                console.error('Erro ao mover os leads da coluna:', erroMover);
+                alert('Não foi possível mover os leads da coluna. Nada foi excluído.');
+                fetchProspects();
+                return;
+            }
             // Atualiza "tempo na coluna" para a nova coluna (em memória).
             const affectedIds = prospects.filter(p => p.status === colId).map(p => p.id);
             setLeadEnteredAtMs(prev => {
@@ -1209,7 +1226,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 affectedIds.forEach(id => { next[id] = now; });
                 return next;
             });
-            setProspects(prev => prev.map(p => p.status === colId ? { ...p, status: 'Novos Leads' } : p));
+            const porId = new Map((movidos || []).map((l: any) => [l.id, l]));
+            setProspects(prev => prev.map(p => porId.has(p.id) ? { ...p, ...porId.get(p.id) } : p.status === colId ? { ...p, status: destinoId } : p));
         }
 
         const { error } = await supabase.from('kanban_colunas').delete().eq('id', colId);
@@ -2666,7 +2684,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     return (
         <div className="space-y-6">
 
-            {/* Modo: a prospecção de cada um ou o quadro da equipe */}
+            {resumoAberto && <ResumoDoDia onFechar={() => setResumoAberto(false)} />}
+
+            {/* Modo: a prospecção de cada um ou o quadro da equipe, e o Resumo do dia */}
+            <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
                 {(['meu', 'equipe'] as ModoKanban[]).map(m => (
                     <button
@@ -2680,6 +2701,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         {m === 'meu' ? <><User size={15} /> Minha prospecção</> : <><Users size={15} /> Quadro da equipe</>}
                     </button>
                 ))}
+            </div>
+            <button
+                type="button"
+                onClick={() => setResumoAberto(true)}
+                title="O que a equipe fez na prospecção no dia"
+                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:border-gold/40 hover:text-navy shadow-sm transition-colors flex items-center gap-2"
+            >
+                <Calendar size={15} /> Resumo do dia
+            </button>
             </div>
 
             {/* Action Bar */}
@@ -2916,6 +2946,27 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     </div>
                                 </div>
                                 <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
+                                {column.responsavel_email && !column.etapa_padrao && (() => {
+                                    // Todos os leads da pessoa, em qualquer coluna (inclusive as dela por etapa).
+                                    const dono = column.responsavel_email.toLowerCase();
+                                    const dele = prospects.filter(p => (p.responsavel_email || '').toLowerCase() === dono
+                                        && !leadEncerrado(p) && p.status !== STATUS_ARQUIVO_PNCP);
+                                    const por = (e: EtapaLead) => dele.filter(p => (p.etapa || 'contatar') === e).length;
+                                    const hojeIso = hojeSaoPaulo();
+                                    const atrasados = dele.filter(p => !!p.proximo_passo && p.proximo_passo.slice(0, 10) < hojeIso).length;
+                                    return (
+                                        <div className="text-[11px] font-bold opacity-90 flex flex-wrap items-center gap-x-2 gap-y-1" title={`Todos os leads de ${nomeCurto(dono) || dono}, em qualquer coluna`}>
+                                            <span>{dele.length} leads:</span>
+                                            <span>{por('contatar')} a contatar</span>
+                                            <span>· {por('tentando')} tentando</span>
+                                            <span>· {por('conversa')} em conversa</span>
+                                            <span>· {por('cotacao')} cotação</span>
+                                            {atrasados > 0 && (
+                                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800">{atrasados} atrasado{atrasados === 1 ? '' : 's'}</span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 {agrupar && columnProspects.length > 0 && (
                                     <p className="text-[11px] font-bold opacity-90" title="Leads desta coluna com contato registrado hoje">
                                         Hoje: {contatadosHoje} {contatadosHoje === 1 ? 'contato feito' : 'contatos feitos'}
