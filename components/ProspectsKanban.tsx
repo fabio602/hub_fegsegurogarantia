@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask, MotivoPerda, ResultadoContato, EtapaLead } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -645,6 +645,39 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [origemPegar, setOrigemPegar] = useState('');
     const [pegando, setPegando] = useState(false);
     const [resumoAberto, setResumoAberto] = useState(false);
+    // Altura do quadro: do topo das colunas até o fim da tela, para os cards
+    // usarem a tela toda com um scroll só (o da coluna). Nulo no celular.
+    const quadroRef = useRef<HTMLDivElement>(null);
+    const [alturaQuadro, setAlturaQuadro] = useState<number | null>(null);
+    // Margem de baixo da área do HUB que o Kanban absorve para ir até o fim da tela.
+    const [margemAbaixo, setMargemAbaixo] = useState(0);
+    useLayoutEffect(() => {
+        const medir = () => {
+            const el = quadroRef.current;
+            if (!el || window.innerWidth < 768) { setAlturaQuadro(prev => (prev === null ? prev : null)); return; }
+            // Sobe até a área com rolagem do HUB somando as margens de baixo do
+            // caminho (padding e borda), para a página não precisar rolar.
+            let rolador: HTMLElement | null = null;
+            let abaixo = 0;
+            for (let pai = el.parentElement; pai; pai = pai.parentElement) {
+                const estilo = getComputedStyle(pai);
+                abaixo += (parseFloat(estilo.paddingBottom) || 0) + (parseFloat(estilo.borderBottomWidth) || 0);
+                if (estilo.overflowY === 'auto' || estilo.overflowY === 'scroll') { rolador = pai; break; }
+            }
+            // Posição do quadro como se a página estivesse no topo (desconta a rolagem).
+            const rolagem = rolador?.scrollTop || 0;
+            const fundoTela = rolador ? rolador.getBoundingClientRect().bottom : window.innerHeight;
+            const topo = el.getBoundingClientRect().top + rolagem;
+            // O quadro vai até 12 px do fim da tela; a raiz do Kanban recebe margem
+            // negativa do tamanho das margens de baixo, para a página não rolar.
+            const nova = Math.max(360, Math.floor(fundoTela - topo - 12));
+            setAlturaQuadro(prev => (prev !== null && Math.abs(prev - nova) < 3 ? prev : nova));
+            setMargemAbaixo(prev => (Math.abs(prev - abaixo) < 1 ? prev : abaixo));
+        };
+        medir();
+        window.addEventListener('resize', medir);
+        return () => window.removeEventListener('resize', medir);
+    });
     const trocarModo = (m: ModoKanban) => {
         setModo(m);
         try { localStorage.setItem(MODO_STORAGE_KEY, m); } catch { /* sem armazenamento */ }
@@ -2622,7 +2655,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 </div>
 
                 {/* Colunas por etapa */}
-                <div className={`grid gap-4 grid-cols-1 md:grid-cols-2 items-start ${verEncerrados ? '' : 'xl:grid-cols-4'}`}>
+                <div ref={quadroRef} className={`grid gap-4 grid-cols-1 md:grid-cols-2 items-start ${verEncerrados ? '' : 'xl:grid-cols-4'}`}>
                     {etapas.map(etapa => {
                         const leads = lista.filter(p => etapaDe(p) === etapa);
                         const encerrada = ETAPAS_ENCERRADAS.includes(etapa);
@@ -2636,7 +2669,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 key={etapa}
                                 onDragOver={encerrada ? undefined : handleDragOver}
                                 onDrop={encerrada ? undefined : (e) => handleDropEtapa(e, etapa)}
-                                className="flex flex-col gap-3 min-w-0 max-h-[calc(100dvh-260px)] overflow-hidden"
+                                className={`flex flex-col gap-3 min-w-0 overflow-hidden ${alturaQuadro ? '' : 'max-h-[calc(100dvh-260px)]'}`}
+                                style={alturaQuadro ? { height: alturaQuadro } : undefined}
                             >
                                 <div className="shrink-0 p-4 rounded-xl shadow-sm bg-navy text-white flex flex-col gap-1" title={DICA_ETAPA[etapa]}>
                                     <div className="flex justify-between items-center">
@@ -2682,119 +2716,114 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4" style={alturaQuadro ? { marginBottom: -Math.max(0, margemAbaixo - 12) } : undefined}>
 
             {resumoAberto && <ResumoDoDia onFechar={() => setResumoAberto(false)} />}
 
-            {/* Modo: a prospecção de cada um ou o quadro da equipe, e o Resumo do dia */}
-            <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
-                {(['meu', 'equipe'] as ModoKanban[]).map(m => (
-                    <button
-                        key={m}
-                        type="button"
-                        onClick={() => trocarModo(m)}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${modo === m
-                            ? 'bg-navy text-areia'
-                            : 'text-slate-600 hover:text-navy hover:bg-slate-50'}`}
-                    >
-                        {m === 'meu' ? <><User size={15} /> Minha prospecção</> : <><Users size={15} /> Quadro da equipe</>}
+            {/* Linha 1: modo, Resumo do dia, filtros principais, ações e busca */}
+            <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
+                    {(['meu', 'equipe'] as ModoKanban[]).map(m => (
+                        <button
+                            key={m}
+                            type="button"
+                            onClick={() => trocarModo(m)}
+                            className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${modo === m
+                                ? 'bg-navy text-areia'
+                                : 'text-slate-600 hover:text-navy hover:bg-slate-50'}`}
+                        >
+                            {m === 'meu' ? <><User size={15} /> Minha prospecção</> : <><Users size={15} /> Quadro da equipe</>}
+                        </button>
+                    ))}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setResumoAberto(true)}
+                    title="O que a equipe fez na prospecção no dia"
+                    className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:border-gold/40 hover:text-navy shadow-sm transition-colors flex items-center gap-2"
+                >
+                    <Calendar size={15} /> Resumo do dia
+                </button>
+                <div className="h-7 w-[1px] bg-slate-200 hidden md:block" />
+                <select
+                    value={productFilter}
+                    onChange={e => setProductFilter(e.target.value)}
+                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                >
+                    <option value="">Todos os produtos</option>
+                    {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                </select>
+                <select
+                    value={tagFilter}
+                    onChange={e => setTagFilter(e.target.value)}
+                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                    title="Filtrar por tag"
+                >
+                    <option value="">Todas as tags</option>
+                    {tagOptions.map(({ tag, qtd }) => <option key={tag} value={tag}>{tag} ({qtd})</option>)}
+                </select>
+                <div className="h-7 w-[1px] bg-slate-200 hidden md:block" />
+                <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
+                    <Plus size={17} /> Novo Lead
+                </button>
+                <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-areia border border-gold/35 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
+                    {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+                    {importing ? 'Importando...' : 'Importar CSV'}
+                </button>
+                {modo === 'equipe' && (
+                    <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-gold/40 hover:bg-gold/10 text-slate-600 hover:text-navy px-3.5 py-2 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
+                        <LayoutGrid size={16} /> Nova Coluna
                     </button>
-                ))}
-            </div>
-            <button
-                type="button"
-                onClick={() => setResumoAberto(true)}
-                title="O que a equipe fez na prospecção no dia"
-                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:border-gold/40 hover:text-navy shadow-sm transition-colors flex items-center gap-2"
-            >
-                <Calendar size={15} /> Resumo do dia
-            </button>
+                )}
+                <button
+                    onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+                    className={`px-3.5 py-2 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 border ${selectionMode ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50'}`}
+                >
+                    <Trash2 size={15} /> {selectionMode ? 'Cancelar' : 'Selecionar'}
+                </button>
+                <div className="relative w-full md:w-60 md:ml-auto">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all" />
+                </div>
             </div>
 
-            {/* Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                    {/* Product filter */}
+            {/* Linha 2: ordem, caixas de filtro e legenda das cores */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
                     <select
-                        value={productFilter}
-                        onChange={e => setProductFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                        value={leadAgeSort}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setLeadAgeSort(v === 'oldest' ? 'oldest' : v === 'homologacao' ? 'homologacao' : 'recent');
+                        }}
+                        className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all cursor-pointer"
                     >
-                        <option value="">Todos os produtos</option>
-                        {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                        <option value="recent">Menor tempo primeiro</option>
+                        <option value="oldest">Maior tempo primeiro</option>
+                        <option value="homologacao">Homologação mais recente (PNCP)</option>
                     </select>
-                    {/* Tag filter */}
-                    <select
-                        value={tagFilter}
-                        onChange={e => setTagFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
-                        title="Filtrar por tag"
-                    >
-                        <option value="">Todas as tags</option>
-                        {tagOptions.map(({ tag, qtd }) => <option key={tag} value={tag}>{tag} ({qtd})</option>)}
-                    </select>
-                    <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
-                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
-                        <Plus size={18} /> Novo Lead
-                    </button>
-                    <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
-                        {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                        {importing ? 'Importando...' : 'Importar Leads (CSV)'}
-                    </button>
-                    <div className="h-8 w-[1px] bg-slate-200 mx-1 hidden md:block" />
-                    {modo === 'equipe' && (
-                        <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-gold/40 hover:bg-gold/10 text-slate-600 hover:text-navy px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
-                            <LayoutGrid size={16} /> Nova Coluna
-                        </button>
-                    )}
-                    <button
-                        onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
-                        className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 border ${selectionMode ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50'}`}
-                    >
-                        <Trash2 size={15} /> {selectionMode ? 'Cancelar' : 'Selecionar'}
-                    </button>
                 </div>
-                <div className="w-full md:w-64 flex flex-col gap-2">
-                    <div className="relative w-full">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
-                        <select
-                            value={leadAgeSort}
-                            onChange={(e) => {
-                                const v = e.target.value;
-                                setLeadAgeSort(v === 'oldest' ? 'oldest' : v === 'homologacao' ? 'homologacao' : 'recent');
-                            }}
-                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all cursor-pointer"
-                        >
-                            <option value="recent">Menor tempo primeiro</option>
-                            <option value="oldest">Maior tempo primeiro</option>
-                            <option value="homologacao">Homologação mais recente (PNCP)</option>
-                        </select>
-                    </div>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={soHomologadasPncp}
-                            onChange={(e) => setSoHomologadasPncp(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={soSemContato}
-                            onChange={(e) => setSoSemContato(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
-                    </label>
-                    {modo === 'equipe' && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={soHomologadasPncp}
+                        onChange={(e) => setSoHomologadasPncp(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                    />
+                    <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={soSemContato}
+                        onChange={(e) => setSoSemContato(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                    />
+                    <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
+                </label>
+                {modo === 'equipe' && (
                     <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads do PNCP com homologação há mais de 30 dias e sem contato, tirados do quadro automaticamente">
                         <input
                             type="checkbox"
@@ -2806,39 +2835,40 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
                         </span>
                     </label>
-                    )}
-                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads encerrados como perdidos (sem interesse, sem retorno etc.), tirados do quadro">
-                        <input
-                            type="checkbox"
-                            checked={verEncerrados}
-                            onChange={(e) => setVerEncerrados(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">
-                            Ver encerrados ({prospects.filter(leadEncerrado).length})
-                        </span>
-                    </label>
-                </div>
+                )}
+                <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads encerrados como perdidos (sem interesse, sem retorno etc.), tirados do quadro">
+                    <input
+                        type="checkbox"
+                        checked={verEncerrados}
+                        onChange={(e) => setVerEncerrados(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                    />
+                    <span className="text-[12px] font-bold text-slate-600">
+                        Ver encerrados ({prospects.filter(leadEncerrado).length})
+                    </span>
+                </label>
+                {/* Legenda das cores da bordinha dos cards (a explicação fica na dica) */}
+                {!verArquivoPncp && !verEncerrados && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-500 md:ml-auto">
+                        {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
+                            <span
+                                key={b}
+                                className="inline-flex items-center gap-1.5 cursor-help"
+                                title={b === 'contatar' ? 'Sem contato registrado'
+                                    : b === 'aguardando' ? 'Contato feito, o próximo contato ainda não chegou'
+                                    : 'Chegou o dia do próximo contato'}
+                            >
+                                <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
+                                <span className="font-bold text-slate-600">{BLOCO_INFO[b].titulo}</span>
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {/* Legenda das cores da bordinha dos cards (blocos das colunas de vendedor) */}
-            {!verArquivoPncp && !verEncerrados && (
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 mb-3 text-[12px] text-slate-500">
-                    {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
-                        <span key={b} className="inline-flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
-                            <span className="font-bold text-slate-700">{BLOCO_INFO[b].titulo}:</span>
-                            {b === 'contatar' ? 'sem contato registrado'
-                                : b === 'aguardando' ? 'contato feito, próximo contato ainda não chegou'
-                                : 'chegou o dia do próximo contato'}
-                        </span>
-                    ))}
-                </div>
-            )}
 
             {/* Kanban Board: colunas da equipe ou, na Minha prospecção, colunas por etapa */}
             {modo === 'meu' ? renderMinhaProspeccao() : (
-            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start">
+            <div ref={quadroRef} className="flex gap-6 overflow-x-auto pb-3 custom-scroll items-start">
                 {columns.map(column => {
                     const columnProspects = filteredProspects.filter(p => {
                         if (column.id === 'Novos Leads') {
@@ -2890,7 +2920,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                 handleColDragStart(e, column.id);
                             }}
                             onDragEnd={handleColDragEnd}
-                            className={`flex-shrink-0 w-80 flex flex-col gap-4 max-h-[calc(100dvh-230px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 overflow-hidden transition-all ${alturaQuadro ? '' : 'max-h-[calc(100dvh-230px)]'} ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`}
+                            // Desconta a barra de rolagem horizontal do quadro.
+                            style={alturaQuadro ? { height: alturaQuadro - 22 } : undefined}
                             onDragOver={handleDragOver} 
                             onDrop={(e) => handleDrop(e, column.id)}
                         >
