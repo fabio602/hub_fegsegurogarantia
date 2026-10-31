@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Prospect, CRMTask, MotivoPerda, ResultadoContato } from '../types';
+import { Prospect, CRMTask, MotivoPerda, ResultadoContato, EtapaLead } from '../types';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle, ChevronDown } from 'lucide-react';
+import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle, ChevronDown, User, Users, Inbox } from 'lucide-react';
 import TaskManager from './TaskManager';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
@@ -10,8 +10,9 @@ import { useToast } from './Toast.tsx';
 import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
 import KanbanComoFoiModal, { ContextoContato, DadosContato } from './KanbanComoFoiModal.tsx';
 import LeadLinhaDoTempo from './LeadLinhaDoTempo.tsx';
+import { ROTULO_ORIGEM } from '../lib/linhaDoTempo.ts';
 import {
-    CanalContato, RESUMO_RESULTADO, RESULTADOS_COM_RESPOSTA, JANELA_DESISTENCIA_DIAS, ROTULO_ETAPA,
+    CanalContato, RESUMO_RESULTADO, RESULTADOS_COM_RESPOSTA, JANELA_DESISTENCIA_DIAS, ROTULO_ETAPA, ROTULO_RESULTADO,
     ROTULO_MOTIVO_PERDA, MOTIVOS_PERDA, etapaAposResultado, hojeSaoPaulo, somarDiasUteis, rotuloDia,
     proximoPassoVencido,
 } from '../lib/contatoLead.ts';
@@ -22,6 +23,9 @@ interface KanbanColumn {
     title: string;
     color: string; // tailwind bg color key
     protected?: boolean;
+    // Kanban pessoal (migração 122): de quem é a coluna e qual etapa ela representa.
+    responsavel_email?: string | null;
+    etapa_padrao?: string | null;
 }
 
 const COLOR_OPTIONS = [
@@ -102,14 +106,14 @@ const lerColunasLocais = (): KanbanColumn[] | null => {
 /** Estado inicial enquanto o banco não responde. */
 const loadColumns = (): KanbanColumn[] => garantirColunasFixas(lerColunasLocais() || DEFAULT_COLUMNS.filter(c => c.protected));
 
-type ColunaDb = { id: string; title: string; color: string; protected: boolean; ordem: number };
+type ColunaDb = { id: string; title: string; color: string; protected: boolean; ordem: number; responsavel_email?: string | null; etapa_padrao?: string | null };
 
-const doDb = (r: ColunaDb): KanbanColumn => ({ id: r.id, title: r.title, color: r.color, protected: r.protected || undefined });
+const doDb = (r: ColunaDb): KanbanColumn => ({ id: r.id, title: r.title, color: r.color, protected: r.protected || undefined, responsavel_email: r.responsavel_email ?? null, etapa_padrao: r.etapa_padrao ?? null });
 
 const buscarColunasDb = async (): Promise<ColunaDb[] | null> => {
     const { data, error } = await supabase
         .from('kanban_colunas')
-        .select('id, title, color, protected, ordem')
+        .select('id, title, color, protected, ordem, responsavel_email, etapa_padrao')
         .order('ordem', { ascending: true })
         .order('created_at', { ascending: true });
     if (error) { console.error('Erro ao carregar colunas do Kanban:', error); return null; }
@@ -326,12 +330,13 @@ async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]>
 type CanalToque = CanalContato;
 const TOQUE_ALERTA_DIAS = 3;
 interface ToqueCanal { em: string; autor: string | null }
-interface ToqueRegistrado { em: string; canal: CanalToque; resultado: ResultadoContato | null }
+interface ToqueRegistrado { em: string; canal: CanalToque; resultado: ResultadoContato | null; autor: string | null }
 interface ToquesDoLead {
     whatsapp?: ToqueCanal; email?: ToqueCanal; ligacao?: ToqueCanal;
     qtd: Partial<Record<CanalToque, number>>; total: number; ultimo: string;
     /** Resultado do toque mais recente (nulo nos registrados antes do "Como foi?"). */
     ultimoResultado: ResultadoContato | null;
+    ultimoCanal: CanalToque;
     historico: ToqueRegistrado[];
 }
 interface LinhaToque { prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string; resultado: ResultadoContato | null }
@@ -340,13 +345,13 @@ interface LinhaToque { prospect_id: string; canal: CanalToque; autor_email: stri
 const somarToque = (atual: ToquesDoLead | undefined, l: LinhaToque): ToquesDoLead => {
     const t: ToquesDoLead = atual
         ? { ...atual, qtd: { ...atual.qtd }, historico: [...atual.historico] }
-        : { qtd: {}, total: 0, ultimo: l.created_at, ultimoResultado: l.resultado, historico: [] };
+        : { qtd: {}, total: 0, ultimo: l.created_at, ultimoResultado: l.resultado, ultimoCanal: l.canal, historico: [] };
     t.total += 1;
     t.qtd[l.canal] = (t.qtd[l.canal] || 0) + 1;
-    if (l.created_at >= t.ultimo) { t.ultimo = l.created_at; t.ultimoResultado = l.resultado; }
+    if (l.created_at >= t.ultimo) { t.ultimo = l.created_at; t.ultimoResultado = l.resultado; t.ultimoCanal = l.canal; }
     const anterior = t[l.canal];
     if (!anterior || l.created_at > anterior.em) t[l.canal] = { em: l.created_at, autor: l.autor_email };
-    t.historico.push({ em: l.created_at, canal: l.canal, resultado: l.resultado });
+    t.historico.push({ em: l.created_at, canal: l.canal, resultado: l.resultado, autor: l.autor_email ? l.autor_email.toLowerCase() : null });
     return t;
 };
 
@@ -362,6 +367,23 @@ const tentativasSemResposta = (t?: ToquesDoLead): number => {
     }
     return qtd;
 };
+
+// ---- Minha prospecção (modo pessoal do Kanban) ----
+// Colunas por etapa, só com os leads de uma pessoa (responsavel_email).
+type ModoKanban = 'meu' | 'equipe';
+const MODO_STORAGE_KEY = 'kanban_modo_v1';
+const ETAPAS_ATIVAS: EtapaLead[] = ['contatar', 'tentando', 'conversa', 'cotacao'];
+const ETAPAS_ENCERRADAS: EtapaLead[] = ['perdido', 'ganho'];
+const DICA_ETAPA: Record<EtapaLead, string> = {
+    contatar: 'Ainda sem nenhum contato',
+    tentando: 'Contato feito, sem resposta ainda',
+    conversa: 'Respondeu ou conversou',
+    cotacao: 'Pediu cotação',
+    perdido: 'Encerrados sem negócio',
+    ganho: 'Viraram venda',
+};
+const QTD_PEGAR = [5, 10, 20];
+interface MembroEquipe { email: string; nome: string; gestor: boolean }
 
 /** Lead encerrado (perdido ou ganho): sai do quadro, aparece em "Ver encerrados". */
 const leadEncerrado = (p: Prospect) => p.etapa === 'perdido' || p.etapa === 'ganho';
@@ -604,6 +626,27 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [verEncerrados, setVerEncerrados] = useState(false);
     // Menu do card que está mostrando a lista de motivos para encerrar.
     const [encerrandoMenuId, setEncerrandoMenuId] = useState<string | null>(null);
+    // Minha prospecção: modo do quadro (lembrado neste navegador), equipe e filtros.
+    const [modo, setModo] = useState<ModoKanban>(() => {
+        try { return localStorage.getItem(MODO_STORAGE_KEY) === 'equipe' ? 'equipe' : 'meu'; } catch { return 'meu'; }
+    });
+    const [equipe, setEquipe] = useState<MembroEquipe[]>([]);
+    const [equipeCarregada, setEquipeCarregada] = useState(false);
+    // Gestor pode ver a prospecção de outra pessoa ('' = a própria).
+    const [pessoaVista, setPessoaVista] = useState('');
+    const [soHoje, setSoHoje] = useState(false);
+    const [filtroCanal, setFiltroCanal] = useState<'' | CanalToque>('');
+    const [filtroPeriodo, setFiltroPeriodo] = useState<'' | 'hoje' | '7' | '30' | 'sem'>('');
+    const [filtroOrigem, setFiltroOrigem] = useState('');
+    const [filtroResultado, setFiltroResultado] = useState<'' | ResultadoContato>('');
+    const [agendadosAbertos, setAgendadosAbertos] = useState<Set<string>>(new Set());
+    const [qtdPegar, setQtdPegar] = useState(10);
+    const [origemPegar, setOrigemPegar] = useState('');
+    const [pegando, setPegando] = useState(false);
+    const trocarModo = (m: ModoKanban) => {
+        setModo(m);
+        try { localStorage.setItem(MODO_STORAGE_KEY, m); } catch { /* sem armazenamento */ }
+    };
     const [soSemContato, setSoSemContato] = useState(false);
     // Leads do PNCP arquivados (homologação antiga, sem contato) ficam fora do
     // quadro. A caixa "Ver arquivo PNCP" traz de volta para consulta: como
@@ -907,11 +950,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             }
             // A equipe de prospecção (migração 122) é por e-mail de login, que pode
             // não ser o de sellers (ex.: o João entra com o Gmail).
-            const { data: equipe } = await supabase.from('prospeccao_equipe').select('email, nome');
-            for (const e of equipe || []) {
-                if (e.email && e.nome) mapa[String(e.email).toLowerCase()] = String(e.nome).trim().split(/\s+/)[0];
+            const { data: membros } = await supabase.from('prospeccao_equipe').select('email, nome, gestor, ativo');
+            const lista: MembroEquipe[] = [];
+            for (const e of membros || []) {
+                if (!e.email || !e.nome) continue;
+                const email = String(e.email).toLowerCase();
+                mapa[email] = String(e.nome).trim().split(/\s+/)[0];
+                if (e.ativo !== false) lista.push({ email, nome: String(e.nome).trim(), gestor: !!e.gestor });
             }
             setNomePorEmail(mapa);
+            setEquipe(lista.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
+            setEquipeCarregada(true);
         } catch (error) {
             console.error('Error fetching sellers:', error);
         }
@@ -1272,8 +1321,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         }
         setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, status: statusId } : p));
         try {
-            const { error } = await supabase.from('prospects').update({ status: statusId }).eq('id', prospectId);
+            // O gatilho da migração 122 preenche dono e etapa ao entrar na coluna de alguém.
+            const { data, error } = await supabase.from('prospects').update({ status: statusId }).eq('id', prospectId)
+                .select('responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em').single();
             if (error) throw error;
+            if (data) setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, ...data } : p));
         } catch (error) {
             console.error('Error updating status:', error);
             fetchProspects();
@@ -1305,7 +1357,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         }
         setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, status: newStatus } : p));
         try {
-            await supabase.from('prospects').update({ status: newStatus }).eq('id', prospectId);
+            const { data, error } = await supabase.from('prospects').update({ status: newStatus }).eq('id', prospectId)
+                .select('responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em').single();
+            if (error) throw error;
+            if (data) setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, ...data } : p));
         } catch (error) {
             console.error('Error moving lead:', error);
             fetchProspects();
@@ -1892,7 +1947,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (p.source === 'pncp_auto' && !!p.data_homologacao);
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
         const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
-        const matchesArquivo = verArquivoPncp ? p.status === STATUS_ARQUIVO_PNCP : p.status !== STATUS_ARQUIVO_PNCP;
+        const verArquivo = verArquivoPncp && modo === 'equipe';
+        const matchesArquivo = verArquivo ? p.status === STATUS_ARQUIVO_PNCP : p.status !== STATUS_ARQUIVO_PNCP;
         const matchesEncerrado = verEncerrados ? leadEncerrado(p) : !leadEncerrado(p);
         return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo && matchesEncerrado;
     });
@@ -1921,317 +1977,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
 
 
-    return (
-        <div className="space-y-6">
-
-            {/* Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                    {/* Product filter */}
-                    <select
-                        value={productFilter}
-                        onChange={e => setProductFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
-                    >
-                        <option value="">Todos os produtos</option>
-                        {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                    </select>
-                    {/* Tag filter */}
-                    <select
-                        value={tagFilter}
-                        onChange={e => setTagFilter(e.target.value)}
-                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
-                        title="Filtrar por tag"
-                    >
-                        <option value="">Todas as tags</option>
-                        {tagOptions.map(({ tag, qtd }) => <option key={tag} value={tag}>{tag} ({qtd})</option>)}
-                    </select>
-                    <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
-                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
-                        <Plus size={18} /> Novo Lead
-                    </button>
-                    <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
-                        {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                        {importing ? 'Importando...' : 'Importar Leads (CSV)'}
-                    </button>
-                    <div className="h-8 w-[1px] bg-slate-200 mx-1 hidden md:block" />
-                    <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-gold/40 hover:bg-gold/10 text-slate-600 hover:text-navy px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
-                        <LayoutGrid size={16} /> Nova Coluna
-                    </button>
-                    <button
-                        onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
-                        className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 border ${selectionMode ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50'}`}
-                    >
-                        <Trash2 size={15} /> {selectionMode ? 'Cancelar' : 'Selecionar'}
-                    </button>
-                </div>
-                <div className="w-full md:w-64 flex flex-col gap-2">
-                    <div className="relative w-full">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
-                        <select
-                            value={leadAgeSort}
-                            onChange={(e) => {
-                                const v = e.target.value;
-                                setLeadAgeSort(v === 'oldest' ? 'oldest' : v === 'homologacao' ? 'homologacao' : 'recent');
-                            }}
-                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all cursor-pointer"
-                        >
-                            <option value="recent">Menor tempo primeiro</option>
-                            <option value="oldest">Maior tempo primeiro</option>
-                            <option value="homologacao">Homologação mais recente (PNCP)</option>
-                        </select>
-                    </div>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={soHomologadasPncp}
-                            onChange={(e) => setSoHomologadasPncp(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={soSemContato}
-                            onChange={(e) => setSoSemContato(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads do PNCP com homologação há mais de 30 dias e sem contato, tirados do quadro automaticamente">
-                        <input
-                            type="checkbox"
-                            checked={verArquivoPncp}
-                            onChange={(e) => setVerArquivoPncp(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">
-                            Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
-                        </span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads encerrados como perdidos (sem interesse, sem retorno etc.), tirados do quadro">
-                        <input
-                            type="checkbox"
-                            checked={verEncerrados}
-                            onChange={(e) => setVerEncerrados(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                        />
-                        <span className="text-[12px] font-bold text-slate-600">
-                            Ver encerrados ({prospects.filter(leadEncerrado).length})
-                        </span>
-                    </label>
-                </div>
-            </div>
-
-            {/* Legenda das cores da bordinha dos cards (blocos das colunas de vendedor) */}
-            {!verArquivoPncp && !verEncerrados && (
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 mb-3 text-[12px] text-slate-500">
-                    {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
-                        <span key={b} className="inline-flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
-                            <span className="font-bold text-slate-700">{BLOCO_INFO[b].titulo}:</span>
-                            {b === 'contatar' ? 'sem contato registrado'
-                                : b === 'aguardando' ? 'contato feito, próximo contato ainda não chegou'
-                                : 'chegou o dia do próximo contato'}
-                        </span>
-                    ))}
-                </div>
-            )}
-
-            {/* Kanban Board */}
-            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start">
-                {columns.map(column => {
-                    const columnProspects = filteredProspects.filter(p => {
-                        if (column.id === 'Novos Leads') {
-                            const validIds = columns.map(c => c.id);
-                            return p.status === column.id || !validIds.includes(p.status);
-                        }
-                        return p.status === column.id;
-                    }).sort((a, b) => {
-                        // 'homologacao' => leads do PNCP com homologação mais recente primeiro
-                        // (empate: maior valor homologado); os demais vêm depois, pelo tempo na coluna.
-                        if (leadAgeSort === 'homologacao') {
-                            const ha = a.data_homologacao || '';
-                            const hb = b.data_homologacao || '';
-                            if (ha && hb) {
-                                if (ha !== hb) return ha < hb ? 1 : -1;
-                                return (Number(b.valor_contrato) || 0) - (Number(a.valor_contrato) || 0);
-                            }
-                            if (ha) return -1;
-                            if (hb) return 1;
-                        }
-                        // 'recent' => maior data primeiro (menor tempo na coluna primeiro)
-                        // 'oldest' => menor data primeiro (maior tempo na coluna primeiro)
-                        const ta = getLeadEnteredAtMs(a);
-                        const tb = getLeadEnteredAtMs(b);
-                        if (!ta && !tb) return 0;
-                        if (!ta) return 1;
-                        if (!tb) return -1;
-                        return leadAgeSort === 'oldest' ? (ta - tb) : (tb - ta);
-                    });
-                    const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
-                    const headerClass = colorToHeader(column.color);
-                    // Colunas de vendedor se organizam em blocos; Novos Leads e o arquivo seguem como lista única.
-                    const agrupar = column.id !== 'Novos Leads' && !verArquivoPncp && !verEncerrados;
-                    const hojeSP = diaSaoPaulo(Date.now());
-                    const contatadosHoje = agrupar
-                        ? columnProspects.filter(p => { const t = toquesPorLead[p.id]; return t && diaSaoPaulo(t.ultimo) === hojeSP; }).length
-                        : 0;
-                    const contagemBlocos: Record<BlocoLead, number> = { contatar: 0, aguardando: 0, retomar: 0 };
-                    if (agrupar) for (const p of columnProspects) contagemBlocos[blocoDoLead(toquesPorLead[p.id], p)] += 1;
-                    const blocoFiltrado = (b: BlocoLead) => filtrosColuna.has(`${column.id}:${b}`);
-                    const colunaComFiltro = agrupar && ORDEM_BLOCOS.some(blocoFiltrado);
-
-                    return (
-                        <div 
-                            key={column.id} 
-                            draggable={editingColId !== column.id}
-                            onDragStart={(e) => {
-                                if (editingColId === column.id) return;
-                                handleColDragStart(e, column.id);
-                            }}
-                            onDragEnd={handleColDragEnd}
-                            className={`flex-shrink-0 w-80 flex flex-col gap-4 max-h-[calc(100dvh-230px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
-                            onDragOver={handleDragOver} 
-                            onDrop={(e) => handleDrop(e, column.id)}
-                        >
-                            {/* Column Header */}
-                            <div className={`shrink-0 p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
-                                <div className="flex justify-between items-center mb-1">
-                                    <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 min-w-0">
-                                        <GripVertical size={14} className="opacity-50" />
-                                        {editingColId === column.id ? (
-                                            <input
-                                                autoFocus
-                                                value={editingColTitle}
-                                                onChange={(e) => setEditingColTitle(e.target.value)}
-                                                onBlur={commitRenameColumn}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        commitRenameColumn();
-                                                    } else if (e.key === 'Escape') {
-                                                        e.preventDefault();
-                                                        cancelRenameColumn();
-                                                    }
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="w-full max-w-[190px] px-2 py-1 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold tracking-wider uppercase text-sm"
-                                            />
-                                        ) : (
-                                            <span
-                                                onDoubleClick={(e) => {
-                                                    e.stopPropagation();
-                                                    beginRenameColumn(column);
-                                                }}
-                                                title="Duplo clique para renomear"
-                                                className="truncate select-none cursor-text"
-                                            >
-                                                {column.title}
-                                            </span>
-                                        )}
-                                    </h3>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-white/20 text-white">
-                                            {columnProspects.length}
-                                        </span>
-                                        {!column.protected && (
-                                            <button
-                                                onClick={() => handleDeleteColumn(column.id)}
-                                                title="Excluir coluna"
-                                                className="w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/30 transition-colors opacity-60 hover:opacity-100"
-                                            >
-                                                <X size={11} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
-                                {agrupar && columnProspects.length > 0 && (
-                                    <p className="text-[11px] font-bold opacity-90" title="Leads desta coluna com contato registrado hoje">
-                                        Hoje: {contatadosHoje} {contatadosHoje === 1 ? 'contato feito' : 'contatos feitos'}
-                                    </p>
-                                )}
-                                {agrupar && columnProspects.length > 0 && (
-                                    <div className="mt-1 flex items-center gap-1.5">
-                                        {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => {
-                                            const ativo = blocoFiltrado(b);
-                                            return (
-                                                <button
-                                                    key={b}
-                                                    type="button"
-                                                    draggable={false}
-                                                    onClick={(e) => { e.stopPropagation(); alternarFiltroColuna(`${column.id}:${b}`); }}
-                                                    title={ativo ? `Tirar o filtro "${BLOCO_INFO[b].titulo}" desta coluna` : `Mostrar nesta coluna só "${BLOCO_INFO[b].titulo}"`}
-                                                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors ${
-                                                        ativo
-                                                            ? 'bg-white text-navy border-white'
-                                                            : colunaComFiltro
-                                                                ? 'bg-white/15 text-current border-white/30 opacity-60 hover:opacity-100'
-                                                                : 'bg-white/20 text-current border-white/40 hover:bg-white/30'
-                                                    }`}
-                                                >
-                                                    <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} />
-                                                    {contagemBlocos[b]}
-                                                </button>
-                                            );
-                                        })}
-                                        {colunaComFiltro && (
-                                            <button
-                                                type="button"
-                                                draggable={false}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFiltrosColuna(prev => new Set([...prev].filter(k => !k.startsWith(`${column.id}:`))));
-                                                }}
-                                                title="Mostrar todos os leads desta coluna"
-                                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-current opacity-80 hover:opacity-100"
-                                            >
-                                                <X size={11} /> Todos
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* A fila do dia: leads do PNCP que entraram e ainda não
-                                    receberam o primeiro e-mail. Conta sobre todos os leads,
-                                    não sobre a coluna, para o número não mudar com o filtro
-                                    ligado (senão viraria sempre o total filtrado). */}
-                                {column.id === 'Novos Leads' && (() => {
-                                    const naFila = prospects.filter(p => estadoE1(p).estado === 'aguardando').length;
-                                    if (!naFila && !soAguardandoE1) return null;
-                                    return (
-                                        <button
-                                            type="button"
-                                            draggable={false}
-                                            onClick={(e) => { e.stopPropagation(); setSoAguardandoE1(v => !v); }}
-                                            title={soAguardandoE1
-                                                ? 'Mostrar todos os leads de novo'
-                                                : 'Filtrar só os leads que esperam o primeiro e-mail'}
-                                            className={`mt-1 self-start inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                                                soAguardandoE1
-                                                    ? 'bg-amber-400 text-navy border-amber-300'
-                                                    : 'bg-white/15 text-white border-white/25 hover:bg-white/25'
-                                            }`}
-                                        >
-                                            <Clock size={11} /> Aguardando 1º e-mail ({naFila})
-                                        </button>
-                                    );
-                                })()}
-                            </div>
-
-                            {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
-                            <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
-                                {(() => {
-                                const renderCard = (prospect: Prospect) => {
+    /**
+     * Card de um lead. agrupar = coluna separada em blocos (mostra a faixa do
+     * bloco e o "Marcar como"); faixa = cor da borda escolhida por quem chama.
+     */
+    const renderCard = (prospect: Prospect, agrupar: boolean, faixa?: string) => {
                                     const isSelected = selectedLeadIds.has(prospect.id);
-                                    const faixaBloco = agrupar ? `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[prospect.id], prospect)].faixa}` : '';
+                                    const faixaBloco = faixa ?? (agrupar ? `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[prospect.id], prospect)].faixa}` : '');
                                     const enteredAtMs = getLeadEnteredAtMs(prospect);
                                     const ageLabel = formatLeadAge(enteredAtMs);
                                     return (
@@ -2601,7 +2353,646 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     </div>
                                     );
                                 };
-                                if (!agrupar) return columnProspects.map(renderCard);
+
+    // ── Minha prospecção: ações ──────────────────────────────────────────────
+
+    /** Coluna principal de uma pessoa no quadro da equipe (a que não representa etapa). */
+    const colunaDaPessoa = (email: string) =>
+        columns.find(c => (c.responsavel_email || '').toLowerCase() === email && !c.etapa_padrao);
+
+    /** Puxa os próximos leads da fila para quem está logado (RPC pegar_leads, migração 122). */
+    const pegarLeads = async () => {
+        if (pegando) return;
+        setPegando(true);
+        try {
+            const { data, error } = await supabase.rpc('pegar_leads', { p_qtd: qtdPegar, p_origem: origemPegar || null });
+            if (error) throw error;
+            const pegos = (data || []) as Prospect[];
+            if (!pegos.length) {
+                toast(origemPegar ? 'A fila não tem leads dessa origem agora.' : 'A fila está vazia agora.', 'info');
+                return;
+            }
+            const porId = new Map(pegos.map(l => [l.id, l]));
+            setProspects(prev => prev.map(p => porId.has(p.id) ? { ...p, ...porId.get(p.id)! } : p));
+            setLeadEnteredAtMs(prev => {
+                const novo = { ...prev };
+                for (const l of pegos) novo[l.id] = Date.now();
+                return novo;
+            });
+            toast(`${pegos.length} ${pegos.length === 1 ? 'lead novo' : 'leads novos'} em "A contatar".`, 'success');
+        } catch (error: any) {
+            console.error('Erro ao pegar leads:', error);
+            toast(error?.message || 'Não consegui pegar leads. Tente de novo.', 'error');
+        } finally {
+            setPegando(false);
+        }
+    };
+
+    /** Soltar um card numa coluna de etapa muda só a etapa (o dono continua o mesmo). */
+    const handleDropEtapa = async (e: React.DragEvent, etapa: EtapaLead) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.getData('type') !== 'card') return;
+        const id = e.dataTransfer.getData('prospectId');
+        const lead = prospects.find(p => p.id === id);
+        if (!lead || (lead.etapa || 'contatar') === etapa) return;
+        const mudanca: Partial<Prospect> = { etapa };
+        setProspects(prev => prev.map(p => p.id === id ? { ...p, ...mudanca } : p));
+        const { error } = await supabase.from('prospects').update(mudanca).eq('id', id);
+        if (error) {
+            console.error('Erro ao mudar a etapa:', error);
+            toast('Não consegui mudar a etapa. Tente de novo.', 'error');
+            fetchProspects();
+            return;
+        }
+        toast(`Lead movido para "${ROTULO_ETAPA[etapa]}".`, 'success');
+    };
+
+    /** Seleção em massa: passa os leads para a coluna principal de alguém da equipe. */
+    const handleBulkAtribuir = async (email: string) => {
+        const coluna = colunaDaPessoa(email);
+        const nome = equipe.find(m => m.email === email)?.nome || email;
+        if (!coluna) { toast(`${nome} não tem uma coluna no quadro da equipe.`, 'error'); return; }
+        const ids = Array.from(selectedLeadIds);
+        if (!ids.length) return;
+        if (!confirm(`Passar ${ids.length} lead(s) para ${nome}?`)) return;
+        exitSelectionMode();
+        const { data, error } = await supabase.from('prospects').update({ status: coluna.id }).in('id', ids)
+            .select('id, status, responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em');
+        if (error) {
+            console.error('Erro ao passar os leads:', error);
+            toast('Não consegui passar os leads. Tente de novo.', 'error');
+            fetchProspects();
+            return;
+        }
+        const porId = new Map((data || []).map((l: any) => [l.id, l]));
+        setProspects(prev => prev.map(p => porId.has(p.id) ? { ...p, ...porId.get(p.id) } : p));
+        toast(`${ids.length} lead(s) passado(s) para ${nome}.`, 'success');
+    };
+
+    // ── Minha prospecção: tela ───────────────────────────────────────────────
+    const renderMinhaProspeccao = () => {
+        const hoje = hojeSaoPaulo();
+        const membro = equipe.find(m => m.email === meuEmail);
+        const dono = (pessoaVista || meuEmail).toLowerCase();
+        const vendoOutro = !!pessoaVista && pessoaVista !== meuEmail;
+
+        if (!equipeCarregada || !meuEmail) {
+            return <p className="text-sm text-slate-400 flex items-center gap-2 py-6"><Loader2 size={16} className="animate-spin" /> Carregando</p>;
+        }
+        if (!membro && !vendoOutro) {
+            return (
+                <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-3">
+                    <p className="text-sm font-bold text-slate-700">Seu login ({meuEmail}) ainda não está na equipe de prospecção.</p>
+                    <p className="text-sm text-slate-500">Peça ao Fábio para incluir você. Enquanto isso, use o quadro da equipe.</p>
+                    <button type="button" onClick={() => trocarModo('equipe')} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors">
+                        Ver o quadro da equipe
+                    </button>
+                </div>
+            );
+        }
+
+        const doDono = filteredProspects.filter(p => (p.responsavel_email || '').toLowerCase() === dono);
+        const paraAgir = (p: Prospect) => {
+            const b = blocoDoLead(toquesPorLead[p.id], p);
+            return b === 'contatar' || b === 'retomar';
+        };
+        const passaFiltros = (p: Prospect) => {
+            const t = toquesPorLead[p.id];
+            if (filtroCanal && t?.ultimoCanal !== filtroCanal) return false;
+            if (filtroPeriodo === 'sem') { if (t) return false; }
+            else if (filtroPeriodo) {
+                if (!t) return false;
+                if (filtroPeriodo === 'hoje' && diaSaoPaulo(t.ultimo) !== hoje) return false;
+                const dias = diasDesdeTimestamp(t.ultimo) ?? 0;
+                if (filtroPeriodo === '7' && dias > 7) return false;
+                if (filtroPeriodo === '30' && dias > 30) return false;
+            }
+            if (filtroOrigem && (p.source || '') !== filtroOrigem) return false;
+            if (filtroResultado && t?.ultimoResultado !== filtroResultado) return false;
+            return true;
+        };
+        const visiveis = doDono.filter(passaFiltros);
+        const lista = soHoje && !verEncerrados ? visiveis.filter(paraAgir) : visiveis;
+        const etapas = verEncerrados ? ETAPAS_ENCERRADAS : ETAPAS_ATIVAS;
+        const etapaDe = (p: Prospect): EtapaLead =>
+            p.etapa && (ETAPAS_ATIVAS.includes(p.etapa) || ETAPAS_ENCERRADAS.includes(p.etapa)) ? p.etapa : 'contatar';
+
+        // Números do topo (sem os filtros de canal e período, para não esconder o que vence hoje)
+        const ativos = doDono.filter(p => !leadEncerrado(p));
+        const qtdHoje = ativos.filter(paraAgir).length;
+        const qtdAtrasados = ativos.filter(p => !!p.proximo_passo && p.proximo_passo.slice(0, 10) < hoje).length;
+        let contatosHoje = 0;
+        for (const t of Object.values(toquesPorLead) as ToquesDoLead[]) {
+            for (const h of t.historico) if (h.autor === dono && diaSaoPaulo(h.em) === hoje) contatosHoje += 1;
+        }
+        const origensDono = Array.from(new Set<string>(doDono.map(p => p.source || '').filter(Boolean))).sort();
+        const fila = prospects.filter(p => p.status === 'Novos Leads' && !p.responsavel_email && !leadEncerrado(p));
+        const filaPorOrigem = new Map<string, number>();
+        for (const p of fila) filaPorOrigem.set(p.source || '', (filaPorOrigem.get(p.source || '') || 0) + 1);
+        const rotuloOrigem = (o: string) => ROTULO_ORIGEM[o] || o || 'Sem origem';
+        const temFiltro = !!(filtroCanal || filtroPeriodo || filtroOrigem || filtroResultado || soHoje);
+        const podePegar = !!membro && !vendoOutro && !verEncerrados;
+
+        const classeSelect = 'px-3 py-2 bg-white border border-slate-200 rounded-xl text-[12px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold cursor-pointer';
+        const chaveOrdem = (p: Prospect) => p.proximo_passo || toquesPorLead[p.id]?.ultimo?.slice(0, 10) || '';
+        const ordenarAgir = (a: Prospect, b: Prospect) => {
+            const ba = blocoDoLead(toquesPorLead[a.id], a), bb = blocoDoLead(toquesPorLead[b.id], b);
+            if (ba !== bb) return ba === 'retomar' ? -1 : 1;
+            if (ba === 'retomar') return chaveOrdem(a).localeCompare(chaveOrdem(b));
+            // Sem contato ainda: mesma prioridade da fila (pegar_leads), formulário do
+            // site, depois PNCP pela homologação mais recente, depois o resto.
+            const prioridade = (p: Prospect) => (/^formulario/i.test(p.source || '') ? 0 : p.source === 'pncp_auto' ? 1 : 2);
+            return prioridade(a) - prioridade(b)
+                || (b.data_homologacao || '').localeCompare(a.data_homologacao || '')
+                || (b.created_at || '').localeCompare(a.created_at || '');
+        };
+        const ordenarAgendados = (a: Prospect, b: Prospect) => (a.proximo_passo || '9999').localeCompare(b.proximo_passo || '9999');
+        const faixaDe = (p: Prospect) => `border-l-4 ${BLOCO_INFO[blocoDoLead(toquesPorLead[p.id], p)].faixa}`;
+
+        return (
+            <div className="space-y-4">
+                {/* Barra pessoal: números do dia, filtros e "Pegar leads" */}
+                <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+                    {membro?.gestor && (
+                        <select value={pessoaVista} onChange={(e) => setPessoaVista(e.target.value)} className={classeSelect} title="Ver a prospecção de alguém da equipe">
+                            <option value="">Minha prospecção</option>
+                            {equipe.filter(m => m.email !== meuEmail).map(m => <option key={m.email} value={m.email}>{m.nome}</option>)}
+                        </select>
+                    )}
+                    {!verEncerrados && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setSoHoje(v => !v)}
+                                title="Só o que precisa de você hoje: leads sem contato e os que chegaram no dia do próximo contato"
+                                className={`px-3 py-2 rounded-xl text-[12px] font-bold border transition-colors ${soHoje
+                                    ? 'bg-navy text-areia border-navy'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:border-gold/40 hover:text-navy'}`}
+                            >
+                                Hoje · {qtdHoje}
+                            </button>
+                            <span className={`px-3 py-2 rounded-xl text-[12px] font-bold border ${qtdAtrasados
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-slate-50 text-slate-500 border-slate-200'}`}
+                                title="Próximo contato marcado para antes de hoje"
+                            >
+                                Atrasados · {qtdAtrasados}
+                            </span>
+                            <span className="px-3 py-2 rounded-xl text-[12px] font-bold border bg-slate-50 text-slate-500 border-slate-200" title="Contatos registrados hoje">
+                                Contatos hoje · {contatosHoje}
+                            </span>
+                        </>
+                    )}
+                    <div className="h-6 w-px bg-slate-200 hidden md:block" />
+                    <select value={filtroCanal} onChange={(e) => setFiltroCanal(e.target.value as '' | CanalToque)} className={classeSelect} title="Canal do último contato">
+                        <option value="">Último canal: todos</option>
+                        <option value="whatsapp">Último canal: WhatsApp</option>
+                        <option value="email">Último canal: e-mail</option>
+                        <option value="ligacao">Último canal: ligação</option>
+                    </select>
+                    <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value as typeof filtroPeriodo)} className={classeSelect} title="Quando foi o último contato">
+                        <option value="">Último contato: qualquer dia</option>
+                        <option value="hoje">Último contato: hoje</option>
+                        <option value="7">Último contato: 7 dias</option>
+                        <option value="30">Último contato: 30 dias</option>
+                        <option value="sem">Sem contato ainda</option>
+                    </select>
+                    <select value={filtroResultado} onChange={(e) => setFiltroResultado(e.target.value as '' | ResultadoContato)} className={classeSelect} title="Resultado do último contato">
+                        <option value="">Último resultado: todos</option>
+                        {(Object.keys(ROTULO_RESULTADO) as ResultadoContato[]).map(r => (
+                            <option key={r} value={r}>Último resultado: {RESUMO_RESULTADO[r]}</option>
+                        ))}
+                    </select>
+                    {origensDono.length > 1 && (
+                        <select value={filtroOrigem} onChange={(e) => setFiltroOrigem(e.target.value)} className={classeSelect} title="De onde veio o lead">
+                            <option value="">Origem: todas</option>
+                            {origensDono.map(o => <option key={o} value={o}>Origem: {rotuloOrigem(o)}</option>)}
+                        </select>
+                    )}
+                    {temFiltro && (
+                        <button
+                            type="button"
+                            onClick={() => { setFiltroCanal(''); setFiltroPeriodo(''); setFiltroOrigem(''); setFiltroResultado(''); setSoHoje(false); }}
+                            className="text-[12px] font-bold text-slate-500 hover:text-navy"
+                        >
+                            Limpar filtros
+                        </button>
+                    )}
+                    {podePegar && (
+                        <div className="flex items-center gap-2 md:ml-auto">
+                            <select value={qtdPegar} onChange={(e) => setQtdPegar(Number(e.target.value))} className={classeSelect} title="Quantos leads pegar">
+                                {QTD_PEGAR.map(q => <option key={q} value={q}>{q} leads</option>)}
+                            </select>
+                            <select value={origemPegar} onChange={(e) => setOrigemPegar(e.target.value)} className={classeSelect} title="De qual origem pegar">
+                                <option value="">Qualquer origem ({fila.length})</option>
+                                {Array.from(filaPorOrigem.entries()).sort((a, b) => b[1] - a[1]).map(([o, q]) => (
+                                    <option key={o} value={o}>{rotuloOrigem(o)} ({q})</option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                onClick={pegarLeads}
+                                disabled={pegando}
+                                title="Traz os próximos da fila para você: formulário do site primeiro, depois PNCP pela homologação mais recente"
+                                className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-4 py-2 rounded-xl font-bold text-[12px] transition-colors flex items-center gap-2 disabled:opacity-60"
+                            >
+                                {pegando ? <Loader2 size={14} className="animate-spin" /> : <Inbox size={14} />} Pegar leads
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Colunas por etapa */}
+                <div className={`grid gap-4 grid-cols-1 md:grid-cols-2 items-start ${verEncerrados ? '' : 'xl:grid-cols-4'}`}>
+                    {etapas.map(etapa => {
+                        const leads = lista.filter(p => etapaDe(p) === etapa);
+                        const encerrada = ETAPAS_ENCERRADAS.includes(etapa);
+                        const agir = encerrada ? [] : leads.filter(paraAgir).sort(ordenarAgir);
+                        const agendados = encerrada
+                            ? [...leads].sort((a, b) => (b.encerrado_em || '').localeCompare(a.encerrado_em || ''))
+                            : leads.filter(p => !paraAgir(p)).sort(ordenarAgendados);
+                        const aberto = encerrada || agendadosAbertos.has(etapa);
+                        return (
+                            <div
+                                key={etapa}
+                                onDragOver={encerrada ? undefined : handleDragOver}
+                                onDrop={encerrada ? undefined : (e) => handleDropEtapa(e, etapa)}
+                                className="flex flex-col gap-3 min-w-0 max-h-[calc(100dvh-260px)] overflow-hidden"
+                            >
+                                <div className="shrink-0 p-4 rounded-xl shadow-sm bg-navy text-white flex flex-col gap-1" title={DICA_ETAPA[etapa]}>
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="font-bold text-sm uppercase tracking-widest">{ROTULO_ETAPA[etapa]}</h3>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-white/20">{leads.length}</span>
+                                    </div>
+                                    <p className="text-[11px] font-bold opacity-80">
+                                        {encerrada ? DICA_ETAPA[etapa] : `${agir.length} para agir hoje · ${agendados.length} agendados`}
+                                    </p>
+                                </div>
+                                <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging && !encerrada ? 'bg-slate-100/50 border border-dashed border-slate-300' : ''}`}>
+                                    {agir.map(p => renderCard(p, false, faixaDe(p)))}
+                                    {!encerrada && agendados.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAgendadosAbertos(prev => {
+                                                const novo = new Set(prev);
+                                                if (novo.has(etapa)) novo.delete(etapa); else novo.add(etapa);
+                                                return novo;
+                                            })}
+                                            title="Leads com o próximo contato marcado para depois de hoje. Eles voltam para o topo no dia."
+                                            className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-navy transition-colors"
+                                        >
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <span>Agendados para depois</span>
+                                            <span className="text-slate-400">· {agendados.length}</span>
+                                            <ChevronDown size={12} className={`ml-auto transition-transform ${aberto ? '' : '-rotate-90'}`} />
+                                        </button>
+                                    )}
+                                    {aberto && agendados.map(p => renderCard(p, false, encerrada ? '' : faixaDe(p)))}
+                                    {leads.length === 0 && !isDragging && (
+                                        <p className="text-center text-xs font-bold text-slate-400 py-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                            {etapa === 'contatar' && podePegar && !temFiltro ? 'Nenhum lead novo. Use "Pegar leads".' : 'Nenhum lead'}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-6">
+
+            {/* Modo: a prospecção de cada um ou o quadro da equipe */}
+            <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
+                {(['meu', 'equipe'] as ModoKanban[]).map(m => (
+                    <button
+                        key={m}
+                        type="button"
+                        onClick={() => trocarModo(m)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${modo === m
+                            ? 'bg-navy text-areia'
+                            : 'text-slate-600 hover:text-navy hover:bg-slate-50'}`}
+                    >
+                        {m === 'meu' ? <><User size={15} /> Minha prospecção</> : <><Users size={15} /> Quadro da equipe</>}
+                    </button>
+                ))}
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* Product filter */}
+                    <select
+                        value={productFilter}
+                        onChange={e => setProductFilter(e.target.value)}
+                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                    >
+                        <option value="">Todos os produtos</option>
+                        {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                    </select>
+                    {/* Tag filter */}
+                    <select
+                        value={tagFilter}
+                        onChange={e => setTagFilter(e.target.value)}
+                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm cursor-pointer transition-all"
+                        title="Filtrar por tag"
+                    >
+                        <option value="">Todas as tags</option>
+                        {tagOptions.map(({ tag, qtd }) => <option key={tag} value={tag}>{tag} ({qtd})</option>)}
+                    </select>
+                    <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
+                    <button onClick={() => { setIsNewLeadModalOpen(true); setNewLimitesArray([]); setNewCurrentLimit({ seguradora: '', valor: '' }); setNewLeadForm({ status: 'Novos Leads' }); }} className="bg-navy hover:bg-navy-light text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2">
+                        <Plus size={18} /> Novo Lead
+                    </button>
+                    <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                    <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="bg-navy-light hover:bg-navy text-areia border border-gold/35 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-70">
+                        {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                        {importing ? 'Importando...' : 'Importar Leads (CSV)'}
+                    </button>
+                    <div className="h-8 w-[1px] bg-slate-200 mx-1 hidden md:block" />
+                    {modo === 'equipe' && (
+                        <button onClick={() => setIsAddColumnOpen(true)} className="bg-white border border-slate-200 hover:border-gold/40 hover:bg-gold/10 text-slate-600 hover:text-navy px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2">
+                            <LayoutGrid size={16} /> Nova Coluna
+                        </button>
+                    )}
+                    <button
+                        onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+                        className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 border ${selectionMode ? 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50'}`}
+                    >
+                        <Trash2 size={15} /> {selectionMode ? 'Cancelar' : 'Selecionar'}
+                    </button>
+                </div>
+                <div className="w-full md:w-64 flex flex-col gap-2">
+                    <div className="relative w-full">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" placeholder="Procurar leads..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
+                        <select
+                            value={leadAgeSort}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setLeadAgeSort(v === 'oldest' ? 'oldest' : v === 'homologacao' ? 'homologacao' : 'recent');
+                            }}
+                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold shadow-sm transition-all cursor-pointer"
+                        >
+                            <option value="recent">Menor tempo primeiro</option>
+                            <option value="oldest">Maior tempo primeiro</option>
+                            <option value="homologacao">Homologação mais recente (PNCP)</option>
+                        </select>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={soHomologadasPncp}
+                            onChange={(e) => setSoHomologadasPncp(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={soSemContato}
+                            onChange={(e) => setSoSemContato(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">Sem contato ainda</span>
+                    </label>
+                    {modo === 'equipe' && (
+                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads do PNCP com homologação há mais de 30 dias e sem contato, tirados do quadro automaticamente">
+                        <input
+                            type="checkbox"
+                            checked={verArquivoPncp}
+                            onChange={(e) => setVerArquivoPncp(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">
+                            Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
+                        </span>
+                    </label>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads encerrados como perdidos (sem interesse, sem retorno etc.), tirados do quadro">
+                        <input
+                            type="checkbox"
+                            checked={verEncerrados}
+                            onChange={(e) => setVerEncerrados(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">
+                            Ver encerrados ({prospects.filter(leadEncerrado).length})
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            {/* Legenda das cores da bordinha dos cards (blocos das colunas de vendedor) */}
+            {!verArquivoPncp && !verEncerrados && (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 mb-3 text-[12px] text-slate-500">
+                    {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
+                        <span key={b} className="inline-flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
+                            <span className="font-bold text-slate-700">{BLOCO_INFO[b].titulo}:</span>
+                            {b === 'contatar' ? 'sem contato registrado'
+                                : b === 'aguardando' ? 'contato feito, próximo contato ainda não chegou'
+                                : 'chegou o dia do próximo contato'}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {/* Kanban Board: colunas da equipe ou, na Minha prospecção, colunas por etapa */}
+            {modo === 'meu' ? renderMinhaProspeccao() : (
+            <div className="flex gap-6 overflow-x-auto pb-8 custom-scroll items-start">
+                {columns.map(column => {
+                    const columnProspects = filteredProspects.filter(p => {
+                        if (column.id === 'Novos Leads') {
+                            const validIds = columns.map(c => c.id);
+                            return p.status === column.id || !validIds.includes(p.status);
+                        }
+                        return p.status === column.id;
+                    }).sort((a, b) => {
+                        // 'homologacao' => leads do PNCP com homologação mais recente primeiro
+                        // (empate: maior valor homologado); os demais vêm depois, pelo tempo na coluna.
+                        if (leadAgeSort === 'homologacao') {
+                            const ha = a.data_homologacao || '';
+                            const hb = b.data_homologacao || '';
+                            if (ha && hb) {
+                                if (ha !== hb) return ha < hb ? 1 : -1;
+                                return (Number(b.valor_contrato) || 0) - (Number(a.valor_contrato) || 0);
+                            }
+                            if (ha) return -1;
+                            if (hb) return 1;
+                        }
+                        // 'recent' => maior data primeiro (menor tempo na coluna primeiro)
+                        // 'oldest' => menor data primeiro (maior tempo na coluna primeiro)
+                        const ta = getLeadEnteredAtMs(a);
+                        const tb = getLeadEnteredAtMs(b);
+                        if (!ta && !tb) return 0;
+                        if (!ta) return 1;
+                        if (!tb) return -1;
+                        return leadAgeSort === 'oldest' ? (ta - tb) : (tb - ta);
+                    });
+                    const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
+                    const headerClass = colorToHeader(column.color);
+                    // Colunas de vendedor se organizam em blocos; Novos Leads e o arquivo seguem como lista única.
+                    const agrupar = column.id !== 'Novos Leads' && !verArquivoPncp && !verEncerrados;
+                    const hojeSP = diaSaoPaulo(Date.now());
+                    const contatadosHoje = agrupar
+                        ? columnProspects.filter(p => { const t = toquesPorLead[p.id]; return t && diaSaoPaulo(t.ultimo) === hojeSP; }).length
+                        : 0;
+                    const contagemBlocos: Record<BlocoLead, number> = { contatar: 0, aguardando: 0, retomar: 0 };
+                    if (agrupar) for (const p of columnProspects) contagemBlocos[blocoDoLead(toquesPorLead[p.id], p)] += 1;
+                    const blocoFiltrado = (b: BlocoLead) => filtrosColuna.has(`${column.id}:${b}`);
+                    const colunaComFiltro = agrupar && ORDEM_BLOCOS.some(blocoFiltrado);
+
+                    return (
+                        <div 
+                            key={column.id} 
+                            draggable={editingColId !== column.id}
+                            onDragStart={(e) => {
+                                if (editingColId === column.id) return;
+                                handleColDragStart(e, column.id);
+                            }}
+                            onDragEnd={handleColDragEnd}
+                            className={`flex-shrink-0 w-80 flex flex-col gap-4 max-h-[calc(100dvh-230px)] overflow-hidden transition-all ${draggingCol === column.id ? 'opacity-40 scale-95' : 'opacity-100'}`} 
+                            onDragOver={handleDragOver} 
+                            onDrop={(e) => handleDrop(e, column.id)}
+                        >
+                            {/* Column Header */}
+                            <div className={`shrink-0 p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 min-w-0">
+                                        <GripVertical size={14} className="opacity-50" />
+                                        {editingColId === column.id ? (
+                                            <input
+                                                autoFocus
+                                                value={editingColTitle}
+                                                onChange={(e) => setEditingColTitle(e.target.value)}
+                                                onBlur={commitRenameColumn}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        commitRenameColumn();
+                                                    } else if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        cancelRenameColumn();
+                                                    }
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-full max-w-[190px] px-2 py-1 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold tracking-wider uppercase text-sm"
+                                            />
+                                        ) : (
+                                            <span
+                                                onDoubleClick={(e) => {
+                                                    e.stopPropagation();
+                                                    beginRenameColumn(column);
+                                                }}
+                                                title="Duplo clique para renomear"
+                                                className="truncate select-none cursor-text"
+                                            >
+                                                {column.title}
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-white/20 text-white">
+                                            {columnProspects.length}
+                                        </span>
+                                        {!column.protected && (
+                                            <button
+                                                onClick={() => handleDeleteColumn(column.id)}
+                                                title="Excluir coluna"
+                                                className="w-5 h-5 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/30 transition-colors opacity-60 hover:opacity-100"
+                                            >
+                                                <X size={11} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-xs font-bold opacity-80">{formatCurrency(totalValue)}</p>
+                                {agrupar && columnProspects.length > 0 && (
+                                    <p className="text-[11px] font-bold opacity-90" title="Leads desta coluna com contato registrado hoje">
+                                        Hoje: {contatadosHoje} {contatadosHoje === 1 ? 'contato feito' : 'contatos feitos'}
+                                    </p>
+                                )}
+                                {agrupar && columnProspects.length > 0 && (
+                                    <div className="mt-1 flex items-center gap-1.5">
+                                        {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => {
+                                            const ativo = blocoFiltrado(b);
+                                            return (
+                                                <button
+                                                    key={b}
+                                                    type="button"
+                                                    draggable={false}
+                                                    onClick={(e) => { e.stopPropagation(); alternarFiltroColuna(`${column.id}:${b}`); }}
+                                                    title={ativo ? `Tirar o filtro "${BLOCO_INFO[b].titulo}" desta coluna` : `Mostrar nesta coluna só "${BLOCO_INFO[b].titulo}"`}
+                                                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors ${
+                                                        ativo
+                                                            ? 'bg-white text-navy border-white'
+                                                            : colunaComFiltro
+                                                                ? 'bg-white/15 text-current border-white/30 opacity-60 hover:opacity-100'
+                                                                : 'bg-white/20 text-current border-white/40 hover:bg-white/30'
+                                                    }`}
+                                                >
+                                                    <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} />
+                                                    {contagemBlocos[b]}
+                                                </button>
+                                            );
+                                        })}
+                                        {colunaComFiltro && (
+                                            <button
+                                                type="button"
+                                                draggable={false}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFiltrosColuna(prev => new Set([...prev].filter(k => !k.startsWith(`${column.id}:`))));
+                                                }}
+                                                title="Mostrar todos os leads desta coluna"
+                                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-current opacity-80 hover:opacity-100"
+                                            >
+                                                <X size={11} /> Todos
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* A fila do dia: leads do PNCP que entraram e ainda não
+                                    receberam o primeiro e-mail. Conta sobre todos os leads,
+                                    não sobre a coluna, para o número não mudar com o filtro
+                                    ligado (senão viraria sempre o total filtrado). */}
+                                {column.id === 'Novos Leads' && (() => {
+                                    const naFila = prospects.filter(p => estadoE1(p).estado === 'aguardando').length;
+                                    if (!naFila && !soAguardandoE1) return null;
+                                    return (
+                                        <button
+                                            type="button"
+                                            draggable={false}
+                                            onClick={(e) => { e.stopPropagation(); setSoAguardandoE1(v => !v); }}
+                                            title={soAguardandoE1
+                                                ? 'Mostrar todos os leads de novo'
+                                                : 'Filtrar só os leads que esperam o primeiro e-mail'}
+                                            className={`mt-1 self-start inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
+                                                soAguardandoE1
+                                                    ? 'bg-amber-400 text-navy border-amber-300'
+                                                    : 'bg-white/15 text-white border-white/25 hover:bg-white/25'
+                                            }`}
+                                        >
+                                            <Clock size={11} /> Aguardando 1º e-mail ({naFila})
+                                        </button>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Cards — min-h-0 obrigatório no flex para overflow-y funcionar */}
+                            <div className={`flex-1 min-h-0 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scroll rounded-2xl p-1.5 transition-colors ${isDragging ? 'bg-slate-100/50 border border-dashed border-slate-300' : 'bg-transparent'}`}>
+                                {(() => {
+                                if (!agrupar) return columnProspects.map(p => renderCard(p, agrupar));
                                 const porBloco: Record<BlocoLead, Prospect[]> = { contatar: [], aguardando: [], retomar: [] };
                                 for (const p of columnProspects) porBloco[blocoDoLead(toquesPorLead[p.id], p)].push(p);
                                 if (colunaComFiltro && !ORDEM_BLOCOS.some(b => blocoFiltrado(b) && porBloco[b].length)) {
@@ -2628,7 +3019,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 <span className="text-slate-400">· {lista.length}</span>
                                                 <ChevronDown size={12} className={`ml-auto transition-transform ${recolhido ? '-rotate-90' : ''}`} />
                                             </button>
-                                            {!recolhido && lista.map(renderCard)}
+                                            {!recolhido && lista.map(p => renderCard(p, agrupar))}
                                         </div>
                                     );
                                 });
@@ -2653,6 +3044,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     </button>
                 </div>
             </div>
+            )}
 
             {/* ── BULK DELETE FLOATING BAR ── */}
             {selectionMode && (
@@ -2662,6 +3054,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             ? 'Clique nos leads para selecionar'
                             : `${selectedLeadIds.size} lead(s) selecionado(s)`}
                     </span>
+                    {selectedLeadIds.size > 0 && equipe.length > 0 && (
+                        <select
+                            value=""
+                            onChange={(e) => { if (e.target.value) handleBulkAtribuir(e.target.value); }}
+                            className="bg-navy-light border border-gold/35 text-areia px-3 py-2 rounded-xl font-bold text-sm outline-none cursor-pointer"
+                            title="Passar os leads selecionados para alguém da equipe"
+                        >
+                            <option value="">Passar para...</option>
+                            {equipe.map(m => <option key={m.email} value={m.email}>{m.nome}</option>)}
+                        </select>
+                    )}
                     {selectedLeadIds.size > 0 && (
                         <button
                             onClick={handleBulkDelete}
