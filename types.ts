@@ -155,8 +155,23 @@ export interface Prospect {
   // (migração 119). telefones_invalidos guarda só dígitos, sem o 55.
   telefone_2?: string | null;
   telefones_invalidos?: string[] | null;
+  // Kanban pessoal (migração 122): dono e etapa separados da coluna.
+  // responsavel_email nulo = lead na fila (Novos Leads).
+  responsavel_email?: string | null;
+  responsavel_em?: string | null;
+  etapa?: EtapaLead | null;
+  // Dia combinado para o próximo contato (AAAA-MM-DD, horário de São Paulo).
+  proximo_passo?: string | null;
+  motivo_perda?: MotivoPerda | null;
+  encerrado_em?: string | null;
   tasks?: CRMTask[];
 }
+
+export type EtapaLead = 'contatar' | 'tentando' | 'conversa' | 'cotacao' | 'ganho' | 'perdido';
+export type MotivoPerda = 'sem_interesse' | 'ja_tem_corretora' | 'nao_precisa' | 'contato_invalido' | 'sem_retorno';
+export type ResultadoContato =
+  | 'enviado' | 'respondeu' | 'conversou' | 'nao_atendeu'
+  | 'pediu_retorno' | 'pediu_cotacao' | 'numero_errado' | 'sem_interesse';
 
 /** Pendências da aba Gestão de Resultados (tabela `pendencias`). */
 export interface Pendencia {

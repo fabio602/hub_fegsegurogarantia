@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Prospect, CRMTask } from '../types';
+import { Prospect, CRMTask, MotivoPerda, ResultadoContato } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { Plus, Upload, Search, MoreVertical, X, Loader2, GripVertical, Phone, Tag, Save, ArrowRight, Edit2, MoveRight, TrendingUp, Trash2, LayoutGrid, Palette, Calendar, Bell, Clock, CheckCircle2, AlertCircle, ExternalLink, Mail, Send, AlertTriangle, MessageCircle, ChevronDown } from 'lucide-react';
 import TaskManager from './TaskManager';
@@ -8,6 +8,12 @@ import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import ModalPortal from './ModalPortal.tsx';
 import { useToast } from './Toast.tsx';
 import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
+import KanbanComoFoiModal, { ContextoContato, DadosContato } from './KanbanComoFoiModal.tsx';
+import {
+    CanalContato, RESUMO_RESULTADO, RESULTADOS_COM_RESPOSTA, JANELA_DESISTENCIA_DIAS, ROTULO_ETAPA,
+    ROTULO_MOTIVO_PERDA, MOTIVOS_PERDA, etapaAposResultado, hojeSaoPaulo, somarDiasUteis, rotuloDia,
+    proximoPassoVencido,
+} from '../lib/contatoLead.ts';
 import { Roteiro, grupoDoLead, normalizarTelefone, tipoTelefone } from '../lib/roteiros.ts';
 
 interface KanbanColumn {
@@ -312,31 +318,68 @@ async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]>
     return todos;
 }
 
-// ---- Toques manuais (WhatsApp, e-mail e ligação feitos à mão) ----
-// Cada "Confirmar" no card grava uma linha em prospect_toques. O card mostra o
-// último toque de cada canal e fica em alerta quando o último contato passou
-// de TOQUE_ALERTA_DIAS sem o lead mudar de situação.
-type CanalToque = 'whatsapp' | 'email' | 'ligacao';
+// ---- Toques (WhatsApp, e-mail e ligação registrados no card) ----
+// Cada "Como foi?" grava uma linha em prospect_toques com o resultado e o
+// próximo passo (migração 122). O card mostra o último toque de cada canal,
+// o último resultado e o próximo contato combinado.
+type CanalToque = CanalContato;
 const TOQUE_ALERTA_DIAS = 3;
 interface ToqueCanal { em: string; autor: string | null }
+interface ToqueRegistrado { em: string; canal: CanalToque; resultado: ResultadoContato | null }
 interface ToquesDoLead {
     whatsapp?: ToqueCanal; email?: ToqueCanal; ligacao?: ToqueCanal;
     qtd: Partial<Record<CanalToque, number>>; total: number; ultimo: string;
+    /** Resultado do toque mais recente (nulo nos registrados antes do "Como foi?"). */
+    ultimoResultado: ResultadoContato | null;
+    historico: ToqueRegistrado[];
 }
+interface LinhaToque { prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string; resultado: ResultadoContato | null }
+
+/** Soma um toque ao resumo do lead (usado na carga e a cada registro novo). */
+const somarToque = (atual: ToquesDoLead | undefined, l: LinhaToque): ToquesDoLead => {
+    const t: ToquesDoLead = atual
+        ? { ...atual, qtd: { ...atual.qtd }, historico: [...atual.historico] }
+        : { qtd: {}, total: 0, ultimo: l.created_at, ultimoResultado: l.resultado, historico: [] };
+    t.total += 1;
+    t.qtd[l.canal] = (t.qtd[l.canal] || 0) + 1;
+    if (l.created_at >= t.ultimo) { t.ultimo = l.created_at; t.ultimoResultado = l.resultado; }
+    const anterior = t[l.canal];
+    if (!anterior || l.created_at > anterior.em) t[l.canal] = { em: l.created_at, autor: l.autor_email };
+    t.historico.push({ em: l.created_at, canal: l.canal, resultado: l.resultado });
+    return t;
+};
+
+/** Tentativas sem resposta na janela da regra de desistência, desde a última resposta. */
+const tentativasSemResposta = (t?: ToquesDoLead): number => {
+    if (!t) return 0;
+    const limite = Date.now() - JANELA_DESISTENCIA_DIAS * 86400000;
+    let qtd = 0;
+    for (const h of [...t.historico].sort((a, b) => b.em.localeCompare(a.em))) {
+        if (h.resultado && RESULTADOS_COM_RESPOSTA.includes(h.resultado)) break;
+        if (Date.parse(h.em) < limite) break;
+        qtd += 1;
+    }
+    return qtd;
+};
+
+/** Lead encerrado (perdido ou ganho): sai do quadro, aparece em "Ver encerrados". */
+const leadEncerrado = (p: Prospect) => p.etapa === 'perdido' || p.etapa === 'ganho';
 const ROTULO_CANAL: Record<CanalToque, string> = { whatsapp: 'WhatsApp', email: 'E-mail', ligacao: 'Ligação' };
 
 // ---- Blocos dentro da coluna do vendedor ----
 // Fora de "Novos Leads", cada coluna separa os cards em três blocos, calculados
 // pelos toques já registrados (o vendedor não arrasta nada):
 //  - contatar:  nenhum toque ainda;
-//  - aguardando: último toque há menos de TOQUE_ALERTA_DIAS;
-//  - retomar:   último toque há TOQUE_ALERTA_DIAS dias ou mais.
+//  - aguardando: próximo contato marcado para depois de hoje (ou, sem data,
+//                último toque há menos de TOQUE_ALERTA_DIAS);
+//  - retomar:   dia do próximo contato chegou (ou, sem data, último toque há
+//                TOQUE_ALERTA_DIAS dias ou mais).
 type BlocoLead = 'contatar' | 'aguardando' | 'retomar';
 const ORDEM_BLOCOS: BlocoLead[] = ['contatar', 'retomar', 'aguardando'];
 const BLOCO_INFO: Record<BlocoLead, { titulo: string; dica: string; ponto: string; faixa: string }> = {
     contatar:   { titulo: 'Para contatar',       dica: 'Ainda sem nenhum WhatsApp, e-mail ou ligação registrado.', ponto: 'bg-sky-500',     faixa: 'border-l-sky-500' },
-    retomar:    { titulo: 'Retomar',             dica: `Último contato há ${TOQUE_ALERTA_DIAS} dias ou mais. Hora de cobrar retorno.`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
-    aguardando: { titulo: 'Em contato', dica: `Contato feito há menos de ${TOQUE_ALERTA_DIAS} dias. Aguardando retorno do lead.`, ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
+    retomar:    { titulo: 'Retomar',             dica: `Chegou o dia do próximo contato (ou, sem data marcada, ${TOQUE_ALERTA_DIAS} dias ou mais sem contato).`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
+    aguardando: { titulo: 'Em contato', dica: 'Contato feito; o próximo contato ainda não chegou.', ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
 };
 const blocoDoLead = (t?: ToquesDoLead, p?: Prospect): BlocoLead => {
     // Situação escolhida à mão vale até o próximo toque registrado depois dela.
@@ -348,6 +391,8 @@ const blocoDoLead = (t?: ToquesDoLead, p?: Prospect): BlocoLead => {
         return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
     }
     if (!t) return 'contatar';
+    // Próximo contato combinado manda; sem ele, vale a regra dos dias sem contato.
+    if (p?.proximo_passo) return proximoPassoVencido(p.proximo_passo) ? 'retomar' : 'aguardando';
     const dias = diasDesdeTimestamp(t.ultimo);
     return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
 };
@@ -551,8 +596,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     // Toques manuais por lead, nome curto de cada usuário e o botão em confirmação.
     const [toquesPorLead, setToquesPorLead] = useState<Record<string, ToquesDoLead>>({});
     const [nomePorEmail, setNomePorEmail] = useState<Record<string, string>>({});
-    const [confirmandoToque, setConfirmandoToque] = useState<{ id: string; canal: CanalToque } | null>(null);
+    // "Como foi?" aberto: lead, canal e o que já se sabe do contato (roteiro, assunto).
+    const [comoFoi, setComoFoi] = useState<{ leadId: string; canal: CanalToque; contexto?: ContextoContato } | null>(null);
     const [salvandoToque, setSalvandoToque] = useState(false);
+    // Leads encerrados (perdido ou ganho) ficam fora do quadro; a caixa os mostra.
+    const [verEncerrados, setVerEncerrados] = useState(false);
+    // Menu do card que está mostrando a lista de motivos para encerrar.
+    const [encerrandoMenuId, setEncerrandoMenuId] = useState<string | null>(null);
     const [soSemContato, setSoSemContato] = useState(false);
     // Leads do PNCP arquivados (homologação antiga, sem contato) ficam fora do
     // quadro. A caixa "Ver arquivo PNCP" traz de volta para consulta: como
@@ -808,25 +858,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         }
     };
 
-    /** Último toque de cada canal por lead, a partir de prospect_toques. */
-    const montarToques = (linhas: { prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }[]) => {
+    /** Resumo dos toques por lead, a partir de prospect_toques. */
+    const montarToques = (linhas: LinhaToque[]) => {
         const mapa: Record<string, ToquesDoLead> = {};
-        for (const l of linhas) {
-            const atual = mapa[l.prospect_id] || { qtd: {}, total: 0, ultimo: l.created_at };
-            atual.total += 1;
-            atual.qtd[l.canal] = (atual.qtd[l.canal] || 0) + 1;
-            if (l.created_at > atual.ultimo) atual.ultimo = l.created_at;
-            const anterior = atual[l.canal];
-            if (!anterior || l.created_at > anterior.em) atual[l.canal] = { em: l.created_at, autor: l.autor_email };
-            mapa[l.prospect_id] = atual;
-        }
+        for (const l of linhas) mapa[l.prospect_id] = somarToque(mapa[l.prospect_id], l);
         return mapa;
     };
 
     const fetchToques = async () => {
         try {
-            const linhas = await buscarTodasLinhas<{ prospect_id: string; canal: CanalToque; autor_email: string | null; created_at: string }>(
-                'prospect_toques', 'prospect_id, canal, autor_email, created_at');
+            const linhas = await buscarTodasLinhas<LinhaToque>(
+                'prospect_toques', 'prospect_id, canal, autor_email, created_at, resultado');
             setToquesPorLead(montarToques(linhas));
             const hoje = diaSaoPaulo(Date.now());
             const porAutor: Record<string, number> = {};
@@ -862,6 +904,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             for (const s of data || []) {
                 if (s.email && s.name) mapa[String(s.email).toLowerCase()] = String(s.name).trim().split(/\s+/)[0];
             }
+            // A equipe de prospecção (migração 122) é por e-mail de login, que pode
+            // não ser o de sellers (ex.: o João entra com o Gmail).
+            const { data: equipe } = await supabase.from('prospeccao_equipe').select('email, nome');
+            for (const e of equipe || []) {
+                if (e.email && e.nome) mapa[String(e.email).toLowerCase()] = String(e.nome).trim().split(/\s+/)[0];
+            }
             setNomePorEmail(mapa);
         } catch (error) {
             console.error('Error fetching sellers:', error);
@@ -885,41 +933,107 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, telefones_invalidos: novos } : p));
     };
 
-    const registrarToque = async (prospect: Prospect, canal: CanalToque): Promise<boolean> => {
+    /**
+     * Grava o contato com o resultado e atualiza etapa e próximo passo do lead.
+     * Devolve true quando gravou. silencioso = sem toast de sucesso (usado
+     * quando o próprio envio já avisou, como o E-mail da licitação).
+     */
+    const salvarContato = async (
+        prospect: Prospect,
+        d: DadosContato & { roteiro?: string | null; mensagem?: string },
+        silencioso = false,
+    ): Promise<boolean> => {
         if (salvandoToque) return false;
         setSalvandoToque(true);
         try {
             const { data, error } = await supabase
                 .from('prospect_toques')
-                .insert({ prospect_id: prospect.id, canal })
-                .select('prospect_id, canal, autor_email, created_at')
+                .insert({
+                    prospect_id: prospect.id,
+                    canal: d.canal,
+                    resultado: d.resultado,
+                    proximo_passo: d.proximoPasso,
+                    nota: d.nota || null,
+                    assunto: d.assunto || null,
+                    roteiro: d.roteiro || null,
+                    mensagem: d.mensagem || null,
+                })
+                .select('prospect_id, canal, autor_email, created_at, resultado')
                 .single();
             if (error) throw error;
-            setToquesPorLead(prev => {
-                const atual: ToquesDoLead = prev[prospect.id]
-                    ? { ...prev[prospect.id], qtd: { ...prev[prospect.id].qtd } }
-                    : { qtd: {}, total: 0, ultimo: data.created_at };
-                atual.total += 1;
-                atual.qtd[canal] = (atual.qtd[canal] || 0) + 1;
-                atual.ultimo = data.created_at;
-                atual[canal] = { em: data.created_at, autor: data.autor_email };
-                return { ...prev, [prospect.id]: atual };
-            });
-            setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ult_contato: data.created_at } : p));
-            if (canal === 'whatsapp' && data.autor_email) {
+            setToquesPorLead(prev => ({ ...prev, [prospect.id]: somarToque(prev[prospect.id], data as LinhaToque) }));
+            if (d.canal === 'whatsapp' && data.autor_email) {
                 const autor = String(data.autor_email).toLowerCase();
                 setWhatsHojePorAutor(prev => ({ ...prev, [autor]: (prev[autor] || 0) + 1 }));
             }
-            toast(`${ROTULO_CANAL[canal]} registrad${canal === 'ligacao' ? 'a' : 'o'} no card.`, 'success');
+
+            const encerrar = d.resultado === 'sem_interesse' || d.encerrarSemRetorno;
+            const mudanca: Partial<Prospect> = encerrar
+                ? {
+                    etapa: 'perdido',
+                    motivo_perda: d.resultado === 'sem_interesse' ? 'sem_interesse' : 'sem_retorno',
+                    encerrado_em: new Date().toISOString(),
+                    proximo_passo: null,
+                }
+                : {
+                    etapa: etapaAposResultado(prospect.etapa, d.resultado),
+                    motivo_perda: null,
+                    encerrado_em: null,
+                    proximo_passo: d.proximoPasso,
+                };
+            const { error: erroLead } = await supabase.from('prospects').update(mudanca).eq('id', prospect.id);
+            setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ...mudanca, ult_contato: data.created_at } : p));
+            if (erroLead) {
+                console.error('Erro ao atualizar a etapa do lead:', erroLead);
+                toast('Contato registrado, mas não consegui atualizar a etapa do lead. Recarregue a página.', 'error');
+            } else if (!silencioso) {
+                toast(encerrar
+                    ? 'Contato registrado. O lead foi encerrado e saiu do quadro.'
+                    : d.proximoPasso
+                        ? `Contato registrado. Próximo contato: ${rotuloDia(d.proximoPasso)}.`
+                        : 'Contato registrado.', 'success');
+            }
             return true;
         } catch (error) {
-            console.error('Error registrando toque:', error);
+            console.error('Error registrando contato:', error);
             toast('Não consegui registrar o contato. Tente de novo.', 'error');
             return false;
         } finally {
             setSalvandoToque(false);
-            setConfirmandoToque(null);
         }
+    };
+
+    /** Encerra o lead pelo menu do card, com o motivo escolhido. */
+    const encerrarLead = async (prospect: Prospect, motivo: MotivoPerda) => {
+        setOpenMenuId(null);
+        setEncerrandoMenuId(null);
+        const mudanca: Partial<Prospect> = { etapa: 'perdido', motivo_perda: motivo, encerrado_em: new Date().toISOString(), proximo_passo: null };
+        const { error } = await supabase.from('prospects').update(mudanca).eq('id', prospect.id);
+        if (error) {
+            console.error('Erro ao encerrar o lead:', error);
+            toast('Não consegui encerrar o lead. Tente de novo.', 'error');
+            return;
+        }
+        setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ...mudanca } : p));
+        toast(`Lead encerrado (${ROTULO_MOTIVO_PERDA[motivo].toLowerCase()}). Ele aparece em "Ver encerrados".`, 'success');
+    };
+
+    /** Volta um lead encerrado para o quadro. */
+    const reabrirLead = async (prospect: Prospect) => {
+        setOpenMenuId(null);
+        const mudanca: Partial<Prospect> = {
+            etapa: toquesPorLead[prospect.id] ? 'tentando' : 'contatar',
+            motivo_perda: null,
+            encerrado_em: null,
+        };
+        const { error } = await supabase.from('prospects').update(mudanca).eq('id', prospect.id);
+        if (error) {
+            console.error('Erro ao reabrir o lead:', error);
+            toast('Não consegui reabrir o lead. Tente de novo.', 'error');
+            return;
+        }
+        setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ...mudanca } : p));
+        toast('Lead reaberto e de volta ao quadro.', 'success');
     };
 
     /**
@@ -1336,7 +1450,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setSavingLead(true);
         try {
             // Filter out system and virtual fields that can't be updated directly in the 'prospects' table
-            const { id, created_at, tasks, ...rawUpdateData } = editLeadForm;
+            // Dono, etapa e próximo passo mudam pelo card ("Como foi?", menu), não
+            // pela ficha: mandar o valor carregado ao abrir sobrescreveria um
+            // contato registrado nesse meio tempo.
+            const {
+                id, created_at, tasks,
+                responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em,
+                ...rawUpdateData
+            } = editLeadForm;
             const nextStatus = (rawUpdateData as any).status;
             const statusChanged = typeof nextStatus === 'string' && nextStatus !== editingLead.status;
             if (statusChanged) {
@@ -1380,7 +1501,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
             const updatedLead = {
-                ...editLeadForm,
+                ...rawUpdateData,
                 limites_seguradoras: rawUpdateData.limites_seguradoras,
                 description: rawUpdateData.description,
             } as Prospect;
@@ -1740,6 +1861,18 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setEmailLicEnviando(false);
         if (!r.ok) { setEmailLicErro(r.erro); return; }
         toast(`E-mail da licitação enviado para ${r.data.para}. A trilha segue sozinha do 2º e-mail em diante.`, 'success');
+        // O envio conta como contato: sai de "Para contatar" e entra na linha do
+        // tempo de quem mandou, com retorno sugerido em 3 dias úteis.
+        await salvarContato(leadEmailLicitacao, {
+            canal: 'email',
+            resultado: 'enviado',
+            proximoPasso: somarDiasUteis(hojeSaoPaulo(), 3),
+            nota: '',
+            assunto: emailLicAssunto,
+            encerrarSemRetorno: false,
+            roteiro: 'email_licitacao',
+            mensagem: emailLicCorpo,
+        }, true);
         fecharEmailLicitacao();
         await Promise.all([fetchProspects(), fetchCadencia()]);
     };
@@ -1759,7 +1892,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
         const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
         const matchesArquivo = verArquivoPncp ? p.status === STATUS_ARQUIVO_PNCP : p.status !== STATUS_ARQUIVO_PNCP;
-        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo;
+        const matchesEncerrado = verEncerrados ? leadEncerrado(p) : !leadEncerrado(p);
+        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo && matchesEncerrado;
     });
 
     // Tags existentes nos leads carregados, da mais usada para a menos usada.
@@ -1880,19 +2014,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
                         </span>
                     </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none" title="Leads encerrados como perdidos (sem interesse, sem retorno etc.), tirados do quadro">
+                        <input
+                            type="checkbox"
+                            checked={verEncerrados}
+                            onChange={(e) => setVerEncerrados(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
+                        />
+                        <span className="text-[12px] font-bold text-slate-600">
+                            Ver encerrados ({prospects.filter(leadEncerrado).length})
+                        </span>
+                    </label>
                 </div>
             </div>
 
             {/* Legenda das cores da bordinha dos cards (blocos das colunas de vendedor) */}
-            {!verArquivoPncp && (
+            {!verArquivoPncp && !verEncerrados && (
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 mb-3 text-[12px] text-slate-500">
                     {(['contatar', 'aguardando', 'retomar'] as BlocoLead[]).map(b => (
                         <span key={b} className="inline-flex items-center gap-2">
                             <span className={`w-2.5 h-2.5 rounded-full ${BLOCO_INFO[b].ponto}`} />
                             <span className="font-bold text-slate-700">{BLOCO_INFO[b].titulo}:</span>
                             {b === 'contatar' ? 'sem contato registrado'
-                                : b === 'aguardando' ? `contato nos últimos ${TOQUE_ALERTA_DIAS} dias`
-                                : `${TOQUE_ALERTA_DIAS} dias ou mais sem contato`}
+                                : b === 'aguardando' ? 'contato feito, próximo contato ainda não chegou'
+                                : 'chegou o dia do próximo contato'}
                         </span>
                     ))}
                 </div>
@@ -1932,7 +2077,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                     const totalValue = columnProspects.reduce((sum, p) => sum + (p.lead_value || 0), 0);
                     const headerClass = colorToHeader(column.color);
                     // Colunas de vendedor se organizam em blocos; Novos Leads e o arquivo seguem como lista única.
-                    const agrupar = column.id !== 'Novos Leads' && !verArquivoPncp;
+                    const agrupar = column.id !== 'Novos Leads' && !verArquivoPncp && !verEncerrados;
                     const hojeSP = diaSaoPaulo(Date.now());
                     const contatadosHoje = agrupar
                         ? columnProspects.filter(p => { const t = toquesPorLead[p.id]; return t && diaSaoPaulo(t.ultimo) === hojeSP; }).length
@@ -2122,7 +2267,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
                                                 {!selectionMode && <div className="relative" ref={openMenuId === prospect.id ? menuRef : null}>
-                                                    <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
+                                                    <button onClick={(e) => { e.stopPropagation(); setEncerrandoMenuId(null); setOpenMenuId(openMenuId === prospect.id ? null : prospect.id); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1 transition-colors">
                                                         <MoreVertical size={16} />
                                                     </button>
                                                     {openMenuId === prospect.id && (
@@ -2140,6 +2285,31 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     </div>
                                                                 );
                                                             })()}
+                                                            {leadEncerrado(prospect) ? (
+                                                                <div className="border-b border-slate-100">
+                                                                    <button onClick={() => reabrirLead(prospect)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-navy hover:bg-slate-50 transition-colors">
+                                                                        <ArrowRight size={14} className="text-slate-400" /> Reabrir lead
+                                                                    </button>
+                                                                </div>
+                                                            ) : encerrandoMenuId === prospect.id ? (
+                                                                <div className="border-b border-slate-100 pb-1">
+                                                                    <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Encerrar: motivo</p>
+                                                                    {MOTIVOS_PERDA.map(m => (
+                                                                        <button key={m} onClick={() => encerrarLead(prospect, m)} className="w-full flex items-center gap-3 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                                                                            {ROTULO_MOTIVO_PERDA[m]}
+                                                                        </button>
+                                                                    ))}
+                                                                    <button onClick={() => setEncerrandoMenuId(null)} className="w-full px-4 py-2 text-left text-[12px] font-bold text-slate-400 hover:text-slate-600">
+                                                                        Voltar
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="border-b border-slate-100">
+                                                                    <button onClick={() => setEncerrandoMenuId(prospect.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                                                                        <X size={14} className="text-slate-400" /> Encerrar lead
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                             <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mover para</p>
                                                             {columns.filter(col => col.id !== prospect.status).map(col => (
                                                                 <button key={col.id} onClick={() => handleMoveToColumn(prospect.id, col.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -2285,12 +2455,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                             );
                                         })()}
 
-                                        {/* Grupo toques: WhatsApp e e-mail enviados à mão, com confirmação */}
+                                        {/* Grupo toques: contatos registrados, último resultado, próximo contato e botões */}
                                         {(() => {
                                             const t = toquesPorLead[prospect.id];
                                             const diasUltimo = t ? diasDesdeTimestamp(t.ultimo) : null;
-                                            const emAlerta = diasUltimo !== null && diasUltimo >= TOQUE_ALERTA_DIAS;
-                                            const confirmando = confirmandoToque?.id === prospect.id ? confirmandoToque.canal : null;
+                                            // Com próximo contato marcado, o alerta é o dia chegar; sem ele, os dias sem contato.
+                                            const emAlerta = !prospect.proximo_passo && diasUltimo !== null && diasUltimo >= TOQUE_ALERTA_DIAS;
+                                            const vencido = proximoPassoVencido(prospect.proximo_passo);
+                                            const hoje = hojeSaoPaulo();
                                             const selo = (canal: CanalToque, toque: ToqueCanal) => (
                                                 <span
                                                     key={canal}
@@ -2302,6 +2474,17 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     {toque.autor ? ` · ${nomeCurto(toque.autor)}` : ''}
                                                 </span>
                                             );
+                                            const abrirComoFoi = (canal: CanalToque) => setComoFoi({ leadId: prospect.id, canal });
+                                            const classeBotao = 'inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors';
+                                            if (leadEncerrado(prospect)) {
+                                                return (
+                                                    <span className="self-start inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-slate-50 text-slate-600 border-slate-200">
+                                                        {ROTULO_ETAPA[prospect.etapa!]}
+                                                        {prospect.motivo_perda ? ` · ${ROTULO_MOTIVO_PERDA[prospect.motivo_perda].toLowerCase()}` : ''}
+                                                        {prospect.encerrado_em ? ` · ${diaMesBrDeTimestamp(prospect.encerrado_em)}` : ''}
+                                                    </span>
+                                                );
+                                            }
                                             return (
                                                 <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
                                                     {t && (
@@ -2314,37 +2497,42 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                             </span>
                                                         </div>
                                                     )}
+                                                    {(prospect.etapa === 'conversa' || prospect.etapa === 'cotacao' || t?.ultimoResultado || prospect.proximo_passo) && (
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {(prospect.etapa === 'conversa' || prospect.etapa === 'cotacao') && (
+                                                                <span className="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200">
+                                                                    {ROTULO_ETAPA[prospect.etapa]}
+                                                                </span>
+                                                            )}
+                                                            {t?.ultimoResultado && (
+                                                                <span className="text-[10px] font-bold text-slate-500" title="Resultado do último contato">
+                                                                    Último: {RESUMO_RESULTADO[t.ultimoResultado]}
+                                                                </span>
+                                                            )}
+                                                            {prospect.proximo_passo && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${vencido
+                                                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                        : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                                                                    title="Dia combinado para o próximo contato"
+                                                                >
+                                                                    <Clock size={10} />
+                                                                    {!vencido ? `Próximo: ${rotuloDia(prospect.proximo_passo)}`
+                                                                        : prospect.proximo_passo.slice(0, 10) === hoje ? 'Retomar hoje'
+                                                                        : `Retomar: era ${rotuloDia(prospect.proximo_passo)}`}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     {emAlerta && (
                                                         <span
                                                             className="self-start inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-700 border-amber-200"
-                                                            title={`Último contato há ${diasUltimo} dias. Hora de cobrar retorno ou mudar o card de coluna.`}
+                                                            title={`Último contato há ${diasUltimo} dias e nenhum próximo contato marcado.`}
                                                         >
                                                             <Clock size={10} /> Último contato há {diasUltimo} dias
                                                         </span>
                                                     )}
-                                                    {confirmando ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                draggable={false}
-                                                                disabled={salvandoToque}
-                                                                onClick={(e) => { e.stopPropagation(); registrarToque(prospect, confirmando); }}
-                                                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors disabled:opacity-60"
-                                                            >
-                                                                {salvandoToque ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                                                                Confirmar {confirmando === 'whatsapp' ? 'WhatsApp enviado' : confirmando === 'ligacao' ? 'ligação feita' : 'e-mail enviado'}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                draggable={false}
-                                                                disabled={salvandoToque}
-                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque(null); }}
-                                                                className="text-[11px] font-bold text-slate-500 hover:text-slate-700"
-                                                            >
-                                                                Cancelar
-                                                            </button>
-                                                        </div>
-                                                    ) : grupoDoLead(prospect.source) ? (() => {
+                                                    {grupoDoLead(prospect.source) ? (() => {
                                                         // Leads dos garimpos: os botões abrem o roteiro do grupo.
                                                         const celular = telefonesDoLead(prospect).validos[0]?.tipo === 'celular';
                                                         return (
@@ -2354,7 +2542,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     draggable={false}
                                                                     onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: celular ? 'whatsapp' : 'ligacao' }); }}
                                                                     title={celular ? 'Abrir a mensagem de WhatsApp deste lead' : 'Telefone fixo ou incompleto: abrir o roteiro de ligação'}
-                                                                    className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                    className={classeBotao}
                                                                 >
                                                                     {celular ? <><MessageCircle size={12} /> WhatsApp</> : <><Phone size={12} /> Ligação</>}
                                                                 </button>
@@ -2363,7 +2551,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     draggable={false}
                                                                     onClick={(e) => { e.stopPropagation(); setRoteiroAberto({ leadId: prospect.id, modo: prospect.email ? 'email' : 'sem-email' }); }}
                                                                     title="Abrir o e-mail deste lead"
-                                                                    className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                    className={classeBotao}
                                                                 >
                                                                     <Mail size={12} /> E-mail
                                                                 </button>
@@ -2374,27 +2562,27 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                             <button
                                                                 type="button"
                                                                 draggable={false}
-                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'whatsapp' }); }}
-                                                                title="Registrar que um WhatsApp foi enviado a este lead"
-                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                onClick={(e) => { e.stopPropagation(); abrirComoFoi('whatsapp'); }}
+                                                                title="Registrar um WhatsApp para este lead e como foi"
+                                                                className={classeBotao}
                                                             >
                                                                 <MessageCircle size={12} /> WhatsApp
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 draggable={false}
-                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'email' }); }}
-                                                                title="Registrar que um e-mail foi enviado a este lead"
-                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                onClick={(e) => { e.stopPropagation(); abrirComoFoi('email'); }}
+                                                                title="Registrar um e-mail para este lead e como foi"
+                                                                className={classeBotao}
                                                             >
                                                                 <Mail size={12} /> E-mail
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 draggable={false}
-                                                                onClick={(e) => { e.stopPropagation(); setConfirmandoToque({ id: prospect.id, canal: 'ligacao' }); }}
-                                                                title="Registrar que você ligou para este lead"
-                                                                className="inline-flex items-center gap-1 whitespace-nowrap shrink-0 text-[11px] font-bold px-2 py-1 rounded-lg border bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy transition-colors"
+                                                                onClick={(e) => { e.stopPropagation(); abrirComoFoi('ligacao'); }}
+                                                                title="Registrar uma ligação para este lead e como foi"
+                                                                className={classeBotao}
                                                             >
                                                                 <Phone size={12} /> Ligação
                                                             </button>
@@ -2647,9 +2835,33 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         whatsHoje={whatsHojePorAutor[meuEmail] || 0}
                         remetentePadrao={nomePorEmail[meuEmail] || ''}
                         salvando={salvandoToque}
-                        onRegistrar={(canal) => registrarToque(lead, canal)}
+                        onRegistrar={(canal, contexto) => { setComoFoi({ leadId: lead.id, canal, contexto }); return true; }}
                         onTrocarModo={(modo) => setRoteiroAberto({ leadId: lead.id, modo })}
                         onFechar={() => setRoteiroAberto(null)}
+                    />
+                );
+            })()}
+
+            {/* ── COMO FOI? (registro do contato com resultado e próximo passo) ── */}
+            {comoFoi && (() => {
+                const lead = prospects.find(p => p.id === comoFoi.leadId);
+                if (!lead) return null;
+                return (
+                    <KanbanComoFoiModal
+                        lead={lead}
+                        canal={comoFoi.canal}
+                        inicial={comoFoi.contexto}
+                        tentativasSemResposta={tentativasSemResposta(toquesPorLead[lead.id])}
+                        salvando={salvandoToque}
+                        onSalvar={async (dados) => {
+                            const ok = await salvarContato(lead, {
+                                ...dados,
+                                roteiro: comoFoi.contexto?.roteiro,
+                                mensagem: comoFoi.contexto?.mensagem,
+                            });
+                            if (ok) setComoFoi(null);
+                        }}
+                        onFechar={() => setComoFoi(null)}
                     />
                 );
             })()}
