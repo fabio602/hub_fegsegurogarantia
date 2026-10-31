@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, Loader2, CheckCircle2, AlertTriangle, MessageCircle, Mail, Phone, ExternalLink } from 'lucide-react';
 import { Prospect } from '../types';
 import ModalPortal from './ModalPortal.tsx';
+import { ContextoContato } from './KanbanComoFoiModal.tsx';
 import {
     Roteiro, GrupoRoteiro, camposDoLead, preencherRoteiro, escolherRoteiro, variacaoDoLead,
     normalizarTelefone, tipoTelefone, formatarTelefone, linkWhatsApp, linkEmail,
@@ -9,7 +10,8 @@ import {
 
 // Modal dos roteiros de abordagem do card (spec em docs/kanban/ROTEIROS-CARD.md).
 // Nada é enviado daqui: os botões abrem o WhatsApp, o discador ou o e-mail da
-// própria pessoa, e o toque só é gravado no "Confirmar".
+// própria pessoa. "Registrar" fecha este modal e abre o "Como foi?", que grava
+// o contato com o resultado, o roteiro usado e o texto.
 
 export type ModoRoteiro = 'whatsapp' | 'ligacao' | 'email' | 'sem-email';
 
@@ -50,7 +52,8 @@ interface Props {
     /** Primeiro nome do usuário em `sellers`; vazio quando ele não está lá. */
     remetentePadrao: string;
     salvando: boolean;
-    onRegistrar: (canal: 'whatsapp' | 'email' | 'ligacao') => Promise<boolean>;
+    /** Abre o "Como foi?" com o que já se sabe do contato. true = pode fechar este modal. */
+    onRegistrar: (canal: 'whatsapp' | 'email' | 'ligacao', contexto: ContextoContato) => boolean;
     onTrocarModo: (modo: ModoRoteiro) => void;
     onFechar: () => void;
 }
@@ -65,7 +68,6 @@ const KanbanRoteiroModal: React.FC<Props> = ({
     const remetente = remetenteCampo.trim();
     const [texto, setTexto] = useState('');
     const [assunto, setAssunto] = useState('');
-    const [confirmandoLigacao, setConfirmandoLigacao] = useState(false);
 
     const telefone = normalizarTelefone(lead.phonenumber);
     const tipoFone = tipoTelefone(telefone);
@@ -87,10 +89,14 @@ const KanbanRoteiroModal: React.FC<Props> = ({
         setAssunto(roteiro.assunto ? preencherRoteiro(roteiro.assunto, campos) : '');
     }, [roteiro, lead, remetente]);
 
-    useEffect(() => { setConfirmandoLigacao(false); }, [modo]);
-
-    const registrar = async (canal: 'whatsapp' | 'email' | 'ligacao') => {
-        if (await onRegistrar(canal)) onFechar();
+    const registrar = (canal: 'whatsapp' | 'email' | 'ligacao') => {
+        const contexto: ContextoContato = {
+            roteiro: roteiro ? `${roteiro.grupo}/${roteiro.canal}/${roteiro.etapa}${roteiro.variacao}` : null,
+            resultado: canal === 'ligacao' ? undefined : 'enviado',
+            assunto: canal === 'email' ? assunto : undefined,
+            mensagem: canal === 'ligacao' ? undefined : texto,
+        };
+        if (onRegistrar(canal, contexto)) onFechar();
     };
 
     const diasUltimoWhats = diasDesde(ultimoWhatsEm);
@@ -251,7 +257,7 @@ const KanbanRoteiroModal: React.FC<Props> = ({
                                         <ExternalLink size={16} /> Abrir WhatsApp
                                     </a>
                                     <BotaoConfirmar disabled={salvando || faltaRemetente} salvando={salvando} onClick={() => registrar('whatsapp')}>
-                                        Confirmar envio
+                                        Registrar envio
                                     </BotaoConfirmar>
                                 </>
                             )}
@@ -266,33 +272,15 @@ const KanbanRoteiroModal: React.FC<Props> = ({
                                         <ExternalLink size={16} /> Abrir no e-mail
                                     </a>
                                     <BotaoConfirmar disabled={salvando || faltaRemetente} salvando={salvando} onClick={() => registrar('email')}>
-                                        Confirmar envio
+                                        Registrar envio
                                     </BotaoConfirmar>
                                 </>
                             )}
 
                             {roteiro && modo === 'ligacao' && (
-                                confirmandoLigacao ? (
-                                    <>
-                                        <button
-                                            onClick={() => setConfirmandoLigacao(false)}
-                                            disabled={salvando}
-                                            className="text-[12px] font-bold text-slate-500 hover:text-slate-700"
-                                        >
-                                            Voltar
-                                        </button>
-                                        <BotaoConfirmar disabled={salvando} salvando={salvando} onClick={() => registrar('ligacao')}>
-                                            Confirmar ligação feita
-                                        </BotaoConfirmar>
-                                    </>
-                                ) : (
-                                    <button
-                                        onClick={() => setConfirmandoLigacao(true)}
-                                        className="bg-white border border-slate-200 text-slate-700 hover:border-gold/40 hover:text-navy px-5 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2"
-                                    >
-                                        <Phone size={16} /> Registrar ligação
-                                    </button>
-                                )
+                                <BotaoConfirmar disabled={salvando} salvando={salvando} onClick={() => registrar('ligacao')}>
+                                    Registrar ligação
+                                </BotaoConfirmar>
                             )}
                         </div>
                     </div>
