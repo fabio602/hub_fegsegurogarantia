@@ -280,3 +280,7 @@ update public.prospects p
 update public.prospects
    set status = 'Novos Leads'
  where status = 'col_1791835382839';
+
+-- 8. A função do gatilho não precisa ser chamável pela API (aviso do linter
+-- do Supabase). Aplicado em seguida como 122_kanban_pessoal_revoke_gatilho.
+revoke all on function public.prospects_sync_responsavel() from public, anon, authenticated;
