@@ -31,6 +31,14 @@ export const REGIOES: RadarRegiao[] = [
     uf: 'SP',
     municipios: ['Barueri', 'Osasco', 'Jandira', 'Carapicuíba', 'Cotia', 'Itapevi', 'Santana de Parnaíba', 'Cajamar', 'Caieiras'],
   },
+  {
+    // Campo Florido, os 6 municípios que fazem divisa com ele, Planura e
+    // Uberaba (polo regional, cerca de 70 km).
+    id: 'campo-florido',
+    nome: 'Campo Florido e região (MG)',
+    uf: 'MG',
+    municipios: ['Campo Florido', 'Comendador Gomes', 'Prata', 'Veríssimo', 'Conceição das Alagoas', 'Pirajuba', 'Frutal', 'Planura', 'Uberaba'],
+  },
 ];
 
 /** 'Santana de Parnaíba' -> 'SANTANA DE PARNAIBA', como está em radar_empresas.municipio. */
