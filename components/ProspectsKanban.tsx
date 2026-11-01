@@ -752,6 +752,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [editObservationText, setEditObservationText] = useState('');
     const [editObservationDateTime, setEditObservationDateTime] = useState('');
     const [editingObservationIndex, setEditingObservationIndex] = useState<number | null>(null);
+    // Gravação da nota direto no banco (ver gravarObservacoes).
+    const [salvandoNota, setSalvandoNota] = useState(false);
+    const [avisoNota, setAvisoNota] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
+    useEffect(() => {
+        if (avisoNota?.tipo !== 'ok') return;
+        const t = setTimeout(() => setAvisoNota(null), 4000);
+        return () => clearTimeout(t);
+    }, [avisoNota]);
 
     // Context Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -1483,6 +1491,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setEditObservationText('');
         setEditObservationDateTime(nowDateTimeLocal());
         setEditingObservationIndex(null);
+        setAvisoNota(null);
         // Parse limits
         try {
             const parsed = cleanedForm.limites_seguradoras ? JSON.parse(cleanedForm.limites_seguradoras) : [];
@@ -1492,19 +1501,91 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setIsEditModalOpen(true);
     };
 
-    const handleAddOrUpdateObservation = () => {
+    /**
+     * Acha no histórico relido do banco a nota que a pessoa está editando ou
+     * excluindo. Procura por data e texto; se não achar, só pelo texto, porque
+     * um trecho antigo sem carimbo ganha a hora da leitura ao ser lido.
+     */
+    const acharNota = (lista: ObservationEntry[], alvo: ObservationEntry): number => {
+        const exata = lista.findIndex(n => n.timestamp === alvo.timestamp && n.text === alvo.text);
+        return exata >= 0 ? exata : lista.findIndex(n => n.text === alvo.text);
+    };
+
+    /**
+     * Grava uma mudança no histórico de observações direto no banco.
+     *
+     * Antes a nota só ia para o banco no "Salvar Alterações": quem clicava em
+     * "Adicionar Nota" via a nota no histórico e, se fechasse a ficha pelo X ou
+     * pelo Cancelar, ela sumia sem aviso. Agora cada nota é gravada no clique.
+     *
+     * Relemos a descrição do banco antes de mexer para não apagar o que entrou
+     * enquanto a ficha estava aberta (nota de outra pessoa, registro automático
+     * do e-mail da licitação). `mudar` devolve null quando a nota alvo não
+     * existe mais no banco; nesse caso só atualizamos a lista da tela.
+     */
+    const gravarObservacoes = async (
+        leadId: string,
+        mudar: (atuais: ObservationEntry[]) => ObservationEntry[] | null,
+    ): Promise<'ok' | 'nao_achou'> => {
+        const { data, error: erroLeitura } = await supabase
+            .from('prospects').select('description').eq('id', leadId).single();
+        if (erroLeitura) throw erroLeitura;
+        const atuais = parseObservationHistory(data?.description);
+        const novas = mudar(atuais);
+        if (!novas) {
+            setEditObservationEntries(atuais);
+            return 'nao_achou';
+        }
+        const description = serializeObservationHistory(novas);
+        const { error } = await supabase.from('prospects').update({ description }).eq('id', leadId);
+        if (error) throw error;
+        setEditObservationEntries(parseObservationHistory(description));
+        setProspects(prev => prev.map(p => (p.id === leadId ? { ...p, description } : p)));
+        setEditingLead(prev => (prev && prev.id === leadId ? { ...prev, description } : prev));
+        return 'ok';
+    };
+
+    /**
+     * Grava a nota que está na caixa: nova, ou a alteração da nota em edição.
+     * Devolve true quando gravou. Em erro, o texto fica na caixa.
+     */
+    const salvarNotaDaCaixa = async (): Promise<boolean> => {
+        if (!editingLead) return false;
         const text = editObservationText.trim();
         const timestamp = localToBrDateTime(editObservationDateTime);
-        if (!text || !timestamp) return;
+        if (!text || !timestamp) return false;
         const entry: ObservationEntry = { text, timestamp };
-        setEditObservationEntries(prev => {
-            if (editingObservationIndex === null) return [...prev, entry];
-            return prev.map((item, idx) => (idx === editingObservationIndex ? entry : item));
-        });
-        setEditObservationText('');
-        setEditObservationDateTime(nowDateTimeLocal());
-        setEditingObservationIndex(null);
+        const alvo = editingObservationIndex === null ? null : editObservationEntries[editingObservationIndex] ?? null;
+
+        setSalvandoNota(true);
+        setAvisoNota(null);
+        try {
+            const r = await gravarObservacoes(editingLead.id, atuais => {
+                if (!alvo) return [...atuais, entry];
+                const i = acharNota(atuais, alvo);
+                if (i < 0) return null;
+                return atuais.map((n, idx) => (idx === i ? entry : n));
+            });
+            if (r === 'nao_achou') {
+                setAvisoNota({ tipo: 'erro', texto: 'Essa nota foi alterada ou apagada enquanto a ficha estava aberta. Confira o histórico, seu texto continua na caixa.' });
+                setEditingObservationIndex(null);
+                return false;
+            }
+            setEditObservationText('');
+            setEditObservationDateTime(nowDateTimeLocal());
+            setEditingObservationIndex(null);
+            setAvisoNota({ tipo: 'ok', texto: alvo ? 'Nota alterada' : 'Nota salva' });
+            return true;
+        } catch (error) {
+            console.error('Erro ao salvar nota:', error);
+            setAvisoNota({ tipo: 'erro', texto: 'Não consegui salvar a nota. Seu texto continua na caixa, tente de novo.' });
+            return false;
+        } finally {
+            setSalvandoNota(false);
+        }
     };
+
+    const handleAddOrUpdateObservation = () => { void salvarNotaDaCaixa(); };
 
     const handleEditObservation = (index: number) => {
         const entry = editObservationEntries[index];
@@ -1512,26 +1593,45 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setEditObservationText(entry.text);
         setEditObservationDateTime(brToLocalDateTime(entry.timestamp));
         setEditingObservationIndex(index);
+        setAvisoNota(null);
     };
 
-    const handleDeleteObservation = (index: number) => {
-        setEditObservationEntries(prev => prev.filter((_, idx) => idx !== index));
-        if (editingObservationIndex === index) {
-            setEditingObservationIndex(null);
-            setEditObservationText('');
-            setEditObservationDateTime(nowDateTimeLocal());
+    const handleDeleteObservation = async (index: number) => {
+        const alvo = editObservationEntries[index];
+        if (!editingLead || !alvo || salvandoNota) return;
+        if (!window.confirm('Excluir esta nota do histórico? Não dá para desfazer.')) return;
+        setSalvandoNota(true);
+        setAvisoNota(null);
+        try {
+            const r = await gravarObservacoes(editingLead.id, atuais => {
+                const i = acharNota(atuais, alvo);
+                return i < 0 ? null : atuais.filter((_, idx) => idx !== i);
+            });
+            if (editingObservationIndex !== null) {
+                setEditingObservationIndex(null);
+                setEditObservationText('');
+                setEditObservationDateTime(nowDateTimeLocal());
+            }
+            setAvisoNota(r === 'ok'
+                ? { tipo: 'ok', texto: 'Nota excluída' }
+                : { tipo: 'erro', texto: 'Essa nota já tinha sido alterada ou apagada. O histórico foi atualizado.' });
+        } catch (error) {
+            console.error('Erro ao excluir nota:', error);
+            setAvisoNota({ tipo: 'erro', texto: 'Não consegui excluir a nota. Tente de novo.' });
+        } finally {
+            setSalvandoNota(false);
         }
     };
 
     /**
      * Fecha o modal de editar lead avisando se houver alteração não salva.
+     * Devolve false quando a pessoa decide ficar.
      *
-     * Aqui não usamos salvamento automático de propósito: salvar carimba a
-     * observação com data/hora no histórico e reinicia o "tempo na coluna"
-     * quando a fase muda. Gravar sozinho a cada tecla encheria o histórico de
-     * entradas pela metade. Então protegemos o trabalho com um aviso na saída.
+     * As notas do histórico já vão para o banco no clique de "Adicionar Nota".
+     * O que pode se perder aqui é texto digitado na caixa e não adicionado, e
+     * os campos do formulário, que continuam dependendo de "Salvar Alterações".
      */
-    const fecharEdicaoLead = () => {
+    const fecharEdicaoLead = (): boolean => {
         const alterouCampos =
             !!editingLead &&
             Object.entries(editLeadForm).some(([chave, valor]) => {
@@ -1544,11 +1644,14 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (editCurrentLimit.seguradora || '').trim().length > 0 ||
             (editCurrentLimit.valor || '').trim().length > 0;
 
-        if (alterouCampos || temObservacaoPendente || temLimitePendente) {
-            if (!window.confirm('Você alterou este lead e ainda não salvou. Fechar mesmo assim?')) return;
+        if (temObservacaoPendente && !alterouCampos && !temLimitePendente) {
+            if (!window.confirm('A observação que você digitou ainda não foi adicionada ao histórico. Fechar mesmo assim?')) return false;
+        } else if (alterouCampos || temObservacaoPendente || temLimitePendente) {
+            if (!window.confirm('Você alterou este lead e ainda não salvou. Fechar mesmo assim?')) return false;
         }
         setIsEditModalOpen(false);
         setEditingLead(null);
+        return true;
     };
 
     const handleSaveEdit = async (e: React.FormEvent) => {
@@ -1560,8 +1663,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             // Dono, etapa e próximo passo mudam pelo card ("Como foi?", menu), não
             // pela ficha: mandar o valor carregado ao abrir sobrescreveria um
             // contato registrado nesse meio tempo.
+            // As observações (description) também ficam de fora: cada nota já é
+            // gravada no clique de "Adicionar Nota". Mandar a lista carregada ao
+            // abrir a ficha apagaria o que entrou depois (o registro automático
+            // do e-mail da licitação, a nota de outra pessoa).
             const {
-                id, created_at, tasks,
+                id, created_at, tasks, description,
                 responsavel_email, responsavel_em, etapa, proximo_passo, motivo_perda, encerrado_em,
                 ...rawUpdateData
             } = editLeadForm;
@@ -1581,12 +1688,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             // Merge limits into the form data
             rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
-            const pendingText = editObservationText.trim();
-            const pendingTs = localToBrDateTime(editObservationDateTime);
-            const finalObsEntries = pendingText && pendingTs
-                ? [...editObservationEntries, { text: pendingText, timestamp: pendingTs }]
-                : editObservationEntries;
-            rawUpdateData.description = serializeObservationHistory(finalObsEntries) as any;
+
+            // Texto digitado na caixa e não adicionado: grava antes, como nota.
+            if (editObservationText.trim()) {
+                const gravou = await salvarNotaDaCaixa();
+                if (!gravou) throw new Error('a observação digitada não foi gravada (veja o aviso ao lado do botão Adicionar Nota)');
+            }
 
             // Strict data sanitization to prevent database rejection
             const dataToUpdate: any = {};
@@ -1607,10 +1714,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
             const { error } = await supabase.from('prospects').update(dataToUpdate).eq('id', editingLead.id);
             if (error) throw error;
+            // Sem description: a lista do quadro já recebeu o histórico novo
+            // em gravarObservacoes.
             const updatedLead = {
                 ...rawUpdateData,
                 limites_seguradoras: rawUpdateData.limites_seguradoras,
-                description: rawUpdateData.description,
             } as Prospect;
             setProspects(prev => prev.map(p => p.id === editingLead.id ? { ...p, ...updatedLead } : p));
             setIsEditModalOpen(false);
@@ -3520,7 +3628,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                       return (
                                           <button
                                               type="button"
-                                              onClick={() => { const lead = editingLead; fecharEdicaoLead(); abrirEmailLicitacao(lead); }}
+                                              onClick={() => { const lead = editingLead; if (fecharEdicaoLead()) abrirEmailLicitacao(lead); }}
                                               title="Abrir a prévia do e-mail desta licitação"
                                               className="inline-flex items-center gap-2 text-[12px] font-bold px-4 py-2 rounded-xl bg-navy text-areia border border-gold/35 hover:bg-navy-light transition-colors"
                                           >
@@ -3561,16 +3669,30 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                   />
                                               </div>
                                           </div>
-                                          <div className="flex justify-end gap-2">
+                                          <div className="flex items-center justify-end gap-2">
+                                              {avisoNota && (
+                                                  <p
+                                                      role="status"
+                                                      className={avisoNota.tipo === 'ok'
+                                                          ? 'mr-auto text-xs font-bold text-emerald-700 flex items-center gap-1.5'
+                                                          : 'mr-auto text-xs font-bold text-rose-700 flex items-start gap-1.5'}
+                                                  >
+                                                      {avisoNota.tipo === 'ok'
+                                                          ? <CheckCircle2 size={14} className="shrink-0" />
+                                                          : <AlertCircle size={14} className="shrink-0 mt-px" />}
+                                                      {avisoNota.texto}
+                                                  </p>
+                                              )}
                                               {editingObservationIndex !== null && (
                                                   <button
                                                       type="button"
+                                                      disabled={salvandoNota}
                                                       onClick={() => {
                                                           setEditingObservationIndex(null);
                                                           setEditObservationText('');
                                                           setEditObservationDateTime(nowDateTimeLocal());
                                                       }}
-                                                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50"
+                                                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-50"
                                                   >
                                                       Cancelar Edicao
                                                   </button>
@@ -3578,9 +3700,11 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                               <button
                                                   type="button"
                                                   onClick={handleAddOrUpdateObservation}
-                                                  className="px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm hover:bg-navy-light"
+                                                  disabled={salvandoNota}
+                                                  className="px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm hover:bg-navy-light disabled:opacity-60 flex items-center gap-2 shrink-0"
                                               >
-                                                  {editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
+                                                  {salvandoNota && <Loader2 size={14} className="animate-spin" />}
+                                                  {salvandoNota ? 'Salvando...' : editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
                                               </button>
                                           </div>
 
@@ -3611,8 +3735,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                   </button>
                                                                   <button
                                                                       type="button"
+                                                                      disabled={salvandoNota}
                                                                       onClick={() => handleDeleteObservation(idx)}
-                                                                      className="text-[11px] font-bold text-rose-300 hover:text-rose-100 transition-colors"
+                                                                      className="text-[11px] font-bold text-rose-300 hover:text-rose-100 transition-colors disabled:opacity-50"
                                                                   >
                                                                       Excluir
                                                                   </button>
@@ -3694,8 +3819,8 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                               </div>
                           </div>
                           <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                              <button type="button" onClick={() => { setIsEditModalOpen(false); setEditingLead(null); }} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-                              <button type="submit" form="edit-lead-form" disabled={savingLead} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
+                              <button type="button" onClick={fecharEdicaoLead} className="px-5 py-2.5 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+                              <button type="submit" form="edit-lead-form" disabled={savingLead || salvandoNota} className="bg-navy hover:bg-navy-light text-white px-6 py-2.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-navy/25 disabled:opacity-50">
                                   {savingLead ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                   {savingLead ? 'Salvando...' : 'Salvar Alterações'}
                               </button>
