@@ -10,6 +10,7 @@ import { useToast } from './Toast.tsx';
 import KanbanRoteiroModal, { ModoRoteiro } from './KanbanRoteiroModal.tsx';
 import KanbanComoFoiModal, { ContextoContato, DadosContato } from './KanbanComoFoiModal.tsx';
 import LeadLinhaDoTempo from './LeadLinhaDoTempo.tsx';
+import CaixaObservacaoLead, { CaixaObservacaoHandle } from './CaixaObservacaoLead.tsx';
 import ResumoDoDia from './ResumoDoDia.tsx';
 import { ROTULO_ORIGEM } from '../lib/linhaDoTempo.ts';
 import {
@@ -749,8 +750,9 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
     const [editLimitesArray, setEditLimitesArray] = useState<{seguradora: string; valor: string}[]>([]);
     const [editCurrentLimit, setEditCurrentLimit] = useState<{seguradora: string; valor: string}>({ seguradora: '', valor: '' });
     const [editObservationEntries, setEditObservationEntries] = useState<ObservationEntry[]>([]);
-    const [editObservationText, setEditObservationText] = useState('');
-    const [editObservationDateTime, setEditObservationDateTime] = useState('');
+    // O texto da caixa "Nova observacao" mora no CaixaObservacaoLead, não
+    // aqui: guardado neste componente, cada letra redesenhava o quadro todo.
+    const caixaObsRef = useRef<CaixaObservacaoHandle>(null);
     const [editingObservationIndex, setEditingObservationIndex] = useState<number | null>(null);
     // Gravação da nota direto no banco (ver gravarObservacoes).
     const [salvandoNota, setSalvandoNota] = useState(false);
@@ -1488,8 +1490,6 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         setEditLeadForm(cleanedForm);
         const parsedObs = parseObservationHistory(prospect.description);
         setEditObservationEntries(parsedObs);
-        setEditObservationText('');
-        setEditObservationDateTime(nowDateTimeLocal());
         setEditingObservationIndex(null);
         setAvisoNota(null);
         // Parse limits
@@ -1547,12 +1547,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
     /**
      * Grava a nota que está na caixa: nova, ou a alteração da nota em edição.
-     * Devolve true quando gravou. Em erro, o texto fica na caixa.
+     * Devolve true quando gravou (a caixa então se esvazia sozinha). Em erro,
+     * o texto fica na caixa.
      */
-    const salvarNotaDaCaixa = async (): Promise<boolean> => {
+    const salvarNotaDaCaixa = async (texto: string, dataHoraLocal: string): Promise<boolean> => {
         if (!editingLead) return false;
-        const text = editObservationText.trim();
-        const timestamp = localToBrDateTime(editObservationDateTime);
+        const text = texto.trim();
+        const timestamp = localToBrDateTime(dataHoraLocal);
         if (!text || !timestamp) return false;
         const entry: ObservationEntry = { text, timestamp };
         const alvo = editingObservationIndex === null ? null : editObservationEntries[editingObservationIndex] ?? null;
@@ -1571,8 +1572,6 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 setEditingObservationIndex(null);
                 return false;
             }
-            setEditObservationText('');
-            setEditObservationDateTime(nowDateTimeLocal());
             setEditingObservationIndex(null);
             setAvisoNota({ tipo: 'ok', texto: alvo ? 'Nota alterada' : 'Nota salva' });
             return true;
@@ -1585,13 +1584,10 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         }
     };
 
-    const handleAddOrUpdateObservation = () => { void salvarNotaDaCaixa(); };
-
     const handleEditObservation = (index: number) => {
         const entry = editObservationEntries[index];
         if (!entry) return;
-        setEditObservationText(entry.text);
-        setEditObservationDateTime(brToLocalDateTime(entry.timestamp));
+        caixaObsRef.current?.preencher(entry.text, brToLocalDateTime(entry.timestamp));
         setEditingObservationIndex(index);
         setAvisoNota(null);
     };
@@ -1609,8 +1605,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             });
             if (editingObservationIndex !== null) {
                 setEditingObservationIndex(null);
-                setEditObservationText('');
-                setEditObservationDateTime(nowDateTimeLocal());
+                caixaObsRef.current?.limpar();
             }
             setAvisoNota(r === 'ok'
                 ? { tipo: 'ok', texto: 'Nota excluída' }
@@ -1639,7 +1634,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                 const original = (editingLead as any)[chave];
                 return (valor ?? '') !== (original ?? '');
             });
-        const temObservacaoPendente = editObservationText.trim().length > 0;
+        const temObservacaoPendente = (caixaObsRef.current?.ler().texto || '').trim().length > 0;
         const temLimitePendente =
             (editCurrentLimit.seguradora || '').trim().length > 0 ||
             (editCurrentLimit.valor || '').trim().length > 0;
@@ -1690,9 +1685,13 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             rawUpdateData.limites_seguradoras = finalEditLimitsArray.length > 0 ? JSON.stringify(finalEditLimitsArray) : null as any;
 
             // Texto digitado na caixa e não adicionado: grava antes, como nota.
-            if (editObservationText.trim()) {
-                const gravou = await salvarNotaDaCaixa();
+            const pendente = caixaObsRef.current?.ler();
+            if (pendente && pendente.texto.trim()) {
+                const gravou = await salvarNotaDaCaixa(pendente.texto, pendente.dataHora);
                 if (!gravou) throw new Error('a observação digitada não foi gravada (veja o aviso ao lado do botão Adicionar Nota)');
+                // Já virou nota: se o resto do salvar falhar e a ficha ficar
+                // aberta, a caixa vazia evita gravar a mesma nota duas vezes.
+                caixaObsRef.current?.limpar();
             }
 
             // Strict data sanitization to prevent database rejection
@@ -3648,65 +3647,15 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                                       <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
                                           <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Observacoes do Lead</h4>
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                              <div className="md:col-span-1 space-y-1.5">
-                                                  <label className="text-xs font-bold text-slate-600">Data da observacao</label>
-                                                  <input
-                                                      type="datetime-local"
-                                                      value={editObservationDateTime}
-                                                      onChange={(e) => setEditObservationDateTime(e.target.value)}
-                                                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold"
-                                                  />
-                                              </div>
-                                              <div className="md:col-span-2 space-y-1.5">
-                                                  <label className="text-xs font-bold text-slate-600">{editingObservationIndex === null ? 'Nova observacao' : 'Editar observacao'}</label>
-                                                  <textarea
-                                                      value={editObservationText}
-                                                      onChange={(e) => setEditObservationText(e.target.value)}
-                                                      rows={3}
-                                                      placeholder="Digite a observacao..."
-                                                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold resize-none"
-                                                  />
-                                              </div>
-                                          </div>
-                                          <div className="flex items-center justify-end gap-2">
-                                              {avisoNota && (
-                                                  <p
-                                                      role="status"
-                                                      className={avisoNota.tipo === 'ok'
-                                                          ? 'mr-auto text-xs font-bold text-emerald-700 flex items-center gap-1.5'
-                                                          : 'mr-auto text-xs font-bold text-rose-700 flex items-start gap-1.5'}
-                                                  >
-                                                      {avisoNota.tipo === 'ok'
-                                                          ? <CheckCircle2 size={14} className="shrink-0" />
-                                                          : <AlertCircle size={14} className="shrink-0 mt-px" />}
-                                                      {avisoNota.texto}
-                                                  </p>
-                                              )}
-                                              {editingObservationIndex !== null && (
-                                                  <button
-                                                      type="button"
-                                                      disabled={salvandoNota}
-                                                      onClick={() => {
-                                                          setEditingObservationIndex(null);
-                                                          setEditObservationText('');
-                                                          setEditObservationDateTime(nowDateTimeLocal());
-                                                      }}
-                                                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 disabled:opacity-50"
-                                                  >
-                                                      Cancelar Edicao
-                                                  </button>
-                                              )}
-                                              <button
-                                                  type="button"
-                                                  onClick={handleAddOrUpdateObservation}
-                                                  disabled={salvandoNota}
-                                                  className="px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm hover:bg-navy-light disabled:opacity-60 flex items-center gap-2 shrink-0"
-                                              >
-                                                  {salvandoNota && <Loader2 size={14} className="animate-spin" />}
-                                                  {salvandoNota ? 'Salvando...' : editingObservationIndex === null ? 'Adicionar Nota' : 'Salvar Nota'}
-                                              </button>
-                                          </div>
+                                          <CaixaObservacaoLead
+                                              key={editingLead.id}
+                                              ref={caixaObsRef}
+                                              editando={editingObservationIndex !== null}
+                                              salvando={salvandoNota}
+                                              aviso={avisoNota}
+                                              onSalvar={salvarNotaDaCaixa}
+                                              onCancelarEdicao={() => setEditingObservationIndex(null)}
+                                          />
 
                                           <div className="mt-5">
                                               <h5 className="text-xs font-bold text-navy uppercase tracking-widest mb-2">Histórico de observações</h5>
