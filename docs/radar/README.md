@@ -89,6 +89,26 @@ O log mostra, por arquivo, linhas lidas, aceitas, tempo e o descarte de cada
 filtro. Falha em um arquivo fica em `radar_ingestoes.erro` e não interrompe os
 demais.
 
+### Atualização trimestral (competência nova)
+
+Roteiro usado em 02/11/2026 na troca de 202606 para 202609 (detalhes na
+decisão 80 do `DECISOES.md`):
+
+1. Separar as UFs do Radar dos 6 CSVs da PGFN em
+   `data/pgfn/<AAAAMM>/arquivo_lai_SIDA_<UF>_<AAAAMM>.csv` e medir a
+   competência nova contra a anterior antes de gravar (quem entra, quem sai).
+2. Rodar o `pgfn_ingest.py --competencia <AAAAMM>` **uma vez só**. A
+   consolidação no fim falha por tempo (decisão 77); rodar
+   `select radar_consolidar_empresas('<AAAAMM>')` pela ferramenta de SQL com
+   `set statement_timeout = '15min'` na mesma chamada.
+3. Tirar dos leads quem ficou na competência antiga:
+   `status = 'excluido'`, `motivo_exclusao = 'saiu_base_pgfn'`, score 0, só
+   onde `status = 'novo'`.
+4. Apagar de `radar_inscricoes` a competência antiga das empresas cuja
+   `competencia_ultima` é a nova, e rodar `vacuum full` em `radar_inscricoes`
+   e `radar_empresas` (o projeto está no plano Free, cota de 500 MB).
+5. Enriquecer as empresas novas com `enrich_local.py`.
+
 ## 3. Enriquecimento (automático)
 
 O job `radar-enrich-hourly` do pg_cron chama a Edge Function
