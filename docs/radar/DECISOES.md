@@ -446,3 +446,12 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     de 200 passa a ir para o log com os primeiros 300 caracteres do corpo. O
     tratamento do 403/Access Denied (pausa de 1 h, até 3 por dia) e dos demais
     erros não mudou. As 62 empresas com erro não foram recolocadas na fila.
+79. **Seleção do enriquecimento local tenta de novo** (01/11/2026). Na
+    primeira rodada de MG (31/10/2026, 6.890 empresas), o `enrich_local.py`
+    parou depois de 1.500 empresas porque a busca do próximo lote de 500
+    (`select` em `radar_empresas` com `count=exact`) caiu uma vez no
+    `statement_timeout` de 8 s do PostgREST (`57014`); a mesma consulta, logo
+    depois, levava 0,26 s. A seleção era a única chamada fora de tratamento de
+    erro. Agora, 5xx ou erro de rede na seleção esperam 60 s e tentam de novo,
+    até 5 vezes, antes de parar; 4xx continua parando na hora. Gravação por
+    empresa e consulta à BrasilAPI não mudaram.
