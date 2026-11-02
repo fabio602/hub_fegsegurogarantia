@@ -23,6 +23,9 @@ idempotentes.
 BrasilAPI 429 ou 5xx: registra enriquecimento_erro, espera 60 s e tenta o
 mesmo CNPJ de novo (até 5 vezes; depois pula e ele volta na próxima rodada).
 Timeout/erro de rede: mesma coisa. 404: exclui como cnpj_nao_encontrado.
+
+Seleção do próximo lote no Supabase com 5xx (ex.: statement timeout 57014)
+ou erro de rede: espera 60 s e tenta de novo (até 5 vezes) antes de parar.
 """
 
 from __future__ import annotations
@@ -119,16 +122,34 @@ class Supabase:
         return r
 
     def pendentes(self, ignorar: set[str]) -> tuple[list[dict], int]:
-        """Próximo lote sem enriquecimento, por score, e quantos faltam no total."""
-        r = self.sess.get(
-            f"{self.base}/radar_empresas",
-            params={"select": "cnpj,status,nome_devedor", "enriquecido_em": "is.null", "status": "eq.novo",
-                    "order": "score.desc,valor_total.desc", "limit": LOTE_SELECAO},
-            headers={"Prefer": "count=exact"}, timeout=60,
-        )
-        self._check(r, "seleção")
-        total = int((r.headers.get("content-range") or "*/0").split("/")[-1] or 0)
-        return [e for e in r.json() if e["cnpj"] not in ignorar], total
+        """Próximo lote sem enriquecimento, por score, e quantos faltam no total.
+
+        Falha passageira do banco (5xx, como o statement timeout 57014 que
+        derrubou a rodada de MG em 31/10/2026) ou da rede não para o script:
+        espera ESPERA_429_S e tenta de novo, até MAX_TENTATIVAS vezes. Erro 4xx
+        continua parando na hora, porque não se resolve esperando.
+        """
+        for tentativa in range(1, MAX_TENTATIVAS + 1):
+            try:
+                r = self.sess.get(
+                    f"{self.base}/radar_empresas",
+                    params={"select": "cnpj,status,nome_devedor", "enriquecido_em": "is.null", "status": "eq.novo",
+                            "order": "score.desc,valor_total.desc", "limit": LOTE_SELECAO},
+                    headers={"Prefer": "count=exact"}, timeout=60,
+                )
+            except requests.RequestException as e:
+                motivo = f"rede: {str(e)[:120]}"
+            else:
+                if r.status_code < 500:
+                    self._check(r, "seleção")
+                    total = int((r.headers.get("content-range") or "*/0").split("/")[-1] or 0)
+                    return [e for e in r.json() if e["cnpj"] not in ignorar], total
+                motivo = f"HTTP {r.status_code} {r.text[:200]}"
+            if tentativa == MAX_TENTATIVAS:
+                raise RuntimeError(f"seleção: {motivo} ({tentativa} tentativas)")
+            log(f"   seleção falhou ({motivo}), esperando {ESPERA_429_S} s (tentativa {tentativa}/{MAX_TENTATIVAS})")
+            time.sleep(ESPERA_429_S)
+        raise RuntimeError("seleção: tentativas esgotadas")
 
     def atualizar(self, cnpj: str, campos: dict) -> None:
         r = self.sess.patch(f"{self.base}/radar_empresas", params={"cnpj": f"eq.{cnpj}"},
