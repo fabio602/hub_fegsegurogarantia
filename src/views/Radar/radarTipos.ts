@@ -279,6 +279,7 @@ export const MOTIVO_LABEL: Record<string, string> = {
   cadastro_inativo: 'Cadastro não ativo na Receita',
   cnpj_nao_encontrado: 'CNPJ não encontrado na BrasilAPI',
   recuperacao_judicial: 'Empresa em recuperação judicial',
+  saiu_base_pgfn: 'Saiu da base da PGFN na atualização trimestral',
 };
 
 export const formatCnpj = (cnpj: string): string => {

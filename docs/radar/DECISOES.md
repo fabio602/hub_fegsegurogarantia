@@ -455,3 +455,29 @@ Especificação em [RADAR-FASE2.md](RADAR-FASE2.md). Migração
     erro. Agora, 5xx ou erro de rede na seleção esperam 60 s e tentam de novo,
     até 5 vezes, antes de parar; 4xx continua parando na hora. Gravação por
     empresa e consulta à BrasilAPI não mudaram.
+80. **Atualização trimestral para a competência 202609** (02/11/2026). A PGFN
+    publicou o 3º trimestre de 2026 com o ZIP renomeado para
+    `Dados_abertos_Sistema_SIDA.zip` (antes `Dados_abertos_Nao_Previdenciario.zip`);
+    as 6 partições `arquivo_lai_SIDA_1..6_202609.csv` mantêm as mesmas 13
+    colunas. As linhas das 19 UFs do Radar foram separadas por `UF_DEVEDOR` em
+    `data/pgfn/202609/arquivo_lai_SIDA_<UF>_202609.csv` e um teste sem gravar,
+    com o mesmo código de filtro do `pgfn_ingest.py`, refez junho exatamente
+    (367.414 inscrições, 54.790 empresas) antes de medir setembro: 377.440
+    inscrições e 56.447 empresas, 1.864 entraram e 207 saíram. A carga bateu
+    UF por UF com o teste. A consolidação pela API estourou de novo (decisão
+    77) e também estourou os 2 min da ferramenta de SQL na etapa do score;
+    rodou com `set statement_timeout = '15min'` na mesma chamada. Regras
+    decididas pelo Fábio: (a) empresa que estava no Radar e não aparece na
+    competência nova sai dos leads: `status = 'excluido'`,
+    `motivo_exclusao = 'saiu_base_pgfn'`, score 0, só para quem estava como
+    `novo` (157 de 207; as outras 50 já estavam excluídas por outro motivo,
+    nenhuma estava no Kanban); desfazer é voltar `status = 'novo'` e limpar o
+    motivo onde `motivo_exclusao = 'saiu_base_pgfn'`; (b) as inscrições da
+    competência anterior são apagadas das empresas que estão na nova
+    (366.645 linhas) e mantidas para as que saíram (769), porque o drawer lê
+    as inscrições de `competencia_ultima`. Depois disso `vacuum full` em
+    `radar_inscricoes` e `radar_empresas`: o banco foi de 482 MB (pico, com
+    as duas competências e o inchaço de upserts repetidos) para 241 MB. O
+    upsert por `(competencia, numero_inscricao)` é idempotente, mas cada
+    rodada repetida reescreve todas as linhas e incha a tabela no plano Free
+    (cota de 500 MB): rodar a carga uma vez só.
