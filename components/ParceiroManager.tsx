@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail, DollarSign, Calendar, Upload, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ModalPortal from './ModalPortal.tsx';
+import { comissaoDoParceiro, lerValor, type RegraFaixas } from '../supabase/functions/_shared/comissaoParceiro.ts';
 
 const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -32,6 +33,8 @@ interface Parceiro {
     agencia?: string;
     commission_type?: string;
     partner_type?: string;
+    /** Comissão escalonada do contrato (migração 129). Quando existe, vale no lugar do commission_pct. */
+    comissao_faixas?: RegraFaixas | null;
 }
 
 const emptyForm = {
@@ -121,12 +124,12 @@ const ParceiroManager: React.FC = () => {
         setLoadingRepasse(false);
     };
 
+    // Mesmo cálculo do portal do parceiro (_shared/comissaoParceiro.ts): faixa
+    // escalonada quando o parceiro tem, senão o percentual fixo. O lerValor
+    // entende "R$ 1.805,15"; o parse antigo lia esse valor como 1,80515.
     const totalComissaoRepasse = () => {
-        const pct = (repasseModal?.commission_pct || 20) / 100;
-        return repasseVendas.reduce((s, v) => {
-            const c = parseFloat(String(v.comissao || '0').replace(/[^0-9.]/g,'')) || 0;
-            return s + c * pct;
-        }, 0);
+        if (!repasseModal) return 0;
+        return repasseVendas.reduce((s, v) => s + comissaoDoParceiro(v.comissao, repasseModal).valor, 0);
     };
 
     const confirmarRepasse = async () => {
@@ -197,7 +200,7 @@ const ParceiroManager: React.FC = () => {
         setLoading(true);
         const { data } = await supabase
             .from('partners')
-            .select('id, name, username, password, commission_pct, cnpj, email, email_2, banco_nome, pix_key, conta_corrente, agencia, commission_type, partner_type')
+            .select('id, name, username, password, commission_pct, cnpj, email, email_2, banco_nome, pix_key, conta_corrente, agencia, commission_type, partner_type, comissao_faixas')
             .order('name');
         setParceiros(data || []);
         setLoading(false);
@@ -461,8 +464,10 @@ const ParceiroManager: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
                                           {p.partner_type !== 'imobiliaria' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold rounded-xl text-xs font-bold w-fit">
-                                                {p.commission_pct}%
+                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold-dark rounded-xl text-xs font-bold w-fit" title={p.comissao_faixas ? 'Faixa pela comissão líquida do negócio; o % incide sobre a comissão integral' : undefined}>
+                                                {p.comissao_faixas?.faixas?.length
+                                                    ? `Escalonada ${Math.min(...p.comissao_faixas.faixas.map(f => f.pct))}% a ${Math.max(...p.comissao_faixas.faixas.map(f => f.pct))}%`
+                                                    : `${p.commission_pct}%`}
                                             </span>
                                           )}
                                           {p.partner_type === 'imobiliaria' && (
@@ -567,13 +572,14 @@ const ParceiroManager: React.FC = () => {
                                           </tr></thead>
                                           <tbody className="divide-y divide-slate-50">
                                               {repasseVendas.map(v => {
-                                                  const c = parseFloat(String(v.comissao||'0').replace(/[^0-9.]/g,''))||0;
-                                                  const r = c * (repasseModal.commission_pct||20)/100;
+                                                  const c = lerValor(v.comissao);
+                                                  const calc = comissaoDoParceiro(v.comissao, repasseModal);
+                                                  const r = calc.valor;
                                                   return <tr key={v.id} className="hover:bg-slate-50/50">
                                                       <td className="px-4 py-3 font-bold text-slate-800">{v.nome}</td>
                                                       <td className="px-4 py-3 text-slate-500 text-xs">{v.product_type || v.tipo || '—'}</td>
                                                       <td className="px-4 py-3 text-right text-slate-600">{fmt(c)}</td>
-                                                      <td className="px-4 py-3 text-right font-bold text-gold">{fmt(r)}</td>
+                                                      <td className="px-4 py-3 text-right font-bold text-gold">{fmt(r)} <span className="text-[10px] font-semibold text-slate-400">({calc.pct}%)</span></td>
                                                   </tr>;
                                               })}
                                           </tbody>

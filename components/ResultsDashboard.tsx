@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import ClienteDocumentos, { documentosDoCliente, type DocumentoCliente } from './ClienteDocumentos.tsx';
+import { ChipAnexosParceiro, PainelDemandaParceiro } from './DemandaParceiro.tsx';
 import {
     Plus,
     Target,
@@ -2492,6 +2493,8 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             )}
                         </h3>
 
+                        {editingId && <PainelDemandaParceiro sale={sales.find((s) => s.id === editingId)} />}
+
                         {rascunhoRestaurado && !editingId && (
                             <div className="mb-6 flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl text-xs font-semibold">
                                 <span>Recuperamos o que você tinha começado a preencher aqui.</span>
@@ -3268,6 +3271,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                                         )}
                                                     </div>
                                                     <div className="truncate text-[10px] text-slate-400 font-bold uppercase">{sale.seguradora || 'S/ Seguradora'}</div>
+                                                    <ChipAnexosParceiro sale={sale} />
                                                 </td>
                                                 <td className="px-4 py-3.5 align-middle text-xs text-slate-600 font-medium">{sale.origem}</td>
                                                 <td className="px-4 py-3.5 align-middle">
