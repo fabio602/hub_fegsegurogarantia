@@ -1611,7 +1611,10 @@ export default function ImobiliariaRepasse() {
           depois de umas duas telas de rolagem, abaixo do pipeline. Cada aba
           mostra uma parte; os alertas e a busca continuam acima, valendo para todas. */}
       <div ref={abasTopoRef} />
-      <div ref={abasBarraRef} className="sticky top-0 z-20 !mt-0 -mx-1 px-1 py-2 bg-areia">
+      {/* O topo negativo acompanha o recuo da área de rolagem do App.tsx
+          (p-3 sm:p-5 lg:p-8): com top-0 a barra grudava abaixo do recuo e o
+          conteúdo aparecia numa faixa por cima dela. */}
+      <div ref={abasBarraRef} className="sticky -top-3 sm:-top-5 lg:-top-8 z-20 !mt-0 -mx-1 px-1 py-2 bg-areia">
         <div className="flex flex-wrap gap-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm p-1.5">
           {([
             { key: 'pipeline', label: 'Pipeline', qtd: pipelineEmAndamento },
