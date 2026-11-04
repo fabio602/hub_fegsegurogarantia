@@ -103,6 +103,10 @@ const dataParaISO = (v: unknown): string => {
 // Etapas anteriores à emissão da apólice — o registro ainda é uma solicitação.
 const ETAPAS_EM_ANDAMENTO = ['solicitado', 'atendimento_iniciado', 'aguardando_seguradora', 'aguardando_cliente'];
 
+// Abas da tela: pipeline das solicitações, tabela de repasses e o histórico.
+type AbaRepasse = 'pipeline' | 'repasses' | 'encerrados';
+const CHAVE_ABA_REPASSE = 'hub.imobiliaria-repasse.aba';
+
 // "Apenas Garantia Locatícia" é a primeira opção do formulário do portal e grava
 // tipo_seguro = 'garantia'. Testar só por 'residencial_garantia' deixava esse caso
 // de fora de tudo: rescisão, distrato e rótulo na tela.
@@ -138,7 +142,7 @@ const GUIA_PASSOS: { titulo: string; texto: string; atencao?: string }[] = [
   },
   {
     titulo: 'Todo mês você confere e envia o relatório',
-    texto: 'A lista de ativos mostra quem entra na cobrança do mês, com valor e número da parcela. Confira, clique em Enviar Relatório e a imobiliária recebe o fechamento por e-mail. O botão Enviar Teste Para Mim manda uma cópia só para você antes.',
+    texto: 'A aba Repasses ativos mostra quem entra na cobrança do mês, com valor e número da parcela. Confira, clique em Enviar Relatório e a imobiliária recebe o fechamento por e-mail. O botão Enviar Teste Para Mim manda uma cópia só para você antes.',
   },
   {
     titulo: 'Recebeu o pagamento: registre o repasse',
@@ -379,7 +383,30 @@ export default function ImobiliariaRepasse() {
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [showEncerrados, setShowEncerrados] = useState(false);
+  // Na aba própria a lista já começa aberta: fechada, era um clique a mais.
+  const [showEncerrados, setShowEncerrados] = useState(true);
+
+  // Aba aberta. Fica lembrada neste navegador para a tela voltar onde parou.
+  const [aba, setAba] = useState<AbaRepasse>(() => {
+    try {
+      const salva = localStorage.getItem(CHAVE_ABA_REPASSE);
+      if (salva === 'pipeline' || salva === 'repasses' || salva === 'encerrados') return salva;
+    } catch { /* navegador sem storage: segue com a padrão */ }
+    return 'pipeline';
+  });
+  const abasTopoRef = useRef<HTMLDivElement>(null);
+  const abasBarraRef = useRef<HTMLDivElement>(null);
+  const mudarAba = (nova: AbaRepasse) => {
+    setAba(nova);
+    try { localStorage.setItem(CHAVE_ABA_REPASSE, nova); } catch { /* sem storage */ }
+    // Com a barra grudada no topo (página rolada), a aba nova abre do começo
+    // em vez de continuar no meio da altura da aba anterior.
+    const topo = abasTopoRef.current?.getBoundingClientRect().top;
+    const barra = abasBarraRef.current?.getBoundingClientRect().top;
+    if (topo !== undefined && barra !== undefined && barra > topo + 1) {
+      abasTopoRef.current?.scrollIntoView({ block: 'start' });
+    }
+  };
   const [repasseModal, setRepasseModal] = useState(false);
   const [repasseForm, setRepasseForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), data_pagamento: '', observacoes: '' });
   const [repasseFile, setRepasseFile] = useState<File | null>(null);
@@ -1029,6 +1056,8 @@ export default function ImobiliariaRepasse() {
   // Pendentes = solicitações da imobiliária sem apólice ainda emitida
   const emAndamento = (c: any) => ETAPAS_EM_ANDAMENTO.includes(c.kanban_status || 'solicitado') && !c.numero_apolice;
   const pendentes = clientes.filter(emAndamento);
+  // Contagem da aba Pipeline: os cards das quatro colunas de atendimento.
+  const pipelineEmAndamento = clientes.filter(c => ETAPAS_EM_ANDAMENTO.includes((c as any).kanban_status || 'solicitado')).length;
   // O insert do portal já grava status: 'ativo' na própria solicitação, então o
   // teste de status sozinho contava como ativo quem ainda nem tem apólice.
   // Quem está em andamento é pendente e não pode aparecer também aqui.
@@ -1366,7 +1395,12 @@ export default function ImobiliariaRepasse() {
             {sending ? 'Enviando...' : 'Enviar Relatório'}
           </button>
           <button
-            onClick={() => setShowForm(f => !f)}
+            onClick={() => {
+              // O formulário mora na aba Repasses ativos: abrir leva até ela.
+              const abrir = !showForm;
+              setShowForm(abrir);
+              if (abrir) mudarAba('repasses');
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all"
           >
             <Plus size={15} /> Novo Cliente
@@ -1524,82 +1558,87 @@ export default function ImobiliariaRepasse() {
         </div>
       )}
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-navy rounded-2xl p-5 text-white">
-          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Mensal</p>
-          <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
+      {/* Busca — abre qualquer cliente, esteja ele em que lista estiver */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+        <div className="flex items-center gap-3">
+          <Search size={16} className="text-slate-400 shrink-0" />
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar qualquer cliente por nome ou nº da apólice (inclusive em renovação e encerrados)"
+            className="flex-1 text-sm font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-300 outline-none"
+          />
+          {busca && (
+            <button onClick={() => setBusca('')} className="text-slate-300 hover:text-slate-500 shrink-0">
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes Ativos</p>
-          <p className="text-2xl font-black text-slate-800">{ativos.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Envio Automático</p>
-          <p className="text-2xl font-black text-slate-800">Todo dia 10</p>
+
+        {termoBusca.length >= 2 && (
+          <div className="mt-4 border-t border-slate-100 pt-3 space-y-1">
+            {resultadosBusca.length === 0 ? (
+              <p className="text-sm font-bold text-slate-300 py-2">Nenhum cliente encontrado</p>
+            ) : resultadosBusca.map(c => (
+              <button
+                key={c.id}
+                onClick={() => openEditStatus(c)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center shrink-0">
+                  <User size={13} className="text-gold" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
+                  <p className="text-[11px] font-bold text-slate-400">
+                    {STATUS_APOLICE_LABELS[(c as any).status_apolice] || (c as any).status_apolice || '—'}
+                    {c.numero_apolice ? ` · ${c.numero_apolice}` : ''}
+                  </p>
+                </div>
+                {(c as any).is_repasse && (
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+                    Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
+                  </span>
+                )}
+                <Pencil size={14} className="text-slate-300 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Abas: a tela tinha tudo empilhado e a tabela de repasses só começava
+          depois de umas duas telas de rolagem, abaixo do pipeline. Cada aba
+          mostra uma parte; os alertas e a busca continuam acima, valendo para todas. */}
+      <div ref={abasTopoRef} />
+      <div ref={abasBarraRef} className="sticky top-0 z-20 !mt-0 -mx-1 px-1 py-2 bg-areia">
+        <div className="flex flex-wrap gap-1.5 bg-white rounded-2xl border border-slate-100 shadow-sm p-1.5">
+          {([
+            { key: 'pipeline', label: 'Pipeline', qtd: pipelineEmAndamento },
+            { key: 'repasses', label: 'Repasses ativos', qtd: ativos.length },
+            { key: 'encerrados', label: 'Quitados e encerrados', qtd: quitados.length + encerrados.length },
+          ] as { key: AbaRepasse; label: string; qtd: number }[]).map(a => (
+            <button
+              key={a.key}
+              type="button"
+              onClick={() => mudarAba(a.key)}
+              className={aba === a.key
+                ? 'flex items-center gap-2 px-4 py-2 rounded-xl bg-navy text-white font-bold text-sm transition-colors'
+                : 'flex items-center gap-2 px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-bold text-sm transition-colors'}
+            >
+              {a.label}
+              <span className={aba === a.key
+                ? 'min-w-[22px] text-center text-[11px] font-black px-1.5 py-0.5 rounded-xl bg-white/15 text-white'
+                : 'min-w-[22px] text-center text-[11px] font-black px-1.5 py-0.5 rounded-xl bg-slate-100 text-slate-500'}
+              >
+                {a.qtd}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Form */}
-      {showForm && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-7">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-slate-800">Novo Cliente</h3>
-            <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
-              <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Maria da Silva" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
-              <input value={form.seguradora} onChange={e => setForm(f => ({ ...f, seguradora: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Porto Seguro" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
-              <input value={form.numero_apolice} onChange={e => setForm(f => ({ ...f, numero_apolice: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: APL-2024-001" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
-              <input value={form.valor_seguro} onChange={e => setForm(f => ({ ...f, valor_seguro: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: 150,00" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
-              <input type="number" min="1" max="12" value={form.parcela_atual} onChange={e => setForm(f => ({ ...f, parcela_atual: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
-              <input type="number" min="1" value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
-              <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
-              <input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Opcional" />
-            </div>
-          </div>
-          <div className="flex gap-3 mt-6 justify-end">
-            <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
-            <button onClick={handleSave} disabled={saving || !form.inquilino_nome || !form.seguradora || !form.numero_apolice || !form.valor_seguro}
-              className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50">
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-              {saving ? 'Salvando...' : 'Salvar Cliente'}
-            </button>
-          </div>
-        </div>
-      )}
-
+      {aba === 'pipeline' && (<>
       {/* Kanban Board — All clients */}
       {(() => {
         const KANBAN_COLS = [
@@ -1778,54 +1817,84 @@ export default function ImobiliariaRepasse() {
         );
       })()}
 
-      {/* Busca — abre qualquer cliente, esteja ele em que lista estiver */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-        <div className="flex items-center gap-3">
-          <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar qualquer cliente por nome ou nº da apólice (inclusive em renovação e encerrados)"
-            className="flex-1 text-sm font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-300 outline-none"
-          />
-          {busca && (
-            <button onClick={() => setBusca('')} className="text-slate-300 hover:text-slate-500 shrink-0">
-              <X size={16} />
-            </button>
-          )}
-        </div>
+      </>)}
 
-        {termoBusca.length >= 2 && (
-          <div className="mt-4 border-t border-slate-100 pt-3 space-y-1">
-            {resultadosBusca.length === 0 ? (
-              <p className="text-sm font-bold text-slate-300 py-2">Nenhum cliente encontrado</p>
-            ) : resultadosBusca.map(c => (
-              <button
-                key={c.id}
-                onClick={() => openEditStatus(c)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center shrink-0">
-                  <User size={13} className="text-gold" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 text-sm truncate">{c.inquilino_nome}</p>
-                  <p className="text-[11px] font-bold text-slate-400">
-                    {STATUS_APOLICE_LABELS[(c as any).status_apolice] || (c as any).status_apolice || '—'}
-                    {c.numero_apolice ? ` · ${c.numero_apolice}` : ''}
-                  </p>
-                </div>
-                {(c as any).is_repasse && (
-                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-xl bg-amber-50 text-amber-600 shrink-0">
-                    Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
-                  </span>
-                )}
-                <Pencil size={14} className="text-slate-300 shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
+      {aba === 'repasses' && (<>
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-navy rounded-2xl p-5 text-white">
+          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Mensal</p>
+          <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes Ativos</p>
+          <p className="text-2xl font-black text-slate-800">{ativos.length}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Envio Automático</p>
+          <p className="text-2xl font-black text-slate-800">Todo dia 10</p>
+        </div>
       </div>
+
+      {/* Form */}
+      {showForm && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-7">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-slate-800">Novo Cliente</h3>
+            <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
+              <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Maria da Silva" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
+              <input value={form.seguradora} onChange={e => setForm(f => ({ ...f, seguradora: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Porto Seguro" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
+              <input value={form.numero_apolice} onChange={e => setForm(f => ({ ...f, numero_apolice: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: APL-2024-001" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
+              <input value={form.valor_seguro} onChange={e => setForm(f => ({ ...f, valor_seguro: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: 150,00" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
+              <input type="number" min="1" max="12" value={form.parcela_atual} onChange={e => setForm(f => ({ ...f, parcela_atual: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
+              <input type="number" min="1" value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
+              <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
+              <input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Opcional" />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-6 justify-end">
+            <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={saving || !form.inquilino_nome || !form.seguradora || !form.numero_apolice || !form.valor_seguro}
+              className="px-6 py-2.5 bg-navy hover:bg-navy-light text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50">
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+              {saving ? 'Salvando...' : 'Salvar Cliente'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active clients table */}
       {loading ? (
@@ -1997,6 +2066,9 @@ export default function ImobiliariaRepasse() {
         </div>
       )}
 
+      </>)}
+
+      {aba === 'encerrados' && (<>
       {/* Repasses quitados com baixa ainda reversível */}
       {quitados.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -2045,6 +2117,13 @@ export default function ImobiliariaRepasse() {
           )}
         </div>
       )}
+      {quitados.length === 0 && encerrados.length === 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+          <p className="font-bold text-slate-400">Nenhum repasse quitado nem cliente encerrado</p>
+        </div>
+      )}
+      </>)}
+
     {/* Guia de operação — o passo a passo da contratação, do pedido ao encerramento */}
     {guiaAberto && createPortal(
       <div
