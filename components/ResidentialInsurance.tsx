@@ -33,6 +33,7 @@ interface ResidentialClient {
     cep_imovel?: string | null;
     endereco_imovel?: string | null;
     numero_imovel?: string | null;
+    complemento_imovel?: string | null;
     tipo_imovel?: string | null;
     valor_imovel?: string | null;
     valor_aluguel?: string | null;
@@ -57,7 +58,7 @@ const EMPTY_FORM: Partial<ResidentialClient> = {
     produto: '', apolice: '', premio_total: '',
     comissao: '', data_emissao: '', fim_vigencia: '',
     forma_pagamento: '', situacao: 'Ativo', obs: '',
-    estado_civil: '', cep_imovel: '', endereco_imovel: '', numero_imovel: '', tipo_imovel: '',
+    estado_civil: '', cep_imovel: '', endereco_imovel: '', numero_imovel: '', complemento_imovel: '', tipo_imovel: '',
     valor_imovel: '', valor_aluguel: '', data_primeiro_pag_aluguel: '', valor_iptu_condominio: '',
     tem_garantia: 'Não', garantia_inicio: '', garantia_fim: '', garantia_valor: '',
     origem_publica: false,
@@ -495,6 +496,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             cep_imovel: formData.cep_imovel?.trim() || null,
             endereco_imovel: formData.endereco_imovel?.trim() || null,
             numero_imovel: formData.numero_imovel?.trim() || null,
+            complemento_imovel: formData.complemento_imovel?.trim() || null,
             tipo_imovel: formData.tipo_imovel?.trim() || null,
             valor_imovel: formData.valor_imovel?.trim() || null,
             valor_aluguel: formData.valor_aluguel?.trim() || null,
@@ -700,6 +702,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             cep_imovel: formData.cep_imovel?.trim() || null,
             endereco_imovel: formData.endereco_imovel?.trim() || null,
             numero_imovel: formData.numero_imovel?.trim() || null,
+            complemento_imovel: formData.complemento_imovel?.trim() || null,
             tipo_imovel: formData.tipo_imovel?.trim() || null,
             valor_imovel: formData.valor_imovel?.trim() || null,
             valor_aluguel: formData.valor_aluguel?.trim() || null,
@@ -1356,7 +1359,11 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Número do imóvel</label>
-                                <input type="text" id="numero_imovel" value={formData.numero_imovel || ''} onChange={handleInputChange} placeholder="Nº, bloco, apto..." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                                <input type="text" id="numero_imovel" value={formData.numero_imovel || ''} onChange={handleInputChange} placeholder="Nº" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Complemento</label>
+                                <input type="text" id="complemento_imovel" value={formData.complemento_imovel || ''} onChange={handleInputChange} placeholder="Ex.: ap 12, bloco B" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Tipo de imóvel</label>

@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
       cep_imovel: dados.cep || null,
       endereco_imovel: dados.endereco_imovel || null,
       numero_imovel: dados.numero_imovel || null,
+      complemento_imovel: dados.complemento_imovel || null,
       tipo_imovel: dados.tipo_imovel || null,
       valor_imovel: dados.valor_imovel?.toString() || null,
       valor_aluguel: dados.valor_aluguel?.toString() || null,
