@@ -324,6 +324,163 @@
     .modal-msg.ok { color: #2c6b4a; background: #eaf5ef; }
     .modal-msg.erro { color: #99312f; background: #fbeaea; }
 
+    /* ── BOAS-VINDAS COM CHAMADA PARA ENVIAR DEMANDA ── */
+    .welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+    .btn-demanda {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      padding: 15px 26px; background: var(--navy); color: #fff; font: inherit;
+      font-size: 14.5px; font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
+      box-shadow: 0 14px 30px -16px rgba(27,38,59,.7); white-space: nowrap;
+      transition: transform .24s var(--ease), box-shadow .24s var(--ease), background .24s var(--ease);
+    }
+    .btn-demanda .ico { color: var(--gold); width: 19px; height: 19px; stroke-width: 2; }
+    .btn-demanda:hover { background: var(--navy-soft); transform: translateY(-2px); box-shadow: 0 18px 34px -16px rgba(27,38,59,.75); }
+    .btn-demanda:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 3px; }
+
+    /* ── COMO A COMISSÃO É CALCULADA ── */
+    .regra {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+      box-shadow: var(--shadow-sm); margin: -12px 0 26px; overflow: hidden;
+    }
+    .regra summary {
+      list-style: none; cursor: pointer; padding: 16px 22px; font-size: 13.5px; font-weight: 600;
+      color: var(--ink); display: flex; align-items: center; gap: 9px; min-height: 44px;
+    }
+    .regra summary::-webkit-details-marker { display: none; }
+    .regra summary .seta { margin-left: auto; color: var(--muted); transition: transform .3s var(--ease); }
+    .regra[open] summary .seta { transform: rotate(180deg); }
+    .regra-corpo { padding: 0 22px 20px; }
+    .regra-tabela { width: 100%; max-width: 560px; border-collapse: collapse; font-size: 13px; }
+    .regra-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .regra-tabela td:last-child { text-align: right; font-weight: 600; color: var(--ink); }
+    .regra-nota { font-size: 12px; color: var(--muted); line-height: 1.65; margin-top: 12px; max-width: 760px; }
+
+    /* ── MODAL DA DEMANDA ── */
+    .modal.modal-demanda { max-width: 820px; padding: 0; display: flex; flex-direction: column; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
+    .dm-topo { padding: 26px 30px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .dm-topo h3 { font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+    .dm-topo p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .dm-corpo { padding: 8px 30px 24px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .dm-rodape { padding: 16px 30px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; background: #fbfaf8; border-radius: 0 0 var(--r-lg) var(--r-lg); }
+    .dm-rodape .dm-progresso { font-size: 12.5px; color: var(--muted); margin-right: auto; }
+    .dm-secao { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); margin: 22px 0 2px; }
+    .dm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+    .dm-grid .full { grid-column: 1 / -1; }
+    .dm-campo { min-width: 0; }
+    .dm-campo .field-label { margin-top: 14px; }
+    .opcional { font-weight: 400; color: #a3acba; }
+    .dm-campo.erro .field-input { border-color: #e11d48; background: #fff; box-shadow: 0 0 0 4px rgba(225,29,72,.10); }
+    .dm-erro { display: none; font-size: 12px; font-weight: 500; color: #be123c; margin-top: 6px; }
+    .dm-campo.erro .dm-erro { display: block; }
+    .field-input[readonly] { background: #f3f0eb; color: var(--ink); }
+    textarea.field-input { resize: vertical; min-height: 84px; line-height: 1.5; }
+    input[type="date"].field-input { min-height: 48px; }
+
+    .cnpj-wrap { position: relative; }
+    .cnpj-wrap .field-input { padding-right: 44px; }
+    .cnpj-spin {
+      position: absolute; right: 15px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+      border: 2px solid rgba(198,156,109,.3); border-top-color: var(--gold); border-radius: 50%;
+      animation: gira .8s linear infinite; display: none;
+    }
+    .cnpj-wrap.buscando .cnpj-spin { display: block; }
+    @keyframes gira { to { transform: rotate(360deg); } }
+    .cnpj-status { font-size: 12.5px; margin-top: 7px; line-height: 1.45; display: none; }
+    .cnpj-status.ok { display: block; color: #047857; }
+    .cnpj-status.alerta { display: block; color: #b45309; }
+    .cnpj-status.info { display: block; color: var(--muted); }
+
+    .dm-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .dm-opcao {
+      position: relative; display: flex; gap: 12px; align-items: flex-start; text-align: left;
+      padding: 15px 16px; border: 1.5px solid var(--line); border-radius: 16px; background: #fbfaf8;
+      cursor: pointer; font: inherit; color: var(--ink); min-height: 72px;
+      transition: border-color .22s var(--ease), background .22s var(--ease), box-shadow .22s var(--ease);
+    }
+    .dm-opcao:hover { border-color: rgba(198,156,109,.55); background: #fff; }
+    .dm-opcao[aria-checked="true"] { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(27,38,59,.08); }
+    .dm-opcao:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 2px; }
+    .dm-opcao .radio {
+      width: 20px; height: 20px; border-radius: 50%; border: 2px solid #c5ccd6; flex: 0 0 20px; margin-top: 1px;
+      transition: border-color .22s var(--ease);
+    }
+    .dm-opcao[aria-checked="true"] .radio { border: 6px solid var(--navy); }
+    .dm-opcao strong { display: block; font-size: 14.5px; font-weight: 600; }
+    .dm-opcao span.sub { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .dm-campo.erro .dm-opcao { border-color: #e11d48; }
+
+    .dropzone {
+      margin-top: 10px; border: 1.5px dashed rgba(27,38,59,.22); border-radius: 16px; background: #fbfaf8;
+      padding: 22px 18px; text-align: center; cursor: pointer;
+      transition: border-color .22s var(--ease), background .22s var(--ease);
+    }
+    .dropzone:hover, .dropzone.arrastando { border-color: var(--gold); background: #fdf8f1; }
+    .dropzone:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 2px; }
+    .dropzone .ico { width: 28px; height: 28px; color: var(--gold); stroke-width: 1.5; }
+    .dropzone .dz-titulo { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 6px; }
+    .dropzone .dz-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .so-celular { display: none; }
+    .dm-campo.erro .dropzone { border-color: #e11d48; }
+    .arquivos { list-style: none; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .arquivos li {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px;
+      border: 1px solid var(--line); border-radius: 12px; background: #fff; font-size: 13px; min-width: 0;
+    }
+    .arquivos li .ico { color: var(--navy); }
+    .arquivos .nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-weight: 500; }
+    .arquivos .tam { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .arquivos .tirar {
+      background: none; border: none; color: var(--muted); cursor: pointer; border-radius: 999px;
+      width: 36px; height: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .arquivos .tirar:hover { color: #be123c; background: #fff1f2; }
+    .arquivos li.enviando { border-color: rgba(198,156,109,.5); }
+    .arquivos li.enviado .ico { color: #047857; }
+
+    .dm-aviso { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #fbfaf8; border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+    .dm-falha { display: none; margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #fff1f2; border: 1px solid #fecdd3; font-size: 13px; color: #9f1239; line-height: 1.5; }
+    .dm-falha.on { display: block; }
+    .btn-salvar:disabled { opacity: .6; cursor: progress; transform: none; box-shadow: none; }
+    .dm-rodape .btn-salvar, .dm-rodape .btn-cancelar { flex: 0 0 auto; padding: 14px 26px; }
+
+    .dm-sucesso { display: none; padding: 46px 30px 40px; text-align: center; }
+    .dm-sucesso .selo {
+      width: 66px; height: 66px; border-radius: 50%; background: #ecfdf5; color: #047857;
+      display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;
+    }
+    .dm-sucesso .selo .ico { width: 32px; height: 32px; stroke-width: 2.2; }
+    .dm-sucesso h3 { font-size: 20px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+    .dm-sucesso p { font-size: 14px; color: var(--muted); margin: 8px auto 0; max-width: 460px; line-height: 1.6; }
+    .dm-sucesso .modal-btns { justify-content: center; max-width: 420px; margin: 26px auto 0; }
+    .modal-demanda.enviada .dm-corpo, .modal-demanda.enviada .dm-rodape, .modal-demanda.enviada .dm-topo { display: none; }
+    .modal-demanda.enviada .dm-sucesso { display: block; }
+
+    /* ── AVISO RÁPIDO ── */
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0;
+      background: var(--navy); color: #fff; padding: 13px 20px; border-radius: 999px; font-size: 13.5px;
+      font-weight: 500; z-index: 1200; pointer-events: none; box-shadow: var(--shadow-lg);
+      transition: opacity .3s var(--ease), transform .3s var(--ease); max-width: calc(100vw - 32px); text-align: center;
+    }
+    .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 720px) {
+      .dm-grid, .dm-opcoes { grid-template-columns: 1fr; }
+      .modal-overlay.dm-overlay { padding: 0; align-items: stretch; }
+      .modal.modal-demanda { max-width: none; max-height: none; height: 100%; border-radius: 0; }
+      .dm-topo { padding: 18px 16px 14px; }
+      .dm-corpo { padding: 4px 16px 20px; flex: 1; }
+      .dm-rodape { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-radius: 0; flex-wrap: wrap; }
+      .dm-rodape .dm-progresso { flex-basis: 100%; }
+      .dm-rodape .btn-salvar { flex: 1 1 auto; }
+      .dm-rodape .btn-cancelar { flex: 0 0 auto; padding: 14px 18px; }
+      .welcome { align-items: stretch; }
+      .btn-demanda { width: 100%; }
+      .field-input { font-size: 16px; } /* evita o zoom automático do iPhone ao focar */
+      .so-largo { display: none; }
+      .so-celular { display: inline; }
+    }
+
     /* ── CARDS NO CELULAR ── */
     #mobile-cards { display: none; flex-direction: column; gap: 12px; padding: 16px; }
     @media (max-width: 600px) {
@@ -372,6 +529,10 @@
   <symbol id="i-aperto" viewBox="0 0 24 24"><path d="m11 17.5 2 2a2 2 0 0 0 2.8-2.8"/><path d="M3.5 11 8 6.5l4 3 3.5-3 5 5-3.5 3.5"/><path d="m8 13.5 3 3"/></symbol>
   <symbol id="i-balao" viewBox="0 0 24 24"><path d="M20.5 12.5a7.5 7.5 0 0 1-10.9 6.7L4 20.5l1.4-5.4A7.5 7.5 0 1 1 20.5 12.5z"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 15.5V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 14.5v3a2.5 2.5 0 0 0 2.5 2.5h10a2.5 2.5 0 0 0 2.5-2.5v-3"/></symbol>
+  <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></symbol>
 </svg>
 
   <!-- TOP BAR -->
@@ -410,12 +571,120 @@
     </div>
   </div>
 
+  <!-- MODAL NOVA DEMANDA -->
+  <div class="modal-overlay dm-overlay" id="modal-demanda" role="dialog" aria-modal="true" aria-labelledby="dm-titulo">
+    <form class="modal modal-demanda" id="form-demanda" novalidate autocomplete="off" onsubmit="enviarDemanda(event)">
+      <div class="dm-topo">
+        <div>
+          <h3 id="dm-titulo">Enviar nova demanda</h3>
+          <p>Mande os dados do cliente e o edital ou o contrato. A equipe da F&amp;G cota e você acompanha tudo por aqui.</p>
+        </div>
+        <button type="button" class="modal-close" onclick="fecharDemanda()" aria-label="Fechar"><svg class="ico ico-md"><use href="#i-x"/></svg></button>
+      </div>
+
+      <div class="dm-corpo">
+        <div class="dm-secao">Tomador (seu cliente)</div>
+        <div class="dm-grid">
+          <div class="dm-campo" id="c-cnpj">
+            <label class="field-label" for="dm-cnpj">CNPJ do tomador</label>
+            <div class="cnpj-wrap" id="cnpj-wrap">
+              <input class="field-input" id="dm-cnpj" name="cnpj" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" autocomplete="off" />
+              <span class="cnpj-spin" aria-hidden="true"></span>
+            </div>
+            <div class="cnpj-status" id="cnpj-status" aria-live="polite"></div>
+            <div class="dm-erro" id="e-cnpj"></div>
+          </div>
+          <div class="dm-campo" id="c-razao">
+            <label class="field-label" for="dm-razao">Razão social</label>
+            <input class="field-input" id="dm-razao" name="razao_social" maxlength="160" placeholder="Preenchida pelo CNPJ" autocomplete="off" />
+            <div class="dm-erro" id="e-razao"></div>
+          </div>
+          <div class="dm-campo" id="c-tel">
+            <label class="field-label" for="dm-tel">Telefone do cliente</label>
+            <input class="field-input" id="dm-tel" name="telefone" type="tel" inputmode="tel" maxlength="15" placeholder="(00) 00000-0000" autocomplete="off" />
+            <div class="dm-erro" id="e-tel"></div>
+          </div>
+          <div class="dm-campo" id="c-email">
+            <label class="field-label" for="dm-email">E-mail do cliente</label>
+            <input class="field-input" id="dm-email" name="email" type="email" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" placeholder="nome@empresa.com.br" autocomplete="off" />
+            <div class="dm-erro" id="e-email"></div>
+          </div>
+        </div>
+
+        <div class="dm-secao">O que você está enviando</div>
+        <div class="dm-campo" id="c-doc">
+          <div class="dm-opcoes" role="radiogroup" aria-label="Tipo de documento">
+            <button type="button" class="dm-opcao" role="radio" aria-checked="false" data-doc="edital" onclick="escolherDoc('edital')">
+              <span class="radio"></span>
+              <span><strong>Edital</strong><span class="sub">Seguro Garantia Licitante, a garantia da proposta</span></span>
+            </button>
+            <button type="button" class="dm-opcao" role="radio" aria-checked="false" data-doc="contrato" onclick="escolherDoc('contrato')">
+              <span class="radio"></span>
+              <span><strong>Contrato</strong><span class="sub">Seguro Garantia de Execução, depois de vencer</span></span>
+            </button>
+          </div>
+          <div class="dm-erro" id="e-doc"></div>
+        </div>
+
+        <div class="dm-grid">
+          <div class="dm-campo" id="c-data">
+            <label class="field-label" for="dm-data"><span id="dm-data-rotulo">Data da sessão ou da assinatura</span> <span class="opcional">(opcional)</span></label>
+            <input class="field-input" id="dm-data" name="data_referencia" type="date" />
+            <div class="dm-erro" id="e-data"></div>
+          </div>
+        </div>
+
+        <div class="dm-secao">Arquivos</div>
+        <div class="dm-campo" id="c-arq">
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Escolher o edital ou o contrato">
+            <svg class="ico"><use href="#i-enviar"/></svg>
+            <div class="dz-titulo"><span class="so-largo">Clique para escolher o arquivo ou arraste para cá</span><span class="so-celular">Toque para escolher o arquivo</span></div>
+            <div class="dz-sub">PDF, Word ou ZIP, até 30 MB cada, no máximo 5 arquivos</div>
+          </div>
+          <input type="file" id="dm-arquivo" accept=".pdf,.doc,.docx,.zip,application/pdf" multiple hidden />
+          <ul class="arquivos" id="lista-arquivos"></ul>
+          <div class="dm-erro" id="e-arq"></div>
+        </div>
+
+        <div class="dm-campo" id="c-obs">
+          <label class="field-label" for="dm-obs">Observação <span class="opcional">(opcional)</span></label>
+          <textarea class="field-input" id="dm-obs" name="observacao" maxlength="1000" placeholder="Ex.: o cliente já tem limite na seguradora X, prazo apertado, lote 2..."></textarea>
+        </div>
+
+        <div class="dm-falha" id="dm-falha" role="alert"></div>
+      </div>
+
+      <div class="dm-rodape">
+        <span class="dm-progresso" id="dm-progresso" aria-live="polite"></span>
+        <button type="button" class="btn-cancelar" onclick="fecharDemanda()">Cancelar</button>
+        <button type="submit" class="btn-salvar" id="dm-enviar">Enviar demanda</button>
+      </div>
+
+      <div class="dm-sucesso" id="dm-sucesso">
+        <div class="selo"><svg class="ico"><use href="#i-check"/></svg></div>
+        <h3>Demanda enviada</h3>
+        <p id="dm-sucesso-texto">A equipe da F&amp;G já recebeu. Você acompanha o andamento em "Em andamento", aqui no portal.</p>
+        <div class="modal-btns">
+          <button type="button" class="btn-cancelar" onclick="novaDemanda()">Enviar outra</button>
+          <button type="button" class="btn-salvar" onclick="fecharDemanda(true)">Fechar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <div class="content">
 
     <!-- WELCOME -->
     <div class="welcome">
-      <h2>Olá, <span id="nome-curto">parceiro</span></h2>
-      <p>Aqui você acompanha todas as suas indicações convertidas e comissões geradas.</p>
+      <div>
+        <h2>Olá, <span id="nome-curto">parceiro</span></h2>
+        <p>Envie suas demandas e acompanhe cada indicação e a sua comissão.</p>
+      </div>
+      <button type="button" class="btn-demanda" onclick="abrirDemanda()">
+        <svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda
+      </button>
     </div>
 
     <!-- STAT CARDS -->
@@ -465,6 +734,12 @@
       <p class="extrato-nota" id="extrato-nota"></p>
     </div>
 
+    <!-- COMO A COMISSÃO É CALCULADA (preenchido pela regra do parceiro) -->
+    <details class="regra" id="regra" style="display:none">
+      <summary><svg class="ico"><use href="#i-calc"/></svg> Como a sua comissão é calculada <svg class="ico seta"><use href="#i-seta-baixo"/></svg></summary>
+      <div class="regra-corpo" id="regra-corpo"></div>
+    </details>
+
     <!-- ABAS -->
     <div class="nav" id="nav">
       <div class="nav-pill" id="nav-pill"></div>
@@ -478,7 +753,7 @@
 
     <!-- LICITANTE INFO BANNER -->
     <div id="licitante-info-banner" style="display:none;background:#fdf6ec;border:1px solid rgba(198,156,109,.3);border-radius:var(--r);padding:15px 19px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.6;">
-      <svg class="ico ico-inline"><use href="#i-info"/></svg> <strong style="color:var(--ink);font-weight:600;">Sobre Seguro Garantia Licitante:</strong> Esta modalidade gera comissão apenas quando a apólice é emitida e o contrato é firmado. Indicações em análise ainda não geram valor.
+      <svg class="ico ico-inline"><use href="#i-info"/></svg> <strong style="color:var(--ink);font-weight:600;">Sobre Seguro Garantia Licitante:</strong> toda apólice emitida gera comissão, inclusive a de Licitante. Demandas ainda em análise não geram valor.
     </div>
 
     <!-- TABLE CARD -->
@@ -524,11 +799,11 @@
       <div id="zero-state" style="display:none;background:#fff;border-radius:20px;border:1px solid #e8e4dc;padding:40px 32px;text-align:center;margin:16px 16px 0;">
         <div class="empty-state" style="padding:0;margin-bottom:16px;"><div class="icon"><svg class="ico ico-xl"><use href="#i-aperto"/></svg></div></div>
         <h3 style="font-size:18px;font-weight:900;color:#1B263B;margin-bottom:8px;">Bem-vindo ao Portal de Parceiros!</h3>
-        <p style="font-size:13px;color:#78716c;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6;">Suas indicações aparecerão aqui à medida que as apólices forem emitidas. Comece indicando um cliente para a F&G Seguro Garantia.</p>
+        <p style="font-size:13px;color:#78716c;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6;">Suas demandas aparecem aqui assim que você envia, e a comissão entra quando a apólice é emitida.</p>
         <div style="display:flex;flex-direction:column;gap:12px;max-width:380px;margin:0 auto 24px;text-align:left;">
           <div style="display:flex;align-items:flex-start;gap:12px;">
             <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-            <div><strong style="font-size:13px;color:#1B263B;">Indique um cliente</strong><br><span style="font-size:12px;color:#78716c;">Entre em contato com a F&G via WhatsApp com os dados do cliente.</span></div>
+            <div><strong style="font-size:13px;color:#1B263B;">Envie a demanda</strong><br><span style="font-size:12px;color:#78716c;">Pelo botão abaixo, com o CNPJ do cliente e o edital ou o contrato.</span></div>
           </div>
           <div style="display:flex;align-items:flex-start;gap:12px;">
             <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
@@ -539,7 +814,8 @@
             <div><strong style="font-size:13px;color:#1B263B;">Você recebe sua comissão</strong><br><span style="font-size:12px;color:#78716c;">Após a emissão da apólice, sua comissão aparece aqui automaticamente.</span></div>
           </div>
         </div>
-        <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:#16a34a;color:#fff;border-radius:14px;font-weight:900;font-size:14px;text-decoration:none;"><svg class="ico ico-inline"><use href="#i-balao"/></svg> Indicar pelo WhatsApp</a>
+        <button type="button" class="btn-demanda" onclick="abrirDemanda()"><svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda</button>
+        <div style="margin-top:14px;font-size:12.5px;color:#78716c;">Prefere conversar? <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" rel="noopener" style="color:#8B6C3E;font-weight:600;">Fale com a F&G no WhatsApp</a></div>
       </div>
 
       <!-- Pipeline: negócios em andamento (não emitidos) -->
@@ -608,15 +884,70 @@
   <script>
     const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
+    // O client do Supabase só é usado para subir os arquivos da demanda por URL
+    // assinada. Os dados vêm da Edge Function parceiro-portal: a anon key não
+    // lê sales, boletos, repasses nem partners.
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const API_PORTAL = `${SUPABASE_URL}/functions/v1/parceiro-portal`;
 
-    const session = JSON.parse(localStorage.getItem('parceiro_session') || 'null');
-    if (!session) { window.location.href = 'parceiros-login.html'; }
+    function lerSessao() {
+      try { return JSON.parse(localStorage.getItem('parceiro_session') || 'null'); } catch (e) { return null; }
+    }
+    function irParaLogin(motivo) {
+      try { localStorage.removeItem('parceiro_session'); } catch (e) {}
+      window.location.href = 'parceiros-login.html' + (motivo ? '?motivo=' + motivo : '');
+    }
 
-    const PCT = (session?.commission_pct || 20) / 100;
+    const session = lerSessao();
+    // Sessão de antes do token (migração 129) não abre mais nada: pede login.
+    if (!session || !session.token) { irParaLogin(session ? 'sessao' : ''); }
+
     const nomeParceiro = session?.name || '';
     document.getElementById('nome-parceiro').textContent = nomeParceiro;
     document.getElementById('nome-curto').textContent = nomeParceiro.split(' ')[0];
+
+    /** Chama a função do portal. Sessão vencida volta para o login. */
+    async function api(acao, extra) {
+      let res;
+      try {
+        res = await fetch(API_PORTAL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+          body: JSON.stringify({ acao, token: session && session.token, ...(extra || {}) }),
+        });
+      } catch (e) {
+        throw new Error('Sem conexão. Confira a internet e tente de novo.');
+      }
+      let json = null;
+      try { json = await res.json(); } catch (e) {}
+      if (json && json.sessao_expirada) { irParaLogin('sessao'); throw new Error('Sessão expirada.'); }
+      if (!res.ok || !json || !json.success) {
+        throw new Error((json && json.error) || 'Não foi possível concluir agora. Tente de novo em instantes.');
+      }
+      return json;
+    }
+
+    /** Escapa texto antes de ir para innerHTML. */
+    function esc(t) {
+      return String(t == null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /** Comissão do parceiro em um negócio, já calculada no servidor pela regra dele. */
+    function parteParceiro(v) { return Number(v && v._comissao_parceiro && v._comissao_parceiro.valor) || 0; }
+    function pctParceiro(v) {
+      const c = v && v._comissao_parceiro;
+      return c && c.pct != null ? `${String(c.pct).replace('.', ',')}%` : '—';
+    }
+
+    function toast(texto) {
+      const t = document.getElementById('toast');
+      t.textContent = texto;
+      t.classList.add('on');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove('on'), 3200);
+    }
 
     // ── UTILS ────────────────────────────────────────────────
     function fmt(v) {
@@ -787,13 +1118,14 @@
       const emitidos = vendasFiltradas.filter(v => v.vendeu === 'Sim');
       const totalPremio = emitidos.reduce((s, v) => s + parseVal(v.premio), 0);
       const totalComissao = emitidos.reduce((s, v) => s + parseVal(v.comissao), 0);
+      const totalParceiro = emitidos.reduce((s, v) => s + parteParceiro(v), 0);
       document.getElementById('card-vendas').textContent = emitidos.length;
       document.getElementById('card-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
       document.getElementById('card-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
-      document.getElementById('card-parceiro').textContent = totalComissao > 0 ? fmt(totalComissao * PCT) : '—';
+      document.getElementById('card-parceiro').textContent = totalParceiro > 0 ? fmt(totalParceiro) : '—';
 
       // Só explica o parcelamento quando existe alguma venda parcelada no período.
-      const temParcelada = emitidos.some(v => comissaoPorParcela(v, parseVal(v.comissao) * PCT));
+      const temParcelada = emitidos.some(v => comissaoPorParcela(v, parteParceiro(v)));
       document.getElementById('card-parceiro-nota').style.display = temParcelada ? 'block' : 'none';
 
       atualizarExtrato();
@@ -817,7 +1149,7 @@
       let total = 0;
       let realizada = 0;
       emitidos.forEach(v => {
-        const parceiro = parseVal(v.comissao) * PCT;
+        const parceiro = parteParceiro(v);
         if (parceiro <= 0) return;
         total += parceiro;
         realizada += realizadoDaVenda(v, parceiro);
@@ -852,41 +1184,91 @@
     function renderPipeline(vendas) {
       const sec = document.getElementById('pipeline-section');
       const cards = document.getElementById('pipeline-cards');
-      const pending = vendas.filter(v => v.vendeu !== 'Sim');
-      if (!pending.length) { sec.style.display = 'none'; return; }
+      // Em andamento = ainda não emitida e não encerrada. As que não avançaram
+      // ficam só na tabela, com a etiqueta "Não avançou".
+      const pending = vendas.filter(v => v.vendeu !== 'Sim' && v.vendeu !== 'Não');
+      if (!pending.length) { sec.style.display = 'none'; cards.innerHTML = ''; return; }
       sec.style.display = 'block';
 
       cards.innerHTML = pending.map(v => {
+        const cotada = parseVal(v.premio) > 0;
+        const comissao = parseVal(v.comissao);
+        const suaParte = parteParceiro(v);
         const stages = [
-          { key: 'recebida', label: 'Recebida',   icon: '<svg class="ico ico-inline"><use href="#i-caixa"/></svg>', done: true,  date: fmtData(v.data) },
-          { key: 'analise',  label: 'Em análise', icon: '<svg class="ico ico-inline"><use href="#i-busca"/></svg>', done: true,  date: null },
-          { key: 'cotada',   label: 'Cotada',     icon: '<svg class="ico ico-inline"><use href="#i-lista"/></svg>', done: false, date: null },
-          { key: 'emitida',  label: 'Emitida',    icon: '<svg class="ico ico-inline"><use href="#i-check"/></svg>', done: false, date: null },
+          { label: 'Recebida',   icon: '#i-caixa',  done: true,   date: fmtData(v.data) },
+          { label: 'Em análise', icon: '#i-busca',  done: true,   date: null },
+          { label: 'Cotada',     icon: '#i-lista',  done: cotada, date: null },
+          { label: 'Emitida',    icon: '#i-check',  done: false,  date: null },
         ];
         const timelineHtml = stages.map((s, i) => `
-          <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;background:${s.done ? '#1B263B' : '#f8f5f0'};border:2px solid ${s.done ? '#1B263B' : '#e8e4dc'};margin-bottom:4px;">${s.icon}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;min-width:58px;">
+            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${s.done ? '#1B263B' : '#f8f5f0'};color:${s.done ? '#C69C6D' : '#94a3b8'};border:2px solid ${s.done ? '#1B263B' : '#e8e4dc'};margin-bottom:4px;"><svg class="ico ico-inline"><use href="${s.icon}"/></svg></div>
             <div style="font-size:9px;font-weight:900;color:${s.done ? '#1B263B' : '#94a3b8'};text-align:center;text-transform:uppercase;letter-spacing:.5px;">${s.label}</div>
             ${s.date ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">${s.date}</div>` : ''}
           </div>
-          ${i < stages.length - 1 ? `<div style="flex:0 0 24px;height:2px;background:${stages[i + 1].done ? '#1B263B' : '#e8e4dc'};margin-top:16px;"></div>` : ''}
+          ${i < stages.length - 1 ? `<div style="flex:1 1 auto;min-width:8px;height:2px;border-radius:2px;background:${stages[i + 1].done ? '#1B263B' : '#e8e4dc'};margin-top:16px;"></div>` : ''}
         `).join('');
 
-        return `<div style="background:#fff;border:1px solid #e8e4dc;border-radius:16px;padding:16px 20px;border-left:4px solid #C69C6D;">
+        const etiqueta = cotada
+          ? '<span style="font-size:10px;font-weight:900;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;">Cotada</span>'
+          : '<span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> Com a F&G</span>';
+
+        const comissaoHtml = comissao > 0
+          ? `<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#1B263B;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+               <span style="font-size:12px;color:rgba(255,255,255,.7);">Sua comissão prevista se a apólice for emitida</span>
+               <span style="font-size:17px;font-weight:700;color:#C69C6D;white-space:nowrap;">${fmt(suaParte)} <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.55);">(${pctParceiro(v)})</span></span>
+             </div>`
+          : `<div style="margin-top:12px;font-size:12px;color:#94a3b8;">A sua comissão prevista aparece aqui quando a cotação sair.</div>`;
+
+        const arquivos = Array.isArray(v.anexos_demanda) && v.anexos_demanda.length
+          ? `<div style="margin-top:10px;font-size:11.5px;color:#78716c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><svg class="ico ico-inline"><use href="#i-doc"/></svg> ${v.anexos_demanda.map(a => esc(a.nome)).join(', ')}</div>`
+          : '';
+
+        return `<div style="background:#fff;border:1px solid #e8e4dc;border-radius:16px;padding:16px 20px;border-left:4px solid #C69C6D;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
-            <div>
-              <div style="font-size:14px;font-weight:900;color:#1B263B;">${v.nome || '—'}</div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${v.product_type || 'Seguro Garantia'}${v.tipo ? ' · ' + v.tipo : ''}</div>
+            <div style="min-width:0;">
+              <div style="font-size:14px;font-weight:900;color:#1B263B;overflow-wrap:anywhere;">${esc(v.nome || '—')}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${esc(v.product_type || 'Seguro Garantia')}${v.tipo ? ' · ' + esc(v.tipo === 'Performance' ? 'Execução' : v.tipo) : ''}${v.cnpj ? ' · ' + esc(v.cnpj) : ''}</div>
             </div>
-            <span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> Aguardando F&G</span>
+            ${etiqueta}
           </div>
-          <div style="display:flex;align-items:center;">${timelineHtml}</div>
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:flex-start;max-width:640px;">${timelineHtml}</div>
+          ${comissaoHtml}
+          ${arquivos}
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
             <div style="font-size:11px;color:#78716c;">Prazo médio de emissão: <strong style="color:#1B263B;">3 a 5 dias úteis</strong></div>
-            <a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá! Acompanhando a demanda: ' + (v.nome || '') + ' (' + fmtData(v.data) + ')')}" target="_blank" style="font-size:11px;font-weight:900;color:#16a34a;text-decoration:none;display:flex;align-items:center;gap:4px;"><svg class="ico ico-inline"><use href="#i-balao"/></svg> Falar com F&G</a>
+            <a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá! Acompanhando a demanda: ' + (v.nome || '') + ' (' + fmtData(v.data) + ')')}" target="_blank" rel="noopener" style="font-size:11px;font-weight:900;color:#16a34a;text-decoration:none;display:flex;align-items:center;gap:4px;min-height:44px;"><svg class="ico ico-inline"><use href="#i-balao"/></svg> Falar com F&G</a>
           </div>
         </div>`;
       }).join('');
+    }
+
+    // ── COMO A COMISSÃO É CALCULADA ──────────────────────────
+    function renderRegra() {
+      const box = document.getElementById('regra');
+      const corpo = document.getElementById('regra-corpo');
+      if (!box || !corpo || !regraParceiro) return;
+      const reais = n => Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const r = regraParceiro.comissao_faixas;
+      if (r && Array.isArray(r.faixas) && r.faixas.length) {
+        const faixas = [...r.faixas].sort((a, b) => (a.ate == null) - (b.ate == null) || (a.ate || 0) - (b.ate || 0));
+        let anterior = null;
+        const linhas = faixas.map(f => {
+          let rotulo;
+          if (anterior === null && f.ate != null) rotulo = `Até ${reais(f.ate)}`;
+          else if (f.ate == null) rotulo = `Acima de ${reais(anterior)}`;
+          else rotulo = `${reais(anterior + 0.01)} a ${reais(f.ate)}`;
+          anterior = f.ate;
+          return `<tr><td>${rotulo}</td><td>${String(f.pct).replace('.', ',')}%</td></tr>`;
+        }).join('');
+        const imposto = Number(r.imposto_pct) || 0;
+        corpo.innerHTML = `<table class="regra-tabela"><tbody>${linhas}</tbody></table>
+          <p class="regra-nota">A faixa é definida pela comissão líquida que a F&G recebe em cada negócio, depois dos impostos${imposto ? ` (${String(imposto).replace('.', ',')}%)` : ''}. O percentual da faixa incide sobre a comissão integral do negócio, e não sobre o prêmio do seguro.</p>`;
+      } else {
+        const pct = regraParceiro.commission_pct == null ? 20 : Number(regraParceiro.commission_pct);
+        corpo.innerHTML = `<p class="regra-nota" style="margin-top:0">Você recebe <strong style="color:#14203a">${String(pct).replace('.', ',')}%</strong> da comissão que a F&G recebe em cada negócio emitido, e não do prêmio do seguro.</p>`;
+      }
+      box.style.display = 'block';
     }
 
     // ── ZERO STATE ───────────────────────────────────────────
@@ -915,15 +1297,18 @@
 
       tbody.innerHTML = pagina.map(v => {
         const comissao = parseVal(v.comissao);
-        const parceiro = comissao * PCT;
-        const pctStr = `${Math.round(PCT * 100)}%`;
+        // Negócio que não avançou não gera comissão, mesmo que tenha sido cotado.
+        const parceiro = v.vendeu === 'Não' ? 0 : parteParceiro(v);
+        const pctStr = comissao > 0 && v.vendeu !== 'Não' ? pctParceiro(v) : '—';
 
         const statusComissao = v.vendeu === 'Sim'
           ? '<span style="font-size:10px;font-weight:900;background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;"><svg class="ico ico-inline"><use href="#i-check"/></svg> Prevista</span>'
-          : '<span style="font-size:10px;font-weight:900;background:#f8f5f0;color:#94a3b8;padding:2px 8px;border-radius:6px;">—</span>';
+          : v.vendeu === 'Não'
+            ? '<span style="font-size:10px;font-weight:900;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:6px;">Não avançou</span>'
+            : '<span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:6px;">Em andamento</span>';
 
         const btnApolice = v.apolice_url
-          ? `<a href="${v.apolice_url}" target="_blank" class="badge-apolice"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>`
+          ? `<a href="${esc(v.apolice_url)}" target="_blank" rel="noopener" class="badge-apolice"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>`
           : `<span class="vazio">—</span>`;
 
         const rateio = comissaoPorParcela(v, parceiro);
@@ -951,12 +1336,12 @@
         const isVal = v.is ? fmt(parseVal(v.is)) : '—';
         return `<tr>
           <td class="td-data">${fmtData(v.data)}</td>
-          <td class="td-nome">${v.nome || '—'}</td>
+          <td class="td-nome">${esc(v.nome || '—')}</td>
           <td class="td-produto">
             ${v.product_type || 'Seguro Garantia'}
             ${v.tipo ? `<br><span style="font-size:11px;font-weight:700;color:#C69C6D;background:rgba(198,156,109,.1);padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;">${v.tipo}</span>` : ''}
           </td>
-          <td style="font-size:12px;color:#475569;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${seguradoOrgao}">${seguradoOrgao}</td>
+          <td style="font-size:12px;color:#475569;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(seguradoOrgao)}">${esc(seguradoOrgao)}</td>
           <td style="font-weight:700;color:#1B263B;white-space:nowrap">${isVal}</td>
           <td class="td-valor">${fmt(parseVal(v.premio))}</td>
           <td class="td-comissao">${fmt(comissao)}</td>
@@ -977,16 +1362,16 @@
       if (!el) return;
       if (!lista.length) { el.innerHTML = ''; return; }
       el.innerHTML = lista.map(v => {
-        const comissao = parseVal(v.comissao);
-        const parceiro = comissao * PCT;
+        const parceiro = v.vendeu === 'Não' ? 0 : parteParceiro(v);
         const rateio = comissaoPorParcela(v, parceiro);
+        const rotuloComissao = rateio ? 'Você recebe / parcela' : v.vendeu === 'Sim' ? 'Sua comissão' : v.vendeu === 'Não' ? 'Não avançou' : 'Comissão prevista';
         return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
             <div>
-              <div style="font-size:14px;font-weight:900;color:#1B263B;">${v.nome || '—'}</div>
+              <div style="font-size:14px;font-weight:900;color:#1B263B;">${esc(v.nome || '—')}</div>
               <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmtData(v.data)} · ${v.product_type || '—'}${v.tipo ? ' · ' + v.tipo : ''}</div>
             </div>
-            ${v.apolice_url ? `<a href="${v.apolice_url}" target="_blank" style="padding:6px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;flex-shrink:0;display:inline-flex;align-items:center;">⬇ Apólice</a>` : ''}
+            ${v.apolice_url ? `<a href="${esc(v.apolice_url)}" target="_blank" rel="noopener" style="padding:6px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;flex-shrink:0;display:inline-flex;align-items:center;">⬇ Apólice</a>` : ''}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div style="background:#f8f5f0;border-radius:10px;padding:10px;">
@@ -994,7 +1379,7 @@
               <div style="font-size:14px;font-weight:900;color:#1B263B;">${fmt(parseVal(v.premio))}</div>
             </div>
             <div style="background:#1B263B;border-radius:10px;padding:10px;">
-              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">${rateio ? 'Você recebe / parcela' : 'Sua Comissão'}</div>
+              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">${rotuloComissao}</div>
               <div style="font-size:14px;font-weight:900;color:#C69C6D;">${rateio ? fmt(rateio.itens[0].valor) : (parceiro > 0 ? fmt(parceiro) : '—')}</div>
               ${rateio ? `<div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:2px;">${rateio.qtd}x · total ${fmt(parceiro)}</div>` : ''}
             </div>
@@ -1043,14 +1428,6 @@
     // ── REPASSES ─────────────────────────────────────────────
     let repassesData = [];
 
-    async function carregarRepasses() {
-      const { data } = await client.from('repasses')
-        .select('*').eq('partner_id', session.id)
-        .order('periodo_ano', { ascending: false })
-        .order('periodo_mes', { ascending: false });
-      repassesData = data || [];
-      renderRepasses();
-    }
 
     function getStatusRepasse(dataStr) {
       if (!dataStr) return null;
@@ -1083,51 +1460,51 @@
         </tr>`).join('');
     }
 
-    async function carregar() {
-      const { data, error } = await client
-        .from('sales')
-        .select('id, data, nome, tipo, product_type, premio, comissao, parceiro, apolice_url, vendeu, obs, segurado, orgaoLicitante, is')
-        .eq('parceiro', session.name)
-        .order('data', { ascending: false });
+    let regraParceiro = null;
+    let periodoDefinido = false;
 
-      if (error) {
-        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon"><svg class="ico ico-xl"><use href="#i-alerta"/></svg></div><h4>Erro ao carregar</h4><p>Tente recarregar a página.</p></div></td></tr>`;
+    async function carregar() {
+      let resposta;
+      try {
+        resposta = await api('dados');
+      } catch (e) {
+        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon"><svg class="ico ico-xl"><use href="#i-alerta"/></svg></div><h4>Erro ao carregar</h4><p>${esc(e.message)} <a href="#" onclick="location.reload();return false;" style="color:#8B6C3E;font-weight:600;">Recarregar</a></p></div></td></tr>`;
         return;
       }
 
-      const vendas = data || [];
-      const emitidos = vendas.filter(v => v.vendeu === 'Sim');
-      const emAnalise = vendas.filter(v => v.vendeu !== 'Sim');
+      const vendas = resposta.vendas || [];
       todasVendas = vendas;
-
-      // Boletos (apenas para emitidos que têm id)
-      if (emitidos.length > 0) {
-        const ids = emitidos.map(v => v.id);
-        const { data: bData } = await client
-          .from('boletos').select('sale_id, parcela, vencimento, url, valor, pago')
-          .in('sale_id', ids).order('parcela');
-        const bMap = {};
-        (bData || []).forEach(b => { if (!bMap[b.sale_id]) bMap[b.sale_id] = []; bMap[b.sale_id].push(b); });
-        vendas.forEach(v => { v._boletos = bMap[v.id] || []; });
-      }
-
-      try { await carregarRepasses(); } catch(e) { console.warn('Repasses:', e); }
+      repassesData = resposta.repasses || [];
+      regraParceiro = resposta.parceiro || null;
+      renderRepasses();
+      renderRegra();
 
       // Preencher anos únicos no filtro (baseado em todos os negócios)
       const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();
       const selectAno = document.getElementById('filtro-ano');
+      const jaTem = new Set([...selectAno.options].map(o => o.value));
       anos.forEach(a => {
+        if (jaTem.has(a)) return;
         const opt = document.createElement('option');
         opt.value = a; opt.textContent = a;
         selectAno.appendChild(opt);
       });
 
-      // Aplicar filtro padrão (mês atual)
-      const hoje = new Date();
-      const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
-      const anoAtual = String(hoje.getFullYear());
-      document.getElementById('filtro-ano').value = anoAtual;
-      document.getElementById('filtro-mes').value = mesAtual;
+      // Filtro padrão (mês atual) só na primeira carga, para não desfazer o
+      // filtro que o parceiro escolheu quando a lista recarrega.
+      if (!periodoDefinido) {
+        periodoDefinido = true;
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = String(hoje.getFullYear());
+        if (![...selectAno.options].some(o => o.value === anoAtual)) {
+          const opt = document.createElement('option');
+          opt.value = anoAtual; opt.textContent = anoAtual;
+          selectAno.appendChild(opt);
+        }
+        document.getElementById('filtro-ano').value = anoAtual;
+        document.getElementById('filtro-mes').value = mesAtual;
+      }
 
       renderPipeline(todasVendas);
       renderZeroState();
@@ -1172,7 +1549,7 @@
     window.addEventListener('load', ajustarPill);
     document.addEventListener('DOMContentLoaded', ajustarPill);
 
-    carregar();
+    if (session && session.token) carregar();
 
     // ── SAIR ─────────────────────────────────────────────────
     function sair() {
@@ -1197,17 +1574,21 @@
       msg.style.display = 'none';
 
       if (!atual || !nova || !confirm) { showMsg('erro', 'Preencha todos os campos.'); return; }
-      if (atual !== session.password) { showMsg('erro', 'Senha atual incorreta.'); return; }
       if (nova.length < 6) { showMsg('erro', 'A nova senha deve ter pelo menos 6 caracteres.'); return; }
       if (nova !== confirm) { showMsg('erro', 'As senhas não coincidem.'); return; }
 
-      const { error } = await client.from('partners').update({ password: nova }).eq('id', session.id);
-      if (error) { showMsg('erro', 'Erro ao salvar. Tente novamente.'); return; }
-
-      session.password = nova;
-      localStorage.setItem('parceiro_session', JSON.stringify(session));
-      showMsg('ok', 'Senha alterada com sucesso!');
-      setTimeout(fecharModalSenha, 2000);
+      // A conferência da senha atual e a gravação acontecem no servidor. A
+      // resposta traz um token novo: o antigo deixa de valer, então outros
+      // aparelhos logados com a senha velha saem.
+      try {
+        const r = await api('alterar_senha', { atual, nova });
+        session.token = r.token;
+        localStorage.setItem('parceiro_session', JSON.stringify(session));
+        showMsg('ok', 'Senha alterada com sucesso!');
+        setTimeout(fecharModalSenha, 2000);
+      } catch (e) {
+        showMsg('erro', e.message);
+      }
     }
 
     function showMsg(tipo, texto) {
@@ -1216,6 +1597,365 @@
       msg.textContent = texto;
       msg.style.display = 'block';
     }
+
+    // ── NOVA DEMANDA ─────────────────────────────────────────
+    // O parceiro manda CNPJ do tomador, telefone e e-mail do cliente, se é
+    // edital ou contrato e o arquivo. A razão social vem da Receita pela função
+    // do portal. Os arquivos sobem direto para o bucket privado por URL
+    // assinada e só depois a demanda é gravada, para nunca existir demanda sem
+    // anexo. O servidor confere tudo de novo; a validação daqui é para o
+    // parceiro corrigir na hora, campo por campo.
+    const BUCKET_DEMANDAS = 'parceiro-demandas';
+    const EXT_MIME = {
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      zip: 'application/zip',
+    };
+    const MAX_ARQUIVOS = 5;
+    const MAX_BYTES = 30 * 1024 * 1024;
+    const dm = { doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', seq: 0, enviando: false, sujo: false, enviada: false };
+    const el = id => document.getElementById(id);
+    const soDigitos = t => String(t || '').replace(/\D/g, '');
+    const telaLarga = () => window.matchMedia('(min-width: 721px)').matches;
+
+    function cnpjValido(c) {
+      if (!/^\d{14}$/.test(c) || /^(\d)\1{13}$/.test(c)) return false;
+      const dv = base => {
+        const pesos = base.length === 12 ? [5,4,3,2,9,8,7,6,5,4,3,2] : [6,5,4,3,2,9,8,7,6,5,4,3,2];
+        const soma = base.split('').reduce((s, d, i) => s + Number(d) * pesos[i], 0);
+        const r = soma % 11;
+        return r < 2 ? 0 : 11 - r;
+      };
+      const d1 = dv(c.slice(0, 12));
+      const d2 = dv(c.slice(0, 12) + d1);
+      return c.endsWith(`${d1}${d2}`);
+    }
+    function mascaraCnpj(d) {
+      d = d.slice(0, 14);
+      if (d.length > 12) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})$/, '$1.$2.$3/$4-$5');
+      if (d.length > 8) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4})$/, '$1.$2.$3/$4');
+      if (d.length > 5) return d.replace(/^(\d{2})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+      if (d.length > 2) return d.replace(/^(\d{2})(\d{1,3})$/, '$1.$2');
+      return d;
+    }
+    function mascaraTel(d) {
+      d = d.slice(0, 11);
+      if (d.length > 10) return d.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+      if (d.length > 6) return d.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+      if (d.length > 2) return d.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+      if (d.length > 0) return d.replace(/^(\d{0,2})$/, '($1');
+      return '';
+    }
+    const emailValido = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+    const extensao = n => ((/\.([a-z0-9]+)$/i.exec(n || '') || [])[1] || '').toLowerCase();
+    const tamanhoTexto = b => b >= 1024 * 1024
+      ? `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
+      : `${Math.max(1, Math.round(b / 1024))} KB`;
+
+    function erroCampo(campo, texto) {
+      const c = el('c-' + campo);
+      const e = el('e-' + campo);
+      if (!c || !e) return;
+      c.classList.toggle('erro', !!texto);
+      e.textContent = texto || '';
+    }
+    function falha(texto) {
+      const f = el('dm-falha');
+      if (!texto) { f.classList.remove('on'); f.innerHTML = ''; return; }
+      f.innerHTML = `${esc(texto)}<br><span style="font-size:12px;">Se continuar, <a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá! Não estou conseguindo enviar uma demanda pelo portal.')}" target="_blank" rel="noopener" style="color:#9f1239;font-weight:600;">fale com a F&G no WhatsApp</a>.</span>`;
+      f.classList.add('on');
+    }
+    function statusCnpj(tipo, texto) {
+      const s = el('cnpj-status');
+      s.className = 'cnpj-status' + (tipo ? ' ' + tipo : '');
+      s.textContent = texto || '';
+    }
+
+    function limparDemanda() {
+      el('form-demanda').reset();
+      el('form-demanda').classList.remove('enviada');
+      Object.assign(dm, { doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', enviando: false, sujo: false, enviada: false });
+      dm.seq++;
+      ['cnpj', 'razao', 'tel', 'email', 'doc', 'data', 'arq'].forEach(c => erroCampo(c, ''));
+      statusCnpj('', '');
+      el('cnpj-wrap').classList.remove('buscando');
+      document.querySelectorAll('.dm-opcao').forEach(b => b.setAttribute('aria-checked', 'false'));
+      el('dm-data-rotulo').textContent = 'Data da sessão ou da assinatura';
+      el('dm-progresso').textContent = '';
+      falha('');
+      botaoEnviar(false);
+      renderArquivos();
+    }
+
+    function abrirDemanda() {
+      limparDemanda();
+      el('modal-demanda').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      el('form-demanda').querySelector('.dm-corpo').scrollTop = 0;
+      // No celular o teclado cobriria o formulário logo de cara.
+      if (telaLarga()) setTimeout(() => el('dm-cnpj').focus(), 80);
+    }
+
+    function fecharDemanda(depoisDeEnviar) {
+      if (dm.enviando) return;
+      if (dm.sujo && !dm.enviada && !confirm('Descartar o que você preencheu?')) return;
+      el('modal-demanda').classList.remove('open');
+      document.body.style.overflow = '';
+      if (depoisDeEnviar === true) {
+        const sec = el('pipeline-section');
+        if (sec && sec.style.display !== 'none') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function novaDemanda() {
+      limparDemanda();
+      el('form-demanda').querySelector('.dm-corpo').scrollTop = 0;
+      if (telaLarga()) setTimeout(() => el('dm-cnpj').focus(), 80);
+    }
+
+    function escolherDoc(doc) {
+      dm.doc = doc;
+      dm.sujo = true;
+      document.querySelectorAll('.dm-opcao').forEach(b => b.setAttribute('aria-checked', b.dataset.doc === doc ? 'true' : 'false'));
+      el('dm-data-rotulo').textContent = doc === 'edital' ? 'Data da sessão' : 'Data da assinatura';
+      erroCampo('doc', '');
+    }
+
+    // CNPJ: máscara enquanto digita e consulta a Receita quando fecha 14 números.
+    el('dm-cnpj').addEventListener('input', e => {
+      dm.sujo = true;
+      const d = soDigitos(e.target.value).slice(0, 14);
+      e.target.value = mascaraCnpj(d);
+      erroCampo('cnpj', '');
+      if (d.length < 14) {
+        dm.seq++;
+        el('cnpj-wrap').classList.remove('buscando');
+        statusCnpj('', '');
+        // Razão social que veio de outro CNPJ não pode ficar no campo.
+        if (dm.razaoAuto && el('dm-razao').value === dm.razaoAuto) el('dm-razao').value = '';
+        dm.razaoAuto = '';
+        dm.cnpjConsultado = '';
+        return;
+      }
+      if (!cnpjValido(d)) { erroCampo('cnpj', 'CNPJ inválido. Confira os números.'); return; }
+      if (d !== dm.cnpjConsultado) consultarCnpj(d);
+    });
+
+    async function consultarCnpj(d) {
+      const minha = ++dm.seq;
+      dm.cnpjConsultado = d;
+      el('cnpj-wrap').classList.add('buscando');
+      statusCnpj('info', 'Consultando a Receita...');
+      try {
+        const r = await api('cnpj', { cnpj: d });
+        if (minha !== dm.seq) return;
+        if (r.encontrado) {
+          const razao = (r.razao_social || '').trim();
+          const campo = el('dm-razao');
+          if (!campo.value.trim() || campo.value === dm.razaoAuto) campo.value = razao;
+          dm.razaoAuto = razao;
+          erroCampo('razao', '');
+          const local = [r.municipio, r.uf].filter(Boolean).join('/');
+          const situacao = (r.situacao || '').toUpperCase();
+          if (situacao && situacao !== 'ATIVA') {
+            statusCnpj('alerta', `Situação na Receita: ${situacao}${local ? ' · ' + local : ''}. Confirme com o cliente antes de enviar.`);
+          } else {
+            statusCnpj('ok', `Encontrado na Receita${situacao ? ' · ' + situacao : ''}${local ? ' · ' + local : ''}`);
+          }
+        } else if (r.consulta_indisponivel) {
+          statusCnpj('info', 'A Receita não respondeu agora. Digite a razão social para seguir.');
+        } else {
+          statusCnpj('alerta', 'Não achamos esse CNPJ na Receita. Confira os números ou digite a razão social.');
+        }
+      } catch (e) {
+        if (minha !== dm.seq) return;
+        dm.cnpjConsultado = '';
+        statusCnpj('info', 'Não deu para consultar a Receita agora. Digite a razão social para seguir.');
+      } finally {
+        if (minha === dm.seq) el('cnpj-wrap').classList.remove('buscando');
+      }
+    }
+
+    el('dm-razao').addEventListener('input', () => { dm.sujo = true; erroCampo('razao', ''); });
+    el('dm-tel').addEventListener('input', e => {
+      dm.sujo = true;
+      e.target.value = mascaraTel(soDigitos(e.target.value));
+      erroCampo('tel', '');
+    });
+    el('dm-email').addEventListener('input', () => { dm.sujo = true; erroCampo('email', ''); });
+    el('dm-email').addEventListener('blur', e => { e.target.value = e.target.value.trim(); });
+    el('dm-data').addEventListener('input', () => { dm.sujo = true; erroCampo('data', ''); });
+    el('dm-obs').addEventListener('input', () => { dm.sujo = true; });
+
+    // Arquivos: toque/clique abre o seletor; no computador também dá para arrastar.
+    const dz = el('dropzone');
+    dz.addEventListener('click', () => { if (!dm.enviando) el('dm-arquivo').click(); });
+    dz.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!dm.enviando) el('dm-arquivo').click(); }
+    });
+    ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add('arrastando'); }));
+    ['dragleave', 'dragend'].forEach(t => dz.addEventListener(t, () => dz.classList.remove('arrastando')));
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('arrastando');
+      if (!dm.enviando && e.dataTransfer && e.dataTransfer.files) adicionarArquivos(e.dataTransfer.files);
+    });
+    el('dm-arquivo').addEventListener('change', e => {
+      adicionarArquivos(e.target.files);
+      e.target.value = '';  // permite escolher o mesmo arquivo de novo depois de remover
+    });
+
+    function adicionarArquivos(lista) {
+      const recusados = [];
+      [...(lista || [])].forEach(f => {
+        const ext = extensao(f.name);
+        if (!EXT_MIME[ext]) { recusados.push(`"${f.name}" não é PDF, Word ou ZIP`); return; }
+        if (f.size <= 0) { recusados.push(`"${f.name}" está vazio`); return; }
+        if (f.size > MAX_BYTES) { recusados.push(`"${f.name}" passa de 30 MB`); return; }
+        if (dm.arquivos.some(a => a.name === f.name && a.size === f.size)) return;
+        if (dm.arquivos.length >= MAX_ARQUIVOS) { recusados.push(`no máximo ${MAX_ARQUIVOS} arquivos`); return; }
+        dm.arquivos.push(f);
+        dm.sujo = true;
+      });
+      erroCampo('arq', recusados.length ? 'Não entrou: ' + [...new Set(recusados)].join('; ') + '.' : '');
+      renderArquivos();
+    }
+
+    function removerArquivo(i) {
+      if (dm.enviando) return;
+      dm.arquivos.splice(i, 1);
+      erroCampo('arq', '');
+      renderArquivos();
+    }
+
+    function renderArquivos(estado) {
+      el('lista-arquivos').innerHTML = dm.arquivos.map((f, i) => {
+        const st = estado && estado[i] ? estado[i] : '';
+        return `<li class="${st}">
+          <svg class="ico"><use href="${st === 'enviado' ? '#i-check' : '#i-doc'}"/></svg>
+          <span class="nome" title="${esc(f.name)}">${esc(f.name)}</span>
+          <span class="tam">${st === 'enviando' ? 'enviando...' : tamanhoTexto(f.size)}</span>
+          <button type="button" class="tirar" onclick="removerArquivo(${i})" aria-label="Remover ${esc(f.name)}" ${dm.enviando ? 'disabled' : ''}><svg class="ico"><use href="#i-x"/></svg></button>
+        </li>`;
+      }).join('');
+    }
+
+    function botaoEnviar(ocupado, texto) {
+      const b = el('dm-enviar');
+      b.disabled = !!ocupado;
+      b.textContent = ocupado ? (texto || 'Enviando...') : 'Enviar demanda';
+    }
+
+    function validarDemanda() {
+      const erros = [];
+      const cnpj = soDigitos(el('dm-cnpj').value);
+      if (cnpj.length === 0) erros.push(['cnpj', 'Informe o CNPJ do tomador.']);
+      else if (!cnpjValido(cnpj)) erros.push(['cnpj', 'CNPJ inválido. Confira os números.']);
+      const razao = el('dm-razao').value.trim();
+      if (razao.length < 3) erros.push(['razao', 'Informe a razão social do tomador.']);
+      const tel = soDigitos(el('dm-tel').value);
+      if (tel.length < 10) erros.push(['tel', 'Telefone com DDD, 10 ou 11 números.']);
+      const email = el('dm-email').value.trim();
+      if (!emailValido(email)) erros.push(['email', email ? 'E-mail inválido. Confira se tem @ e o domínio.' : 'Informe o e-mail do cliente.']);
+      if (!dm.doc) erros.push(['doc', 'Escolha se é edital ou contrato.']);
+      const data = el('dm-data').value;
+      if (data && !/^\d{4}-\d{2}-\d{2}$/.test(data)) erros.push(['data', 'Data inválida.']);
+      if (!dm.arquivos.length) erros.push(['arq', `Anexe o ${dm.doc === 'contrato' ? 'contrato' : dm.doc === 'edital' ? 'edital' : 'edital ou o contrato'}.`]);
+      return { erros, valores: { cnpj, razao, tel, email, data } };
+    }
+
+    async function enviarDemanda(ev) {
+      if (ev) ev.preventDefault();
+      if (dm.enviando) return;
+      falha('');
+      ['cnpj', 'razao', 'tel', 'email', 'doc', 'data', 'arq'].forEach(c => erroCampo(c, ''));
+
+      const { erros, valores } = validarDemanda();
+      if (erros.length) {
+        erros.forEach(([c, t]) => erroCampo(c, t));
+        const primeiro = el('c-' + erros[0][0]);
+        primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const foco = primeiro.querySelector('input, button, .dropzone');
+        if (foco && telaLarga()) setTimeout(() => foco.focus({ preventScroll: true }), 250);
+        return;
+      }
+
+      dm.enviando = true;
+      botaoEnviar(true, 'Preparando...');
+      const total = dm.arquivos.length;
+      const estado = dm.arquivos.map(() => '');
+      renderArquivos(estado);
+
+      try {
+        const prep = await api('preparar_upload', {
+          arquivos: dm.arquivos.map(f => ({ nome: f.name, tamanho: f.size, tipo: EXT_MIME[extensao(f.name)] })),
+        });
+
+        for (let i = 0; i < total; i++) {
+          const f = dm.arquivos[i];
+          const alvo = prep.arquivos[i];
+          const mime = EXT_MIME[extensao(f.name)];
+          estado[i] = 'enviando';
+          renderArquivos(estado);
+          el('dm-progresso').textContent = total > 1 ? `Enviando arquivo ${i + 1} de ${total}...` : 'Enviando o arquivo...';
+          botaoEnviar(true, 'Enviando...');
+          // O tipo vai explícito: alguns sistemas entregam .docx ou .zip sem tipo
+          // e o bucket só aceita PDF, Word e ZIP.
+          const arquivo = new File([f], f.name, { type: mime });
+          const { error } = await client.storage.from(BUCKET_DEMANDAS)
+            .uploadToSignedUrl(alvo.path, alvo.token, arquivo, { contentType: mime, upsert: false });
+          if (error) throw new Error(`Não conseguimos enviar "${f.name}". Confira a internet e tente de novo.`);
+          estado[i] = 'enviado';
+          renderArquivos(estado);
+        }
+
+        el('dm-progresso').textContent = 'Registrando a demanda...';
+        const r = await api('enviar_demanda', {
+          cnpj: valores.cnpj,
+          razao_social: valores.razao,
+          telefone: valores.tel,
+          email: valores.email,
+          documento: dm.doc,
+          data_referencia: valores.data || '',
+          observacao: el('dm-obs').value.trim(),
+          anexos: prep.arquivos.map(a => ({ path: a.path, nome: a.nome, tamanho: a.tamanho, tipo: a.tipo })),
+        });
+
+        dm.enviando = false;
+        dm.enviada = true;
+        el('dm-sucesso-texto').textContent = `A demanda de ${valores.razao} já está com a equipe da F&G. Você acompanha o andamento em "Em andamento", aqui no portal.`;
+        el('form-demanda').classList.add('enviada');
+        el('dm-progresso').textContent = '';
+        botaoEnviar(false);
+        carregar();
+        if (r && r.repetida) toast('Essa demanda já tinha chegado. Não duplicamos.');
+      } catch (e) {
+        dm.enviando = false;
+        el('dm-progresso').textContent = '';
+        botaoEnviar(false);
+        renderArquivos();
+        falha(e.message || 'Não foi possível enviar agora. Tente de novo.');
+        el('dm-falha').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    // Enter num campo de texto vai para o próximo campo em vez de enviar o
+    // formulário pela metade (o "Ir" do teclado do celular faz o mesmo).
+    el('form-demanda').addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+      e.preventDefault();
+      const ordem = ['dm-cnpj', 'dm-razao', 'dm-tel', 'dm-email'];
+      const i = ordem.indexOf(e.target.id);
+      if (i >= 0 && i < ordem.length - 1) el(ordem[i + 1]).focus();
+      else e.target.blur();
+    });
+
+    // Fechar: clique fora do formulário ou Esc. Com dados preenchidos, pergunta antes.
+    el('modal-demanda').addEventListener('click', e => { if (e.target === el('modal-demanda')) fecharDemanda(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && el('modal-demanda').classList.contains('open')) fecharDemanda(dm.enviada);
+    });
   </script>
   <!-- Avisa o parceiro quando sai versão nova desta página. -->
   <script defer src="aviso-versao.js"></script>

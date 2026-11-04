@@ -89,6 +89,11 @@
       animation: entra .34s var(--ease) both;
     }
     .erro a { color: #8a2f2a; font-weight: 600; text-decoration: underline; }
+    .aviso-sessao {
+      display: none; margin: 4px 0 6px; padding: 11px 14px; border-radius: 14px;
+      background: #fdf6ec; border: 1px solid rgba(198,156,109,.35);
+      font-size: 12.5px; color: #6b5435; text-align: center; line-height: 1.5;
+    }
 
     .link-forgot { text-align: center; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
     .link-forgot a {
@@ -129,6 +134,8 @@
     <h1>Área do Parceiro</h1>
     <p class="sub">F&G Seguro Garantia</p>
 
+    <div class="aviso-sessao" id="aviso-sessao">Por segurança, entre de novo no portal.</div>
+
     <label for="usuario">Usuário</label>
     <input type="text" id="usuario" placeholder="Seu usuário" autocomplete="username" />
 
@@ -160,11 +167,17 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmanZ3aWJ1Y3BseWhzdm53Zm9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODA4NTIsImV4cCI6MjA4Nzk1Njg1Mn0.jCBS1YnDcKuVzJSVhGiJM0kyafPMZxFi52kszTJCxZQ';
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Se já logado, redireciona conforme o tipo
-    const sessaoExistente = localStorage.getItem('parceiro_session');
-    if (sessaoExistente) {
-      const s = JSON.parse(sessaoExistente);
-      window.location.href = s.partner_type === 'imobiliaria' ? 'imobiliaria.html' : 'parceiros.html';
+    // Se já logado, redireciona conforme o tipo. O portal de seguro garantia
+    // exige o token do login (migração 129); sessão antiga sem token pede login.
+    let sessaoExistente = null;
+    try { sessaoExistente = JSON.parse(localStorage.getItem('parceiro_session') || 'null'); } catch (e) {}
+    if (sessaoExistente && (sessaoExistente.partner_type === 'imobiliaria' || sessaoExistente.token)) {
+      window.location.href = sessaoExistente.partner_type === 'imobiliaria' ? 'imobiliaria.html' : 'parceiros.html';
+    } else if (sessaoExistente) {
+      localStorage.removeItem('parceiro_session');
+    }
+    if (new URLSearchParams(location.search).get('motivo') === 'sessao') {
+      document.getElementById('aviso-sessao').style.display = 'block';
     }
 
     document.getElementById('senha').addEventListener('keydown', e => {
