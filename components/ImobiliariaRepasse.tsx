@@ -430,6 +430,16 @@ export default function ImobiliariaRepasse() {
   // então o passo a passo mora aqui dentro, não na cabeça dele.
   const [guiaAberto, setGuiaAberto] = useState(false);
 
+  // Cópia local do cadastro já na etapa nova. A data da etapa (kanban_status_em)
+  // é gravada pelo gatilho do banco (migração 126); aqui ela só acompanha, para
+  // o card não sumir de Aprovado antes do próximo recarregamento da tela.
+  const naEtapa = (c: any, novaEtapa: string, extra: Record<string, any> = {}) => ({
+    ...c,
+    ...extra,
+    kanban_status: novaEtapa,
+    kanban_status_em: (c.kanban_status || 'solicitado') === novaEtapa ? c.kanban_status_em : new Date().toISOString(),
+  });
+
   const moveCard = async (clienteId: string, newStatus: string) => {
     setDraggingId(null); setDragOver(null);
     // Ao aprovar, pede a configuração do repasse se ainda não há valor mensal.
@@ -447,7 +457,7 @@ export default function ImobiliariaRepasse() {
     await supabase.from('imobiliaria_clientes')
       .update({ kanban_status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', clienteId);
-    setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, kanban_status: newStatus } as any : c));
+    setClientes(prev => prev.map(c => c.id === clienteId ? naEtapa(c, newStatus) as any : c));
   };
 
   const confirmarRepasseSetup = async () => {
@@ -479,7 +489,7 @@ export default function ImobiliariaRepasse() {
       updated_at: new Date().toISOString(),
     }).eq('id', repasseSetupModal.clienteId);
     setClientes(prev => prev.map(c => c.id === repasseSetupModal.clienteId
-      ? { ...c, kanban_status: repasseSetupModal.newStatus, is_repasse: true, total_parcelas: repasseSetupForm.total_parcelas, parcela_atual: 2, valor_seguro: valor, dia_vencimento_aluguel: diaVenc, proximo_vencimento: primeiroRepasseSetup } as any
+      ? naEtapa(c, repasseSetupModal.newStatus, { is_repasse: true, total_parcelas: repasseSetupForm.total_parcelas, parcela_atual: 2, valor_seguro: valor, dia_vencimento_aluguel: diaVenc, proximo_vencimento: primeiroRepasseSetup }) as any
       : c));
     setRepasseSetupModal(null);
   };
@@ -499,7 +509,7 @@ export default function ImobiliariaRepasse() {
     await supabase.from('imobiliaria_clientes')
       .update({ kanban_status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', clienteId);
-    setClientes(prev => prev.map(c => c.id === clienteId ? { ...c, kanban_status: newStatus } as any : c));
+    setClientes(prev => prev.map(c => c.id === clienteId ? naEtapa(c, newStatus) as any : c));
     setRepasseSetupModal(null);
   };
 
@@ -1613,7 +1623,10 @@ export default function ImobiliariaRepasse() {
             <div className="overflow-x-auto pb-1">
             <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(160px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
-                // Pending always show; approved/rejected only last 3 days
+                // Etapas em andamento aparecem sempre; Aprovado e Recusado por 3 dias,
+                // contados de quando o card ENTROU na etapa (kanban_status_em).
+                // Antes contava da criação do pedido: aprovar um pedido com mais de
+                // 3 dias fazia o card sumir na hora.
                 const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
                 const colCards = col.key === 'renovacao'
                   ? clientes
@@ -1626,7 +1639,7 @@ export default function ImobiliariaRepasse() {
                   // vai para a coluna ao lado; respondido fica em Pendências do portal.
                   if (status === 'aprovado' && situacaoRenovacao(c)) return false;
                   if (['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(status)) return true;
-                  return new Date(c.created_at) >= tresDiasAtras;
+                  return new Date((c as any).kanban_status_em || c.created_at) >= tresDiasAtras;
                 });
                 const isOver = dragOver === col.key;
                 return (
