@@ -98,9 +98,7 @@ serve(async (req) => {
     const html = `
       <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
         <div style="background:#1B263B;padding:24px 32px;text-align:center;">
-          <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 12px;">
-            <tr><td style="background:#C69C6D;border-radius:12px;padding:10px 20px;"><span style="color:#1B263B;font-weight:900;font-size:18px;">F&amp;G</span></td></tr>
-          </table>
+          <img src="https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 auto 12px;" />
           <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">📤 Apólice Emitida</h1>
           <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">${produto}</p>
         </div>

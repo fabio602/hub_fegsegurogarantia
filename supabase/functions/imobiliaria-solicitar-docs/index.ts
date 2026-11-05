@@ -22,18 +22,14 @@ serve(async (req) => {
     const html = `
       <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
         <div style="background:#1B263B;padding:28px 32px;text-align:center;">
-          <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 14px;">
-            <tr><td style="background:#C69C6D;border-radius:12px;padding:10px 20px;">
-              <span style="color:#1B263B;font-weight:900;font-size:18px;">F&amp;G</span>
-            </td></tr>
-          </table>
+          <img src="https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 auto 14px;" />
           <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">📋 Documentos Necessários</h1>
           <p style="color:rgba(255,255,255,.5);font-size:12px;margin:5px 0 0;">Garantia Locatícia</p>
         </div>
         <div style="padding:28px 32px;background:#fff;">
           <p style="color:#1B263B;font-size:15px;margin:0 0 14px;">Prezados <strong>${parceiro_nome}</strong>,</p>
           <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 20px;">
-            Para darmos sequência à emissão da garantia locaícia do inquílino 
+            Para darmos sequência à emissão da garantia locatícia do inquílino
             <strong style="color:#1B263B;">${inquilino_nome}</strong>, 
             precisamos dos seguintes documentos:
           </p>

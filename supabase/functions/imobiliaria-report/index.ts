@@ -32,6 +32,21 @@ const FOOTER_RESERVE = 60;
 
 const COLS = { inquilino: MARGIN_L, apolice: 205, valor: 290, parcela: 375, vencimento: 435 };
 
+// Logo oficial (horizontal bege, para o topo azul do PDF). Se o download
+// falhar, o cabeçalho volta a escrever o nome: o relatório nunca deixa de sair.
+const LOGO_PNG = 'https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png';
+const LOGO_RATIO = 720 / 236;
+
+async function carregarLogo(doc: any): Promise<any | null> {
+  try {
+    const res = await fetch(LOGO_PNG);
+    if (!res.ok) return null;
+    return await doc.embedPng(new Uint8Array(await res.arrayBuffer()));
+  } catch {
+    return null;
+  }
+}
+
 function fmtBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -59,6 +74,7 @@ async function generatePDF(clientes: any[], competencia: string, parceiroNome: s
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await carregarLogo(doc);
 
   const navy = rgb(0.106, 0.149, 0.231);
   const gold = rgb(0.776, 0.612, 0.427);
@@ -85,10 +101,19 @@ async function generatePDF(clientes: any[], competencia: string, parceiroNome: s
 
     if (first) {
       page.drawRectangle({ x: 0, y: PAGE_H - 80, width: PAGE_W, height: 80, color: navy });
-      page.drawText('F&G Seguro Garantia', { x: MARGIN_L, y: PAGE_H - 35, size: 16, font: fontBold, color: white });
-      page.drawText(`Relatório de Repasse — ${parceiroNome}`, { x: MARGIN_L, y: PAGE_H - 55, size: 10, font, color: gold });
-      page.drawText(`Competência: ${competencia}`, { x: MARGIN_L, y: PAGE_H - 72, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
-      page.drawText(`Gerado em: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, { x: 430, y: PAGE_H - 55, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
+      if (logo) {
+        // Logo à esquerda e os textos à direita dele.
+        page.drawImage(logo, { x: MARGIN_L, y: PAGE_H - 63, width: 46 * LOGO_RATIO, height: 46 });
+        const tx = MARGIN_L + 46 * LOGO_RATIO + 24;
+        page.drawText(`Relatório de Repasse — ${parceiroNome}`, { x: tx, y: PAGE_H - 34, size: 11, font: fontBold, color: white });
+        page.drawText(`Competência: ${competencia}`, { x: tx, y: PAGE_H - 51, size: 9, font, color: gold });
+        page.drawText(`Gerado em: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, { x: tx, y: PAGE_H - 65, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
+      } else {
+        page.drawText('F&G Seguro Garantia', { x: MARGIN_L, y: PAGE_H - 35, size: 16, font: fontBold, color: white });
+        page.drawText(`Relatório de Repasse — ${parceiroNome}`, { x: MARGIN_L, y: PAGE_H - 55, size: 10, font, color: gold });
+        page.drawText(`Competência: ${competencia}`, { x: MARGIN_L, y: PAGE_H - 72, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
+        page.drawText(`Gerado em: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`, { x: 430, y: PAGE_H - 55, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
+      }
 
       y = PAGE_H - 110;
 
@@ -101,8 +126,13 @@ async function generatePDF(clientes: any[], competencia: string, parceiroNome: s
       y -= 55;
     } else {
       page.drawRectangle({ x: 0, y: PAGE_H - 46, width: PAGE_W, height: 46, color: navy });
-      page.drawText('F&G Seguro Garantia', { x: MARGIN_L, y: PAGE_H - 26, size: 11, font: fontBold, color: white });
-      page.drawText(`Relatório de Repasse — ${parceiroNome} — ${competencia}`, { x: MARGIN_L, y: PAGE_H - 39, size: 8, font, color: gold });
+      if (logo) {
+        page.drawImage(logo, { x: MARGIN_L, y: PAGE_H - 36, width: 26 * LOGO_RATIO, height: 26 });
+        page.drawText(`Relatório de Repasse — ${parceiroNome} — ${competencia}`, { x: MARGIN_L + 26 * LOGO_RATIO + 18, y: PAGE_H - 26, size: 8, font, color: gold });
+      } else {
+        page.drawText('F&G Seguro Garantia', { x: MARGIN_L, y: PAGE_H - 26, size: 11, font: fontBold, color: white });
+        page.drawText(`Relatório de Repasse — ${parceiroNome} — ${competencia}`, { x: MARGIN_L, y: PAGE_H - 39, size: 8, font, color: gold });
+      }
       y = PAGE_H - 70;
     }
 
@@ -271,8 +301,8 @@ async function enviar(
   const emailHtml = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background: #1B263B; padding: 24px; border-radius: 8px 8px 0 0;">
-    <h2 style="color: #C69C6D; margin: 0;">F&G Seguro Garantia</h2>
-    <p style="color: #fff; margin: 4px 0 0;">Relatório de Repasse — ${competencia}${testMode ? ' (TESTE)' : ''}</p>
+    <img src="https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 0 12px;" />
+    <p style="color: #fff; margin: 0;">Relatório de Repasse — ${competencia}${testMode ? ' (TESTE)' : ''}</p>
   </div>
   <div style="background: #f9f9f9; padding: 24px; border-radius: 0 0 8px 8px; border: 1px solid #eee;">
     <p>Prezada equipe <strong>${parceiroNome}</strong>,</p>

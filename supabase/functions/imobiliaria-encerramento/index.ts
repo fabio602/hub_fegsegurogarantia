@@ -85,9 +85,7 @@ serve(async (req) => {
     const html = `
       <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
         <div style="background:#1B263B;padding:24px 32px;">
-          <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
-            <tr><td style="background:#C69C6D;border-radius:12px;padding:8px 18px;"><span style="color:#1B263B;font-weight:900;font-size:16px;">F&amp;G</span></td></tr>
-          </table>
+          <img src="https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 0 12px;" />
           <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">Seguro encerrado</h1>
           <p style="color:rgba(255,255,255,.5);font-size:12px;margin:4px 0 0;">Cliente: ${esc(cliente.inquilino_nome || '—')}</p>
           ${apolice}
