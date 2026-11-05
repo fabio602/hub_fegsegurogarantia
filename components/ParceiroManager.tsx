@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Loader2, Users, Send, CheckCircle2, Mail, DollarSign, Calendar, Upload, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ModalPortal from './ModalPortal.tsx';
-import { comissaoDoParceiro, lerValor, type RegraFaixas } from '../supabase/functions/_shared/comissaoParceiro.ts';
+import { comissaoDoParceiro, lerValor, FAIXAS_CONTRATO, type RegraFaixas } from '../supabase/functions/_shared/comissaoParceiro.ts';
 
 const MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -41,7 +41,14 @@ const emptyForm = {
     name: '', username: '', password: '', commission_pct: 20,
     cnpj: '', email: '', banco_nome: '', pix_key: '',
     conta_corrente: '', agencia: '', commission_type: 'escalonado', partner_type: 'seguro_garantia',
+    comissao_faixas: null as RegraFaixas | null,
 };
+
+/** Parceiro de seguro garantia com "Escalonado (contrato)" usa a tabela de faixas, não o %. */
+const usaTabelaContrato = (f: { partner_type?: string; commission_type?: string }) =>
+    (f.partner_type || 'seguro_garantia') === 'seguro_garantia' && (f.commission_type || 'escalonado') === 'escalonado';
+
+const reaisCurto = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 const ParceiroManager: React.FC = () => {
     const [parceiros, setParceiros] = useState<Parceiro[]>([]);
@@ -216,6 +223,7 @@ const ParceiroManager: React.FC = () => {
             pix_key: p.pix_key || '', conta_corrente: p.conta_corrente || '',
             agencia: p.agencia || '', commission_type: p.commission_type || 'escalonado',
             partner_type: p.partner_type || 'seguro_garantia',
+            comissao_faixas: p.comissao_faixas ?? null,
         });
         setShowForm(true);
         setError(null);
@@ -243,11 +251,19 @@ const ParceiroManager: React.FC = () => {
         setSaving(true);
         setError(null);
         try {
+            // O tipo de comissão decide a regra que o portal e o repasse usam:
+            // escalonado grava a tabela do contrato (mantém a que já existe, se
+            // houver); percentual fixo apaga as faixas e vale o commission_pct.
+            const pct = Number(form.commission_pct);
+            const faixas = usaTabelaContrato(form)
+                ? (form.comissao_faixas?.faixas?.length ? form.comissao_faixas : FAIXAS_CONTRATO)
+                : null;
             const payload = {
                 name: form.name.trim(),
                 username: form.username.trim(),
                 password: form.password,
-                commission_pct: Number(form.commission_pct) || 20,
+                commission_pct: Number.isFinite(pct) ? pct : 20,
+                comissao_faixas: faixas,
                 cnpj: form.cnpj?.trim() || null,
                 email: form.email?.trim() || null,
                 email_2: (form as any).email_2?.trim() || null,
@@ -343,19 +359,49 @@ const ParceiroManager: React.FC = () => {
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comissão (%)</label>
-                            <input type="number" min="0" max="100" step="0.5" value={form.commission_pct}
-                                onChange={e => setForm(f => ({ ...f, commission_pct: parseFloat(e.target.value) }))}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
-                        </div>
-                        <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tipo de comissão</label>
                             <select value={form.commission_type} onChange={e => setForm(f => ({ ...f, commission_type: e.target.value }))}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all">
-                                <option value="escalonado">Escalonado (contrato)</option>
+                                <option value="escalonado">Escalonado (tabela do contrato)</option>
                                 <option value="fixo">Percentual fixo</option>
                             </select>
                         </div>
+                        {usaTabelaContrato(form) ? (
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tabela do contrato</label>
+                                <div className="rounded-xl border border-gold/30 bg-areia-clara px-4 py-3 text-xs text-slate-600">
+                                    {(() => {
+                                        const tabela = form.comissao_faixas?.faixas?.length ? form.comissao_faixas : FAIXAS_CONTRATO;
+                                        let anterior = 0;
+                                        return (
+                                            <>
+                                                <ul className="space-y-0.5">
+                                                    {tabela.faixas.map((f) => {
+                                                        const rotulo = f.ate === null ? `Acima de ${reaisCurto(anterior)}` : `Até ${reaisCurto(f.ate)}`;
+                                                        if (f.ate !== null) anterior = f.ate;
+                                                        return (
+                                                            <li key={rotulo} className="flex justify-between gap-4">
+                                                                <span>{rotulo}</span><span className="font-bold text-navy">{f.pct}%</span>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                                <p className="mt-2 text-[10px] text-slate-400 leading-snug">
+                                                    Faixa pela comissão líquida do negócio ({tabela.imposto_pct}% de imposto). O % vale sobre a comissão integral, não sobre o prêmio.
+                                                </p>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comissão (%)</label>
+                                <input type="number" min="0" max="100" step="0.5" value={form.commission_pct}
+                                    onChange={e => setForm(f => ({ ...f, commission_pct: parseFloat(e.target.value) }))}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all" />
+                            </div>
+                        )}
                     </div>
 
                     {/* Dados de contato e pagamento */}
