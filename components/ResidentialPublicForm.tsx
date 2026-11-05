@@ -149,7 +149,7 @@ const ResidentialPublicForm: React.FC = () => {
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-areia">
                             Seguro Residencial / Locatícia
                         </h1>
-                        <p className="text-sm text-gold font-bold mt-1">Solicitação de cotação · F&G Corretora</p>
+                        <p className="text-sm text-gold font-bold mt-1">Solicitação de cotação</p>
                     </div>
                 </div>
             </header>
@@ -408,7 +408,7 @@ const ResidentialPublicForm: React.FC = () => {
                                     )}
                                 </button>
                                 <p className="text-[10px] text-slate-400 font-medium mt-4">
-                                    Ao enviar, você concorda em ser contatado(a) pela F&G Corretora quanto a esta solicitação.
+                                    Ao enviar, você concorda em ser contatado(a) pela F&G Seguro Garantia quanto a esta solicitação.
                                 </p>
                             </div>
                         </div>
@@ -417,7 +417,7 @@ const ResidentialPublicForm: React.FC = () => {
             </main>
 
             <footer className="border-t border-slate-200 bg-white/80 py-6 text-center text-xs text-slate-500 font-medium">
-                F&G Corretora de Seguros · formulário exclusivo para cotação Seguro Residencial / Locatícia
+                F&G Seguro Garantia · formulário exclusivo para cotação Seguro Residencial / Locatícia
             </footer>
         </div>
     );

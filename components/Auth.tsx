@@ -111,13 +111,13 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
 
           <div className="mt-8 pt-8 border-t border-white/5">
             <p className="text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed">
-              Sistema de uso exclusivo para colaboradores autorizados da F&G Corretora.
+              Sistema de uso exclusivo para colaboradores autorizados da F&G Seguro Garantia.
             </p>
           </div>
         </div>
 
         <p className="text-center text-slate-600 text-[10px] mt-10 font-bold uppercase tracking-widest">
-          &copy; 2026 F&G Corretora de Seguros. Todos os direitos reservados.
+          &copy; 2026 F&G Seguro Garantia. Todos os direitos reservados.
         </p>
       </div>
     </div>
