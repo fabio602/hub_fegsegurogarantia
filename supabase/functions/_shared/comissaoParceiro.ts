@@ -27,6 +27,22 @@ export interface RegraFaixas {
   faixas: FaixaComissao[];
 }
 
+/**
+ * Tabela escalonada do contrato de parceria (passada pelo Fábio em 04/11/2026).
+ * É a regra que o HUB grava quando o parceiro de seguro garantia fica com o
+ * tipo de comissão "Escalonado (contrato)".
+ */
+export const FAIXAS_CONTRATO: RegraFaixas = {
+  imposto_pct: 6,
+  faixas: [
+    { ate: 10000, pct: 10 },
+    { ate: 30000, pct: 20 },
+    { ate: 50000, pct: 30 },
+    { ate: 80000, pct: 40 },
+    { ate: null, pct: 50 },
+  ],
+};
+
 export interface RegraParceiro {
   commission_pct?: number | string | null;
   comissao_faixas?: RegraFaixas | null;
