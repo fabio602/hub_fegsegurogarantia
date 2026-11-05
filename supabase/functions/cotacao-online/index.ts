@@ -27,9 +27,21 @@ function config() {
   return { baseUrl, clientId, clientSecret, faltando }
 }
 
+/**
+ * Endereço salvo em JUNTO_BASE_URL, sem credencial: o host não é segredo e
+ * diz em que ambiente a chave está sendo usada. A Junto usa "-box." no host
+ * do Sandbox.
+ */
+function ambienteDe(baseUrl: string) {
+  let host = ''
+  try { host = new URL(baseUrl).host } catch { /* URL inválida */ }
+  return { host, ambiente: host.includes('-box.') ? 'sandbox' : (host ? 'producao' : 'desconhecido') }
+}
+
 async function autenticar() {
   const { baseUrl, clientId, clientSecret, faltando } = config()
-  if (faltando.length) return { ok: false, etapa: 'segredos', faltando }
+  const amb = ambienteDe(baseUrl)
+  if (faltando.length) return { ok: false as const, etapa: 'segredos', faltando, ...amb }
 
   const resp = await fetch(`${baseUrl}/api/v2/authentication`, {
     method: 'POST',
@@ -42,19 +54,20 @@ async function autenticar() {
 
   if (!resp.ok || typeof corpo.accessToken !== 'string') {
     return {
-      ok: false,
+      ok: false as const,
       etapa: 'autenticacao',
+      ...amb,
       status: resp.status,
       // corpo de erro da Junto, sem credenciais
       erro: texto.slice(0, 500),
     }
   }
   return {
-    ok: true,
+    ok: true as const,
     token: corpo.accessToken as string,
     tokenType: (corpo.tokenType as string) ?? null,
     expiresIn: (corpo.expiresIn as number) ?? null,
-    ambiente: baseUrl.includes('-box.') ? 'sandbox' : 'producao',
+    ...amb,
   }
 }
 
@@ -74,6 +87,7 @@ Deno.serve(async (req) => {
       return json({
         ok: true,
         ambiente: auth.ambiente,
+        host: auth.host,
         tokenType: auth.tokenType,
         expiresIn: auth.expiresIn,
       })
