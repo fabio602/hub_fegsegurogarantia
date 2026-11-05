@@ -21,10 +21,10 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const BCC = 'fabio@fegsegurogarantia.com.br';
 const PORTAL = 'https://hub.fegsegurogarantia.com/imobiliaria.html';
-// Logo real da F&G. PNG de proposito: cliente de e-mail nao renderiza SVG de
-// forma confiavel (o Gmail simplesmente descarta). O arquivo ja e publicado
-// com o site, entao nao ha nada novo para hospedar.
-const LOGO = 'https://hub.fegsegurogarantia.com/icons/icon-512.png';
+// Logo oficial da F&G (horizontal bege, para o topo azul). PNG de proposito:
+// cliente de e-mail nao renderiza SVG de forma confiavel (o Gmail descarta).
+// O arquivo e publicado com o hub, em public/marca.
+const LOGO = 'https://hub.fegsegurogarantia.com/marca/fg-logo-horizontal-bege.png';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 
@@ -153,7 +153,7 @@ serve(async (req) => {
       const html = `
         <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
           <div style="background:#1B263B;padding:24px 32px;">
-            <img src="${LOGO}" width="56" height="56" alt="F&amp;G Seguro Garantia" style="display:block;border-radius:12px;margin:0 0 14px;border:0;" />
+            <img src="${LOGO}" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 0 14px;" />
             <h1 style="color:#fff;font-size:17px;font-weight:900;margin:0;">O que precisa da sua ação</h1>
             <p style="color:rgba(255,255,255,.5);font-size:12px;margin:4px 0 0;">${total} ${total === 1 ? 'item' : 'itens'} aguardando a ${esc(p.nome)} em ${fmtData(hoje)}</p>
           </div>
