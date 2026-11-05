@@ -98,190 +98,313 @@
     }
     .btn-sair:hover { color: #b91c1c; border-color: rgba(185,28,28,.24); transform: translateY(-1px); }
 
+    /* O atributo hidden sempre vence o display dos componentes. */
+    [hidden] { display: none !important; }
+
     /* ── CONTEÚDO ── */
     .content { width: 100%; max-width: var(--largura); margin: 0 auto; padding: 30px 44px 72px; position: relative; z-index: 1; }
 
-    /* ── BOAS-VINDAS ── */
-    .welcome { margin-bottom: 26px; }
-    .welcome h2 { font-size: 27px; font-weight: 600; color: var(--ink); letter-spacing: -.024em; line-height: 1.25; }
-    .welcome p { color: var(--muted); font-size: 14.5px; margin-top: 6px; }
-
-    /* ── CARTÕES DE NÚMEROS ── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 26px; }
-    .stat-card {
-      background: var(--surface); border-radius: var(--r); padding: 21px 22px;
-      border: 1px solid var(--line); box-shadow: var(--shadow-sm);
-      transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+    /* ── CABEÇALHO DA PÁGINA ── */
+    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 24px; }
+    .hero h1 { font-size: 28px; font-weight: 600; color: var(--ink); letter-spacing: -.025em; line-height: 1.2; }
+    .hero p { color: var(--muted); font-size: 14.5px; margin-top: 6px; line-height: 1.5; }
+    .btn-demanda {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      padding: 15px 26px; background: var(--navy); color: #fff; font: inherit;
+      font-size: 14.5px; font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
+      box-shadow: 0 14px 30px -16px rgba(27,38,59,.7); white-space: nowrap; text-decoration: none;
+      transition: transform .24s var(--ease), box-shadow .24s var(--ease), background .24s var(--ease);
     }
-    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
-    .stat-card .label { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 9px; }
-    .stat-card .value { font-size: 29px; font-weight: 600; color: var(--ink); letter-spacing: -.03em; line-height: 1.1; }
-    .stat-card.gold { background: var(--navy); border-color: var(--navy); }
-    .stat-card.gold .label { color: rgba(255,255,255,.55); }
-    .stat-card.gold .value { color: var(--gold); }
-    .stat-card .change { font-size: 12.5px; font-weight: 400; color: var(--muted); margin-top: 6px; }
+    .btn-demanda .ico { color: var(--gold); width: 19px; height: 19px; stroke-width: 2; }
+    .btn-demanda:hover { background: var(--navy-soft); transform: translateY(-2px); box-shadow: 0 18px 34px -16px rgba(27,38,59,.75); }
+    .btn-demanda:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 3px; }
 
-    /* Extrato da comissão: os três estados do dinheiro do parceiro.
-       Fica logo abaixo dos cards porque responde a pergunta que vem depois de
-       "quanto eu ganhei": quanto já caiu na conta e quanto ainda vem. */
+    /* ── BOAS-VINDAS (só sem nenhuma demanda) ── */
+    .boas-vindas {
+      background: var(--navy); color: #fff; border-radius: var(--r-lg); padding: 30px 32px;
+      display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 28px 36px; align-items: center;
+      margin-bottom: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    }
+    .boas-vindas::after {
+      content: ''; position: absolute; right: -80px; top: -80px; width: 260px; height: 260px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,156,109,.22), transparent 70%); pointer-events: none;
+    }
+    .boas-vindas h2 { font-size: 21px; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; }
+    .boas-vindas .bv-texto p { font-size: 13.5px; color: rgba(255,255,255,.66); margin-top: 8px; line-height: 1.6; }
+    .bv-passos { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .bv-passos li { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 16px; }
+    .bv-passos .num {
+      width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--navy);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    }
+    .bv-passos strong { display: block; font-size: 14px; font-weight: 600; }
+    .bv-passos p { font-size: 12.5px; color: rgba(255,255,255,.62); margin-top: 4px; line-height: 1.5; }
+    .bv-acoes { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; position: relative; z-index: 1; }
+    .bv-acoes .btn-demanda { background: var(--gold); color: var(--navy); box-shadow: none; }
+    .bv-acoes .btn-demanda .ico { color: var(--navy); }
+    .bv-acoes .btn-demanda:hover { background: #d4ad80; }
+    .bv-acoes a { color: rgba(255,255,255,.75); font-size: 13px; }
+    .bv-acoes a:hover { color: #fff; }
+
+    /* ── INDICADORES ── */
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px;
+      box-shadow: var(--shadow-sm); min-width: 0; display: flex; flex-direction: column; gap: 6px;
+    }
+    .kpi-rotulo { font-size: 12.5px; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+    .kpi-rotulo .ico { width: 15px; height: 15px; color: var(--gold); }
+    .kpi-valor { font-size: 27px; font-weight: 600; color: var(--ink); letter-spacing: -.03em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kpi-sub { font-size: 12px; color: var(--muted); line-height: 1.45; }
+    .kpi.destaque { background: var(--navy); border-color: var(--navy); }
+    .kpi.destaque .kpi-rotulo { color: rgba(255,255,255,.62); }
+    .kpi.destaque .kpi-valor { color: var(--gold); }
+    .kpi.destaque .kpi-sub { color: rgba(255,255,255,.55); }
+
+    /* ── ABAS ── */
+    .abas {
+      display: flex; gap: 4px; border-bottom: 1px solid rgba(27,38,59,.12); margin-bottom: 18px;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .abas::-webkit-scrollbar { display: none; }
+    .aba-btn {
+      position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 13px 16px 14px;
+      font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); background: none; border: none;
+      cursor: pointer; white-space: nowrap; transition: color .2s var(--ease);
+    }
+    .aba-btn:hover { color: var(--ink); }
+    .aba-btn[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+    .aba-btn[aria-selected="true"]::after {
+      content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--gold);
+    }
+    .aba-btn:focus-visible { outline: 3px solid rgba(198,156,109,.5); outline-offset: -3px; border-radius: 10px; }
+    .contador {
+      min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: #efe9df; color: var(--ink);
+      font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .aba-btn[aria-selected="true"] .contador { background: var(--navy); color: #fff; }
+    .painel[hidden] { display: none !important; }
+    .painel { animation: entra .4s var(--ease) both; }
+    @keyframes entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* ── BARRA DE FILTROS ── */
+    .filtros { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-right: auto; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 13px; font-weight: 500;
+      color: var(--muted); cursor: pointer; transition: all .2s var(--ease); min-height: 40px;
+    }
+    .chip:hover { color: var(--ink); border-color: rgba(27,38,59,.2); }
+    .chip[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .chip .n { font-size: 12px; font-weight: 600; opacity: .7; }
+    .busca { position: relative; display: flex; align-items: center; }
+    .busca .ico { position: absolute; left: 14px; width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
+    .busca input, .select {
+      border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; font: inherit; font-size: 13px;
+      background: var(--surface); color: var(--ink); outline: none; min-height: 40px;
+      transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+    }
+    .busca input { padding-left: 38px; width: 260px; }
+    .busca input:focus, .select:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
+    .busca input::placeholder { color: #a7afbc; }
+    .select { cursor: pointer; padding-right: 12px; }
+
+    /* ── LISTA DE DEMANDAS ── */
+    .lista { display: flex; flex-direction: column; gap: 10px; }
+    .demanda {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm);
+      padding: 18px 22px; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1.3fr) minmax(170px, .8fr);
+      gap: 14px 28px; align-items: center; transition: box-shadow .25s var(--ease), border-color .25s var(--ease);
+    }
+    .demanda:hover { box-shadow: var(--shadow); border-color: rgba(27,38,59,.12); }
+    .dem-nome { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.015em; line-height: 1.35; overflow-wrap: anywhere; }
+    .dem-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .dem-meta .tag {
+      display: inline-block; font-size: 11px; font-weight: 600; color: #8B6C3E; background: #f7efe3;
+      border-radius: 6px; padding: 2px 8px; margin-right: 6px;
+    }
+    .dem-arquivos { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .dem-arquivos span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dem-arquivos .ico { width: 14px; height: 14px; flex: 0 0 14px; }
+    .dem-valor { text-align: right; }
+    .dem-valor .rotulo { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+    .dem-valor .numero { font-size: 18px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; white-space: nowrap; }
+    .dem-valor .numero small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+    .dem-valor .texto { font-size: 12.5px; color: var(--muted); }
+    .dem-rodape {
+      grid-column: 1 / -1; display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+      border-top: 1px solid rgba(27,38,59,.06); padding-top: 12px; margin-top: 2px; font-size: 12.5px; color: var(--muted);
+    }
+    .dem-rodape .acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .link-acao {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; min-height: 36px;
+      border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 12.5px; font-weight: 500;
+      text-decoration: none; transition: all .2s var(--ease); cursor: pointer; font-family: inherit;
+    }
+    .link-acao:hover { border-color: var(--gold); color: #8B6C3E; }
+    .link-acao .ico { width: 14px; height: 14px; }
+    .link-acao.whats { color: #128c4b; }
+    .link-acao.whats:hover { border-color: #25D366; color: #0f7a40; }
+
+    .status {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent;
+    }
+    .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .st-analise { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .st-cotada { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .st-emitida { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .st-encerrada { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+    .etapas { list-style: none; display: flex; align-items: flex-start; min-width: 0; }
+    .etapas li { flex: 1 1 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+    .etapas li::before {
+      content: ''; position: absolute; top: 6px; right: 50%; width: 100%; height: 2px; background: #e6e1d8; z-index: 0;
+    }
+    .etapas li:first-child::before { display: none; }
+    .etapas li.feita::before, .etapas li.atual::before { background: var(--navy); }
+    .etapas .ponto {
+      width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid #d6d0c5; position: relative; z-index: 1;
+    }
+    .etapas li.feita .ponto { background: var(--navy); border-color: var(--navy); }
+    .etapas li.atual .ponto { background: #fff; border: 4px solid var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.18); }
+    .etapas .nome { font-size: 11.5px; color: #9aa3b1; font-weight: 500; text-align: center; white-space: nowrap; }
+    .etapas li.feita .nome { color: var(--ink); }
+    .etapas li.atual .nome { color: var(--ink); font-weight: 600; }
+    .etapas.encerrada li::before { background: #e6e1d8 !important; }
+    .etapas.encerrada .ponto { background: #fff !important; border-color: #d6d0c5 !important; box-shadow: none !important; }
+    .etapas.encerrada .nome { color: #b4bcc8 !important; font-weight: 500 !important; }
+
+    .mais { display: flex; justify-content: center; margin-top: 16px; }
+    .vazio-lista {
+      background: var(--surface); border: 1px dashed rgba(27,38,59,.16); border-radius: var(--r);
+      padding: 38px 24px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6;
+    }
+    .vazio-lista strong { display: block; color: var(--ink); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .vazio-lista .btn-demanda { margin-top: 16px; }
+
+    /* ── COMISSÕES ── */
     .extrato {
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-      box-shadow: var(--shadow-sm); padding: 20px 22px; margin-bottom: 26px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm);
+      padding: 18px 20px; margin-bottom: 16px;
     }
-    .extrato-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .extrato-titulo { font-size: 14px; font-weight: 600; color: var(--ink); }
-    .extrato-escopo { font-size: 11.5px; font-weight: 500; color: var(--muted); }
-    .extrato-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-    .extrato-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fcfbf9; }
-    .extrato-label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 7px; }
+    .extrato-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .extrato-item { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fcfbf9; min-width: 0; }
+    .extrato-label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
     .extrato-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
     .dot-repassada { background: #10b981; }
-    .dot-liberada  { background: #2563eb; }
+    .dot-liberada { background: #2563eb; }
     .dot-arealizar { background: #94a3b8; }
-    .extrato-valor { font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; line-height: 1.15; }
-    .extrato-nota { font-size: 11.5px; line-height: 1.65; color: var(--muted); margin: 14px 0 0; }
+    .extrato-valor { font-size: 21px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+    .extrato-nota { font-size: 12px; line-height: 1.65; color: var(--muted); margin-top: 12px; }
 
-    /* ── ABAS: segmento com pílula deslizante ── */
-    .nav {
-      position: relative; display: inline-flex; gap: 4px; background: var(--surface);
-      border: 1px solid var(--line); border-radius: 999px; padding: 6px;
-      box-shadow: var(--shadow-sm); margin-bottom: 18px; max-width: 100%;
-      overflow-x: auto; scrollbar-width: none;
+    .card-tabela { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .tabela-rolagem { overflow-x: auto; }
+    .tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .tabela th {
+      text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 13px 18px;
+      background: #fbfaf8; border-bottom: 1px solid var(--line); white-space: nowrap;
     }
-    .nav::-webkit-scrollbar { display: none; }
-    .nav-pill {
-      position: absolute; top: 6px; height: calc(100% - 12px); width: 0;
-      border-radius: 999px; background: var(--navy); z-index: 0;
-      transition: transform .42s var(--ease), width .42s var(--ease);
-    }
-    .nav-btn {
-      position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px;
-      padding: 11px 20px; font: inherit; font-size: 13.5px; font-weight: 500;
-      color: var(--muted); border: none; background: none; cursor: pointer;
-      border-radius: 999px; white-space: nowrap; transition: color .3s var(--ease);
-    }
-    .nav-btn:hover { color: var(--ink); }
-    .nav-btn.active { color: #fff; }
-    .nav-btn .ico { opacity: .85; transition: opacity .3s var(--ease); }
-    .nav-btn.active .ico { opacity: 1; }
+    .tabela td { padding: 15px 18px; border-bottom: 1px solid rgba(27,38,59,.05); vertical-align: middle; }
+    .tabela tbody tr:hover { background: #fbf8f3; }
+    .tabela .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tabela .cliente { font-weight: 600; color: var(--ink); max-width: 340px; }
+    .tabela .cliente small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .tabela .sua { font-weight: 600; color: #8B6C3E; }
+    .tabela tfoot td { background: #fbfaf8; font-weight: 600; color: var(--ink); border-bottom: none; }
+    .parcelas { display: flex; flex-direction: column; gap: 5px; min-width: 130px; }
+    .parcelas .barra { height: 6px; border-radius: 6px; background: #ece7de; overflow: hidden; }
+    .parcelas .barra span { display: block; height: 100%; background: #10b981; border-radius: 6px; }
+    .parcelas small { font-size: 11.5px; color: var(--muted); }
+    .docs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cards-mobile { display: none; }
 
-    /* Painel de aba: entra com fade + subida */
-    .aba.active { animation: entra .46s var(--ease) both; }
-    @keyframes entra { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    /* ── REPASSES ── */
+    .st-pago { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .st-pendente { background: #fffbeb; color: #b45309; border-color: #fde68a; }
 
-    /* ── CARTÃO DE TABELA ── */
-    .table-card {
-      background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--line);
-      overflow: hidden; box-shadow: var(--shadow-sm);
+    /* ── COMO FUNCIONA ── */
+    .regras-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .caixa { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 22px 24px; }
+    .caixa h3 { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.015em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .caixa h3 .ico { color: var(--gold); }
+    .caixa p, .caixa li { font-size: 13.5px; color: #4b5565; line-height: 1.65; }
+    .caixa + .caixa { margin-top: 16px; }
+    .faixas { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .faixas td { padding: 11px 4px; border-bottom: 1px solid var(--line); }
+    .faixas td:last-child { text-align: right; font-weight: 600; color: var(--ink); }
+    .faixas tr:last-child td { border-bottom: none; }
+    .exemplo { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #fbf7f0; border: 1px solid #efe4d2; font-size: 12.5px !important; }
+    .passos { list-style: none; counter-reset: passo; }
+    .passos li { counter-increment: passo; position: relative; padding-left: 38px; margin-bottom: 14px; }
+    .passos li::before {
+      content: counter(passo); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: var(--navy); color: var(--gold); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
     }
+    .passos li strong { color: var(--ink); font-weight: 600; }
 
-    /* ── BARRA DE FERRAMENTAS ── */
-    .toolbar {
-      padding: 19px 24px; border-bottom: 1px solid var(--line);
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fbfaf8;
-    }
-    .toolbar h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin-right: auto; letter-spacing: -.018em; display: inline-flex; align-items: center; gap: 8px; }
-    .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-    .search-wrap { position: relative; display: flex; align-items: center; }
-    .search-wrap .ico { position: absolute; left: 14px; color: var(--muted); pointer-events: none; width: 14px; height: 14px; }
-    .search-input {
-      border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px 9px 38px;
-      font: inherit; font-size: 12.5px; outline: none; background: #fff; color: var(--ink);
-      width: 220px; transition: border-color .24s var(--ease), box-shadow .24s var(--ease);
-    }
-    .search-input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
-    .search-input::placeholder { color: #b3bac6; }
-
-    .select-filter {
-      border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px;
-      font: inherit; font-size: 12px; font-weight: 500; outline: none;
-      background: #fff; color: var(--ink); cursor: pointer;
-      transition: border-color .24s var(--ease), box-shadow .24s var(--ease);
-    }
-    .select-filter:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(198,156,109,.14); }
-
-    .btn-limpar {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 16px; background: transparent; border: 1px solid var(--line);
-      border-radius: 999px; font: inherit; font-size: 12px; font-weight: 500;
-      color: var(--muted); cursor: pointer; white-space: nowrap;
-      transition: all .24s var(--ease);
-    }
-    .btn-limpar:hover { border-color: var(--gold); color: var(--gold); background: #fdf6ec; }
-
-    /* ── CONTAGEM DE RESULTADOS ── */
-    .results-info {
-      padding: 11px 24px; background: #fbfaf8; border-bottom: 1px solid var(--line);
-      font-size: 12.5px; font-weight: 400; color: var(--muted);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .results-info span { color: var(--gold); font-weight: 600; }
-
-    /* ── TABELA ── */
-    .scroll-x { overflow-x: auto; }
-    .scroll-x::-webkit-scrollbar { height: 5px; }
-    .scroll-x::-webkit-scrollbar-track { background: transparent; }
-    .scroll-x::-webkit-scrollbar-thumb { background: rgba(198,156,109,.3); border-radius: 999px; }
-    .scroll-x::-webkit-scrollbar-thumb:hover { background: var(--gold); }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    thead th {
-      padding: 14px 22px; text-align: left; font-size: 12.5px; font-weight: 500;
-      color: var(--muted); background: #fbfaf8; border-bottom: 1px solid var(--line);
-      white-space: nowrap; cursor: pointer; user-select: none; transition: color .2s var(--ease);
-    }
-    thead th:hover { color: var(--gold); }
-    thead th.sorted { color: var(--gold); }
-    tbody tr { border-bottom: 1px solid rgba(27,38,59,.045); transition: background .22s var(--ease); }
-    tbody tr:hover { background: #fbf8f3; }
-    tbody tr:last-child { border-bottom: none; }
-    td { padding: 16px 22px; vertical-align: middle; }
-    .td-nome { font-weight: 500; color: var(--ink); white-space: nowrap; letter-spacing: -.01em; }
-    .td-produto { color: var(--muted); font-size: 12.5px; }
-    .td-data { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-    .td-valor { font-weight: 500; color: var(--ink); }
-    .td-comissao { font-weight: 600; color: var(--ink); }
-    .td-parceiro { font-weight: 600; color: var(--gold); font-size: 14.5px; }
-    .badge-apolice {
-      display: inline-flex; align-items: center; gap: 5px; padding: 5px 13px;
-      background: #eaf5ef; color: #2c6b4a; border-radius: 999px; font-size: 11.5px;
-      font-weight: 500; text-decoration: none; transition: all .22s var(--ease);
-    }
-    .badge-apolice:hover { background: #dcefe5; transform: translateY(-1px); }
-    .badge-boleto {
-      display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
-      background: #eaf1fa; color: #2b5788; border-radius: 999px; font-size: 11.5px;
-      font-weight: 500; text-decoration: none; margin: 2px; transition: all .22s var(--ease);
-    }
-    .badge-boleto:hover { background: #dde8f6; transform: translateY(-1px); }
-    .vazio { color: #c9c2b8; font-size: 12px; }
-
-    /* ── VAZIO / CARREGANDO ── */
-    .empty-state { padding: 64px 24px; text-align: center; }
-    .empty-state .icon {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 62px; height: 62px; border-radius: 20px; background: #f3ede4;
-      color: var(--navy); margin-bottom: 16px;
-    }
-    .empty-state h4 { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; letter-spacing: -.018em; }
-    .empty-state p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
-
-    /* ── PAGINAÇÃO ── */
-    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 22px; border-top: 1px solid var(--line); }
-    .pg-btn {
-      width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--line);
-      background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: all .22s var(--ease);
-    }
-    .pg-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
-    .pg-btn.active { background: var(--navy); color: var(--gold); border-color: var(--navy); }
-    .pg-btn:disabled { opacity: .35; cursor: not-allowed; }
-    .pg-info { font-size: 12.5px; font-weight: 400; color: var(--muted); padding: 0 8px; }
+    /* ── CARREGANDO ── */
+    .esqueleto { background: linear-gradient(90deg, #efebe4 25%, #f7f4ef 50%, #efebe4 75%); background-size: 200% 100%; animation: brilho 1.4s infinite; border-radius: 10px; }
+    @keyframes brilho { to { background-position: -200% 0; } }
 
     /* ── RODAPÉ ── */
-    .footer { text-align: center; margin-top: 44px; font-size: 12px; color: #c0b8ac; font-weight: 400; }
+    .footer { text-align: center; margin-top: 44px; font-size: 12px; color: #b8b0a4; }
 
+    /* ── TELAS MÉDIAS ── */
+    @media (max-width: 1180px) {
+      .content { padding: 26px 24px 60px; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .demanda { grid-template-columns: minmax(0, 1fr) minmax(170px, auto); }
+      .demanda .etapas { grid-column: 1 / -1; grid-row: 2; }
+      .boas-vindas { grid-template-columns: 1fr; }
+      .regras-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── CELULAR ── */
+    @media (max-width: 720px) {
+      .topbar { padding: 0 16px; }
+      .content { padding: 22px 16px 52px; }
+      .hero h1 { font-size: 24px; }
+      .hero { align-items: stretch; }
+      .hero .btn-demanda { width: 100%; }
+      .boas-vindas { padding: 22px 18px; }
+      .bv-passos { grid-template-columns: 1fr; }
+      .bv-acoes .btn-demanda { width: 100%; }
+      .kpis { gap: 10px; }
+      .kpi { padding: 14px 15px; }
+      .kpi-valor { font-size: 21px; }
+      /* Grade de uma coluna com minmax(0, 1fr): a fileira de filtros rola
+         dentro dela em vez de alargar a página no celular. */
+      .filtros { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+      .filtros > * { min-width: 0; }
+      .filtros .busca { margin-left: 0 !important; }
+      .chips { margin-right: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; min-width: 0; }
+      .chips::-webkit-scrollbar { display: none; }
+      .chip { flex: 0 0 auto; }
+      .busca input, .select { width: 100%; }
+      .filtros .linha-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .demanda { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
+      .demanda .etapas { grid-column: auto; grid-row: auto; }
+      .dem-valor { text-align: left; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+      .dem-valor .rotulo { margin-top: 0; }
+      .dem-valor .status { order: -1; }
+      .dem-rodape .acoes { margin-left: 0; width: 100%; }
+      .dem-rodape .acoes .link-acao { flex: 1 1 auto; justify-content: center; }
+      .etapas .nome { font-size: 10.5px; }
+      .extrato-grid { grid-template-columns: 1fr; }
+      .tabela-desktop { display: none; }
+      .cards-mobile { display: flex; flex-direction: column; gap: 10px; }
+      .card-tabela.so-desktop { display: none; }
+      .caixa { padding: 18px; }
+    }
+    @media (max-width: 400px) {
+      .kpi-valor { font-size: 18px; }
+      .kpi-rotulo { font-size: 11.5px; }
+    }
+    @media (max-width: 340px) {
+      .kpis { grid-template-columns: 1fr; }
+    }
     /* ── MODAL DE SENHA ── */
     .modal-overlay {
       display: none; position: fixed; inset: 0; background: rgba(20,32,58,.42);
@@ -323,37 +446,6 @@
     .modal-msg { font-size: 12.5px; font-weight: 500; text-align: center; margin-top: 14px; padding: 11px; border-radius: var(--r-sm); display: none; }
     .modal-msg.ok { color: #2c6b4a; background: #eaf5ef; }
     .modal-msg.erro { color: #99312f; background: #fbeaea; }
-
-    /* ── BOAS-VINDAS COM CHAMADA PARA ENVIAR DEMANDA ── */
-    .welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
-    .btn-demanda {
-      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-      padding: 15px 26px; background: var(--navy); color: #fff; font: inherit;
-      font-size: 14.5px; font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
-      box-shadow: 0 14px 30px -16px rgba(27,38,59,.7); white-space: nowrap;
-      transition: transform .24s var(--ease), box-shadow .24s var(--ease), background .24s var(--ease);
-    }
-    .btn-demanda .ico { color: var(--gold); width: 19px; height: 19px; stroke-width: 2; }
-    .btn-demanda:hover { background: var(--navy-soft); transform: translateY(-2px); box-shadow: 0 18px 34px -16px rgba(27,38,59,.75); }
-    .btn-demanda:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 3px; }
-
-    /* ── COMO A COMISSÃO É CALCULADA ── */
-    .regra {
-      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-      box-shadow: var(--shadow-sm); margin: -12px 0 26px; overflow: hidden;
-    }
-    .regra summary {
-      list-style: none; cursor: pointer; padding: 16px 22px; font-size: 13.5px; font-weight: 600;
-      color: var(--ink); display: flex; align-items: center; gap: 9px; min-height: 44px;
-    }
-    .regra summary::-webkit-details-marker { display: none; }
-    .regra summary .seta { margin-left: auto; color: var(--muted); transition: transform .3s var(--ease); }
-    .regra[open] summary .seta { transform: rotate(180deg); }
-    .regra-corpo { padding: 0 22px 20px; }
-    .regra-tabela { width: 100%; max-width: 560px; border-collapse: collapse; font-size: 13px; }
-    .regra-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
-    .regra-tabela td:last-child { text-align: right; font-weight: 600; color: var(--ink); }
-    .regra-nota { font-size: 12px; color: var(--muted); line-height: 1.65; margin-top: 12px; max-width: 760px; }
 
     /* ── MODAL DA DEMANDA ── */
     .modal.modal-demanda { max-width: 820px; padding: 0; display: flex; flex-direction: column; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
@@ -474,38 +566,24 @@
       .dm-rodape .dm-progresso { flex-basis: 100%; }
       .dm-rodape .btn-salvar { flex: 1 1 auto; }
       .dm-rodape .btn-cancelar { flex: 0 0 auto; padding: 14px 18px; }
-      .welcome { align-items: stretch; }
-      .btn-demanda { width: 100%; }
       .field-input { font-size: 16px; } /* evita o zoom automático do iPhone ao focar */
       .so-largo { display: none; }
       .so-celular { display: inline; }
     }
 
-    /* ── CARDS NO CELULAR ── */
-    #mobile-cards { display: none; flex-direction: column; gap: 12px; padding: 16px; }
-    @media (max-width: 600px) {
-      .scroll-x { overflow: visible !important; }
-      table { display: none !important; }
-      #mobile-cards { display: flex !important; }
-      .topbar { padding: 0 16px; }
-      .content { padding: 22px 16px 52px; }
-      .toolbar { flex-direction: column; align-items: stretch; }
-      .search-input, .select-filter { width: 100%; }
-      .filter-group { flex-direction: column; }
-      .pg-btn { width: 44px; height: 44px; }
-      .welcome h2 { font-size: 23px; }
+    /* ── ÁREA DE TOQUE (só em tela de toque) ── */
+    @media (pointer: coarse) {
+      .chip, .link-acao, .aba-btn, .btn-senha-top, .btn-sair { min-height: 44px; }
     }
-    @media (max-width: 1100px) {
-      .content { padding: 26px 24px 60px; }
+    @media (max-width: 720px) {
+      .btn-senha-top .rot { display: none; }
+      .btn-senha-top { padding: 9px 13px; }
+      .topbar-sub { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     }
-
-    /* ── ÁREA DE TOQUE ── */
-    button, a.badge-apolice, a.badge-boleto, .pg-btn { min-height: 44px; }
 
     /* ── MOVIMENTO REDUZIDO ── */
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
-      .nav-pill { transition: none; }
     }
   </style>
 </head>
@@ -533,6 +611,7 @@
   <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 15.5V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 14.5v3a2.5 2.5 0 0 0 2.5 2.5h10a2.5 2.5 0 0 0 2.5-2.5v-3"/></symbol>
   <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></symbol>
+  <symbol id="i-carteira" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><path d="M4 7.5v10A2.5 2.5 0 0 0 6.5 20H20V8H6.5A2.5 2.5 0 0 1 4 5.5"/><path d="M16.5 14h.01"/></symbol>
 </svg>
 
   <!-- TOP BAR -->
@@ -545,7 +624,7 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn-senha-top" onclick="abrirModalSenha()"><svg class="ico"><use href="#i-cadeado"/></svg> Alterar Senha</button>
+      <button class="btn-senha-top" onclick="abrirModalSenha()" aria-label="Alterar senha"><svg class="ico"><use href="#i-cadeado"/></svg> <span class="rot">Alterar senha</span></button>
       <button class="btn-sair" onclick="sair()">Sair</button>
     </div>
   </div>
@@ -674,212 +753,189 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <div class="content">
+  <main class="content">
 
-    <!-- WELCOME -->
-    <div class="welcome">
+    <!-- CABEÇALHO -->
+    <section class="hero">
       <div>
-        <h2>Olá, <span id="nome-curto">parceiro</span></h2>
-        <p>Envie suas demandas e acompanhe cada indicação e a sua comissão.</p>
+        <h1>Olá, <span id="nome-curto">parceiro</span></h1>
+        <p>Envie demandas, acompanhe cada cotação e veja quanto você tem a receber.</p>
       </div>
       <button type="button" class="btn-demanda" onclick="abrirDemanda()">
         <svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda
       </button>
-    </div>
+    </section>
 
-    <!-- STAT CARDS -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="label">Vendas no período</div>
-        <div class="value" id="card-vendas">—</div>
-        <div class="change" id="card-periodo-label">Todos os meses</div>
+    <!-- BOAS-VINDAS: só aparece enquanto o parceiro não tem nenhuma demanda -->
+    <section class="boas-vindas" id="boas-vindas" hidden>
+      <div class="bv-texto">
+        <h2>Bem-vindo ao Portal do Parceiro</h2>
+        <p>Por aqui você envia as demandas dos seus clientes para a F&amp;G e acompanha cada uma até a emissão e o pagamento da sua comissão.</p>
       </div>
-      <div class="stat-card">
-        <div class="label">Prêmio total</div>
-        <div class="value" id="card-premio">—</div>
+      <ol class="bv-passos">
+        <li><span class="num">1</span><strong>Envie a demanda</strong><p>CNPJ do cliente, telefone, e-mail e o edital ou o contrato.</p></li>
+        <li><span class="num">2</span><strong>A F&amp;G cota</strong><p>Nossa equipe prepara a proposta e fala com o seu cliente.</p></li>
+        <li><span class="num">3</span><strong>Você recebe</strong><p>Com a apólice emitida, sua comissão aparece aqui e entra no repasse.</p></li>
+      </ol>
+      <div class="bv-acoes">
+        <button type="button" class="btn-demanda" onclick="abrirDemanda()"><svg class="ico"><use href="#i-mais"/></svg> Enviar a primeira demanda</button>
+        <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" rel="noopener">Prefere conversar? Fale com a F&amp;G no WhatsApp</a>
       </div>
-      <div class="stat-card">
-        <div class="label">Comissão F&G</div>
-        <div class="value" id="card-comissao">—</div>
-      </div>
-      <div class="stat-card gold">
-        <div class="label">Sua comissão</div>
-        <div class="value" id="card-parceiro">—</div>
-        <div id="card-parceiro-nota" style="display:none;font-size:10px;font-weight:700;color:#94a3b8;margin-top:4px;">
-          Valor total. Nas vendas parceladas você recebe conforme cada parcela é paga — veja o detalhe na tabela.
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <!-- EXTRATO DA COMISSÃO -->
-    <div class="extrato" id="extrato">
-      <div class="extrato-topo">
-        <span class="extrato-titulo">Extrato da sua comissão</span>
-        <span class="extrato-escopo">Considera todas as suas indicações, sem o filtro de período acima</span>
+    <!-- INDICADORES -->
+    <section class="kpis" aria-label="Resumo">
+      <div class="kpi">
+        <span class="kpi-rotulo"><svg class="ico"><use href="#i-relogio"/></svg> Demandas em andamento</span>
+        <span class="kpi-valor" id="k-andamento"><span class="esqueleto" style="display:inline-block;width:40px;height:26px"></span></span>
+        <span class="kpi-sub" id="k-andamento-sub">&nbsp;</span>
       </div>
-      <div class="extrato-grid">
-        <div class="extrato-item">
-          <div class="extrato-label"><span class="extrato-dot dot-repassada"></span> Já repassada a você</div>
-          <div class="extrato-valor" id="extrato-repassada">—</div>
-        </div>
-        <div class="extrato-item">
-          <div class="extrato-label"><span class="extrato-dot dot-liberada"></span> Liberada, aguardando repasse</div>
-          <div class="extrato-valor" id="extrato-liberada">—</div>
-        </div>
-        <div class="extrato-item">
-          <div class="extrato-label"><span class="extrato-dot dot-arealizar"></span> A realizar</div>
-          <div class="extrato-valor" id="extrato-arealizar">—</div>
-        </div>
+      <div class="kpi">
+        <span class="kpi-rotulo"><svg class="ico"><use href="#i-check"/></svg> Apólices emitidas</span>
+        <span class="kpi-valor" id="k-emitidas"><span class="esqueleto" style="display:inline-block;width:40px;height:26px"></span></span>
+        <span class="kpi-sub" id="k-emitidas-sub">&nbsp;</span>
       </div>
-      <p class="extrato-nota" id="extrato-nota"></p>
-    </div>
-
-    <!-- COMO A COMISSÃO É CALCULADA (preenchido pela regra do parceiro) -->
-    <details class="regra" id="regra" style="display:none">
-      <summary><svg class="ico"><use href="#i-calc"/></svg> Como a sua comissão é calculada <svg class="ico seta"><use href="#i-seta-baixo"/></svg></summary>
-      <div class="regra-corpo" id="regra-corpo"></div>
-    </details>
+      <div class="kpi destaque">
+        <span class="kpi-rotulo"><svg class="ico"><use href="#i-carteira"/></svg> Comissão a receber</span>
+        <span class="kpi-valor" id="k-receber">R$ 0,00</span>
+        <span class="kpi-sub" id="k-receber-sub">&nbsp;</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-rotulo"><svg class="ico"><use href="#i-repasse"/></svg> Já recebido</span>
+        <span class="kpi-valor" id="k-recebido">R$ 0,00</span>
+        <span class="kpi-sub" id="k-recebido-sub">&nbsp;</span>
+      </div>
+    </section>
 
     <!-- ABAS -->
-    <div class="nav" id="nav">
-      <div class="nav-pill" id="nav-pill"></div>
-      <button class="nav-btn active" id="tab-clientes" onclick="trocarAba('clientes')">
-        <svg class="ico"><use href="#i-lista"/></svg> Clientes e Comissões
+    <nav class="abas" role="tablist" aria-label="Seções do portal">
+      <button type="button" class="aba-btn" role="tab" id="aba-demandas" aria-controls="painel-demandas" aria-selected="true" onclick="trocarAba('demandas')">
+        Demandas <span class="contador" id="contador-demandas">0</span>
       </button>
-      <button class="nav-btn" id="tab-repasses" onclick="trocarAba('repasses')">
-        <svg class="ico"><use href="#i-repasse"/></svg> Histórico de Repasses
+      <button type="button" class="aba-btn" role="tab" id="aba-comissoes" aria-controls="painel-comissoes" aria-selected="false" onclick="trocarAba('comissoes')">
+        Comissões <span class="contador" id="contador-comissoes">0</span>
       </button>
-    </div>
+      <button type="button" class="aba-btn" role="tab" id="aba-repasses" aria-controls="painel-repasses" aria-selected="false" onclick="trocarAba('repasses')">
+        Repasses
+      </button>
+      <button type="button" class="aba-btn" role="tab" id="aba-regras" aria-controls="painel-regras" aria-selected="false" onclick="trocarAba('regras')">
+        Como funciona
+      </button>
+    </nav>
 
-    <!-- LICITANTE INFO BANNER -->
-    <div id="licitante-info-banner" style="display:none;background:#fdf6ec;border:1px solid rgba(198,156,109,.3);border-radius:var(--r);padding:15px 19px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.6;">
-      <svg class="ico ico-inline"><use href="#i-info"/></svg> <strong style="color:var(--ink);font-weight:600;">Sobre Seguro Garantia Licitante:</strong> toda apólice emitida gera comissão, inclusive a de Licitante. Demandas ainda em análise não geram valor.
-    </div>
+    <!-- DEMANDAS -->
+    <section class="painel" id="painel-demandas" role="tabpanel" aria-labelledby="aba-demandas">
+      <div class="filtros">
+        <div class="chips" id="chips-status" role="group" aria-label="Filtrar por situação"></div>
+        <label class="busca">
+          <svg class="ico"><use href="#i-busca"/></svg>
+          <input type="search" id="busca-demandas" placeholder="Buscar cliente ou CNPJ" aria-label="Buscar cliente ou CNPJ" />
+        </label>
+      </div>
+      <div class="lista" id="lista-demandas">
+        <div class="demanda"><div><div class="esqueleto" style="height:16px;width:60%"></div><div class="esqueleto" style="height:12px;width:40%;margin-top:10px"></div></div><div class="esqueleto" style="height:14px"></div><div class="esqueleto" style="height:22px"></div></div>
+        <div class="demanda"><div><div class="esqueleto" style="height:16px;width:50%"></div><div class="esqueleto" style="height:12px;width:35%;margin-top:10px"></div></div><div class="esqueleto" style="height:14px"></div><div class="esqueleto" style="height:22px"></div></div>
+      </div>
+      <div class="mais" id="mais-demandas" hidden><button type="button" class="link-acao" onclick="mostrarMais('dem')">Mostrar mais</button></div>
+    </section>
 
-    <!-- TABLE CARD -->
-    <div id="aba-clientes" class="aba active table-card">
-      <div class="toolbar">
-        <h3>Clientes e comissões</h3>
-        <div class="filter-group">
-          <!-- Busca por cliente -->
-          <div class="search-wrap">
-            <svg class="ico"><use href="#i-busca"/></svg>
-            <input class="search-input" id="busca" type="text" placeholder="Buscar cliente..." oninput="aplicarFiltros()" />
+    <!-- COMISSÕES -->
+    <section class="painel" id="painel-comissoes" role="tabpanel" aria-labelledby="aba-comissoes" hidden>
+      <div class="extrato">
+        <div class="extrato-grid">
+          <div class="extrato-item">
+            <div class="extrato-label"><span class="extrato-dot dot-repassada"></span> Já repassada a você</div>
+            <div class="extrato-valor" id="extrato-repassada">R$ 0,00</div>
           </div>
-          <!-- Filtro de ano -->
-          <select class="select-filter" id="filtro-ano" onchange="aplicarFiltros()">
-            <option value="">Todos os anos</option>
-          </select>
-          <!-- Filtro de mês -->
-          <select class="select-filter" id="filtro-mes" onchange="aplicarFiltros()">
+          <div class="extrato-item">
+            <div class="extrato-label"><span class="extrato-dot dot-liberada"></span> Liberada, aguardando repasse</div>
+            <div class="extrato-valor" id="extrato-liberada">R$ 0,00</div>
+          </div>
+          <div class="extrato-item">
+            <div class="extrato-label"><span class="extrato-dot dot-arealizar"></span> A realizar</div>
+            <div class="extrato-valor" id="extrato-arealizar">R$ 0,00</div>
+          </div>
+        </div>
+        <p class="extrato-nota">Liberada: o cliente já pagou a parcela do prêmio e o valor entra no próximo repasse. A realizar: apólice emitida com parcelas ainda em aberto.</p>
+      </div>
+
+      <div class="filtros">
+        <div class="linha-selects" style="display:flex;gap:10px;flex-wrap:wrap">
+          <select class="select" id="filtro-ano" aria-label="Ano"><option value="">Todos os anos</option></select>
+          <select class="select" id="filtro-mes" aria-label="Mês">
             <option value="">Todos os meses</option>
-            <option value="01">Janeiro</option>
-            <option value="02">Fevereiro</option>
-            <option value="03">Março</option>
-            <option value="04">Abril</option>
-            <option value="05">Maio</option>
-            <option value="06">Junho</option>
-            <option value="07">Julho</option>
-            <option value="08">Agosto</option>
-            <option value="09">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+            <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+            <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
-          <button class="btn-limpar" onclick="limparFiltros()"><svg class="ico ico-inline"><use href="#i-x"/></svg> Limpar</button>
         </div>
+        <label class="busca" style="margin-left:auto">
+          <svg class="ico"><use href="#i-busca"/></svg>
+          <input type="search" id="busca-comissoes" placeholder="Buscar cliente" aria-label="Buscar cliente nas comissões" />
+        </label>
       </div>
 
-      <div class="results-info" id="results-info" style="display:none">
-        Exibindo <span id="results-count">0</span> resultado(s)
-        <span id="results-periodo"></span>
-      </div>
-
-      <!-- Zero state: sem nenhum negócio ainda -->
-      <div id="zero-state" style="display:none;background:#fff;border-radius:20px;border:1px solid #e8e4dc;padding:40px 32px;text-align:center;margin:16px 16px 0;">
-        <div class="empty-state" style="padding:0;margin-bottom:16px;"><div class="icon"><svg class="ico ico-xl"><use href="#i-aperto"/></svg></div></div>
-        <h3 style="font-size:18px;font-weight:900;color:#1B263B;margin-bottom:8px;">Bem-vindo ao Portal de Parceiros!</h3>
-        <p style="font-size:13px;color:#78716c;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6;">Suas demandas aparecem aqui assim que você envia, e a comissão entra quando a apólice é emitida.</p>
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:380px;margin:0 auto 24px;text-align:left;">
-          <div style="display:flex;align-items:flex-start;gap:12px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-            <div><strong style="font-size:13px;color:#1B263B;">Envie a demanda</strong><br><span style="font-size:12px;color:#78716c;">Pelo botão abaixo, com o CNPJ do cliente e o edital ou o contrato.</span></div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:12px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:#1B263B;color:#C69C6D;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-            <div><strong style="font-size:13px;color:#1B263B;">F&G faz a cotação</strong><br><span style="font-size:12px;color:#78716c;">Nossa equipe prepara a proposta e entra em contato com o cliente.</span></div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:12px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:#C69C6D;color:#1B263B;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
-            <div><strong style="font-size:13px;color:#1B263B;">Você recebe sua comissão</strong><br><span style="font-size:12px;color:#78716c;">Após a emissão da apólice, sua comissão aparece aqui automaticamente.</span></div>
-          </div>
-        </div>
-        <button type="button" class="btn-demanda" onclick="abrirDemanda()"><svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda</button>
-        <div style="margin-top:14px;font-size:12.5px;color:#78716c;">Prefere conversar? <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" rel="noopener" style="color:#8B6C3E;font-weight:600;">Fale com a F&G no WhatsApp</a></div>
-      </div>
-
-      <!-- Pipeline: negócios em andamento (não emitidos) -->
-      <div id="pipeline-section" style="margin:16px 16px 0;display:none;">
-        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:10px;padding:0 4px;">Em andamento</div>
-        <div id="pipeline-cards" style="display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
-
-      <div class="scroll-x">
-        <table>
-          <thead>
-            <tr>
-              <th onclick="ordenar('data')">Data <span id="sort-data"></span></th>
-              <th onclick="ordenar('nome')">Cliente <span id="sort-nome"></span></th>
-              <th>Produto</th>
-              <th>Segurado / Órgão</th>
-              <th>IS Garantida</th>
-              <th onclick="ordenar('premio')">Prêmio <span id="sort-premio"></span></th>
-              <th onclick="ordenar('comissao')">Comissão F&G <span id="sort-comissao"></span></th>
-              <th>% Parceiro</th>
-              <th>Sua Comissão</th>
-              <th>Status</th>
-              <th style="text-align:center">Apólice</th>
-              <th style="text-align:center">Boleto(s)</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-body">
-            <tr><td colspan="12"><div class="empty-state"><div class="icon"><svg class="ico ico-xl"><use href="#i-relogio"/></svg></div><h4>Carregando...</h4></div></td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile cards (hidden on desktop) -->
-      <div id="mobile-cards"></div>
-
-      <div class="pagination" id="pagination" style="display:none"></div>
-    </div>
-
-    <!-- Histórico de Repasses (aba) -->
-    <div id="aba-repasses" class="aba" style="display:none;">
-      <div class="table-card">
-        <div class="toolbar">
-          <h3><svg class="ico ico-md"><use href="#i-repasse"/></svg> Histórico de Repasses</h3>
-          <span style="font-size:12px;color:#94a3b8;font-weight:600;">Seus pagamentos de comissão realizados pela F&G Seguro Garantia</span>
-        </div>
-        <div class="scroll-x">
-          <table>
+      <div class="card-tabela so-desktop">
+        <div class="tabela-rolagem">
+          <table class="tabela">
             <thead>
               <tr>
-                <th>Período</th>
-                <th>Valor</th>
-                <th>Data do Pagamento</th>
-                <th>Status</th>
-                <th style="text-align:center">Comprovante</th>
+                <th>Data</th><th>Cliente</th><th>Modalidade</th><th class="num">Prêmio</th>
+                <th class="num">Comissão F&amp;G</th><th class="num">Sua faixa</th><th class="num">Sua comissão</th>
+                <th>Pagamento do cliente</th><th>Documentos</th>
               </tr>
             </thead>
-            <tbody id="repasses-body"></tbody>
+            <tbody id="tabela-comissoes"></tbody>
+            <tfoot id="total-comissoes"></tfoot>
           </table>
         </div>
       </div>
-    </div>
+      <div class="cards-mobile" id="cards-comissoes"></div>
+      <div class="mais" id="mais-comissoes" hidden><button type="button" class="link-acao" onclick="mostrarMais('com')">Mostrar mais</button></div>
+    </section>
 
-    <div class="footer">F&G Seguro Garantia · Portal exclusivo para parceiros</div>
-  </div>
+    <!-- REPASSES -->
+    <section class="painel" id="painel-repasses" role="tabpanel" aria-labelledby="aba-repasses" hidden>
+      <div class="card-tabela so-desktop">
+        <div class="tabela-rolagem">
+          <table class="tabela">
+            <thead><tr><th>Período</th><th class="num">Valor</th><th>Pago em</th><th>Situação</th><th>Comprovante</th></tr></thead>
+            <tbody id="tabela-repasses"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="cards-mobile" id="cards-repasses"></div>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="painel" id="painel-regras" role="tabpanel" aria-labelledby="aba-regras" hidden>
+      <div class="regras-grid">
+        <div class="caixa">
+          <h3><svg class="ico"><use href="#i-calc"/></svg> Sua regra de comissão</h3>
+          <div id="regra-corpo"></div>
+        </div>
+        <div>
+          <div class="caixa">
+            <h3><svg class="ico"><use href="#i-enviar"/></svg> Como enviar uma demanda</h3>
+            <ol class="passos">
+              <li><strong>Use o botão "Enviar nova demanda".</strong> Informe o CNPJ do cliente e a razão social vem da Receita.</li>
+              <li><strong>Passe o contato do cliente.</strong> Telefone e e-mail de quem vai assinar.</li>
+              <li><strong>Anexe o edital ou o contrato.</strong> PDF, Word ou ZIP, até 30 MB cada.</li>
+              <li><strong>Acompanhe aqui.</strong> A demanda passa por Em análise, Cotada e Emitida, e a comissão aparece em Comissões.</li>
+            </ol>
+          </div>
+          <div class="caixa">
+            <h3><svg class="ico"><use href="#i-repasse"/></svg> Quando você recebe</h3>
+            <p>A comissão é liberada à medida que o cliente paga cada parcela do prêmio, e o valor liberado entra no repasse seguinte. O histórico fica na aba Repasses, com o comprovante.</p>
+            <p style="margin-top:12px"><a class="link-acao whats" href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Tenho%20uma%20d%C3%BAvida%20sobre%20o%20portal%20do%20parceiro." target="_blank" rel="noopener"><svg class="ico"><use href="#i-balao"/></svg> Falar com a F&amp;G</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">F&amp;G Seguro Garantia · Portal exclusivo para parceiros</div>
+  </main>
 
   <script>
     const SUPABASE_URL = 'https://hfjvwibucplyhsvnwfor.supabase.co';
@@ -1027,227 +1083,375 @@
     }
 
     // ── ESTADO ───────────────────────────────────────────────
+    // Tudo vem de uma chamada só (acao "dados"); filtros e abas trabalham em
+    // cima desta cópia, sem voltar ao servidor.
     let todasVendas = [];
-    let vendasFiltradas = [];
-    let sortKey = 'data';
-    let sortAsc = false;
-    let paginaAtual = 1;
-    const POR_PAGINA = 20;
+    let repassesData = [];
+    let regraParceiro = null;
+    let carregou = false;
+    const UI = { aba: 'demandas', status: 'todas', buscaDem: '', limiteDem: 20, ano: '', mes: '', buscaCom: '', limiteCom: 20 };
+    const PASSO_LISTA = 20;
+    const byId = id => document.getElementById(id);
+    const moeda = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const WHATS = 'https://wa.me/5515998618659?text=';
 
-    // ── FILTROS ──────────────────────────────────────────────
-    function aplicarFiltros() {
-      const busca = document.getElementById('busca').value.toLowerCase().trim();
-      const mes = document.getElementById('filtro-mes').value;
-      const ano = document.getElementById('filtro-ano').value;
+    /** Situação da demanda do ponto de vista do parceiro. */
+    function statusDe(v) {
+      if (v.vendeu === 'Sim') return 'emitida';
+      if (v.vendeu === 'Não') return 'encerrada';
+      return parseVal(v.premio) > 0 ? 'cotada' : 'analise';
+    }
+    const STATUS = {
+      analise:   { rotulo: 'Com a F&G',   classe: 'st-analise' },
+      cotada:    { rotulo: 'Cotada',      classe: 'st-cotada' },
+      emitida:   { rotulo: 'Emitida',     classe: 'st-emitida' },
+      encerrada: { rotulo: 'Não avançou', classe: 'st-encerrada' },
+    };
+    const emAndamento = v => { const s = statusDe(v); return s === 'analise' || s === 'cotada'; };
+    const modalidade = v => v.tipo === 'Performance' ? 'Execução' : (v.tipo || 'Seguro Garantia');
+    const statusHtml = s => `<span class="status ${STATUS[s].classe}">${esc(STATUS[s].rotulo)}</span>`;
 
-      vendasFiltradas = todasVendas.filter(v => {
-        const nomeOk = !busca || (v.nome || '').toLowerCase().includes(busca);
-        const dataStr = v.data || '';
-        const mesOk = !mes || dataStr.substring(5, 7) === mes;
-        const anoOk = !ano || dataStr.substring(0, 4) === ano;
-        return nomeOk && mesOk && anoOk;
-      });
-
-      ordenarVendas();
-      paginaAtual = 1;
-      atualizarCards();
-      renderTabela();
-      renderPaginacao();
-      atualizarResultsInfo();
+    // ── CARREGAR ─────────────────────────────────────────────
+    async function carregar() {
+      let r;
+      try {
+        r = await api('dados');
+      } catch (e) {
+        byId('lista-demandas').innerHTML = `<div class="vazio-lista"><strong>Não foi possível carregar seus dados</strong>${esc(e.message)}<br><a href="#" onclick="location.reload();return false;" style="color:#8B6C3E;font-weight:600;">Tentar de novo</a></div>`;
+        return;
+      }
+      todasVendas = r.vendas || [];
+      repassesData = r.repasses || [];
+      regraParceiro = r.parceiro || null;
+      carregou = true;
+      preencherAnos();
+      renderTudo();
     }
 
-    function limparFiltros() {
-      document.getElementById('busca').value = '';
-      document.getElementById('filtro-mes').value = '';
-      document.getElementById('filtro-ano').value = '';
-      aplicarFiltros();
+    function renderTudo() {
+      renderBoasVindas();
+      renderKpis();
+      renderDemandas();
+      renderComissoes();
+      renderRepasses();
+      renderRegras();
     }
 
-    function atualizarResultsInfo() {
-      const info = document.getElementById('results-info');
-      const busca = document.getElementById('busca').value.trim();
-      const mes = document.getElementById('filtro-mes').value;
-      const ano = document.getElementById('filtro-ano').value;
-      const ativo = busca || mes || ano;
-      info.style.display = ativo ? 'flex' : 'none';
-      document.getElementById('results-count').textContent = vendasFiltradas.length;
-      let periodo = '';
-      if (mes && ano) periodo = ` · ${MESES[parseInt(mes)]} ${ano}`;
-      else if (mes) periodo = ` · ${MESES[parseInt(mes)]}`;
-      else if (ano) periodo = ` · ${ano}`;
-      document.getElementById('results-periodo').textContent = periodo;
-
-      // Atualiza label do card
-      let label = 'Todos os meses';
-      if (mes && ano) label = `${MESES[parseInt(mes)]} ${ano}`;
-      else if (mes) label = MESES[parseInt(mes)];
-      else if (ano) label = `Ano ${ano}`;
-      document.getElementById('card-periodo-label').textContent = label;
+    // ── BOAS-VINDAS E INDICADORES ────────────────────────────
+    function renderBoasVindas() {
+      const inicio = carregou && todasVendas.length === 0;
+      byId('boas-vindas').hidden = !inicio;
+      // Sem nenhuma demanda, o convite das boas-vindas já é o botão principal,
+      // e filtros de uma lista vazia só fariam ruído.
+      document.querySelector('.hero .btn-demanda').hidden = inicio;
+      document.querySelector('#painel-demandas .filtros').hidden = inicio;
     }
 
-    // ── ORDENAÇÃO ────────────────────────────────────────────
-    function ordenar(key) {
-      if (sortKey === key) { sortAsc = !sortAsc; }
-      else { sortKey = key; sortAsc = false; }
-      ['data','nome','premio','comissao'].forEach(k => {
-        document.getElementById('sort-' + k).textContent = '';
-      });
-      document.getElementById('sort-' + key).textContent = sortAsc ? ' ↑' : ' ↓';
-      ordenarVendas();
-      paginaAtual = 1;
-      renderTabela();
-      renderPaginacao();
-    }
-
-    function ordenarVendas() {
-      vendasFiltradas.sort((a, b) => {
-        let va = a[sortKey] || '';
-        let vb = b[sortKey] || '';
-        if (sortKey === 'premio' || sortKey === 'comissao') {
-          va = parseVal(va); vb = parseVal(vb);
-        }
-        if (va < vb) return sortAsc ? -1 : 1;
-        if (va > vb) return sortAsc ? 1 : -1;
-        return 0;
-      });
-    }
-
-    // ── CARDS ────────────────────────────────────────────────
-    function atualizarCards() {
-      // Stats only count emitted deals
-      const emitidos = vendasFiltradas.filter(v => v.vendeu === 'Sim');
-      const totalPremio = emitidos.reduce((s, v) => s + parseVal(v.premio), 0);
-      const totalComissao = emitidos.reduce((s, v) => s + parseVal(v.comissao), 0);
-      const totalParceiro = emitidos.reduce((s, v) => s + parteParceiro(v), 0);
-      document.getElementById('card-vendas').textContent = emitidos.length;
-      document.getElementById('card-premio').textContent = totalPremio > 0 ? fmt(totalPremio) : '—';
-      document.getElementById('card-comissao').textContent = totalComissao > 0 ? fmt(totalComissao) : '—';
-      document.getElementById('card-parceiro').textContent = totalParceiro > 0 ? fmt(totalParceiro) : '—';
-
-      // Só explica o parcelamento quando existe alguma venda parcelada no período.
-      const temParcelada = emitidos.some(v => comissaoPorParcela(v, parteParceiro(v)));
-      document.getElementById('card-parceiro-nota').style.display = temParcelada ? 'block' : 'none';
-
-      atualizarExtrato();
-      renderPipeline(todasVendas);
-      renderZeroState();
-    }
-
-    // ── EXTRATO DA COMISSÃO ──────────────────────────────────
     /**
-     * Os três estados do dinheiro do parceiro. O card "Sua comissão" mostra o
-     * total prometido, que é o número grande e otimista; aqui embaixo fica a
-     * resposta da pergunta seguinte, que é quanto já caiu na conta.
-     *
-     * Sempre sobre todas as indicações, e não sobre vendasFiltradas: o repasse
-     * é fechado por mês inteiro, então respeitar o filtro de período dos cards
-     * misturaria duas contagens diferentes na mesma tela.
+     * Os três estados do dinheiro do parceiro, sobre todas as apólices emitidas.
+     * Repasse é fechado por mês e não por apólice, então o já repassado é
+     * descontado do realizado no total, com piso em zero.
      */
-    function atualizarExtrato() {
-      const emitidos = todasVendas.filter(v => v.vendeu === 'Sim');
-
-      let total = 0;
-      let realizada = 0;
-      emitidos.forEach(v => {
-        const parceiro = parteParceiro(v);
-        if (parceiro <= 0) return;
-        total += parceiro;
-        realizada += realizadoDaVenda(v, parceiro);
+    function calcularExtrato() {
+      let total = 0, realizada = 0;
+      todasVendas.filter(v => v.vendeu === 'Sim').forEach(v => {
+        const parte = parteParceiro(v);
+        if (parte <= 0) return;
+        total += parte;
+        realizada += realizadoDaVenda(v, parte);
       });
-
-      const repassada = repassesData
-        .filter(r => r.status === 'pago')
-        .reduce((s, r) => s + parseVal(r.valor_total), 0);
-
-      // O repasse é fechado por mês e não por apólice, então não dá para casar
-      // um a um. Descontar o que já saiu evita mostrar o mesmo dinheiro duas
-      // vezes, e o piso em zero cobre repasse lançado antes da baixa da parcela.
+      const repassada = repassesData.filter(r => r.status === 'pago').reduce((s, r) => s + parseVal(r.valor_total), 0);
       const liberada = Math.max(0, realizada - repassada);
       const aRealizar = Math.max(0, total - realizada);
-
-      // O fmt troca zero por travessão, o que serve para célula de tabela mas
-      // não aqui: no extrato o zero é informação, e não ausência de dado.
-      const moeda = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      document.getElementById('extrato-repassada').textContent = moeda(repassada);
-      document.getElementById('extrato-liberada').textContent = moeda(liberada);
-      document.getElementById('extrato-arealizar').textContent = moeda(aRealizar);
-
-      // Sem nenhuma parcela quitada o extrato mostraria dois zeros sem
-      // explicação, o que parece defeito. A nota diz de onde vem cada número.
-      document.getElementById('extrato-nota').textContent =
-        (realizada <= 0 && repassada <= 0)
-          ? 'Sua comissão se realiza conforme o tomador paga cada parcela do prêmio. Enquanto as parcelas seguem em aberto, o valor todo aparece como a realizar.'
-          : 'Já repassada: comissão que a F&G pagou a você. Liberada: o tomador quitou a parcela e o valor entra no próximo fechamento. A realizar: apólice emitida com prêmio ainda em aberto.';
+      return { total, realizada, repassada, liberada, aRealizar, aReceber: liberada + aRealizar };
     }
 
-    // ── PIPELINE ─────────────────────────────────────────────
-    function renderPipeline(vendas) {
-      const sec = document.getElementById('pipeline-section');
-      const cards = document.getElementById('pipeline-cards');
-      // Em andamento = ainda não emitida e não encerrada. As que não avançaram
-      // ficam só na tabela, com a etiqueta "Não avançou".
-      const pending = vendas.filter(v => v.vendeu !== 'Sim' && v.vendeu !== 'Não');
-      if (!pending.length) { sec.style.display = 'none'; cards.innerHTML = ''; return; }
-      sec.style.display = 'block';
+    function renderKpis() {
+      const andamento = todasVendas.filter(emAndamento);
+      const cotadas = andamento.filter(v => statusDe(v) === 'cotada').length;
+      const emitidas = todasVendas.filter(v => v.vendeu === 'Sim');
+      const premio = emitidas.reduce((s, v) => s + parseVal(v.premio), 0);
+      const ex = calcularExtrato();
+      const pagos = repassesData.filter(r => r.status === 'pago').length;
 
-      cards.innerHTML = pending.map(v => {
-        const cotada = parseVal(v.premio) > 0;
-        const comissao = parseVal(v.comissao);
-        const suaParte = parteParceiro(v);
-        const stages = [
-          { label: 'Recebida',   icon: '#i-caixa',  done: true,   date: fmtData(v.data) },
-          { label: 'Em análise', icon: '#i-busca',  done: true,   date: null },
-          { label: 'Cotada',     icon: '#i-lista',  done: cotada, date: null },
-          { label: 'Emitida',    icon: '#i-check',  done: false,  date: null },
-        ];
-        const timelineHtml = stages.map((s, i) => `
-          <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;min-width:58px;">
-            <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${s.done ? '#1B263B' : '#f8f5f0'};color:${s.done ? '#C69C6D' : '#94a3b8'};border:2px solid ${s.done ? '#1B263B' : '#e8e4dc'};margin-bottom:4px;"><svg class="ico ico-inline"><use href="${s.icon}"/></svg></div>
-            <div style="font-size:9px;font-weight:900;color:${s.done ? '#1B263B' : '#94a3b8'};text-align:center;text-transform:uppercase;letter-spacing:.5px;">${s.label}</div>
-            ${s.date ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px;">${s.date}</div>` : ''}
-          </div>
-          ${i < stages.length - 1 ? `<div style="flex:1 1 auto;min-width:8px;height:2px;border-radius:2px;background:${stages[i + 1].done ? '#1B263B' : '#e8e4dc'};margin-top:16px;"></div>` : ''}
-        `).join('');
+      byId('k-andamento').textContent = andamento.length;
+      byId('k-andamento-sub').textContent = andamento.length
+        ? (cotadas ? `${cotadas} já ${cotadas === 1 ? 'cotada' : 'cotadas'}` : 'Em análise pela F&G')
+        : 'Nenhuma no momento';
+      byId('k-emitidas').textContent = emitidas.length;
+      byId('k-emitidas-sub').textContent = emitidas.length ? `${moeda(premio)} em prêmios` : 'Ainda sem apólices';
+      byId('k-receber').textContent = moeda(ex.aReceber);
+      byId('k-receber-sub').textContent = ex.liberada > 0
+        ? `${moeda(ex.liberada)} já liberado para o próximo repasse`
+        : (ex.aReceber > 0 ? 'Liberada conforme o cliente paga as parcelas' : 'Nada pendente');
+      byId('k-recebido').textContent = moeda(ex.repassada);
+      byId('k-recebido-sub').textContent = pagos ? `Em ${pagos} ${pagos === 1 ? 'repasse' : 'repasses'}` : 'Nenhum repasse ainda';
 
-        const etiqueta = cotada
-          ? '<span style="font-size:10px;font-weight:900;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;">Cotada</span>'
-          : '<span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> Com a F&G</span>';
+      byId('contador-demandas').textContent = todasVendas.length;
+      byId('contador-comissoes').textContent = emitidas.length;
+    }
 
-        const comissaoHtml = comissao > 0
-          ? `<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#1B263B;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-               <span style="font-size:12px;color:rgba(255,255,255,.7);">Sua comissão prevista se a apólice for emitida</span>
-               <span style="font-size:17px;font-weight:700;color:#C69C6D;white-space:nowrap;">${fmt(suaParte)} <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.55);">(${pctParceiro(v)})</span></span>
-             </div>`
-          : `<div style="margin-top:12px;font-size:12px;color:#94a3b8;">A sua comissão prevista aparece aqui quando a cotação sair.</div>`;
+    // ── DEMANDAS ─────────────────────────────────────────────
+    function filtrarDemandas() {
+      const q = UI.buscaDem.trim().toLowerCase();
+      const qd = q.replace(/\D/g, '');
+      const lista = todasVendas.filter(v => {
+        const s = statusDe(v);
+        if (UI.status === 'andamento' && !(s === 'analise' || s === 'cotada')) return false;
+        if (UI.status === 'emitidas' && s !== 'emitida') return false;
+        if (UI.status === 'encerradas' && s !== 'encerrada') return false;
+        if (!q) return true;
+        return (v.nome || '').toLowerCase().includes(q) || (qd.length >= 3 && (v.cnpj || '').replace(/\D/g, '').includes(qd));
+      });
+      // Em "Todas", o que ainda depende de alguém fica em cima; o resto por data.
+      const peso = { analise: 0, cotada: 0, emitida: 1, encerrada: 2 };
+      return lista.slice().sort((a, b) => {
+        if (UI.status === 'todas') {
+          const d = peso[statusDe(a)] - peso[statusDe(b)];
+          if (d) return d;
+        }
+        return (b.data || '').localeCompare(a.data || '') || (b.id || 0) - (a.id || 0);
+      });
+    }
 
-        const arquivos = Array.isArray(v.anexos_demanda) && v.anexos_demanda.length
-          ? `<div style="margin-top:10px;font-size:11.5px;color:#78716c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><svg class="ico ico-inline"><use href="#i-doc"/></svg> ${v.anexos_demanda.map(a => esc(a.nome)).join(', ')}</div>`
-          : '';
+    function renderChips() {
+      const n = {
+        todas: todasVendas.length,
+        andamento: todasVendas.filter(emAndamento).length,
+        emitidas: todasVendas.filter(v => v.vendeu === 'Sim').length,
+        encerradas: todasVendas.filter(v => v.vendeu === 'Não').length,
+      };
+      const chips = [
+        ['todas', 'Todas'], ['andamento', 'Em andamento'], ['emitidas', 'Emitidas'], ['encerradas', 'Não avançaram'],
+      ].filter(([k]) => k !== 'encerradas' || n.encerradas > 0 || UI.status === 'encerradas');
+      byId('chips-status').innerHTML = chips.map(([k, rot]) =>
+        `<button type="button" class="chip" aria-pressed="${UI.status === k}" onclick="filtrarStatus('${k}')">${rot} <span class="n">${n[k]}</span></button>`
+      ).join('');
+    }
 
-        return `<div style="background:#fff;border:1px solid #e8e4dc;border-radius:16px;padding:16px 20px;border-left:4px solid #C69C6D;min-width:0;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
-            <div style="min-width:0;">
-              <div style="font-size:14px;font-weight:900;color:#1B263B;overflow-wrap:anywhere;">${esc(v.nome || '—')}</div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${esc(v.product_type || 'Seguro Garantia')}${v.tipo ? ' · ' + esc(v.tipo === 'Performance' ? 'Execução' : v.tipo) : ''}${v.cnpj ? ' · ' + esc(v.cnpj) : ''}</div>
-            </div>
-            ${etiqueta}
-          </div>
-          <div style="display:flex;align-items:flex-start;max-width:640px;">${timelineHtml}</div>
-          ${comissaoHtml}
+    function filtrarStatus(k) {
+      UI.status = k;
+      UI.limiteDem = PASSO_LISTA;
+      renderDemandas();
+    }
+
+    function etapasHtml(s) {
+      const passo = { analise: 1, cotada: 2, emitida: 3, encerrada: -1 }[s];
+      const nomes = ['Recebida', 'Em análise', 'Cotada', 'Emitida'];
+      return `<ol class="etapas${s === 'encerrada' ? ' encerrada' : ''}" aria-label="Andamento: ${STATUS[s].rotulo}">` +
+        nomes.map((nome, i) => {
+          let estado = 'pendente';
+          if (s !== 'encerrada') estado = (i < passo || (s === 'emitida' && i === passo)) ? 'feita' : (i === passo ? 'atual' : 'pendente');
+          return `<li class="${estado}"><span class="ponto"></span><span class="nome">${nome}</span></li>`;
+        }).join('') + '</ol>';
+    }
+
+    function valorDemandaHtml(v, s) {
+      const comissao = parseVal(v.comissao);
+      const parte = parteParceiro(v);
+      if (s === 'emitida') {
+        return `<div class="rotulo">Sua comissão</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`;
+      }
+      if (s === 'cotada') {
+        return comissao > 0
+          ? `<div class="rotulo">Comissão prevista</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`
+          : `<div class="rotulo">Comissão prevista</div><div class="texto">Sai com os valores da cotação</div>`;
+      }
+      if (s === 'analise') return `<div class="rotulo">Comissão prevista</div><div class="texto">Aparece quando a cotação sair</div>`;
+      return `<div class="rotulo">Comissão</div><div class="texto">Sem comissão</div>`;
+    }
+
+    function itemDemanda(v) {
+      const s = statusDe(v);
+      const meta = `<span class="tag">${esc(modalidade(v))}</span>` + [
+        v.cnpj ? esc(v.cnpj) : '',
+        // Só as que vieram pelo portal foram "enviadas"; as lançadas pela F&G no HUB foram registradas.
+        v.data ? `${Array.isArray(v.anexos_demanda) ? 'Enviada' : 'Registrada'} em ${fmtData(v.data)}` : '',
+      ].filter(Boolean).join(' · ');
+      const arquivos = Array.isArray(v.anexos_demanda) && v.anexos_demanda.length
+        ? `<div class="dem-arquivos"><svg class="ico"><use href="#i-doc"/></svg><span>${v.anexos_demanda.map(a => esc(a.nome)).join(', ')}</span></div>`
+        : '';
+      const msg = `Olá! Sobre a demanda de ${v.nome || 'meu cliente'}${v.data ? ' (' + fmtData(v.data) + ')' : ''}:`;
+      const acoes = [
+        v.apolice_url ? `<a class="link-acao" href="${esc(v.apolice_url)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-baixar"/></svg> Apólice</a>` : '',
+        `<a class="link-acao whats" href="${WHATS + encodeURIComponent(msg)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-balao"/></svg> Falar com a F&amp;G</a>`,
+      ].join('');
+      const nota = s === 'analise' ? 'A F&amp;G está cotando com as seguradoras.'
+        : s === 'cotada' ? 'Cotação feita. Próximo passo: aceite do cliente e emissão.'
+        : s === 'emitida' ? 'Apólice emitida. A comissão entra conforme o cliente paga.'
+        : 'Este negócio não avançou.';
+      return `<article class="demanda">
+        <div style="min-width:0">
+          <div class="dem-nome">${esc(v.nome || 'Cliente sem nome')}</div>
+          <div class="dem-meta">${meta}</div>
           ${arquivos}
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0ece4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-            <div style="font-size:11px;color:#78716c;">Prazo médio de emissão: <strong style="color:#1B263B;">3 a 5 dias úteis</strong></div>
-            <a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá! Acompanhando a demanda: ' + (v.nome || '') + ' (' + fmtData(v.data) + ')')}" target="_blank" rel="noopener" style="font-size:11px;font-weight:900;color:#16a34a;text-decoration:none;display:flex;align-items:center;gap:4px;min-height:44px;"><svg class="ico ico-inline"><use href="#i-balao"/></svg> Falar com F&G</a>
-          </div>
-        </div>`;
-      }).join('');
+        </div>
+        ${etapasHtml(s)}
+        <div class="dem-valor">${statusHtml(s)}${valorDemandaHtml(v, s)}</div>
+        <div class="dem-rodape"><span>${nota}</span><div class="acoes">${acoes}</div></div>
+      </article>`;
     }
 
-    // ── COMO A COMISSÃO É CALCULADA ──────────────────────────
-    function renderRegra() {
-      const box = document.getElementById('regra');
-      const corpo = document.getElementById('regra-corpo');
-      if (!box || !corpo || !regraParceiro) return;
+    function renderDemandas() {
+      renderChips();
+      const lista = filtrarDemandas();
+      const alvo = byId('lista-demandas');
+      if (!todasVendas.length) {
+        alvo.innerHTML = `<div class="vazio-lista"><strong>Nenhuma demanda ainda</strong>As demandas que você enviar aparecem aqui, com o andamento de cada uma.</div>`;
+      } else if (!lista.length) {
+        alvo.innerHTML = `<div class="vazio-lista"><strong>Nada encontrado</strong>Troque o filtro ou a busca.</div>`;
+      } else {
+        alvo.innerHTML = lista.slice(0, UI.limiteDem).map(itemDemanda).join('');
+      }
+      byId('mais-demandas').hidden = lista.length <= UI.limiteDem;
+    }
+
+    // ── COMISSÕES ────────────────────────────────────────────
+    function preencherAnos() {
+      const sel = byId('filtro-ano');
+      const jaTem = new Set([...sel.options].map(o => o.value));
+      [...new Set(todasVendas.filter(v => v.vendeu === 'Sim').map(v => (v.data || '').slice(0, 4)).filter(Boolean))]
+        .sort().reverse()
+        .forEach(a => { if (!jaTem.has(a)) { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); } });
+    }
+
+    function filtrarComissoes() {
+      const q = UI.buscaCom.trim().toLowerCase();
+      return todasVendas
+        .filter(v => v.vendeu === 'Sim')
+        .filter(v => !UI.ano || (v.data || '').slice(0, 4) === UI.ano)
+        .filter(v => !UI.mes || (v.data || '').slice(5, 7) === UI.mes)
+        .filter(v => !q || (v.nome || '').toLowerCase().includes(q))
+        .sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.id || 0) - (a.id || 0));
+    }
+
+    /** Pagamento do cliente: parcelas pagas sobre o total, com barra. */
+    function pagamentoHtml(v) {
+      const bol = v._boletos || [];
+      if (!bol.length) return '<span class="parcelas"><small>Sem parcelas lançadas</small></span>';
+      const pagas = bol.filter(b => b.pago).length;
+      const pct = Math.round((pagas / bol.length) * 100);
+      const texto = bol.length === 1 ? (pagas ? 'Pago' : 'Aguardando pagamento') : `${pagas} de ${bol.length} parcelas pagas`;
+      return `<span class="parcelas"><span class="barra"><span style="width:${pct}%"></span></span><small>${texto}</small></span>`;
+    }
+
+    function docsHtml(v) {
+      const itens = [];
+      if (v.apolice_url) itens.push(`<a class="link-acao" href="${esc(v.apolice_url)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-baixar"/></svg> Apólice</a>`);
+      (v._boletos || []).forEach(b => {
+        if (b.url) itens.push(`<a class="link-acao" href="${esc(b.url)}" target="_blank" rel="noopener" title="Boleto da parcela ${esc(b.parcela)}${b.vencimento ? ', vence ' + fmtData(b.vencimento) : ''}">Boleto ${esc(b.parcela)}</a>`);
+      });
+      return itens.length ? `<div class="docs">${itens.join('')}</div>` : '<span style="color:#b4bcc8">—</span>';
+    }
+
+    function suaComissaoHtml(v) {
+      const parte = parteParceiro(v);
+      const rateio = comissaoPorParcela(v, parte);
+      if (!rateio) return moeda(parte);
+      return `${moeda(parte)}<small style="display:block;font-weight:500;color:var(--muted);font-size:11.5px">${rateio.qtd}x de ${moeda(rateio.itens[0].valor)}</small>`;
+    }
+
+    function renderComissoes() {
+      const ex = calcularExtrato();
+      byId('extrato-repassada').textContent = moeda(ex.repassada);
+      byId('extrato-liberada').textContent = moeda(ex.liberada);
+      byId('extrato-arealizar').textContent = moeda(ex.aRealizar);
+
+      const lista = filtrarComissoes();
+      const pagina = lista.slice(0, UI.limiteCom);
+      const tbody = byId('tabela-comissoes');
+      const cards = byId('cards-comissoes');
+      const tfoot = byId('total-comissoes');
+
+      if (!lista.length) {
+        const algumaEmitida = todasVendas.some(v => v.vendeu === 'Sim');
+        const msg = algumaEmitida
+          ? '<strong>Nada neste filtro</strong>Troque o período ou a busca.'
+          : '<strong>Nenhuma apólice emitida ainda</strong>Quando uma demanda sua for emitida, a comissão aparece aqui.';
+        tbody.innerHTML = `<tr><td colspan="9"><div class="vazio-lista" style="border:none">${msg}</div></td></tr>`;
+        cards.innerHTML = `<div class="vazio-lista">${msg}</div>`;
+        tfoot.innerHTML = '';
+        byId('mais-comissoes').hidden = true;
+        return;
+      }
+
+      tbody.innerHTML = pagina.map(v => `<tr>
+        <td style="white-space:nowrap;color:var(--muted)">${fmtData(v.data)}</td>
+        <td class="cliente">${esc(v.nome || '—')}${v.segurado || v.orgaoLicitante ? `<small>${esc(v.segurado || v.orgaoLicitante)}</small>` : ''}</td>
+        <td>${esc(modalidade(v))}</td>
+        <td class="num">${fmt(parseVal(v.premio))}</td>
+        <td class="num">${fmt(parseVal(v.comissao))}</td>
+        <td class="num">${parseVal(v.comissao) > 0 ? pctParceiro(v) : '—'}</td>
+        <td class="num sua">${suaComissaoHtml(v)}</td>
+        <td>${pagamentoHtml(v)}</td>
+        <td>${docsHtml(v)}</td>
+      </tr>`).join('');
+
+      const soma = (f) => lista.reduce((s, v) => s + f(v), 0);
+      tfoot.innerHTML = `<tr>
+        <td colspan="3">${lista.length} ${lista.length === 1 ? 'apólice' : 'apólices'}${UI.ano || UI.mes ? ' no período' : ''}</td>
+        <td class="num">${moeda(soma(v => parseVal(v.premio)))}</td>
+        <td class="num">${moeda(soma(v => parseVal(v.comissao)))}</td>
+        <td></td>
+        <td class="num sua">${moeda(soma(parteParceiro))}</td>
+        <td colspan="2"></td>
+      </tr>`;
+
+      cards.innerHTML = pagina.map(v => `<article class="demanda">
+        <div style="min-width:0">
+          <div class="dem-nome">${esc(v.nome || '—')}</div>
+          <div class="dem-meta"><span class="tag">${esc(modalidade(v))}</span>${fmtData(v.data)}</div>
+        </div>
+        <div class="dem-valor"><div class="rotulo">Sua comissão (${parseVal(v.comissao) > 0 ? pctParceiro(v) : '—'})</div><div class="numero">${suaComissaoHtml(v)}</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;color:var(--muted)">
+          <div>Prêmio<br><strong style="color:var(--ink);font-weight:600">${fmt(parseVal(v.premio))}</strong></div>
+          <div>Comissão F&amp;G<br><strong style="color:var(--ink);font-weight:600">${fmt(parseVal(v.comissao))}</strong></div>
+        </div>
+        ${pagamentoHtml(v)}
+        <div class="dem-rodape"><div class="acoes">${docsHtml(v)}</div></div>
+      </article>`).join('') + `<div class="vazio-lista" style="border-style:solid;padding:16px;text-align:left">
+          <strong style="margin:0">${lista.length} ${lista.length === 1 ? 'apólice' : 'apólices'}: ${moeda(soma(parteParceiro))} de comissão</strong>
+        </div>`;
+
+      byId('mais-comissoes').hidden = lista.length <= UI.limiteCom;
+    }
+
+    // ── REPASSES ─────────────────────────────────────────────
+    function renderRepasses() {
+      const tbody = byId('tabela-repasses');
+      const cards = byId('cards-repasses');
+      if (!repassesData.length) {
+        const msg = '<strong>Nenhum repasse ainda</strong>Os pagamentos da sua comissão aparecem aqui, com o comprovante.';
+        tbody.innerHTML = `<tr><td colspan="5"><div class="vazio-lista" style="border:none">${msg}</div></td></tr>`;
+        cards.innerHTML = `<div class="vazio-lista">${msg}</div>`;
+        return;
+      }
+      const comprovante = r => r.comprovante_url
+        ? `<a class="link-acao" href="${esc(r.comprovante_url)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-baixar"/></svg> Ver comprovante</a>`
+        : `<a class="link-acao whats" href="${WHATS + encodeURIComponent('Olá, preciso do comprovante do repasse de ' + MESES[r.periodo_mes] + '/' + r.periodo_ano)}" target="_blank" rel="noopener">Pedir comprovante</a>`;
+      const situacao = r => r.status === 'pago'
+        ? '<span class="status st-pago">Pago</span>'
+        : '<span class="status st-pendente">A pagar</span>';
+      tbody.innerHTML = repassesData.map(r => `<tr>
+        <td style="font-weight:600">${MESES[r.periodo_mes] || ''}/${esc(r.periodo_ano)}</td>
+        <td class="num sua">${moeda(parseVal(r.valor_total))}</td>
+        <td>${r.data_pagamento ? fmtData(r.data_pagamento) : '—'}</td>
+        <td>${situacao(r)}</td>
+        <td>${comprovante(r)}</td>
+      </tr>`).join('');
+      cards.innerHTML = repassesData.map(r => `<article class="demanda">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div class="dem-nome">${MESES[r.periodo_mes] || ''}/${esc(r.periodo_ano)}</div>${situacao(r)}
+        </div>
+        <div class="dem-valor" style="justify-content:space-between"><div class="numero">${moeda(parseVal(r.valor_total))}</div><div class="texto">${r.data_pagamento ? 'Pago em ' + fmtData(r.data_pagamento) : ''}</div></div>
+        <div class="dem-rodape"><div class="acoes">${comprovante(r)}</div></div>
+      </article>`).join('');
+    }
+
+    // ── COMO FUNCIONA ────────────────────────────────────────
+    function renderRegras() {
+      const corpo = byId('regra-corpo');
+      if (!regraParceiro) { corpo.innerHTML = ''; return; }
       const reais = n => Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const r = regraParceiro.comissao_faixas;
       if (r && Array.isArray(r.faixas) && r.faixas.length) {
@@ -1257,299 +1461,54 @@
           let rotulo;
           if (anterior === null && f.ate != null) rotulo = `Até ${reais(f.ate)}`;
           else if (f.ate == null) rotulo = `Acima de ${reais(anterior)}`;
-          else rotulo = `${reais(anterior + 0.01)} a ${reais(f.ate)}`;
+          else rotulo = `De ${reais(anterior + 0.01)} a ${reais(f.ate)}`;
           anterior = f.ate;
           return `<tr><td>${rotulo}</td><td>${String(f.pct).replace('.', ',')}%</td></tr>`;
         }).join('');
         const imposto = Number(r.imposto_pct) || 0;
-        corpo.innerHTML = `<table class="regra-tabela"><tbody>${linhas}</tbody></table>
-          <p class="regra-nota">A faixa é definida pela comissão líquida que a F&G recebe em cada negócio, depois dos impostos${imposto ? ` (${String(imposto).replace('.', ',')}%)` : ''}. O percentual da faixa incide sobre a comissão integral do negócio, e não sobre o prêmio do seguro.</p>`;
+        // Exemplo calculado com a própria regra, para não divergir da tabela.
+        const exComissao = 1000;
+        const exLiquida = Math.round(exComissao * (1 - imposto / 100) * 100) / 100;
+        const exFaixa = faixas.find(f => f.ate == null || exLiquida <= f.ate) || faixas[0];
+        const exValor = Math.round(exComissao * exFaixa.pct) / 100;
+        corpo.innerHTML = `
+          <p style="margin-bottom:12px">O percentual depende da comissão líquida que a F&amp;G recebe em cada negócio:</p>
+          <table class="faixas"><tbody>${linhas}</tbody></table>
+          <p class="exemplo">Exemplo: num negócio em que a F&amp;G recebe ${reais(exComissao)} de comissão, a comissão líquida é ${reais(exLiquida)} (descontados ${String(imposto).replace('.', ',')}% de impostos). Essa faixa paga ${exFaixa.pct}%, e você recebe ${reais(exValor)}.</p>
+          <p style="margin-top:12px">O percentual vale sobre a comissão integral do negócio, e não sobre o prêmio do seguro. Toda apólice emitida conta, inclusive Seguro Garantia Licitante.</p>`;
       } else {
         const pct = regraParceiro.commission_pct == null ? 20 : Number(regraParceiro.commission_pct);
-        corpo.innerHTML = `<p class="regra-nota" style="margin-top:0">Você recebe <strong style="color:#14203a">${String(pct).replace('.', ',')}%</strong> da comissão que a F&G recebe em cada negócio emitido, e não do prêmio do seguro.</p>`;
+        corpo.innerHTML = `<p>Você recebe <strong style="color:var(--ink)">${String(pct).replace('.', ',')}%</strong> da comissão que a F&amp;G recebe em cada apólice emitida, e não do prêmio do seguro.</p>`;
       }
-      box.style.display = 'block';
     }
 
-    // ── ZERO STATE ───────────────────────────────────────────
-    function renderZeroState() {
-      const el = document.getElementById('zero-state');
-      if (!el) return;
-      el.style.display = todasVendas.length === 0 ? 'block' : 'none';
-    }
-
-    // ── TABELA ───────────────────────────────────────────────
-    function renderTabela() {
-      const tbody = document.getElementById('tabela-body');
-      const inicio = (paginaAtual - 1) * POR_PAGINA;
-      const pagina = vendasFiltradas.slice(inicio, inicio + POR_PAGINA);
-
-      if (vendasFiltradas.length === 0) {
-        const busca = document.getElementById('busca').value.trim();
-        tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state">
-          <div class="icon">${busca ? '<svg class="ico ico-xl"><use href="#i-busca"/></svg>' : '<svg class="ico ico-xl"><use href="#i-lista"/></svg>'}</div>
-          <h4>${busca ? 'Nenhum resultado encontrado' : 'Nenhuma venda no período'}</h4>
-          <p>${busca ? 'Tente buscar por outro nome.' : 'Selecione outro período ou aguarde novas emissões.'}</p>
-        </div></td></tr>`;
-        renderMobileCards([]);
-        return;
-      }
-
-      tbody.innerHTML = pagina.map(v => {
-        const comissao = parseVal(v.comissao);
-        // Negócio que não avançou não gera comissão, mesmo que tenha sido cotado.
-        const parceiro = v.vendeu === 'Não' ? 0 : parteParceiro(v);
-        const pctStr = comissao > 0 && v.vendeu !== 'Não' ? pctParceiro(v) : '—';
-
-        const statusComissao = v.vendeu === 'Sim'
-          ? '<span style="font-size:10px;font-weight:900;background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;"><svg class="ico ico-inline"><use href="#i-check"/></svg> Prevista</span>'
-          : v.vendeu === 'Não'
-            ? '<span style="font-size:10px;font-weight:900;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:6px;">Não avançou</span>'
-            : '<span style="font-size:10px;font-weight:900;background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:6px;">Em andamento</span>';
-
-        const btnApolice = v.apolice_url
-          ? `<a href="${esc(v.apolice_url)}" target="_blank" rel="noopener" class="badge-apolice"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Apólice</a>`
-          : `<span class="vazio">—</span>`;
-
-        const rateio = comissaoPorParcela(v, parceiro);
-
-        // Quando o prêmio é parcelado, o número que importa para o parceiro é
-        // quanto ele recebe em cada parcela — o total vira referência.
-        const parceiroHtml = rateio
-          ? `<div style="font-size:14px;font-weight:900;color:#1B263B;white-space:nowrap;">${fmt(rateio.itens[0].valor)}</div>
-             <div style="font-size:10px;font-weight:700;color:#94a3b8;white-space:nowrap;margin-top:2px;">por parcela · ${rateio.qtd}x</div>
-             <div style="font-size:10px;color:#94a3b8;white-space:nowrap;">total ${fmt(parceiro)}</div>`
-          : (parceiro > 0 ? fmt(parceiro) : '—');
-
-        let boletoHtml = `<span class="vazio">—</span>`;
-        if (v._boletos && v._boletos.length > 0) {
-          boletoHtml = v._boletos.map(b => {
-            const item = rateio ? rateio.itens.find(i => i.parcela === b.parcela) : null;
-            const suaParte = item
-              ? `<span style="display:block;font-weight:900;font-size:10px;color:#C69C6D;">você recebe ${fmt(item.valor)}</span>`
-              : '';
-            return `<a href="${b.url}" target="_blank" class="badge-boleto"><svg class="ico ico-inline"><use href="#i-baixar"/></svg> Parc. ${b.parcela}${b.vencimento ? `<span style="font-weight:500;font-size:10px;opacity:.7"> (${fmtData(b.vencimento)})</span>` : ''}${suaParte}</a>`;
-          }).join('');
-        }
-
-        const seguradoOrgao = v.segurado || v.orgaoLicitante || '—';
-        const isVal = v.is ? fmt(parseVal(v.is)) : '—';
-        return `<tr>
-          <td class="td-data">${fmtData(v.data)}</td>
-          <td class="td-nome">${esc(v.nome || '—')}</td>
-          <td class="td-produto">
-            ${v.product_type || 'Seguro Garantia'}
-            ${v.tipo ? `<br><span style="font-size:11px;font-weight:700;color:#C69C6D;background:rgba(198,156,109,.1);padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;">${v.tipo}</span>` : ''}
-          </td>
-          <td style="font-size:12px;color:#475569;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(seguradoOrgao)}">${esc(seguradoOrgao)}</td>
-          <td style="font-weight:700;color:#1B263B;white-space:nowrap">${isVal}</td>
-          <td class="td-valor">${fmt(parseVal(v.premio))}</td>
-          <td class="td-comissao">${fmt(comissao)}</td>
-          <td style="font-size:12px;color:#94a3b8;">${pctStr}</td>
-          <td class="td-parceiro">${parceiroHtml}</td>
-          <td>${statusComissao}</td>
-          <td style="text-align:center">${btnApolice}</td>
-          <td style="min-width:140px;text-align:center">${boletoHtml}</td>
-        </tr>`;
-      }).join('');
-
-      renderMobileCards(pagina);
-    }
-
-    // ── MOBILE CARDS ─────────────────────────────────────────
-    function renderMobileCards(lista) {
-      const el = document.getElementById('mobile-cards');
-      if (!el) return;
-      if (!lista.length) { el.innerHTML = ''; return; }
-      el.innerHTML = lista.map(v => {
-        const parceiro = v.vendeu === 'Não' ? 0 : parteParceiro(v);
-        const rateio = comissaoPorParcela(v, parceiro);
-        const rotuloComissao = rateio ? 'Você recebe / parcela' : v.vendeu === 'Sim' ? 'Sua comissão' : v.vendeu === 'Não' ? 'Não avançou' : 'Comissão prevista';
-        return `<div style="background:#fff;border-radius:16px;border:1px solid #e8e4dc;padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-            <div>
-              <div style="font-size:14px;font-weight:900;color:#1B263B;">${esc(v.nome || '—')}</div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmtData(v.data)} · ${v.product_type || '—'}${v.tipo ? ' · ' + v.tipo : ''}</div>
-            </div>
-            ${v.apolice_url ? `<a href="${esc(v.apolice_url)}" target="_blank" rel="noopener" style="padding:6px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;flex-shrink:0;display:inline-flex;align-items:center;">⬇ Apólice</a>` : ''}
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="background:#f8f5f0;border-radius:10px;padding:10px;">
-              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:3px;">Prêmio</div>
-              <div style="font-size:14px;font-weight:900;color:#1B263B;">${fmt(parseVal(v.premio))}</div>
-            </div>
-            <div style="background:#1B263B;border-radius:10px;padding:10px;">
-              <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px;">${rotuloComissao}</div>
-              <div style="font-size:14px;font-weight:900;color:#C69C6D;">${rateio ? fmt(rateio.itens[0].valor) : (parceiro > 0 ? fmt(parceiro) : '—')}</div>
-              ${rateio ? `<div style="font-size:9px;color:rgba(255,255,255,.45);margin-top:2px;">${rateio.qtd}x · total ${fmt(parceiro)}</div>` : ''}
-            </div>
-          </div>
-          ${rateio ? `<div style="margin-top:10px;border-top:1px solid #f0ece4;padding-top:10px;">
-            <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:6px;">Suas parcelas</div>
-            ${rateio.itens.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;">
-              <span style="color:#78716c;">${i.parcela}ª${i.vencimento ? ' · ' + fmtData(i.vencimento) : ''}</span>
-              <span style="font-weight:900;color:${i.pago ? '#16a34a' : '#1B263B'};">${fmt(i.valor)}${i.pago ? ' <svg class="ico ico-inline"><use href="#i-check"/></svg>' : ''}</span>
-            </div>`).join('')}
-          </div>` : ''}
-        </div>`;
-      }).join('');
-    }
-
-    // ── PAGINAÇÃO ────────────────────────────────────────────
-    function renderPaginacao() {
-      const total = Math.ceil(vendasFiltradas.length / POR_PAGINA);
-      const pag = document.getElementById('pagination');
-      if (total <= 1) { pag.style.display = 'none'; return; }
-      pag.style.display = 'flex';
-
-      let html = `<button class="pg-btn" onclick="irPagina(${paginaAtual - 1})" ${paginaAtual === 1 ? 'disabled' : ''}>‹</button>`;
-      for (let i = 1; i <= total; i++) {
-        if (total > 7 && i > 2 && i < total - 1 && Math.abs(i - paginaAtual) > 1) {
-          if (i === 3 || i === total - 2) html += `<span class="pg-info">…</span>`;
-          continue;
-        }
-        html += `<button class="pg-btn ${i === paginaAtual ? 'active' : ''}" onclick="irPagina(${i})">${i}</button>`;
-      }
-      html += `<button class="pg-btn" onclick="irPagina(${paginaAtual + 1})" ${paginaAtual === total ? 'disabled' : ''}>›</button>`;
-      html += `<span class="pg-info">Página ${paginaAtual} de ${total}</span>`;
-      pag.innerHTML = html;
-    }
-
-    function irPagina(n) {
-      const total = Math.ceil(vendasFiltradas.length / POR_PAGINA);
-      if (n < 1 || n > total) return;
-      paginaAtual = n;
-      renderTabela();
-      renderPaginacao();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // ── CARREGAR ─────────────────────────────────────────────
-    // ── REPASSES ─────────────────────────────────────────────
-    let repassesData = [];
-
-
-    function getStatusRepasse(dataStr) {
-      if (!dataStr) return null;
-      const mes = parseInt(dataStr.substring(5,7));
-      const ano = parseInt(dataStr.substring(0,4));
-      return repassesData.find(r => r.periodo_mes === mes && r.periodo_ano === ano) || null;
-    }
-
-    function renderRepasses() {
-      const tbody = document.getElementById('repasses-body');
-      if (!repassesData.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon"><svg class="ico ico-xl"><use href="#i-repasse"/></svg></div><h4>Nenhum repasse registrado ainda</h4><p>Os pagamentos de comissão realizados pela F&G aparecerão aqui.</p></div></td></tr>`;
-        return;
-      }
-      tbody.innerHTML = repassesData.map(r => `
-        <tr>
-          <td style="padding:14px 20px;font-weight:800;color:#1B263B;">${MESES[r.periodo_mes]}/${r.periodo_ano}</td>
-          <td style="padding:14px 20px;font-weight:900;color:#C69C6D;">${fmt(r.valor_total)}</td>
-          <td style="padding:14px 20px;">${r.data_pagamento ? fmtData(r.data_pagamento) : '—'}</td>
-          <td style="padding:14px 20px;">
-            ${r.status === 'pago'
-              ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#dcfce7;color:#16a34a;border-radius:8px;font-size:11px;font-weight:900;"><svg class="ico ico-inline"><use href="#i-check"/></svg> Pago</span>'
-              : '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:#fef9c3;color:#a16207;border-radius:8px;font-size:11px;font-weight:900;"><svg class="ico ico-inline"><use href="#i-relogio"/></svg> Pendente</span>'}
-          </td>
-          <td style="padding:14px 20px;text-align:center;">
-            ${r.comprovante_url
-              ? `<a href="${r.comprovante_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;">⬇ Ver</a>`
-              : `<a href="https://wa.me/5515998618659?text=${encodeURIComponent('Olá, preciso do comprovante do repasse de '+MESES[r.periodo_mes]+'/'+r.periodo_ano)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:#fef9c3;color:#a16207;border:1px solid #fde68a;border-radius:8px;font-size:11px;font-weight:900;text-decoration:none;"><svg class="ico ico-inline"><use href="#i-balao"/></svg> Solicitar</a>`}
-          </td>
-        </tr>`).join('');
-    }
-
-    let regraParceiro = null;
-    let periodoDefinido = false;
-
-    async function carregar() {
-      let resposta;
-      try {
-        resposta = await api('dados');
-      } catch (e) {
-        document.getElementById('tabela-body').innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon"><svg class="ico ico-xl"><use href="#i-alerta"/></svg></div><h4>Erro ao carregar</h4><p>${esc(e.message)} <a href="#" onclick="location.reload();return false;" style="color:#8B6C3E;font-weight:600;">Recarregar</a></p></div></td></tr>`;
-        return;
-      }
-
-      const vendas = resposta.vendas || [];
-      todasVendas = vendas;
-      repassesData = resposta.repasses || [];
-      regraParceiro = resposta.parceiro || null;
-      renderRepasses();
-      renderRegra();
-
-      // Preencher anos únicos no filtro (baseado em todos os negócios)
-      const anos = [...new Set(vendas.map(v => (v.data || '').substring(0, 4)).filter(Boolean))].sort().reverse();
-      const selectAno = document.getElementById('filtro-ano');
-      const jaTem = new Set([...selectAno.options].map(o => o.value));
-      anos.forEach(a => {
-        if (jaTem.has(a)) return;
-        const opt = document.createElement('option');
-        opt.value = a; opt.textContent = a;
-        selectAno.appendChild(opt);
-      });
-
-      // Filtro padrão (mês atual) só na primeira carga, para não desfazer o
-      // filtro que o parceiro escolheu quando a lista recarrega.
-      if (!periodoDefinido) {
-        periodoDefinido = true;
-        const hoje = new Date();
-        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
-        const anoAtual = String(hoje.getFullYear());
-        if (![...selectAno.options].some(o => o.value === anoAtual)) {
-          const opt = document.createElement('option');
-          opt.value = anoAtual; opt.textContent = anoAtual;
-          selectAno.appendChild(opt);
-        }
-        document.getElementById('filtro-ano').value = anoAtual;
-        document.getElementById('filtro-mes').value = mesAtual;
-      }
-
-      renderPipeline(todasVendas);
-      renderZeroState();
-      aplicarFiltros();
-
-      // Licitante banner
-      const temLicitante = todasVendas.some(v => v.tipo === 'Licitante');
-      const bannerEl = document.getElementById('licitante-info-banner');
-      if (bannerEl) bannerEl.style.display = temLicitante ? 'block' : 'none';
-    }
-
-    // ── Pílula deslizante das abas ──
-    function moverPill(btn) {
-      const pill = document.getElementById('nav-pill');
-      // offsetWidth = 0 quando a nav está escondida — não faz nada
-      if (!pill || !btn || !btn.offsetWidth) return;
-      pill.style.width = btn.offsetWidth + 'px';
-      pill.style.transform = 'translateX(' + (btn.offsetLeft - 6) + 'px)';
-    }
-
+    // ── ABAS, FILTROS E "MOSTRAR MAIS" ───────────────────────
     function trocarAba(aba) {
-      const isClientes = aba === 'clientes';
-      const painelC = document.getElementById('aba-clientes');
-      const painelR = document.getElementById('aba-repasses');
-      painelC.style.display = isClientes ? 'block' : 'none';
-      painelR.style.display = isClientes ? 'none' : 'block';
-      // reinicia a animação de entrada do painel que acabou de aparecer
-      const ativo = isClientes ? painelC : painelR;
-      ativo.classList.remove('active');
-      void ativo.offsetWidth;
-      ativo.classList.add('active');
+      UI.aba = aba;
+      ['demandas', 'comissoes', 'repasses', 'regras'].forEach(a => {
+        byId('painel-' + a).hidden = a !== aba;
+        byId('aba-' + a).setAttribute('aria-selected', String(a === aba));
+      });
+    }
+    // Setas do teclado trocam de aba, como em qualquer lista de abas.
+    document.querySelector('.abas').addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const abas = ['demandas', 'comissoes', 'repasses', 'regras'];
+      const i = abas.indexOf(UI.aba) + (e.key === 'ArrowRight' ? 1 : -1);
+      const prox = abas[(i + abas.length) % abas.length];
+      trocarAba(prox);
+      byId('aba-' + prox).focus();
+    });
 
-      const btnC = document.getElementById('tab-clientes');
-      const btnR = document.getElementById('tab-repasses');
-      btnC.classList.toggle('active', isClientes);
-      btnR.classList.toggle('active', !isClientes);
-      moverPill(isClientes ? btnC : btnR);
+    function mostrarMais(qual) {
+      if (qual === 'dem') { UI.limiteDem += PASSO_LISTA; renderDemandas(); }
+      else { UI.limiteCom += PASSO_LISTA; renderComissoes(); }
     }
 
-    function ajustarPill() { moverPill(document.querySelector('.nav-btn.active')); }
-    window.addEventListener('resize', ajustarPill);
-    window.addEventListener('load', ajustarPill);
-    document.addEventListener('DOMContentLoaded', ajustarPill);
-
-    if (session && session.token) carregar();
+    byId('busca-demandas').addEventListener('input', e => { UI.buscaDem = e.target.value; UI.limiteDem = PASSO_LISTA; renderDemandas(); });
+    byId('busca-comissoes').addEventListener('input', e => { UI.buscaCom = e.target.value; UI.limiteCom = PASSO_LISTA; renderComissoes(); });
+    byId('filtro-ano').addEventListener('change', e => { UI.ano = e.target.value; UI.limiteCom = PASSO_LISTA; renderComissoes(); });
+    byId('filtro-mes').addEventListener('change', e => { UI.mes = e.target.value; UI.limiteCom = PASSO_LISTA; renderComissoes(); });
 
     // ── SAIR ─────────────────────────────────────────────────
     function sair() {
@@ -1703,8 +1662,13 @@
       el('modal-demanda').classList.remove('open');
       document.body.style.overflow = '';
       if (depoisDeEnviar === true) {
-        const sec = el('pipeline-section');
-        if (sec && sec.style.display !== 'none') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Mostra a demanda recém-enviada no topo da lista.
+        trocarAba('demandas');
+        UI.status = 'todas';
+        UI.buscaDem = '';
+        el('busca-demandas').value = '';
+        renderDemandas();
+        el('painel-demandas').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
@@ -1956,6 +1920,8 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && el('modal-demanda').classList.contains('open')) fecharDemanda(dm.enviada);
     });
+
+    if (session && session.token) carregar();
   </script>
   <!-- Avisa o parceiro quando sai versão nova desta página. -->
   <script defer src="aviso-versao.js"></script>
