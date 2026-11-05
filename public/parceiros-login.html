@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="fg-build" content="__FG_BUILD_TIME__" />
-  <title>Acesso de Parceiros — F&G Seguro Garantia</title>
+  <title>Acesso de Parceiros · F&G Seguro Garantia</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,12 +48,8 @@
     }
     @keyframes entra { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
 
-    .logo {
-      width: 58px; height: 58px; margin: 0 auto 20px;
-      background: var(--navy); color: var(--gold); border-radius: 18px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 700; letter-spacing: .5px;
-    }
+    /* Logo oficial (public/marca), na versão azul sobre o cartão branco. */
+    .marca { display: block; width: 210px; max-width: 72%; height: auto; margin: 0 auto 28px; }
     h1 { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -.4px; color: var(--navy); }
     .sub { text-align: center; font-size: 13px; color: var(--muted); margin: 6px 0 30px; }
 
@@ -130,9 +127,9 @@
   </svg>
 
   <div class="card">
-    <div class="logo">F&G</div>
+    <img class="marca" src="marca/fg-logo-horizontal-azul.svg" alt="F&amp;G Seguro Garantia" width="210" height="69" />
     <h1>Área do Parceiro</h1>
-    <p class="sub">F&G Seguro Garantia</p>
+    <p class="sub">Entre com o usuário e a senha enviados pela F&amp;G</p>
 
     <div class="aviso-sessao" id="aviso-sessao">Por segurança, entre de novo no portal.</div>
 
