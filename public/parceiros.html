@@ -117,6 +117,15 @@
     .btn-demanda .ico { color: var(--gold); width: 19px; height: 19px; stroke-width: 2; }
     .btn-demanda:hover { background: var(--navy-soft); transform: translateY(-2px); box-shadow: 0 18px 34px -16px rgba(27,38,59,.75); }
     .btn-demanda:focus-visible { outline: 3px solid rgba(198,156,109,.55); outline-offset: 3px; }
+    .hero-acoes { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+    .acao { display: flex; flex-direction: column; gap: 7px; width: 270px; }
+    .acao .btn-demanda { width: 100%; }
+    .acao-sub { font-size: 12px; line-height: 1.45; color: var(--muted); padding: 0 6px; }
+    .bv-acoes .acao-sub { color: rgba(255,255,255,.6); }
+    /* Cotação na hora: dourado, para não se confundir com o envio comum */
+    .btn-cotar { background: var(--gold); color: var(--navy); }
+    .btn-cotar .ico { color: var(--navy); }
+    .btn-cotar:hover { background: #d4ad80; }
 
     /* ── BOAS-VINDAS (só sem nenhuma demanda) ── */
     .boas-vindas {
@@ -138,10 +147,14 @@
     }
     .bv-passos strong { display: block; font-size: 14px; font-weight: 600; }
     .bv-passos p { font-size: 12.5px; color: rgba(255,255,255,.62); margin-top: 4px; line-height: 1.5; }
-    .bv-acoes { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; position: relative; z-index: 1; }
+    .bv-acoes { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; position: relative; z-index: 1; }
+    .bv-acoes > a { margin-top: 16px; }
     .bv-acoes .btn-demanda { background: var(--gold); color: var(--navy); box-shadow: none; }
     .bv-acoes .btn-demanda .ico { color: var(--navy); }
     .bv-acoes .btn-demanda:hover { background: #d4ad80; }
+    .bv-acoes .btn-demanda.btn-claro { background: rgba(255,255,255,.08); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+    .bv-acoes .btn-demanda.btn-claro .ico { color: var(--gold); }
+    .bv-acoes .btn-demanda.btn-claro:hover { background: rgba(255,255,255,.14); }
     .bv-acoes a { color: rgba(255,255,255,.75); font-size: 13px; }
     .bv-acoes a:hover { color: #fff; }
 
@@ -367,6 +380,8 @@
       .hero h1 { font-size: 24px; }
       .hero { align-items: stretch; }
       .hero .btn-demanda { width: 100%; }
+      .hero-acoes { width: 100%; flex-direction: column; }
+      .acao { width: 100%; }
       .boas-vindas { padding: 22px 18px; }
       .bv-passos { grid-template-columns: 1fr; }
       .bv-acoes .btn-demanda { width: 100%; }
@@ -656,6 +671,7 @@
   <symbol id="i-balao" viewBox="0 0 24 24"><path d="M20.5 12.5a7.5 7.5 0 0 1-10.9 6.7L4 20.5l1.4-5.4A7.5 7.5 0 1 1 20.5 12.5z"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8h.01"/></symbol>
   <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-raio" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6.5L10.5 21 19 10.5h-6.5z"/></symbol>
   <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 15.5V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4.5 14.5v3a2.5 2.5 0 0 0 2.5 2.5h10a2.5 2.5 0 0 0 2.5-2.5v-3"/></symbol>
   <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></symbol>
@@ -848,9 +864,20 @@
         <h1>Olá, <span id="nome-curto">parceiro</span></h1>
         <p>Envie demandas, acompanhe cada cotação e veja quanto você tem a receber.</p>
       </div>
-      <button type="button" class="btn-demanda" onclick="abrirDemanda()">
-        <svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda
-      </button>
+      <div class="hero-acoes">
+        <div class="acao">
+          <button type="button" class="btn-demanda btn-cotar" onclick="abrirCotacao()">
+            <svg class="ico"><use href="#i-raio"/></svg> Cotar Licitante agora
+          </button>
+          <span class="acao-sub">Para edital. A Junto Seguros devolve o prêmio na hora e você já pede a emissão.</span>
+        </div>
+        <div class="acao">
+          <button type="button" class="btn-demanda" onclick="abrirDemanda()">
+            <svg class="ico"><use href="#i-mais"/></svg> Enviar nova demanda
+          </button>
+          <span class="acao-sub">Para contrato, ou edital que a F&amp;G deve cotar com outras seguradoras.</span>
+        </div>
+      </div>
     </section>
 
     <!-- BOAS-VINDAS: só aparece enquanto o parceiro não tem nenhuma demanda -->
@@ -865,7 +892,14 @@
         <li><span class="num">3</span><strong>Você recebe</strong><p>Com a apólice emitida, sua comissão aparece aqui e entra no repasse.</p></li>
       </ol>
       <div class="bv-acoes">
-        <button type="button" class="btn-demanda" onclick="abrirDemanda()"><svg class="ico"><use href="#i-mais"/></svg> Enviar a primeira demanda</button>
+        <div class="acao">
+          <button type="button" class="btn-demanda" onclick="abrirCotacao()"><svg class="ico"><use href="#i-raio"/></svg> Cotar Licitante agora</button>
+          <span class="acao-sub">Para edital: prêmio da Junto na hora e pedido de emissão.</span>
+        </div>
+        <div class="acao">
+          <button type="button" class="btn-demanda btn-claro" onclick="abrirDemanda()"><svg class="ico"><use href="#i-mais"/></svg> Enviar a primeira demanda</button>
+          <span class="acao-sub">Para contrato, ou para a F&amp;G cotar com outras seguradoras.</span>
+        </div>
         <a href="https://wa.me/5515998618659?text=Ol%C3%A1%21%20Quero%20indicar%20um%20cliente%20para%20seguro%20garantia." target="_blank" rel="noopener">Prefere conversar? Fale com a F&amp;G no WhatsApp</a>
       </div>
     </section>
@@ -1235,7 +1269,7 @@
       byId('boas-vindas').hidden = !inicio;
       // Sem nenhuma demanda, o convite das boas-vindas já é o botão principal,
       // e filtros de uma lista vazia só fariam ruído.
-      document.querySelector('.hero .btn-demanda').hidden = inicio;
+      document.querySelector('.hero .hero-acoes').hidden = inicio;
       document.querySelector('#painel-demandas .filtros').hidden = inicio;
     }
 
@@ -1748,6 +1782,7 @@
       el('dm-data-rotulo').textContent = 'Data da sessão ou da assinatura';
       el('dm-progresso').textContent = '';
       el('dm-sucesso-titulo').textContent = 'Demanda enviada';
+      el('dm-titulo').textContent = 'Enviar nova demanda';
       falha('');
       renderCotacao();
       botaoEnviar(false);
@@ -1777,6 +1812,14 @@
         renderDemandas();
         el('painel-demandas').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    }
+
+    /** Atalho do topo: abre o formulário já em "Edital", pronto para cotar na Junto. */
+    function abrirCotacao() {
+      abrirDemanda();
+      escolherDoc('edital');
+      dm.sujo = false;   // só escolher o tipo não conta como preenchido
+      el('dm-titulo').textContent = 'Cotar Licitante agora';
     }
 
     function novaDemanda() {
