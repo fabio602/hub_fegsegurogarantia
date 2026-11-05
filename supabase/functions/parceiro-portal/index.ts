@@ -11,14 +11,22 @@
 //   preparar_upload  { arquivos: [{ nome, tamanho, tipo }] } URLs assinadas
 //                    para o navegador subir os arquivos no bucket privado
 //   enviar_demanda   cria a cotação "Em andamento" no Registro de Vendas e
-//                    avisa a F&G por e-mail com os anexos
+//                    avisa a F&G por e-mail com os anexos. Com cotacao_id de
+//                    uma cotação da Junto que não passou, leva junto os dados
+//                    e o motivo da recusa.
+//   cotar_licitante  cota o Seguro Garantia Licitante direto na Junto
+//                    Seguros (API da F&G). Não emite nada.
+//   solicitar_emissao  gera a minuta na Junto, lança no Registro de Vendas e
+//                    avisa a F&G, que aprova e emite pelo HUB.
 //
 // Regras de comissão em _shared/comissaoParceiro.ts (mesmo arquivo do HUB).
+// Cliente da Junto em _shared/junto.ts.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { emitirToken, validarToken, type ParceiroDoToken } from "../_shared/tokenParceiro.ts";
 import { comissaoDoParceiro, type RegraParceiro } from "../_shared/comissaoParceiro.ts";
+import * as junto from "../_shared/junto.ts";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -126,6 +134,16 @@ async function dados(supabase: SupabaseClient, parceiro: ParceiroDoToken) {
     .order('periodo_ano', { ascending: false })
     .order('periodo_mes', { ascending: false });
 
+  // Situação da cotação feita na Junto pelo portal, quando a venda veio de lá.
+  const cotacaoPorVenda: Record<string, string> = {};
+  const idsLista = lista.map((v) => v.id);
+  if (idsLista.length) {
+    const { data: cot } = await supabase
+      .from('cotacoes_portal').select('sale_id, status')
+      .eq('partner_id', parceiro.id).in('sale_id', idsLista);
+    (cot || []).forEach((c) => { if (c.sale_id) cotacaoPorVenda[c.sale_id] = c.status; });
+  }
+
   const regra = parceiro as unknown as RegraParceiro;
   return {
     parceiro: {
@@ -143,6 +161,7 @@ async function dados(supabase: SupabaseClient, parceiro: ParceiroDoToken) {
         : null,
       _boletos: boletosPorVenda[v.id] || [],
       _comissao_parceiro: comissaoDoParceiro(v.comissao, regra),
+      _cotacao_junto: cotacaoPorVenda[v.id] || null,
     })),
     repasses: repasses || [],
   };
@@ -239,29 +258,18 @@ async function prepararUpload(supabase: SupabaseClient, parceiro: ParceiroDoToke
   return { arquivos: saida };
 }
 
-// ── enviar_demanda ─────────────────────────────────────────────────────────
-async function enviarDemanda(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
-  const c = soDigitos(corpo.cnpj);
-  if (!cnpjValido(c)) throw new Erro('CNPJ inválido. Confira os números.');
-  const razao = String(corpo.razao_social ?? '').trim().replace(/\s+/g, ' ');
-  if (razao.length < 3) throw new Erro('Informe a razão social do tomador.');
-  const tel = soDigitos(corpo.telefone);
-  if (tel.length < 10 || tel.length > 11) throw new Erro('Telefone do cliente com DDD, 10 ou 11 números.');
-  const email = String(corpo.email ?? '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Erro('E-mail do cliente inválido.');
-  const documento = corpo.documento === 'contrato' ? 'contrato' : corpo.documento === 'edital' ? 'edital' : '';
-  if (!documento) throw new Erro('Escolha se o anexo é edital ou contrato.');
-  const dataRef = String(corpo.data_referencia ?? '');
-  if (dataRef && !/^\d{4}-\d{2}-\d{2}$/.test(dataRef)) throw new Erro('Data inválida.');
-  const observacao = String(corpo.observacao ?? '').trim().slice(0, 1000);
+// ── anexos ─────────────────────────────────────────────────────────────────
+type Anexo = { path: string; nome: string; tamanho: number; tipo: string; url: string };
 
-  const anexosIn = Array.isArray(corpo.anexos) ? corpo.anexos as Array<{ path?: string; nome?: string; tamanho?: number; tipo?: string }> : [];
+/**
+ * Cada anexo precisa estar na pasta do próprio parceiro e existir no bucket.
+ * O link assinado de 7 dias serve para conferir e vai no e-mail.
+ */
+async function conferirAnexos(supabase: SupabaseClient, parceiro: ParceiroDoToken, entrada: unknown): Promise<Anexo[]> {
+  const anexosIn = Array.isArray(entrada) ? entrada as Array<{ path?: string; nome?: string; tamanho?: number; tipo?: string }> : [];
   if (anexosIn.length === 0) throw new Erro('Anexe o edital ou o contrato.');
   if (anexosIn.length > MAX_ARQUIVOS) throw new Erro(`Envie no máximo ${MAX_ARQUIVOS} arquivos.`);
-
-  // Cada anexo precisa estar na pasta do próprio parceiro e existir no bucket.
-  // O link assinado de 7 dias serve para conferir e vai no e-mail.
-  const anexos: Array<{ path: string; nome: string; tamanho: number; tipo: string; url: string }> = [];
+  const anexos: Anexo[] = [];
   for (const a of anexosIn) {
     const path = String(a.path || '');
     if (!path.startsWith(`p${parceiro.id}/`) || path.includes('..')) throw new Erro('Anexo inválido.', 403);
@@ -269,9 +277,56 @@ async function enviarDemanda(supabase: SupabaseClient, parceiro: ParceiroDoToken
     if (error || !s?.signedUrl) throw new Erro(`O arquivo "${a.nome || path}" não chegou. Envie de novo.`);
     anexos.push({ path, nome: String(a.nome || path.split('/').pop()), tamanho: Number(a.tamanho) || 0, tipo: String(a.tipo || ''), url: s.signedUrl });
   }
+  return anexos;
+}
+
+const semUrl = (anexos: Anexo[]) => anexos.map(({ path, nome, tamanho, tipo }) => ({ path, nome, tamanho, tipo }));
+
+function lerContato(corpo: Record<string, unknown>) {
+  const tel = soDigitos(corpo.telefone);
+  if (tel.length < 10 || tel.length > 11) throw new Erro('Telefone do cliente com DDD, 10 ou 11 números.');
+  const email = String(corpo.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Erro('E-mail do cliente inválido.');
+  return { tel, email };
+}
+
+const brl = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(Number(n)) ? '' :
+  'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function somaDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── enviar_demanda ─────────────────────────────────────────────────────────
+async function enviarDemanda(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
+  const c = soDigitos(corpo.cnpj);
+  if (!cnpjValido(c)) throw new Erro('CNPJ inválido. Confira os números.');
+  const razao = String(corpo.razao_social ?? '').trim().replace(/\s+/g, ' ');
+  if (razao.length < 3) throw new Erro('Informe a razão social do tomador.');
+  const { tel, email } = lerContato(corpo);
+  const documento = corpo.documento === 'contrato' ? 'contrato' : corpo.documento === 'edital' ? 'edital' : '';
+  if (!documento) throw new Erro('Escolha se o anexo é edital ou contrato.');
+  const dataRef = String(corpo.data_referencia ?? '');
+  if (dataRef && !/^\d{4}-\d{2}-\d{2}$/.test(dataRef)) throw new Erro('Data inválida.');
+  const observacao = String(corpo.observacao ?? '').trim().slice(0, 1000);
+
+  const anexos = await conferirAnexos(supabase, parceiro, corpo.anexos);
 
   const cnpjFmt = fmtCnpj(c);
   const tipo = documento === 'edital' ? 'Licitante' : 'Performance';
+
+  // Demanda que veio de uma cotação na Junto que não passou (ou que o parceiro
+  // preferiu mandar para a F&G): os dados do órgão, valor e vigência saem da
+  // tabela, não do navegador.
+  let cot: Record<string, any> | null = null;
+  if (corpo.cotacao_id != null && corpo.cotacao_id !== '') {
+    const { data } = await supabase.from('cotacoes_portal').select('*')
+      .eq('id', Number(corpo.cotacao_id)).eq('partner_id', parceiro.id).maybeSingle();
+    if (data && !data.sale_id && ['recusada', 'cotada'].includes(data.status) && soDigitos(data.tomador_cnpj) === c) cot = data;
+  }
 
   // Clique duplo ou reenvio depois de falha de rede: a mesma demanda (mesmo
   // tomador, mesmo tipo e os mesmos arquivos) nos últimos 10 minutos não vira
@@ -299,10 +354,17 @@ async function enviarDemanda(supabase: SupabaseClient, parceiro: ParceiroDoToken
 
   const agora = agoraBrasilia();
   const rotuloData = documento === 'edital' ? 'Data da sessão' : 'Data da assinatura';
+  const linhaJunto = cot
+    ? (cot.status === 'recusada'
+      ? `Cotação automática na Junto não passou: ${cot.motivo_recusa || ''}${cot.erro ? ` (Junto: ${cot.erro})` : ''}.`
+      : `Cotação automática na Junto: prêmio ${brl(cot.premio)}. O parceiro preferiu mandar para a F&G cotar.`)
+    : '';
   const obs = [
     `Enviada pelo portal do parceiro em ${agora.br} às ${agora.hora}.`,
     `Documento: ${documento === 'edital' ? 'edital (Licitante)' : 'contrato (Execução)'}.`,
     dataRef ? `${rotuloData} informada pelo parceiro: ${dataBr(dataRef)}.` : '',
+    cot ? `Órgão: ${cot.segurado_nome ? `${cot.segurado_nome} ` : ''}(${fmtCnpj(soDigitos(cot.segurado_cnpj))}). Garantia ${brl(cot.valor_garantia)}, vigência de ${dataBr(cot.inicio_vigencia)} por ${cot.dias} dias.` : '',
+    linhaJunto,
     observacao ? `Observação do parceiro: ${observacao}` : '',
   ].filter(Boolean).join('\n');
 
@@ -318,12 +380,29 @@ async function enviarDemanda(supabase: SupabaseClient, parceiro: ParceiroDoToken
     origem: 'Indicação',
     parceiro: parceiro.name,
     dataPregao: documento === 'edital' && dataRef ? dataRef : null,
+    ...(cot ? {
+      is: brl(cot.valor_garantia),
+      orgaoLicitante: cot.segurado_nome || null,
+      vigencia_inicio: cot.inicio_vigencia,
+      vigencia_fim: somaDias(cot.inicio_vigencia, cot.dias),
+    } : {}),
     obs,
-    anexos_demanda: anexos.map(({ path, nome, tamanho, tipo: t }) => ({ path, nome, tamanho, tipo: t })),
+    anexos_demanda: semUrl(anexos),
   }).select('id').single();
   if (error || !venda) throw new Error(error?.message || 'Falha ao gravar a demanda');
 
-  await avisarFeG({ parceiro, venda: venda.id, razao, cnpjFmt, tel, email, documento, dataRef, rotuloData, observacao, anexos, agora });
+  if (cot) {
+    await supabase.from('cotacoes_portal')
+      .update({ sale_id: venda.id, updated_at: new Date().toISOString() }).eq('id', cot.id);
+  }
+
+  const extras: Array<[string, string, boolean?]> = cot ? [
+    ['Órgão (segurado)', `${cot.segurado_nome ? `${esc(cot.segurado_nome)}<br>` : ''}<span style="color:#94a3b8;font-size:12px;">${esc(fmtCnpj(soDigitos(cot.segurado_cnpj)))}</span>`],
+    ['Garantia', `${esc(brl(cot.valor_garantia))} · ${esc(dataBr(cot.inicio_vigencia))} por ${esc(cot.dias)} dias`],
+    ['Junto', esc(linhaJunto), true],
+  ] : [];
+
+  await avisarFeG({ parceiro, venda: venda.id, razao, cnpjFmt, tel, email, documento, dataRef, rotuloData, observacao, anexos, agora, extras });
   return { id: venda.id };
 }
 
@@ -331,6 +410,8 @@ async function avisarFeG(p: {
   parceiro: ParceiroDoToken; venda: number; razao: string; cnpjFmt: string; tel: string; email: string;
   documento: string; dataRef: string; rotuloData: string; observacao: string;
   anexos: Array<{ nome: string; tamanho: number; url: string }>; agora: { br: string; hora: string };
+  extras?: Array<[string, string, boolean?]>;
+  titulo?: string; assunto?: string; rodape?: string;
 }) {
   const modalidade = p.documento === 'edital' ? 'Licitante (edital)' : 'Execução (contrato)';
   const linha = (rotulo: string, valor: string, destaque = false) => `
@@ -351,7 +432,7 @@ async function avisarFeG(p: {
   <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
     <div style="background:#1B263B;padding:24px 32px;">
       <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;"><tr><td style="background:#C69C6D;border-radius:12px;padding:8px 18px;"><span style="color:#1B263B;font-weight:900;font-size:16px;">F&amp;G</span></td></tr></table>
-      <h1 style="color:#fff;font-size:18px;font-weight:900;margin:0;">Nova demanda de ${esc(p.parceiro.name)}</h1>
+      <h1 style="color:#fff;font-size:18px;font-weight:900;margin:0;">${esc(p.titulo || `Nova demanda de ${p.parceiro.name}`)}</h1>
       <p style="color:rgba(255,255,255,.6);font-size:12px;margin:4px 0 0;">Enviada pelo portal do parceiro em ${p.agora.br} às ${p.agora.hora}</p>
     </div>
     <div style="padding:24px 32px;background:#fff;">
@@ -360,6 +441,7 @@ async function avisarFeG(p: {
         ${linha('CNPJ', esc(p.cnpjFmt))}
         ${linha('Modalidade', esc(modalidade), true)}
         ${p.dataRef ? linha(p.rotuloData, esc(dataBr(p.dataRef))) : ''}
+        ${(p.extras || []).map(([r, v, d]) => linha(r, v, !!d)).join('')}
         ${linha('Telefone do cliente', `<a href="tel:+55${esc(p.tel)}" style="color:#1B263B;">${esc(fmtTelefone(p.tel))}</a>`)}
         ${linha('E-mail do cliente', `<a href="mailto:${esc(p.email)}" style="color:#1B263B;">${esc(p.email)}</a>`)}
         ${p.observacao ? linha('Observação', esc(p.observacao).replace(/\n/g, '<br>')) : ''}
@@ -367,7 +449,7 @@ async function avisarFeG(p: {
       </table>
       <p style="margin:14px 0 0;font-size:11px;color:#94a3b8;">Os links dos anexos valem por 7 dias. Depois disso, abra pelo HUB.</p>
       <div style="margin-top:20px;padding:14px 18px;background:#fef9f0;border:1px solid #C69C6D40;border-radius:12px;">
-        <p style="margin:0;font-size:13px;color:#78716c;line-height:1.6;">A cotação já está no Registro de Vendas como <strong style="color:#1B263B;">Em andamento</strong> (nº ${p.venda}).<br/>
+        <p style="margin:0;font-size:13px;color:#78716c;line-height:1.6;">${p.rodape || `A cotação já está no Registro de Vendas como <strong style="color:#1B263B;">Em andamento</strong> (nº ${p.venda}).`}<br/>
         <a href="${HUB_URL}" style="color:#8B6C3E;font-weight:700;">Abrir o HUB</a></p>
       </div>
     </div>
@@ -387,7 +469,7 @@ async function avisarFeG(p: {
         from: 'F&G Seguro Garantia <contato@fegsegurogarantia.com.br>',
         to: AVISO_PARA,
         ...(p.parceiro.email ? { reply_to: p.parceiro.email } : {}),
-        subject: `Nova demanda: ${p.razao} (${p.documento === 'edital' ? 'Licitante' : 'Execução'}) · ${p.parceiro.name}`,
+        subject: p.assunto || `Nova demanda: ${p.razao} (${p.documento === 'edital' ? 'Licitante' : 'Execução'}) · ${p.parceiro.name}`,
         html,
         ...(anexar ? { attachments: p.anexos.map((a) => ({ filename: a.nome, path: a.url })) } : {}),
       }),
@@ -397,6 +479,369 @@ async function avisarFeG(p: {
     // O e-mail não pode derrubar a demanda: ela já está gravada e aparece no HUB.
     console.error('[resend]', String(e));
   }
+}
+
+// ── cotar_licitante ────────────────────────────────────────────────────────
+//
+// Cota o Licitante na Junto com a chave da F&G. Tudo o que impede a cotação
+// automática (tomador sem cadastro, ligado a outro corretor, sem limite, órgão
+// sem cadastro, recusa da Junto) volta como ok:false com a explicação para o
+// parceiro e o id da tentativa, que ele usa para mandar a demanda manual sem
+// digitar nada de novo.
+
+type Recusa = { motivo: string; mensagem: string; detalhe: string };
+
+const MENSAGENS: Record<string, string> = {
+  tomador_nao_cadastrado: 'Este tomador ainda não tem cadastro na Junto Seguros pela F&G. Envie para a F&G: a gente faz o cadastro e cota para você.',
+  tomador_outro_corretor: 'Este tomador está ligado a outro corretor na Junto Seguros. Envie para a F&G, que a gente resolve e cota para você.',
+  tomador_restrito: 'A Junto não liberou a cotação automática para este tomador. Envie para a F&G cotar.',
+  sem_modalidade: 'Este tomador ainda não tem a modalidade Licitante aprovada na Junto. Envie para a F&G cotar.',
+  sem_limite: 'O limite deste tomador na Junto não cobre esse valor de garantia. Envie para a F&G, que a gente busca a melhor saída.',
+  segurado_nao_cadastrado: 'O órgão (segurado) ainda não tem cadastro ativo na Junto. Envie para a F&G, que a gente cadastra e cota.',
+  cotacao_recusada: 'A Junto não fechou a cotação automática com esses dados. Envie para a F&G cotar.',
+  junto_indisponivel: 'A Junto não respondeu agora. Tente de novo em alguns minutos ou envie para a F&G cotar.',
+};
+
+// O mesmo motivo, curto, como a F&G lê no Registro de Vendas e no e-mail.
+const MOTIVO_FG: Record<string, string> = {
+  tomador_nao_cadastrado: 'tomador sem cadastro na Junto pela F&G',
+  tomador_outro_corretor: 'tomador ligado a outro corretor na Junto',
+  tomador_restrito: 'a Junto não liberou o tomador',
+  sem_modalidade: 'tomador sem a modalidade Licitante na Junto',
+  sem_limite: 'limite do tomador na Junto não cobre o valor',
+  segurado_nao_cadastrado: 'órgão sem cadastro ativo na Junto',
+  cotacao_recusada: 'a Junto recusou a cotação',
+  junto_indisponivel: 'a Junto não respondeu na hora da cotação',
+};
+
+function recusa(motivo: string, detalhe = ''): Recusa {
+  return { motivo, mensagem: MENSAGENS[motivo] || MENSAGENS.cotacao_recusada, detalhe: detalhe.slice(0, 400) };
+}
+
+function recusaDoErro(e: unknown, etapa: 'tomador' | 'segurado' | 'cotacao'): Recusa {
+  if (!(e instanceof junto.ErroJunto)) return recusa('junto_indisponivel', e instanceof Error ? e.message : String(e));
+  const msg = e.message || '';
+  if (e.status === 0 || e.status >= 500 || e.status === 429) return recusa('junto_indisponivel', `${e.status} ${msg}`);
+  if (etapa === 'tomador') {
+    if (/corretor|nomea|vincul/i.test(msg)) return recusa('tomador_outro_corretor', msg);
+    if (e.codigo === '1013' || /n[ãa]o localizad|n[ãa]o existe|n[ãa]o encontrad/i.test(msg)) return recusa('tomador_nao_cadastrado', msg);
+    return recusa('tomador_restrito', msg);
+  }
+  if (etapa === 'segurado') return recusa('segurado_nao_cadastrado', msg);
+  if (/corretor|nomea|vincul/i.test(msg)) return recusa('tomador_outro_corretor', msg);
+  if (/limite/i.test(msg)) return recusa('sem_limite', msg);
+  return recusa('cotacao_recusada', msg);
+}
+
+const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+type OpcaoParcela = { parcelas: number; valor: number | null; total: number | null; primeiro_vencimento: string | null };
+
+/**
+ * Opções de parcelamento. Formato visto em 05/11/2026:
+ * installmentOptions: [{ numberOfInstallments, totalPremium, dueDateFirstInstallment,
+ *   installments: [{ number, value, iof, dueDate }] }]
+ */
+function lerParcelas(cot: junto.CotacaoJunto): OpcaoParcela[] {
+  const lista = Array.isArray(cot.installmentOptions) ? cot.installmentOptions as Array<Record<string, unknown>> : [];
+  const saida: OpcaoParcela[] = [];
+  for (const o of lista) {
+    if (!o || typeof o !== 'object') continue;
+    const itens = Array.isArray(o.installments) ? o.installments as Array<Record<string, unknown>> : [];
+    const n = num(o.numberOfInstallments) ?? (itens.length || null);
+    if (!n || n <= 0) continue;
+    const total = num(o.totalPremium);
+    const valor = num(itens[0]?.value) ?? (total != null ? Math.round((total / n) * 100) / 100 : null);
+    const venc = String(o.dueDateFirstInstallment ?? itens[0]?.dueDate ?? '').slice(0, 10);
+    saida.push({ parcelas: n, valor, total, primeiro_vencimento: /^\d{4}-\d{2}-\d{2}$/.test(venc) ? venc : null });
+  }
+  return saida.sort((a, b) => a.parcelas - b.parcelas);
+}
+
+async function cotarLicitante(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
+  const tomadorCnpj = soDigitos(corpo.tomador_cnpj);
+  if (!cnpjValido(tomadorCnpj)) throw new Erro('CNPJ do tomador inválido. Confira os números.');
+  const seguradoCnpj = soDigitos(corpo.segurado_cnpj);
+  if (!cnpjValido(seguradoCnpj)) throw new Erro('CNPJ do órgão inválido. Confira os números.');
+  if (seguradoCnpj === tomadorCnpj) throw new Erro('O CNPJ do órgão precisa ser diferente do tomador.');
+
+  const valor = Math.round(Number(corpo.valor) * 100) / 100;
+  if (!(valor > 0)) throw new Erro('Informe o valor da garantia.');
+  if (valor > 100_000_000) throw new Erro('Valor da garantia muito alto para a cotação automática. Envie para a F&G.');
+
+  const inicio = String(corpo.inicio ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio)) throw new Erro('Informe a data de início da vigência.');
+  const hoje = agoraBrasilia().iso;
+  if (inicio < hoje) throw new Erro('O início da vigência não pode ser antes de hoje.');
+  if (inicio > somaDias(hoje, 365)) throw new Erro('O início da vigência passa de um ano. Confira a data.');
+
+  const dias = Math.trunc(Number(corpo.dias));
+  if (!(dias >= 1 && dias <= 730)) throw new Erro('Vigência em dias entre 1 e 730.');
+
+  // Freio: até 30 tentativas por hora por parceiro.
+  const umaHora = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await supabase.from('cotacoes_portal')
+    .select('id', { count: 'exact', head: true })
+    .eq('partner_id', parceiro.id).gte('created_at', umaHora);
+  if ((count || 0) >= 30) throw new Erro('Muitas cotações em pouco tempo. Aguarde alguns minutos.', 429);
+
+  const tentativa = {
+    partner_id: parceiro.id,
+    tomador_cnpj: fmtCnpj(tomadorCnpj),
+    tomador_nome: String(corpo.razao_social ?? '').trim().slice(0, 200) || null,
+    segurado_cnpj: fmtCnpj(seguradoCnpj),
+    segurado_nome: String(corpo.segurado_nome ?? '').trim().slice(0, 200) || null,
+    valor_garantia: valor,
+    inicio_vigencia: inicio,
+    dias,
+  };
+
+  // Tomador, limite e órgão em paralelo; a ordem de leitura decide o motivo.
+  const [rTom, rLim, rSeg] = await Promise.allSettled([
+    junto.tomador(tomadorCnpj),
+    junto.limites(tomadorCnpj),
+    junto.segurados(seguradoCnpj),
+  ]);
+
+  // Nome oficial da Junto quando ela devolveu; senão, o que veio da Receita.
+  if (rTom.status === 'fulfilled' && rTom.value?.name) tentativa.tomador_nome = String(rTom.value.name);
+  const segJunto = rSeg.status === 'fulfilled' ? junto.seguradoAtivo(rSeg.value) : null;
+  if (segJunto?.segurado.name) tentativa.segurado_nome = String(segJunto.segurado.name);
+
+  const gravarRecusa = async (r: Recusa) => {
+    console.warn('[cotar_licitante] recusa', r.motivo, r.detalhe);
+    const { data } = await supabase.from('cotacoes_portal').insert({
+      ...tentativa, status: 'recusada', motivo_recusa: MOTIVO_FG[r.motivo] || r.motivo, erro: r.detalhe || null,
+    }).select('id').single();
+    return { ok: false, motivo: r.motivo, mensagem: r.mensagem, cotacao_id: data?.id ?? null };
+  };
+
+  if (rTom.status === 'rejected') return gravarRecusa(recusaDoErro(rTom.reason, 'tomador'));
+  if (rLim.status === 'rejected') return gravarRecusa(recusaDoErro(rLim.reason, 'tomador'));
+  const lim = junto.limiteLicitante(rLim.value);
+  if (!lim) return gravarRecusa(recusa('sem_modalidade'));
+  if (lim.disponivel < valor) return gravarRecusa(recusa('sem_limite', `disponível ${lim.disponivel}, pedido ${valor}`));
+
+  if (rSeg.status === 'rejected') {
+    const r = recusaDoErro(rSeg.reason, 'segurado');
+    return gravarRecusa(r.motivo === 'junto_indisponivel' ? r : recusa('segurado_nao_cadastrado', r.detalhe));
+  }
+  const seg = junto.seguradoAtivo(rSeg.value);
+  if (!seg) return gravarRecusa(recusa('segurado_nao_cadastrado', 'nenhum segurado ativo com endereço'));
+
+  const nomeTomador = String(rTom.value?.name || tentativa.tomador_nome || '').trim();
+  const nomeSegurado = String(seg.segurado.name || tentativa.segurado_nome || '').trim();
+  const dadosCot = { tomadorCnpj, valor, inicio, dias };
+
+  // Recotar (valor ou vigência mudou) abre sempre uma cotação nova na Junto: o
+  // PUT de lá guarda a taxa da cotação anterior e erra o prêmio (ver junto.ts).
+  let cot: junto.CotacaoJunto;
+  try {
+    cot = await junto.criarCotacaoLicitante(dadosCot);
+  } catch (e) {
+    return gravarRecusa(recusaDoErro(e, 'cotacao'));
+  }
+  if (!cot || !cot.id) return gravarRecusa(recusa('cotacao_recusada', 'resposta sem id'));
+
+  const premio = num(cot.totalPremiumValue) ?? num(cot.netPremiumValue);
+  const comissaoFg = num(cot.pricing?.comissionValue);
+  const regra = parceiro as unknown as RegraParceiro;
+  const suaComissao = comissaoDoParceiro(comissaoFg ?? 0, regra);
+  const parcelas = lerParcelas(cot);
+
+  const linha = {
+    ...tentativa,
+    tomador_nome: nomeTomador || null,
+    segurado_nome: nomeSegurado || null,
+    segurado_id: seg.segurado.id,
+    segurado_endereco_id: seg.enderecoId,
+    cotacao_externa_id: cot.id,
+    status: 'cotada',
+    premio,
+    comissao_fg: comissaoFg,
+    comissao_parceiro: suaComissao.valor,
+    comissao_parceiro_pct: suaComissao.pct,
+    resposta: cot,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: nova, error: erroNova } = await supabase.from('cotacoes_portal').insert(linha).select('id').single();
+  if (erroNova || !nova) throw new Error(erroNova?.message || 'Falha ao gravar a cotação');
+  const idLinha: number = nova.id;
+
+  // A cotação que o parceiro estava vendo antes desta deixa de valer.
+  if (corpo.cotacao_id != null && corpo.cotacao_id !== '') {
+    await supabase.from('cotacoes_portal')
+      .update({ status: 'cancelada', erro: `Substituída pela cotação ${idLinha} do portal.`, updated_at: new Date().toISOString() })
+      .eq('id', Number(corpo.cotacao_id)).eq('partner_id', parceiro.id).eq('status', 'cotada').is('sale_id', null);
+  }
+
+  return {
+    ok: true,
+    cotacao: {
+      id: idLinha,
+      seguradora: 'Junto Seguros',
+      tomador: { nome: nomeTomador, cnpj: fmtCnpj(tomadorCnpj) },
+      segurado: { nome: nomeSegurado, cnpj: fmtCnpj(seguradoCnpj) },
+      valor,
+      inicio,
+      fim: somaDias(inicio, dias),
+      dias,
+      premio,
+      parcelas,
+      parcelas_max: num(cot.numberOfMaxInstallments),
+      comissao_fg: comissaoFg,
+      comissao_parceiro: suaComissao,
+    },
+  };
+}
+
+// ── solicitar_emissao ──────────────────────────────────────────────────────
+//
+// O parceiro aceitou a cotação. Aqui a minuta é gerada na Junto (não emite),
+// a cotação entra no Registro de Vendas e a F&G recebe o pedido. A emissão só
+// sai pelo HUB, quando alguém da F&G aprova.
+
+async function solicitarEmissao(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
+  const id = Number(corpo.cotacao_id);
+  if (!(id > 0)) throw new Erro('Cotação não encontrada. Cote de novo.');
+  const { data: cot } = await supabase.from('cotacoes_portal').select('*')
+    .eq('id', id).eq('partner_id', parceiro.id).maybeSingle();
+  if (!cot) throw new Erro('Cotação não encontrada. Cote de novo.', 404);
+  if (cot.status === 'emissao_solicitada' && cot.sale_id) return { id: cot.sale_id, repetida: true };
+  if (cot.sale_id) throw new Erro('Esta cotação já foi enviada para a F&G.');
+  if (cot.status !== 'cotada' || !cot.cotacao_externa_id) throw new Erro('Esta cotação não pode mais ser emitida. Cote de novo.');
+
+  const hoje = agoraBrasilia().iso;
+  if (cot.inicio_vigencia < hoje) throw new Erro('O início da vigência já passou. Cote de novo com a data certa.');
+  const idadeHoras = (Date.now() - new Date(cot.updated_at || cot.created_at).getTime()) / 3_600_000;
+  if (idadeHoras > 72) throw new Erro('Esta cotação tem mais de 3 dias. Cote de novo para atualizar o prêmio.');
+
+  const { tel, email } = lerContato(corpo);
+  const edital = String(corpo.edital ?? '').trim().replace(/\s+/g, ' ');
+  if (edital.length < 3 || edital.length > 120) throw new Erro('Informe o número do edital ou do processo.');
+  const dataPregao = String(corpo.data_pregao ?? '');
+  if (dataPregao && !/^\d{4}-\d{2}-\d{2}$/.test(dataPregao)) throw new Erro('Data da sessão inválida.');
+  const observacao = String(corpo.observacao ?? '').trim().slice(0, 1000);
+  const anexos = await conferirAnexos(supabase, parceiro, corpo.anexos);
+
+  // Clique duplo: só uma chamada consegue passar a cotação de "cotada" para
+  // "emissao_solicitada". A outra recebe o pedido que já existe.
+  const { data: pega } = await supabase.from('cotacoes_portal')
+    .update({ status: 'emissao_solicitada', updated_at: new Date().toISOString() })
+    .eq('id', cot.id).eq('status', 'cotada').is('sale_id', null)
+    .select('id');
+  if (!pega || pega.length === 0) {
+    const { data: atual } = await supabase.from('cotacoes_portal').select('sale_id').eq('id', cot.id).maybeSingle();
+    if (atual?.sale_id) return { id: atual.sale_id, repetida: true };
+    throw new Erro('Este pedido já está sendo enviado. Aguarde um instante.', 409);
+  }
+  try {
+    return await registrarPedido(supabase, parceiro, cot, { tel, email, edital, dataPregao, observacao, anexos });
+  } catch (e) {
+    // Nada foi lançado no Registro de Vendas: devolve a cotação para "cotada".
+    await supabase.from('cotacoes_portal')
+      .update({ status: 'cotada', updated_at: cot.updated_at }).eq('id', cot.id).is('sale_id', null);
+    throw e;
+  }
+}
+
+async function registrarPedido(
+  supabase: SupabaseClient, parceiro: ParceiroDoToken, cot: Record<string, any>,
+  p: { tel: string; email: string; edital: string; dataPregao: string; observacao: string; anexos: Anexo[] },
+) {
+  const { tel, email, edital, dataPregao, observacao, anexos } = p;
+
+  // Minuta na Junto. Apólice e boleto vão para a F&G e para o cliente.
+  const contatos = [...new Set([...AVISO_PARA, email])];
+  let minutaUrl: string | null = null;
+  let pendencias: boolean | null = null;
+  let erroMinuta = '';
+  try {
+    const m = await junto.gerarMinuta(Number(cot.cotacao_externa_id), {
+      seguradoCnpj: soDigitos(cot.segurado_cnpj),
+      seguradoId: Number(cot.segurado_id),
+      enderecoId: Number(cot.segurado_endereco_id),
+      edital,
+      contatos,
+    });
+    minutaUrl = typeof m?.draftUrl === 'string' ? m.draftUrl : null;
+    pendencias = typeof m?.hasHangs === 'boolean' ? m.hasHangs : null;
+  } catch (e) {
+    erroMinuta = e instanceof Error ? e.message : String(e);
+    console.error('[solicitar_emissao] minuta', erroMinuta, e instanceof junto.ErroJunto ? e.bruto : '');
+  }
+
+  const agora = agoraBrasilia();
+  const fim = somaDias(cot.inicio_vigencia, cot.dias);
+  const obs = [
+    `Pedido de emissão pelo portal do parceiro em ${agora.br} às ${agora.hora}.`,
+    `Cotação automática na Junto nº ${cot.cotacao_externa_id}: prêmio ${brl(cot.premio)}, comissão ${brl(cot.comissao_fg)}.`,
+    `Órgão: ${cot.segurado_nome || ''} (${cot.segurado_cnpj}). Edital/processo: ${edital}.`,
+    minutaUrl ? 'Minuta gerada na Junto.' : `Minuta não gerada na Junto${erroMinuta ? `: ${erroMinuta}` : ''}.`,
+    pendencias ? 'A Junto pediu documentos antes de emitir (pendências na minuta).' : '',
+    'Emissão aguardando aprovação da F&G no HUB.',
+    'O portal mostrou ao parceiro, antes do pedido, que a Licitante só é cancelada em caso de suspensão do pregão (não por arrependimento).',
+    observacao ? `Observação do parceiro: ${observacao}` : '',
+  ].filter(Boolean).join('\n');
+
+  const { data: venda, error } = await supabase.from('sales').insert({
+    data: agora.iso,
+    nome: cot.tomador_nome || cot.tomador_cnpj,
+    cnpj: cot.tomador_cnpj,
+    telefone: fmtTelefone(tel),
+    email,
+    tipo: 'Licitante',
+    product_type: 'Seguro Garantia',
+    vendeu: 'Em andamento',
+    origem: 'Indicação',
+    parceiro: parceiro.name,
+    seguradora: 'Junto Seguros',
+    premio: brl(cot.premio),
+    comissao: brl(cot.comissao_fg),
+    is: brl(cot.valor_garantia),
+    orgaoLicitante: cot.segurado_nome || null,
+    vigencia_inicio: cot.inicio_vigencia,
+    vigencia_fim: fim,
+    dataPregao: dataPregao || null,
+    obs,
+    anexos_demanda: semUrl(anexos),
+  }).select('id').single();
+  if (error || !venda) throw new Error(error?.message || 'Falha ao gravar o pedido');
+
+  await supabase.from('cotacoes_portal').update({
+    status: 'emissao_solicitada',
+    sale_id: venda.id,
+    edital,
+    minuta_url: minutaUrl,
+    minuta_pendencias: pendencias,
+    erro: erroMinuta || null,
+    updated_at: new Date().toISOString(),
+  }).eq('id', cot.id);
+
+  const minutaHtml = minutaUrl
+    ? `<a href="${esc(minutaUrl)}" style="color:#8B6C3E;font-weight:700;">Abrir a minuta</a>${pendencias ? '<br><span style="color:#b45309;font-size:12px;">A Junto pediu documentos antes de emitir.</span>' : ''}`
+    : `<span style="color:#be123c;">Não gerada${erroMinuta ? `: ${esc(erroMinuta)}` : ''}</span>`;
+
+  await avisarFeG({
+    parceiro, venda: venda.id, razao: cot.tomador_nome || cot.tomador_cnpj, cnpjFmt: cot.tomador_cnpj,
+    tel, email, documento: 'edital', dataRef: dataPregao, rotuloData: 'Data da sessão', observacao, anexos, agora,
+    titulo: `Pedido de emissão de ${parceiro.name}`,
+    assunto: `Pedido de emissão: ${cot.tomador_nome || cot.tomador_cnpj} (Licitante Junto) · ${parceiro.name}`,
+    extras: [
+      ['Órgão (segurado)', `${esc(cot.segurado_nome || '')}<br><span style="color:#94a3b8;font-size:12px;">${esc(cot.segurado_cnpj)}</span>`],
+      ['Edital ou processo', esc(edital)],
+      ['Garantia', `${esc(brl(cot.valor_garantia))} · ${esc(dataBr(cot.inicio_vigencia))} a ${esc(dataBr(fim))} (${esc(cot.dias)} dias)`],
+      ['Prêmio Junto', esc(brl(cot.premio)), true],
+      ['Comissão F&G', esc(brl(cot.comissao_fg))],
+      [`Comissão do parceiro`, `${esc(brl(cot.comissao_parceiro))} (${esc(String(cot.comissao_parceiro_pct ?? '').replace('.', ','))}%)`],
+      ['Minuta', minutaHtml],
+      ['Cotação na Junto', `nº ${esc(cot.cotacao_externa_id)}`],
+    ],
+    rodape: `O pedido está no Registro de Vendas como <strong style="color:#1B263B;">Em andamento</strong> (nº ${venda.id}). <strong style="color:#1B263B;">A emissão só sai quando a F&amp;G aprovar no HUB.</strong>`,
+  });
+
+  return { id: venda.id, minuta: !!minutaUrl, pendencias: !!pendencias };
 }
 
 // ── roteador ───────────────────────────────────────────────────────────────
@@ -418,6 +863,8 @@ Deno.serve(async (req) => {
       case 'cnpj': return json({ success: true, ...(await cnpj(corpo)) });
       case 'preparar_upload': return json({ success: true, ...(await prepararUpload(supabase, parceiro, corpo)) });
       case 'enviar_demanda': return json({ success: true, ...(await enviarDemanda(supabase, parceiro, corpo)) });
+      case 'cotar_licitante': return json({ success: true, ...(await cotarLicitante(supabase, parceiro, corpo)) });
+      case 'solicitar_emissao': return json({ success: true, ...(await solicitarEmissao(supabase, parceiro, corpo)) });
       default: return json({ success: false, error: 'Ação desconhecida' }, 400);
     }
   } catch (e) {
