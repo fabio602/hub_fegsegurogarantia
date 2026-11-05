@@ -5,20 +5,21 @@
 // Arquivo puro, sem nada de Deno nem de React, para poder ser importado dos dois.
 //
 // Regra escalonada do contrato de parceria (partners.comissao_faixas, migração
-// 129): a faixa é escolhida pela comissão LÍQUIDA do negócio, que é a comissão
-// da F&G menos o imposto (imposto_pct), e o percentual da faixa incide sobre a
-// comissão INTEGRAL do negócio. Nunca sobre o prêmio.
+// 129): a comissão LÍQUIDA do negócio é a comissão da F&G menos o imposto
+// (imposto_pct). Ela escolhe a faixa e é sobre ela que o percentual incide.
+// Nunca sobre o prêmio. Até 05/11/2026 o percentual incidia sobre a comissão
+// integral; o Fábio mudou para a líquida nessa data (migração 133).
 //
-// Exemplo com a tabela atual (imposto de 6%): comissão de R$ 10.500,00 tem
-// líquida de R$ 9.870,00, cai na faixa "até R$ 10.000,00" (10%) e o parceiro
-// recebe R$ 1.050,00.
+// Exemplo com a tabela atual (imposto de 6%): comissão de R$ 1.000,00 tem
+// líquida de R$ 940,00, cai na faixa "até R$ 10.000,00" (10%) e o parceiro
+// recebe R$ 94,00.
 //
 // Sem faixas cadastradas vale o commission_pct fixo do parceiro.
 
 export interface FaixaComissao {
   /** Teto da faixa em reais, comparado com a comissão líquida. null = sem teto. */
   ate: number | null;
-  /** Percentual da faixa, aplicado sobre a comissão integral. */
+  /** Percentual da faixa, aplicado sobre a comissão líquida do negócio. */
   pct: number;
 }
 
@@ -53,7 +54,7 @@ export interface ComissaoCalculada {
   pct: number;
   /** Valor do parceiro em reais, arredondado ao centavo. */
   valor: number;
-  /** Comissão líquida usada para escolher a faixa; null na regra fixa. */
+  /** Comissão líquida do negócio (escolhe a faixa e é a base do %); null na regra fixa. */
   liquida: number | null;
   regra: 'escalonada' | 'fixa';
 }
@@ -93,7 +94,7 @@ export function faixaDaLiquida(liquida: number, regra: RegraFaixas): FaixaComiss
   return null;
 }
 
-/** Comissão do parceiro sobre a comissão integral de um negócio. */
+/** Comissão do parceiro em um negócio: na regra escalonada, % da faixa sobre a comissão líquida. */
 export function comissaoDoParceiro(comissaoNegocio: unknown, parceiro: RegraParceiro): ComissaoCalculada {
   const comissao = lerValor(comissaoNegocio);
   const regra = parceiro.comissao_faixas;
@@ -103,7 +104,9 @@ export function comissaoDoParceiro(comissaoNegocio: unknown, parceiro: RegraParc
     const liquida = centavos(comissao * (1 - imposto / 100));
     const faixa = faixaDaLiquida(liquida, regra);
     const pct = faixa ? Number(faixa.pct) || 0 : 0;
-    return { pct, valor: centavos(comissao * pct / 100), liquida, regra: 'escalonada' };
+    // Em centavos inteiros, para meio centavo arredondar sempre igual.
+    const valor = Math.round(Math.round(liquida * 100) * pct / 100) / 100;
+    return { pct, valor, liquida, regra: 'escalonada' };
   }
 
   // Zero é um valor válido (parceiro sem comissão); só o ausente cai no 20%

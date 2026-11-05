@@ -1597,12 +1597,13 @@
         const exComissao = 1000;
         const exLiquida = Math.round(exComissao * (1 - imposto / 100) * 100) / 100;
         const exFaixa = faixas.find(f => f.ate == null || exLiquida <= f.ate) || faixas[0];
-        const exValor = Math.round(exComissao * exFaixa.pct) / 100;
+        // O percentual incide sobre a líquida (regra de 05/11/2026, _shared/comissaoParceiro.ts).
+        const exValor = Math.round(exLiquida * exFaixa.pct) / 100;
         corpo.innerHTML = `
           <p style="margin-bottom:12px">O percentual depende da comissão líquida que a F&amp;G recebe em cada negócio:</p>
           <table class="faixas"><tbody>${linhas}</tbody></table>
           <p class="exemplo">Exemplo: num negócio em que a F&amp;G recebe ${reais(exComissao)} de comissão, a comissão líquida é ${reais(exLiquida)} (descontados ${String(imposto).replace('.', ',')}% de impostos). Essa faixa paga ${exFaixa.pct}%, e você recebe ${reais(exValor)}.</p>
-          <p style="margin-top:12px">O percentual vale sobre a comissão integral do negócio, e não sobre o prêmio do seguro. Toda apólice emitida conta, inclusive Seguro Garantia Licitante.</p>`;
+          <p style="margin-top:12px">O percentual vale sobre a comissão líquida do negócio, já descontados os impostos, e não sobre o prêmio do seguro. Toda apólice emitida conta, inclusive Seguro Garantia Licitante.</p>`;
       } else {
         const pct = regraParceiro.commission_pct == null ? 20 : Number(regraParceiro.commission_pct);
         corpo.innerHTML = `<p>Você recebe <strong style="color:var(--ink)">${String(pct).replace('.', ',')}%</strong> da comissão que a F&amp;G recebe em cada apólice emitida, e não do prêmio do seguro.</p>`;
@@ -2119,7 +2120,7 @@
           <div><div class="r">Vigência</div><div class="v">${dataBr(c.inicio)} a ${dataBr(c.fim)}<br><span style="font-weight:500;color:var(--muted)">${c.dias} dias</span></div></div>
           <div><div class="r">Órgão</div><div class="v">${esc(c.segurado && c.segurado.nome || '')}</div></div>
         </div>
-        <div class="cot-sua"><span class="r">Sua comissão prevista</span><span class="v">${moeda(sua.valor)}<small>${pctTexto(sua.pct)} da comissão de ${moeda(c.comissao_fg)}</small></span></div>
+        <div class="cot-sua"><span class="r">Sua comissão prevista</span><span class="v">${moeda(sua.valor)}<small>${sua.regra === 'escalonada' && sua.liquida != null ? `${pctTexto(sua.pct)} da comissão líquida de ${moeda(sua.liquida)}` : `${pctTexto(sua.pct)} da comissão de ${moeda(c.comissao_fg)}`}</small></span></div>
         <p class="cot-nota">${velha
           ? 'Você mudou os dados depois de cotar. Clique em "Cotar na Junto" para atualizar o prêmio.'
           : 'Ao pedir a emissão, a F&amp;G confere a minuta e emite. A apólice e o boleto vão para o e-mail do cliente. Esta cotação vale por 3 dias.'}</p>
