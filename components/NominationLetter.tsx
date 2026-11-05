@@ -317,15 +317,8 @@ const NominationLetter: React.FC = () => {
          >
             {/* Header Timbrado Compacto */}
             <div className="flex justify-between items-start mb-10 border-b-2 border-navy pb-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-navy text-gold flex items-center justify-center font-black rounded-xl text-xl">
-                      FG
-                   </div>
-                   <div>
-                      <h1 className="text-xl font-black text-navy leading-none uppercase tracking-tighter">F&G Corretora</h1>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gold mt-1 italic">Garantia, Riscos & Soluções Corporativas</p>
-                   </div>
-                </div>
+                {/* PNG e não SVG: o html2canvas do html2pdf desenha PNG sem perder nitidez. */}
+                <img src="/marca/fg-logo-horizontal-azul.png" alt="F&G Seguro Garantia" style={{ height: '16mm', width: 'auto' }} />
                 <div className="text-right space-y-0.5">
                    <p className="text-[10px] font-bold text-navy uppercase tracking-wider">Doc Ref: FG-{Math.floor(Math.random() * 9000) + 1000}</p>
                    <p className="text-[10px] font-bold text-slate-400 uppercase leading-tight">

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, LogIn, Loader2, AlertCircle, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Mail, Lock, LogIn, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { getPublicResidentialFormPath } from '../utils/publicUrls';
 
 interface AuthProps {
@@ -41,11 +41,10 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 shadow-2xl">
           <div className="flex flex-col items-center mb-10">
-            <div className="w-20 h-20 bg-navy border-2 border-gold/30 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
-              <ShieldCheck size={40} className="text-gold" />
-            </div>
-            <h1 className="text-white text-3xl font-black tracking-tighter">F&G Hub</h1>
-            <p className="text-gold text-[10px] font-bold uppercase tracking-[4px] mt-2">Acesso Restrito</p>
+            <h1 className="mb-6">
+              <img src="/marca/fg-logo-horizontal-bege.svg" alt="F&G Seguro Garantia" className="h-20 w-auto" />
+            </h1>
+            <p className="text-gold text-[10px] font-bold uppercase tracking-[4px]">Hub · Acesso Restrito</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
@@ -112,13 +111,13 @@ const Auth: React.FC<AuthProps> = ({ onSessionUpdate }) => {
 
           <div className="mt-8 pt-8 border-t border-white/5">
             <p className="text-center text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed">
-              Sistema de uso exclusivo para colaboradores autorizados da F&G Corretora.
+              Sistema de uso exclusivo para colaboradores autorizados da F&G Seguro Garantia.
             </p>
           </div>
         </div>
 
         <p className="text-center text-slate-600 text-[10px] mt-10 font-bold uppercase tracking-widest">
-          &copy; 2026 F&G Corretora de Seguros. Todos os direitos reservados.
+          &copy; 2026 F&G Seguro Garantia. Todos os direitos reservados.
         </p>
       </div>
     </div>
