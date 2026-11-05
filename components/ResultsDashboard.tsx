@@ -2493,7 +2493,16 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                             )}
                         </h3>
 
-                        {editingId && <PainelDemandaParceiro sale={sales.find((s) => s.id === editingId)} />}
+                        {editingId && (
+                            <PainelDemandaParceiro
+                                sale={sales.find((s) => s.id === editingId)}
+                                // A emissão na Junto muda a venda no banco (vendeu, apólice, boleto).
+                                // Grava antes o que estiver pendente e, depois, fecha o formulário
+                                // sem salvar, para o salvamento automático não escrever por cima.
+                                antesDeEmitir={salvarVendaAgora}
+                                aposEmitir={() => { resetForm(); void fetchData(); }}
+                            />
+                        )}
 
                         {rascunhoRestaurado && !editingId && (
                             <div className="mb-6 flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl text-xs font-semibold">

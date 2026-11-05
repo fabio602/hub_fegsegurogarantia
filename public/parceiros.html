@@ -531,6 +531,53 @@
     .dm-aviso { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #fbfaf8; border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); line-height: 1.55; }
     .dm-falha { display: none; margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #fff1f2; border: 1px solid #fecdd3; font-size: 13px; color: #9f1239; line-height: 1.5; }
     .dm-falha.on { display: block; }
+
+    /* Edital: campos da cotação na hora (Junto) só aparecem com "Edital" escolhido */
+    .so-edital { display: none; }
+    .modo-edital .so-edital { display: block; }
+    .modo-edital #dm-data-opcional { display: none; }
+    .selo-junto {
+      margin-left: 8px; padding: 3px 9px; border-radius: 999px; vertical-align: 1px;
+      font-size: 10.5px; font-weight: 600; letter-spacing: .02em; text-transform: none;
+      color: var(--navy); background: rgba(27,38,59,.06);
+    }
+    .dm-dica { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+    .dm-campo.erro .dm-dica { display: none; }
+
+    .cotacao { margin-top: 22px; padding: 18px 20px; border-radius: var(--r); border: 1px solid var(--line); background: #fff; box-shadow: var(--shadow-sm); }
+    .cotacao.ok { border-color: rgba(4,120,87,.22); background: linear-gradient(180deg, #f0fdf7, #fff 75%); }
+    .cotacao.recusa { border-color: #fcd9a8; background: #fffbeb; }
+    .cotacao.velha { opacity: .5; }
+    .cot-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .cot-titulo { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #047857; }
+    .cotacao.recusa .cot-titulo { color: #b45309; }
+    .cot-seg { font-size: 12px; color: var(--muted); }
+    .cot-premio { font-size: 30px; font-weight: 700; color: var(--ink); letter-spacing: -.03em; margin-top: 6px; line-height: 1.15; }
+    .cot-premio small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+    .cot-linhas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; margin-top: 14px; }
+    .cot-linhas > div { min-width: 0; }
+    .cot-linhas .r { font-size: 11.5px; color: var(--muted); }
+    .cot-linhas .v { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-top: 2px; overflow-wrap: anywhere; }
+    .cot-sua { margin-top: 14px; padding: 12px 16px; border-radius: 12px; background: var(--navy); display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
+    .cot-sua .r { font-size: 12.5px; color: rgba(255,255,255,.72); }
+    .cot-sua .v { font-size: 18px; font-weight: 700; color: var(--gold); }
+    .cot-sua .v small { font-size: 12px; font-weight: 500; color: rgba(255,255,255,.6); margin-left: 6px; }
+    .cot-nota { font-size: 12.5px; color: var(--muted); margin-top: 12px; line-height: 1.55; }
+    .cot-msg { font-size: 14px; color: #78350f; margin-top: 8px; line-height: 1.55; }
+    .cot-alt {
+      background: none; border: 0; padding: 0; margin-top: 10px; cursor: pointer;
+      font: inherit; font-size: 12.5px; font-weight: 600; color: #8B6C3E;
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+    .cot-alt:disabled { opacity: .5; cursor: default; }
+    .cot-aviso { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: #fffbeb; border: 1px solid #fcd9a8; color: #78350f; font-size: 12.5px; line-height: 1.55; }
+    .sem-cotar { margin-top: 16px; }
+    .sem-cotar .cot-alt { margin-top: 0; text-align: left; line-height: 1.5; }
+    @media (max-width: 720px) {
+      .cot-linhas { grid-template-columns: 1fr 1fr; }
+      .cot-premio { font-size: 26px; }
+      .selo-junto { display: inline-block; margin: 6px 0 0; }
+    }
     .btn-salvar:disabled { opacity: .6; cursor: progress; transform: none; box-shadow: none; }
     .dm-rodape .btn-salvar, .dm-rodape .btn-cancelar { flex: 0 0 auto; padding: 14px 26px; }
 
@@ -658,7 +705,7 @@
       <div class="dm-topo">
         <div>
           <h3 id="dm-titulo">Enviar nova demanda</h3>
-          <p>Mande os dados do cliente e o edital ou o contrato. A equipe da F&amp;G cota e você acompanha tudo por aqui.</p>
+          <p>Mande os dados do cliente e o edital ou o contrato. No edital, a cotação da Junto Seguros sai na hora; no contrato, a F&amp;G cota para você.</p>
         </div>
         <button type="button" class="modal-close" onclick="fecharDemanda()" aria-label="Fechar"><svg class="ico ico-md"><use href="#i-x"/></svg></button>
       </div>
@@ -707,11 +754,44 @@
           <div class="dm-erro" id="e-doc"></div>
         </div>
 
+        <div class="dm-secao so-edital">Dados do edital <span class="selo-junto">cotação na hora · Junto Seguros</span></div>
         <div class="dm-grid">
+          <div class="dm-campo so-edital" id="c-orgao">
+            <label class="field-label" for="dm-orgao">CNPJ do órgão (segurado)</label>
+            <div class="cnpj-wrap" id="orgao-wrap">
+              <input class="field-input" id="dm-orgao" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" autocomplete="off" />
+              <span class="cnpj-spin" aria-hidden="true"></span>
+            </div>
+            <div class="cnpj-status" id="orgao-status" aria-live="polite"></div>
+            <div class="dm-erro" id="e-orgao"></div>
+          </div>
+          <div class="dm-campo so-edital" id="c-orgaonome">
+            <label class="field-label" for="dm-orgaonome">Nome do órgão</label>
+            <input class="field-input" id="dm-orgaonome" maxlength="160" placeholder="Preenchido pelo CNPJ" autocomplete="off" />
+            <div class="dm-erro" id="e-orgaonome"></div>
+          </div>
+          <div class="dm-campo so-edital" id="c-valor">
+            <label class="field-label" for="dm-valor">Valor da garantia</label>
+            <input class="field-input" id="dm-valor" inputmode="numeric" maxlength="20" placeholder="R$ 0,00" autocomplete="off" />
+            <div class="dm-dica">O valor que o edital pede de garantia da proposta.</div>
+            <div class="dm-erro" id="e-valor"></div>
+          </div>
+          <div class="dm-campo so-edital" id="c-edital">
+            <label class="field-label" for="dm-edital">Número do edital ou do processo</label>
+            <input class="field-input" id="dm-edital" maxlength="120" placeholder="Ex.: Pregão Eletrônico 45/2026" autocomplete="off" />
+            <div class="dm-erro" id="e-edital"></div>
+          </div>
           <div class="dm-campo" id="c-data">
-            <label class="field-label" for="dm-data"><span id="dm-data-rotulo">Data da sessão ou da assinatura</span> <span class="opcional">(opcional)</span></label>
+            <label class="field-label" for="dm-data"><span id="dm-data-rotulo">Data da sessão ou da assinatura</span> <span class="opcional" id="dm-data-opcional">(opcional)</span></label>
             <input class="field-input" id="dm-data" name="data_referencia" type="date" />
+            <div class="dm-dica so-edital">A garantia começa a valer nesta data.</div>
             <div class="dm-erro" id="e-data"></div>
+          </div>
+          <div class="dm-campo so-edital" id="c-dias">
+            <label class="field-label" for="dm-dias">Vigência em dias</label>
+            <input class="field-input" id="dm-dias" inputmode="numeric" maxlength="3" placeholder="90" value="90" autocomplete="off" />
+            <div class="dm-dica">O prazo de validade da proposta que o edital pede.</div>
+            <div class="dm-erro" id="e-dias"></div>
           </div>
         </div>
 
@@ -732,6 +812,11 @@
           <textarea class="field-input" id="dm-obs" name="observacao" maxlength="1000" placeholder="Ex.: o cliente já tem limite na seguradora X, prazo apertado, lote 2..."></textarea>
         </div>
 
+        <div class="cotacao" id="dm-cotacao" hidden aria-live="polite"></div>
+        <div class="so-edital sem-cotar" id="dm-sem-cotar">
+          <button type="button" class="cot-alt" onclick="enviarSemCotar()">Ainda não tem o valor ou o CNPJ do órgão? Envie só o edital para a F&amp;G cotar</button>
+        </div>
+
         <div class="dm-falha" id="dm-falha" role="alert"></div>
       </div>
 
@@ -743,7 +828,7 @@
 
       <div class="dm-sucesso" id="dm-sucesso">
         <div class="selo"><svg class="ico"><use href="#i-check"/></svg></div>
-        <h3>Demanda enviada</h3>
+        <h3 id="dm-sucesso-titulo">Demanda enviada</h3>
         <p id="dm-sucesso-texto">A equipe da F&amp;G já recebeu. Você acompanha o andamento em "Em andamento", aqui no portal.</p>
         <div class="modal-btns">
           <button type="button" class="btn-cancelar" onclick="novaDemanda()">Enviar outra</button>
@@ -776,7 +861,7 @@
       </div>
       <ol class="bv-passos">
         <li><span class="num">1</span><strong>Envie a demanda</strong><p>CNPJ do cliente, telefone, e-mail e o edital ou o contrato.</p></li>
-        <li><span class="num">2</span><strong>A F&amp;G cota</strong><p>Nossa equipe prepara a proposta e fala com o seu cliente.</p></li>
+        <li><span class="num">2</span><strong>Cotação</strong><p>No edital, a Junto Seguros cota na hora. No contrato, a F&amp;G prepara a proposta.</p></li>
         <li><span class="num">3</span><strong>Você recebe</strong><p>Com a apólice emitida, sua comissão aparece aqui e entra no repasse.</p></li>
       </ol>
       <div class="bv-acoes">
@@ -924,8 +1009,10 @@
               <li><strong>Use o botão "Enviar nova demanda".</strong> Informe o CNPJ do cliente e a razão social vem da Receita.</li>
               <li><strong>Passe o contato do cliente.</strong> Telefone e e-mail de quem vai assinar.</li>
               <li><strong>Anexe o edital ou o contrato.</strong> PDF, Word ou ZIP, até 30 MB cada.</li>
+              <li><strong>Edital: cote na hora.</strong> Com o CNPJ do órgão, o valor da garantia, a data da sessão e a vigência, a Junto Seguros devolve o prêmio e você já vê a sua comissão. Gostou? Clique em "Pedir emissão": a F&amp;G confere a minuta e emite. Se a Junto não cotar, um clique manda tudo para a F&amp;G cotar com outras seguradoras.</li>
               <li><strong>Acompanhe aqui.</strong> A demanda passa por Em análise, Cotada e Emitida, e a comissão aparece em Comissões.</li>
             </ol>
+            <p class="cot-aviso" style="margin-top:4px"><strong>Cancelamento da Licitante:</strong> a apólice de Seguro Garantia Licitante só é cancelada em caso de suspensão do pregão. Não há cancelamento por arrependimento ou desistência depois da emissão. Combine isso com o cliente antes de pedir a emissão.</p>
           </div>
           <div class="caixa">
             <h3><svg class="ico"><use href="#i-repasse"/></svg> Quando você recebe</h3>
@@ -1101,15 +1188,18 @@
     function statusDe(v) {
       if (v.vendeu === 'Sim') return 'emitida';
       if (v.vendeu === 'Não') return 'encerrada';
+      // Cotada na hora pelo portal e com emissão pedida: falta só a F&G emitir.
+      if (v._cotacao_junto === 'emissao_solicitada' || v._cotacao_junto === 'em_analise') return 'pedida';
       return parseVal(v.premio) > 0 ? 'cotada' : 'analise';
     }
     const STATUS = {
-      analise:   { rotulo: 'Com a F&G',   classe: 'st-analise' },
-      cotada:    { rotulo: 'Cotada',      classe: 'st-cotada' },
-      emitida:   { rotulo: 'Emitida',     classe: 'st-emitida' },
-      encerrada: { rotulo: 'Não avançou', classe: 'st-encerrada' },
+      analise:   { rotulo: 'Com a F&G',      classe: 'st-analise' },
+      cotada:    { rotulo: 'Cotada',         classe: 'st-cotada' },
+      pedida:    { rotulo: 'Emissão pedida', classe: 'st-cotada' },
+      emitida:   { rotulo: 'Emitida',        classe: 'st-emitida' },
+      encerrada: { rotulo: 'Não avançou',    classe: 'st-encerrada' },
     };
-    const emAndamento = v => { const s = statusDe(v); return s === 'analise' || s === 'cotada'; };
+    const emAndamento = v => { const s = statusDe(v); return s === 'analise' || s === 'cotada' || s === 'pedida'; };
     const modalidade = v => v.tipo === 'Performance' ? 'Execução' : (v.tipo || 'Seguro Garantia');
     const statusHtml = s => `<span class="status ${STATUS[s].classe}">${esc(STATUS[s].rotulo)}</span>`;
 
@@ -1170,7 +1260,7 @@
 
     function renderKpis() {
       const andamento = todasVendas.filter(emAndamento);
-      const cotadas = andamento.filter(v => statusDe(v) === 'cotada').length;
+      const cotadas = andamento.filter(v => statusDe(v) === 'cotada' || statusDe(v) === 'pedida').length;
       const emitidas = todasVendas.filter(v => v.vendeu === 'Sim');
       const premio = emitidas.reduce((s, v) => s + parseVal(v.premio), 0);
       const ex = calcularExtrato();
@@ -1199,14 +1289,14 @@
       const qd = q.replace(/\D/g, '');
       const lista = todasVendas.filter(v => {
         const s = statusDe(v);
-        if (UI.status === 'andamento' && !(s === 'analise' || s === 'cotada')) return false;
+        if (UI.status === 'andamento' && !(s === 'analise' || s === 'cotada' || s === 'pedida')) return false;
         if (UI.status === 'emitidas' && s !== 'emitida') return false;
         if (UI.status === 'encerradas' && s !== 'encerrada') return false;
         if (!q) return true;
         return (v.nome || '').toLowerCase().includes(q) || (qd.length >= 3 && (v.cnpj || '').replace(/\D/g, '').includes(qd));
       });
       // Em "Todas", o que ainda depende de alguém fica em cima; o resto por data.
-      const peso = { analise: 0, cotada: 0, emitida: 1, encerrada: 2 };
+      const peso = { analise: 0, cotada: 0, pedida: 0, emitida: 1, encerrada: 2 };
       return lista.slice().sort((a, b) => {
         if (UI.status === 'todas') {
           const d = peso[statusDe(a)] - peso[statusDe(b)];
@@ -1238,7 +1328,7 @@
     }
 
     function etapasHtml(s) {
-      const passo = { analise: 1, cotada: 2, emitida: 3, encerrada: -1 }[s];
+      const passo = { analise: 1, cotada: 2, pedida: 3, emitida: 3, encerrada: -1 }[s];
       const nomes = ['Recebida', 'Em análise', 'Cotada', 'Emitida'];
       return `<ol class="etapas${s === 'encerrada' ? ' encerrada' : ''}" aria-label="Andamento: ${STATUS[s].rotulo}">` +
         nomes.map((nome, i) => {
@@ -1254,7 +1344,7 @@
       if (s === 'emitida') {
         return `<div class="rotulo">Sua comissão</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`;
       }
-      if (s === 'cotada') {
+      if (s === 'cotada' || s === 'pedida') {
         return comissao > 0
           ? `<div class="rotulo">Comissão prevista</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`
           : `<div class="rotulo">Comissão prevista</div><div class="texto">Sai com os valores da cotação</div>`;
@@ -1280,6 +1370,7 @@
       ].join('');
       const nota = s === 'analise' ? 'A F&amp;G está cotando com as seguradoras.'
         : s === 'cotada' ? 'Cotação feita. Próximo passo: aceite do cliente e emissão.'
+        : s === 'pedida' ? 'Emissão pedida na Junto. A F&amp;G confere a minuta e emite.'
         : s === 'emitida' ? 'Apólice emitida. A comissão entra conforme o cliente paga.'
         : 'Este negócio não avançou.';
       return `<article class="demanda">
@@ -1575,7 +1666,11 @@
     };
     const MAX_ARQUIVOS = 5;
     const MAX_BYTES = 30 * 1024 * 1024;
-    const dm = { doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', seq: 0, enviando: false, sujo: false, enviada: false };
+    const dm = {
+      doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', seq: 0, enviando: false, sujo: false, enviada: false,
+      // Cotação na hora do edital: resposta da Junto e a "chave" dos dados cotados.
+      cot: null, cotKey: '', orgaoConsultado: '', orgaoAuto: '', seqOrgao: 0, subidos: null,
+    };
     const el = id => document.getElementById(id);
     const soDigitos = t => String(t || '').replace(/\D/g, '');
     const telaLarga = () => window.matchMedia('(min-width: 721px)').matches;
@@ -1633,18 +1728,28 @@
       s.textContent = texto || '';
     }
 
+    const CAMPOS_DM = ['cnpj', 'razao', 'tel', 'email', 'doc', 'orgao', 'orgaonome', 'valor', 'edital', 'data', 'dias', 'arq'];
+
     function limparDemanda() {
       el('form-demanda').reset();
-      el('form-demanda').classList.remove('enviada');
-      Object.assign(dm, { doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', enviando: false, sujo: false, enviada: false });
+      el('form-demanda').classList.remove('enviada', 'modo-edital');
+      Object.assign(dm, {
+        doc: '', arquivos: [], cnpjConsultado: '', razaoAuto: '', enviando: false, sujo: false, enviada: false,
+        cot: null, cotKey: '', orgaoConsultado: '', orgaoAuto: '', subidos: null,
+      });
       dm.seq++;
-      ['cnpj', 'razao', 'tel', 'email', 'doc', 'data', 'arq'].forEach(c => erroCampo(c, ''));
+      dm.seqOrgao++;
+      CAMPOS_DM.forEach(c => erroCampo(c, ''));
       statusCnpj('', '');
+      statusOrgao('', '');
       el('cnpj-wrap').classList.remove('buscando');
+      el('orgao-wrap').classList.remove('buscando');
       document.querySelectorAll('.dm-opcao').forEach(b => b.setAttribute('aria-checked', 'false'));
       el('dm-data-rotulo').textContent = 'Data da sessão ou da assinatura';
       el('dm-progresso').textContent = '';
+      el('dm-sucesso-titulo').textContent = 'Demanda enviada';
       falha('');
+      renderCotacao();
       botaoEnviar(false);
       renderArquivos();
     }
@@ -1681,11 +1786,17 @@
     }
 
     function escolherDoc(doc) {
+      if (dm.enviando) return;
       dm.doc = doc;
       dm.sujo = true;
       document.querySelectorAll('.dm-opcao').forEach(b => b.setAttribute('aria-checked', b.dataset.doc === doc ? 'true' : 'false'));
+      el('form-demanda').classList.toggle('modo-edital', doc === 'edital');
       el('dm-data-rotulo').textContent = doc === 'edital' ? 'Data da sessão' : 'Data da assinatura';
       erroCampo('doc', '');
+      if (doc !== 'edital') ['orgao', 'orgaonome', 'valor', 'edital', 'dias'].forEach(c => erroCampo(c, ''));
+      falha('');
+      renderCotacao();
+      botaoEnviar(false);
     }
 
     // CNPJ: máscara enquanto digita e consulta a Receita quando fecha 14 números.
@@ -1694,6 +1805,7 @@
       const d = soDigitos(e.target.value).slice(0, 14);
       e.target.value = mascaraCnpj(d);
       erroCampo('cnpj', '');
+      aposMudarCotacao();
       if (d.length < 14) {
         dm.seq++;
         el('cnpj-wrap').classList.remove('buscando');
@@ -1743,6 +1855,86 @@
       }
     }
 
+    // ── Órgão (segurado) do edital: mesma consulta à Receita do tomador ──
+    function statusOrgao(tipo, texto) {
+      const s = el('orgao-status');
+      s.className = 'cnpj-status' + (tipo ? ' ' + tipo : '');
+      s.textContent = texto || '';
+    }
+
+    el('dm-orgao').addEventListener('input', e => {
+      dm.sujo = true;
+      const d = soDigitos(e.target.value).slice(0, 14);
+      e.target.value = mascaraCnpj(d);
+      erroCampo('orgao', '');
+      aposMudarCotacao();
+      if (d.length < 14) {
+        dm.seqOrgao++;
+        el('orgao-wrap').classList.remove('buscando');
+        statusOrgao('', '');
+        if (dm.orgaoAuto && el('dm-orgaonome').value === dm.orgaoAuto) el('dm-orgaonome').value = '';
+        dm.orgaoAuto = '';
+        dm.orgaoConsultado = '';
+        return;
+      }
+      if (!cnpjValido(d)) { erroCampo('orgao', 'CNPJ inválido. Confira os números.'); return; }
+      if (d !== dm.orgaoConsultado) consultarOrgao(d);
+    });
+
+    async function consultarOrgao(d) {
+      const minha = ++dm.seqOrgao;
+      dm.orgaoConsultado = d;
+      el('orgao-wrap').classList.add('buscando');
+      statusOrgao('info', 'Consultando a Receita...');
+      try {
+        const r = await api('cnpj', { cnpj: d });
+        if (minha !== dm.seqOrgao) return;
+        if (r.encontrado) {
+          const nome = (r.razao_social || '').trim();
+          const campo = el('dm-orgaonome');
+          if (!campo.value.trim() || campo.value === dm.orgaoAuto) campo.value = nome;
+          dm.orgaoAuto = nome;
+          erroCampo('orgaonome', '');
+          const local = [r.municipio, r.uf].filter(Boolean).join('/');
+          statusOrgao('ok', `Encontrado na Receita${local ? ' · ' + local : ''}`);
+        } else if (r.consulta_indisponivel) {
+          statusOrgao('info', 'A Receita não respondeu agora. Digite o nome do órgão para seguir.');
+        } else {
+          statusOrgao('alerta', 'Não achamos esse CNPJ na Receita. Confira os números ou digite o nome do órgão.');
+        }
+      } catch (e) {
+        if (minha !== dm.seqOrgao) return;
+        dm.orgaoConsultado = '';
+        statusOrgao('info', 'Não deu para consultar a Receita agora. Digite o nome do órgão para seguir.');
+      } finally {
+        if (minha === dm.seqOrgao) el('orgao-wrap').classList.remove('buscando');
+      }
+    }
+
+    // Valor em reais: os números entram pela direita, como numa maquininha.
+    function mascaraValor(d) {
+      d = String(d || '').replace(/^0+/, '').slice(0, 11);
+      if (!d) return '';
+      const n = Number(d) / 100;
+      return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const lerValorCampo = () => Number(soDigitos(el('dm-valor').value) || 0) / 100;
+
+    el('dm-valor').addEventListener('input', e => {
+      dm.sujo = true;
+      e.target.value = mascaraValor(soDigitos(e.target.value));
+      erroCampo('valor', '');
+      aposMudarCotacao();
+    });
+    el('dm-dias').addEventListener('input', e => {
+      dm.sujo = true;
+      e.target.value = soDigitos(e.target.value).slice(0, 3);
+      erroCampo('dias', '');
+      aposMudarCotacao();
+    });
+    el('dm-orgaonome').addEventListener('input', () => { dm.sujo = true; erroCampo('orgaonome', ''); });
+    el('dm-edital').addEventListener('input', () => { dm.sujo = true; erroCampo('edital', ''); });
+
     el('dm-razao').addEventListener('input', () => { dm.sujo = true; erroCampo('razao', ''); });
     el('dm-tel').addEventListener('input', e => {
       dm.sujo = true;
@@ -1751,7 +1943,7 @@
     });
     el('dm-email').addEventListener('input', () => { dm.sujo = true; erroCampo('email', ''); });
     el('dm-email').addEventListener('blur', e => { e.target.value = e.target.value.trim(); });
-    el('dm-data').addEventListener('input', () => { dm.sujo = true; erroCampo('data', ''); });
+    el('dm-data').addEventListener('input', () => { dm.sujo = true; erroCampo('data', ''); aposMudarCotacao(); });
     el('dm-obs').addEventListener('input', () => { dm.sujo = true; });
 
     // Arquivos: toque/clique abre o seletor; no computador também dá para arrastar.
@@ -1807,10 +1999,263 @@
       }).join('');
     }
 
+    el('dm-data').addEventListener('change', () => aposMudarCotacao());
+
+    // ── COTAÇÃO NA HORA (edital) ─────────────────────────────
+    // Com "Edital" escolhido, o botão principal cota na Junto. Com a cotação na
+    // tela, ele pede a emissão; se a Junto não cotar, ele manda tudo para a F&G.
+    // Mudou CNPJ, órgão, valor, data ou prazo depois de cotar: cota de novo.
+    function chaveCotacao() {
+      return JSON.stringify([
+        soDigitos(el('dm-cnpj').value), soDigitos(el('dm-orgao').value),
+        soDigitos(el('dm-valor').value), el('dm-data').value, soDigitos(el('dm-dias').value),
+      ]);
+    }
+    const cotacaoValida = () => !!dm.cot && dm.cotKey === chaveCotacao();
+
+    function modoEnvio() {
+      if (dm.doc !== 'edital') return 'demanda';
+      if (!cotacaoValida()) return 'cotar';
+      return dm.cot.ok ? 'emitir' : 'fg';
+    }
+
+    function aposMudarCotacao() {
+      if (!dm.cot) return;
+      renderCotacao();
+      botaoEnviar(false);
+    }
+
+    const ROTULO_BOTAO = { demanda: 'Enviar demanda', cotar: 'Cotar na Junto', emitir: 'Pedir emissão', fg: 'Enviar para a F&G cotar' };
+
     function botaoEnviar(ocupado, texto) {
       const b = el('dm-enviar');
       b.disabled = !!ocupado;
-      b.textContent = ocupado ? (texto || 'Enviando...') : 'Enviar demanda';
+      b.textContent = ocupado ? (texto || 'Enviando...') : ROTULO_BOTAO[modoEnvio()];
+      const alt = el('cot-alt');
+      if (alt) alt.disabled = !!ocupado;
+    }
+
+    // Regra da F&G para a Licitante (Fábio, 05/11/2026). Aparece antes do pedido
+    // de emissão, na tela final e em "Como funciona".
+    const AVISO_CANCELAMENTO = 'a apólice de Seguro Garantia Licitante só é cancelada em caso de suspensão do pregão. Não há cancelamento por arrependimento ou desistência depois da emissão.';
+
+    const dataBr = iso => String(iso || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1');
+    const pctTexto = n => String(n).replace('.', ',') + '%';
+
+    function renderCotacao() {
+      const box = el('dm-cotacao');
+      el('dm-sem-cotar').hidden = cotacaoValida();
+      if (!dm.cot || dm.doc !== 'edital') { box.hidden = true; box.innerHTML = ''; box.className = 'cotacao'; return; }
+      const velha = !cotacaoValida();
+      const r = dm.cot;
+      box.hidden = false;
+      if (!r.ok) {
+        box.className = 'cotacao recusa' + (velha ? ' velha' : '');
+        box.innerHTML = `
+          <div class="cot-topo"><span class="cot-titulo">A Junto não cotou na hora</span><span class="cot-seg">Junto Seguros</span></div>
+          <p class="cot-msg">${esc(r.mensagem || 'A Junto não fechou a cotação automática.')}</p>
+          <p class="cot-nota">${velha
+            ? 'Você mudou os dados depois da consulta. Clique em "Cotar na Junto" para tentar de novo.'
+            : 'Tudo o que você preencheu e o edital vão juntos para a F&amp;G. Confira telefone, e-mail e o arquivo e clique em <strong>Enviar para a F&amp;G cotar</strong>.'}</p>`;
+        return;
+      }
+      const c = r.cotacao;
+      const op = (c.parcelas || []).filter(p => p.parcelas > 0);
+      const max = op.length ? op[op.length - 1] : null;
+      const pagto = max && max.parcelas > 1
+        ? `em até ${max.parcelas}x${max.valor ? ' de ' + moeda(max.valor) : ''}`
+        : 'à vista';
+      const venc = op[0] && op[0].primeiro_vencimento ? `, 1ª parcela em ${dataBr(op[0].primeiro_vencimento)}` : '';
+      const sua = c.comissao_parceiro || { valor: 0, pct: 0 };
+      box.className = 'cotacao ok' + (velha ? ' velha' : '');
+      box.innerHTML = `
+        <div class="cot-topo"><span class="cot-titulo">Cotação na hora</span><span class="cot-seg">Junto Seguros · Licitante</span></div>
+        <div class="cot-premio">${moeda(c.premio)}<small>${esc(pagto + venc)}</small></div>
+        <div class="cot-linhas">
+          <div><div class="r">Garantia</div><div class="v">${moeda(c.valor)}</div></div>
+          <div><div class="r">Vigência</div><div class="v">${dataBr(c.inicio)} a ${dataBr(c.fim)}<br><span style="font-weight:500;color:var(--muted)">${c.dias} dias</span></div></div>
+          <div><div class="r">Órgão</div><div class="v">${esc(c.segurado && c.segurado.nome || '')}</div></div>
+        </div>
+        <div class="cot-sua"><span class="r">Sua comissão prevista</span><span class="v">${moeda(sua.valor)}<small>${pctTexto(sua.pct)} da comissão de ${moeda(c.comissao_fg)}</small></span></div>
+        <p class="cot-nota">${velha
+          ? 'Você mudou os dados depois de cotar. Clique em "Cotar na Junto" para atualizar o prêmio.'
+          : 'Ao pedir a emissão, a F&amp;G confere a minuta e emite. A apólice e o boleto vão para o e-mail do cliente. Esta cotação vale por 3 dias.'}</p>
+        ${velha ? '' : `<p class="cot-aviso" id="cot-aviso"><strong>Cancelamento:</strong> ${AVISO_CANCELAMENTO}</p>`}
+        ${velha ? '' : '<button type="button" class="cot-alt" id="cot-alt" onclick="preferirFeG()">Prefiro que a F&amp;G cote com outras seguradoras</button>'}`;
+    }
+
+    function mostrarErros(erros) {
+      erros.forEach(([c, t]) => erroCampo(c, t));
+      const primeiro = el('c-' + erros[0][0]);
+      primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const foco = primeiro.querySelector('input, button, .dropzone');
+      if (foco && telaLarga()) setTimeout(() => foco.focus({ preventScroll: true }), 250);
+    }
+
+    function hojeIso() {
+      const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      return p.slice(0, 10);
+    }
+
+    function validarCotacao() {
+      const erros = [];
+      const cnpj = soDigitos(el('dm-cnpj').value);
+      if (cnpj.length === 0) erros.push(['cnpj', 'Informe o CNPJ do tomador.']);
+      else if (!cnpjValido(cnpj)) erros.push(['cnpj', 'CNPJ inválido. Confira os números.']);
+      const razao = el('dm-razao').value.trim();
+      if (razao.length < 3) erros.push(['razao', 'Informe a razão social do tomador.']);
+      const orgao = soDigitos(el('dm-orgao').value);
+      if (orgao.length === 0) erros.push(['orgao', 'Informe o CNPJ do órgão do edital.']);
+      else if (!cnpjValido(orgao)) erros.push(['orgao', 'CNPJ inválido. Confira os números.']);
+      else if (orgao === cnpj) erros.push(['orgao', 'O órgão precisa ser diferente do tomador.']);
+      const valor = lerValorCampo();
+      if (!(valor > 0)) erros.push(['valor', 'Informe o valor da garantia.']);
+      const data = el('dm-data').value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) erros.push(['data', 'Informe a data da sessão.']);
+      else if (data < hojeIso()) erros.push(['data', 'A data da sessão já passou. Confira a data.']);
+      const dias = Number(soDigitos(el('dm-dias').value));
+      if (!(dias >= 1 && dias <= 730)) erros.push(['dias', 'Informe o prazo em dias, de 1 a 730.']);
+      return { erros, valores: { cnpj, razao, orgao, orgaoNome: el('dm-orgaonome').value.trim(), valor, data, dias } };
+    }
+
+    async function cotar() {
+      const { erros, valores } = validarCotacao();
+      if (erros.length) return mostrarErros(erros);
+      const chave = chaveCotacao();
+      const anterior = dm.cot && dm.cot.ok ? dm.cot.cotacao.id : (dm.cot && dm.cot.cotacao_id) || null;
+      dm.enviando = true;
+      botaoEnviar(true, 'Cotando na Junto...');
+      el('dm-progresso').textContent = 'Consultando a Junto Seguros...';
+      try {
+        const r = await api('cotar_licitante', {
+          tomador_cnpj: valores.cnpj, razao_social: valores.razao,
+          segurado_cnpj: valores.orgao, segurado_nome: valores.orgaoNome,
+          valor: valores.valor, inicio: valores.data, dias: valores.dias,
+          ...(anterior ? { cotacao_id: anterior } : {}),
+        });
+        dm.cot = r;
+        dm.cotKey = chave;
+        // O nome do órgão como está na Junto, quando ela devolve.
+        if (r.ok && r.cotacao.segurado && r.cotacao.segurado.nome && !el('dm-orgaonome').value.trim()) {
+          el('dm-orgaonome').value = r.cotacao.segurado.nome;
+        }
+      } catch (e) {
+        falha(e.message || 'Não foi possível cotar agora. Tente de novo.');
+      } finally {
+        dm.enviando = false;
+        el('dm-progresso').textContent = '';
+        renderCotacao();
+        botaoEnviar(false);
+      }
+      if (dm.cot && cotacaoValida()) el('dm-cotacao').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function validarContato(comEdital) {
+      const erros = [];
+      const tel = soDigitos(el('dm-tel').value);
+      if (tel.length < 10) erros.push(['tel', 'Telefone com DDD, 10 ou 11 números.']);
+      const email = el('dm-email').value.trim();
+      if (!emailValido(email)) erros.push(['email', email ? 'E-mail inválido. Confira se tem @ e o domínio.' : 'Informe o e-mail do cliente.']);
+      const edital = el('dm-edital').value.trim();
+      if (comEdital && edital.length < 3) erros.push(['edital', 'Informe o número do edital ou do processo. Ele vai na apólice.']);
+      if (!dm.arquivos.length) erros.push(['arq', 'Anexe o edital.']);
+      return { erros, valores: { tel, email, edital } };
+    }
+
+    /**
+     * Sobe os arquivos no bucket por URL assinada. Se o mesmo conjunto já subiu
+     * nesta demanda (falhou depois, o parceiro tentou de novo), reaproveita.
+     */
+    async function subirArquivos() {
+      const assinatura = dm.arquivos.map(f => `${f.name}|${f.size}|${f.lastModified}`).join('/');
+      if (dm.subidos && dm.subidos.assinatura === assinatura) return dm.subidos.arquivos;
+
+      const total = dm.arquivos.length;
+      const estado = dm.arquivos.map(() => '');
+      renderArquivos(estado);
+      const prep = await api('preparar_upload', {
+        arquivos: dm.arquivos.map(f => ({ nome: f.name, tamanho: f.size, tipo: EXT_MIME[extensao(f.name)] })),
+      });
+      for (let i = 0; i < total; i++) {
+        const f = dm.arquivos[i];
+        const alvo = prep.arquivos[i];
+        const mime = EXT_MIME[extensao(f.name)];
+        estado[i] = 'enviando';
+        renderArquivos(estado);
+        el('dm-progresso').textContent = total > 1 ? `Enviando arquivo ${i + 1} de ${total}...` : 'Enviando o arquivo...';
+        botaoEnviar(true, 'Enviando...');
+        // O tipo vai explícito: alguns sistemas entregam .docx ou .zip sem tipo
+        // e o bucket só aceita PDF, Word e ZIP.
+        const arquivo = new File([f], f.name, { type: mime });
+        const { error } = await client.storage.from(BUCKET_DEMANDAS)
+          .uploadToSignedUrl(alvo.path, alvo.token, arquivo, { contentType: mime, upsert: false });
+        if (error) throw new Error(`Não conseguimos enviar "${f.name}". Confira a internet e tente de novo.`);
+        estado[i] = 'enviado';
+        renderArquivos(estado);
+      }
+      const arquivos = prep.arquivos.map(a => ({ path: a.path, nome: a.nome, tamanho: a.tamanho, tipo: a.tipo }));
+      dm.subidos = { assinatura, arquivos };
+      return arquivos;
+    }
+
+    function concluir(titulo, texto) {
+      dm.enviando = false;
+      dm.enviada = true;
+      el('dm-sucesso-titulo').textContent = titulo;
+      el('dm-sucesso-texto').textContent = texto;
+      el('form-demanda').classList.add('enviada');
+      el('dm-progresso').textContent = '';
+      botaoEnviar(false);
+      carregar();
+    }
+
+    function falhaEnvio(e) {
+      dm.enviando = false;
+      el('dm-progresso').textContent = '';
+      botaoEnviar(false);
+      renderArquivos();
+      falha(e.message || 'Não foi possível enviar agora. Tente de novo.');
+      el('dm-falha').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function pedirEmissao() {
+      const { erros, valores } = validarContato(true);
+      if (erros.length) return mostrarErros(erros);
+      dm.enviando = true;
+      botaoEnviar(true, 'Preparando...');
+      try {
+        const anexos = await subirArquivos();
+        el('dm-progresso').textContent = 'Gerando a minuta na Junto...';
+        botaoEnviar(true, 'Pedindo a emissão...');
+        const r = await api('solicitar_emissao', {
+          cotacao_id: dm.cot.cotacao.id,
+          telefone: valores.tel,
+          email: valores.email,
+          edital: valores.edital,
+          data_pregao: el('dm-data').value || '',
+          observacao: el('dm-obs').value.trim(),
+          anexos,
+        });
+        const nome = dm.cot.cotacao.tomador && dm.cot.cotacao.tomador.nome || el('dm-razao').value.trim();
+        concluir('Emissão pedida',
+          `O pedido de ${nome} já está com a F&G, com a minuta pronta na Junto. Assim que a F&G emitir, a apólice e o boleto chegam no e-mail do cliente e aparecem aqui no portal. Lembre o cliente: ${AVISO_CANCELAMENTO}`);
+        if (r && r.repetida) toast('Esse pedido já tinha chegado. Não duplicamos.');
+      } catch (e) {
+        // Cotação vencida ou já usada: volta para "Cotar na Junto".
+        if (/cote de novo/i.test(e.message || '')) { dm.cot = null; renderCotacao(); }
+        falhaEnvio(e);
+      }
+    }
+
+    function preferirFeG() {
+      if (dm.enviando || !cotacaoValida()) return;
+      enviarManual(dm.cot.cotacao.id);
+    }
+
+    /** Edital sem cotar na hora: vai para a F&G como demanda comum. */
+    function enviarSemCotar() {
+      if (dm.enviando) return;
+      enviarManual(cotacaoValida() && !dm.cot.ok ? dm.cot.cotacao_id : null);
     }
 
     function validarDemanda() {
@@ -1831,52 +2276,33 @@
       return { erros, valores: { cnpj, razao, tel, email, data } };
     }
 
+    /** Botão principal do formulário: o que ele faz depende do modo (ver modoEnvio). */
     async function enviarDemanda(ev) {
       if (ev) ev.preventDefault();
       if (dm.enviando) return;
       falha('');
-      ['cnpj', 'razao', 'tel', 'email', 'doc', 'data', 'arq'].forEach(c => erroCampo(c, ''));
+      CAMPOS_DM.forEach(c => erroCampo(c, ''));
+      const modo = modoEnvio();
+      if (modo === 'cotar') return cotar();
+      if (modo === 'emitir') return pedirEmissao();
+      // "fg": a Junto não cotou; a demanda leva o id da tentativa e o motivo.
+      return enviarManual(modo === 'fg' ? dm.cot.cotacao_id : null);
+    }
 
+    /** Demanda para a F&G cotar (contrato, ou edital que a Junto não cotou). */
+    async function enviarManual(cotacaoId) {
+      if (dm.enviando) return;
+      falha('');
+      CAMPOS_DM.forEach(c => erroCampo(c, ''));
       const { erros, valores } = validarDemanda();
-      if (erros.length) {
-        erros.forEach(([c, t]) => erroCampo(c, t));
-        const primeiro = el('c-' + erros[0][0]);
-        primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const foco = primeiro.querySelector('input, button, .dropzone');
-        if (foco && telaLarga()) setTimeout(() => foco.focus({ preventScroll: true }), 250);
-        return;
-      }
+      if (erros.length) return mostrarErros(erros);
 
       dm.enviando = true;
       botaoEnviar(true, 'Preparando...');
-      const total = dm.arquivos.length;
-      const estado = dm.arquivos.map(() => '');
-      renderArquivos(estado);
-
       try {
-        const prep = await api('preparar_upload', {
-          arquivos: dm.arquivos.map(f => ({ nome: f.name, tamanho: f.size, tipo: EXT_MIME[extensao(f.name)] })),
-        });
-
-        for (let i = 0; i < total; i++) {
-          const f = dm.arquivos[i];
-          const alvo = prep.arquivos[i];
-          const mime = EXT_MIME[extensao(f.name)];
-          estado[i] = 'enviando';
-          renderArquivos(estado);
-          el('dm-progresso').textContent = total > 1 ? `Enviando arquivo ${i + 1} de ${total}...` : 'Enviando o arquivo...';
-          botaoEnviar(true, 'Enviando...');
-          // O tipo vai explícito: alguns sistemas entregam .docx ou .zip sem tipo
-          // e o bucket só aceita PDF, Word e ZIP.
-          const arquivo = new File([f], f.name, { type: mime });
-          const { error } = await client.storage.from(BUCKET_DEMANDAS)
-            .uploadToSignedUrl(alvo.path, alvo.token, arquivo, { contentType: mime, upsert: false });
-          if (error) throw new Error(`Não conseguimos enviar "${f.name}". Confira a internet e tente de novo.`);
-          estado[i] = 'enviado';
-          renderArquivos(estado);
-        }
-
+        const anexos = await subirArquivos();
         el('dm-progresso').textContent = 'Registrando a demanda...';
+        const obsEdital = dm.doc === 'edital' && el('dm-edital').value.trim() ? `Edital ou processo: ${el('dm-edital').value.trim()}.` : '';
         const r = await api('enviar_demanda', {
           cnpj: valores.cnpj,
           razao_social: valores.razao,
@@ -1884,25 +2310,15 @@
           email: valores.email,
           documento: dm.doc,
           data_referencia: valores.data || '',
-          observacao: el('dm-obs').value.trim(),
-          anexos: prep.arquivos.map(a => ({ path: a.path, nome: a.nome, tamanho: a.tamanho, tipo: a.tipo })),
+          observacao: [obsEdital, el('dm-obs').value.trim()].filter(Boolean).join('\n'),
+          anexos,
+          ...(cotacaoId ? { cotacao_id: cotacaoId } : {}),
         });
-
-        dm.enviando = false;
-        dm.enviada = true;
-        el('dm-sucesso-texto').textContent = `A demanda de ${valores.razao} já está com a equipe da F&G. Você acompanha o andamento em "Em andamento", aqui no portal.`;
-        el('form-demanda').classList.add('enviada');
-        el('dm-progresso').textContent = '';
-        botaoEnviar(false);
-        carregar();
+        concluir('Demanda enviada',
+          `A demanda de ${valores.razao} já está com a equipe da F&G. Você acompanha o andamento em "Em andamento", aqui no portal.`);
         if (r && r.repetida) toast('Essa demanda já tinha chegado. Não duplicamos.');
       } catch (e) {
-        dm.enviando = false;
-        el('dm-progresso').textContent = '';
-        botaoEnviar(false);
-        renderArquivos();
-        falha(e.message || 'Não foi possível enviar agora. Tente de novo.');
-        el('dm-falha').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        falhaEnvio(e);
       }
     }
 
@@ -1911,7 +2327,8 @@
     el('form-demanda').addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
       e.preventDefault();
-      const ordem = ['dm-cnpj', 'dm-razao', 'dm-tel', 'dm-email'];
+      const ordem = ['dm-cnpj', 'dm-razao', 'dm-tel', 'dm-email', 'dm-orgao', 'dm-orgaonome', 'dm-valor', 'dm-edital', 'dm-data', 'dm-dias']
+        .filter(id => el(id).offsetParent !== null);
       const i = ordem.indexOf(e.target.id);
       if (i >= 0 && i < ordem.length - 1) el(ordem[i + 1]).focus();
       else e.target.blur();

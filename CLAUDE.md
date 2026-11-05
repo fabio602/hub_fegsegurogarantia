@@ -123,11 +123,17 @@ Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS 
 
 ## Portal do parceiro (seguro garantia)
 
-`public/parceiros.html` (consultores de licitação, como Raphael Icaro e Solicita) **não lê o banco com a anon key**: `sales`, `boletos`, `repasses` e `partners` são fechadas para anon (migrações 019 e 128). Tudo passa pela Edge Function `parceiro-portal`, que confere o token assinado devolvido pelo login (`parceiro-auth`; código em `supabase/functions/_shared/tokenParceiro.ts`, chave em `parceiro_portal_segredo`, só service role). Ações: `dados`, `alterar_senha`, `cnpj`, `preparar_upload` e `enviar_demanda`.
+`public/parceiros.html` (consultores de licitação, como Raphael Icaro e Solicita) **não lê o banco com a anon key**: `sales`, `boletos`, `repasses` e `partners` são fechadas para anon (migrações 019 e 128). Tudo passa pela Edge Function `parceiro-portal`, que confere o token assinado devolvido pelo login (`parceiro-auth`; código em `supabase/functions/_shared/tokenParceiro.ts`, chave em `parceiro_portal_segredo`, só service role). Ações: `dados`, `alterar_senha`, `cnpj`, `preparar_upload`, `enviar_demanda`, `cotar_licitante` e `solicitar_emissao`.
 
 - **Demanda enviada pelo portal** vira uma linha da `sales` com `vendeu = 'Em andamento'`, `origem = 'Indicação'`, `parceiro` = nome do cadastro e os arquivos em `anexos_demanda` (bucket privado `parceiro-demandas`, upload por URL assinada). A F&G recebe e-mail com os anexos; no Registro de Vendas aparecem a etiqueta "Portal" e o painel da demanda (`components/DemandaParceiro.tsx`).
 - **Comissão do parceiro** é calculada em um lugar só: `supabase/functions/_shared/comissaoParceiro.ts`, importado pela function e pelo HUB (`ParceiroManager`). Com `partners.comissao_faixas` preenchido vale a tabela escalonada (faixa pela comissão líquida do negócio, `imposto_pct` descontado; o % incide sobre a comissão integral, nunca sobre o prêmio). Sem faixas vale `commission_pct`.
 - O portal casa vendas pelo **nome exato** do parceiro (`sales.parceiro = partners.name`). Ao lançar venda de parceiro, use o nome do cadastro.
+- **Cotação na hora do Licitante (Junto Seguros).** Com "Edital" escolhido, o parceiro cota direto na API da Junto com a chave da F&G (`_shared/junto.ts`; segredos `JUNTO_BASE_URL`, `JUNTO_CLIENT_ID`, `JUNTO_CLIENT_SECRET`, produção em `ms-gateway.juntoseguros.com/guarantee`). Cada tentativa vira uma linha de `cotacoes_portal` (migrações 131 e 132): `cotada`, `recusada` (tomador sem cadastro, outro corretor, sem limite, órgão sem cadastro), `emissao_solicitada`, `emitindo`, `em_analise`, `emitida`, `cancelada`. O portal nunca recebe o id da cotação na Junto, só o id da tabela.
+  - `solicitar_emissao` gera a minuta (não emite), lança a venda "Em andamento" e avisa a F&G. A **emissão** é irreversível e só sai pelo HUB: painel em `components/DemandaParceiro.tsx`, Edge Function `junto-emissao` (só e-mail `@fegsegurogarantia.com.br`, exige `confirmacao` igual ao nº da cotação na Junto). Emitida, a função guarda apólice e boleto no bucket `apolices`, marca `vendeu = 'Sim'` e cria os `boletos`.
+  - Recusa da Junto: um clique manda tudo para a F&G como demanda comum (`enviar_demanda` com `cotacao_id`), com o motivo na observação.
+  - **Nunca recotar com PUT** `/api/v2/traditional/{id}`: sem `pricing` ele mantém a taxa efetiva da cotação anterior e erra o prêmio. Recotar cria cotação nova.
+  - Comissão da F&G: o padrão da API (18%; a Junto aceita de 18% a 40%), decisão do Fábio em 05/11/2026.
+  - Regra mostrada ao parceiro: a Licitante só é cancelada em caso de suspensão do pregão, não por arrependimento.
 
 ## Módulo Radar (PGFN)
 
