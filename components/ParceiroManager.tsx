@@ -387,7 +387,7 @@ const ParceiroManager: React.FC = () => {
                                                     })}
                                                 </ul>
                                                 <p className="mt-2 text-[10px] text-slate-400 leading-snug">
-                                                    Faixa pela comissão líquida do negócio ({tabela.imposto_pct}% de imposto). O % vale sobre a comissão integral, não sobre o prêmio.
+                                                    Faixa e percentual sobre a comissão líquida do negócio ({tabela.imposto_pct}% de imposto descontado), nunca sobre o prêmio.
                                                 </p>
                                             </>
                                         );
@@ -510,7 +510,7 @@ const ParceiroManager: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
                                           {p.partner_type !== 'imobiliaria' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold-dark rounded-xl text-xs font-bold w-fit" title={p.comissao_faixas ? 'Faixa pela comissão líquida do negócio; o % incide sobre a comissão integral' : undefined}>
+                                            <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold-dark rounded-xl text-xs font-bold w-fit" title={p.comissao_faixas ? 'Faixa e percentual sobre a comissão líquida do negócio (impostos descontados)' : undefined}>
                                                 {p.comissao_faixas?.faixas?.length
                                                     ? `Escalonada ${Math.min(...p.comissao_faixas.faixas.map(f => f.pct))}% a ${Math.max(...p.comissao_faixas.faixas.map(f => f.pct))}%`
                                                     : `${p.commission_pct}%`}
