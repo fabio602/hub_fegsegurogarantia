@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="fg-build" content="__FG_BUILD_TIME__" />
   <title>Minhas Apólices — F&G Seguro Garantia</title>
+  <link rel="icon" type="image/svg+xml" href="marca/fg-icone.svg" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,13 +60,8 @@
 
     /* ── CABEÇALHO ── */
     .header { text-align: center; margin-bottom: 34px; animation: entra .5s var(--ease) both; }
-    .logo {
-      width: 62px; height: 62px; margin: 0 auto 18px;
-      background: var(--navy); color: var(--gold);
-      border-radius: 20px; display: flex; align-items: center; justify-content: center;
-      font-size: 19px; font-weight: 700; letter-spacing: .5px;
-      box-shadow: var(--shadow);
-    }
+    /* Logo oficial (public/marca), na versão azul para o fundo claro. */
+    .marca { display: block; height: 58px; width: auto; margin: 0 auto 22px; }
     .header h1 { font-size: 27px; font-weight: 700; letter-spacing: -.5px; color: var(--navy); }
     .header p { font-size: 14px; color: var(--muted); margin-top: 7px; }
 
@@ -224,9 +220,9 @@
 
   <div class="container">
     <div class="header">
-      <div class="logo">F&G</div>
+      <img class="marca" src="marca/fg-logo-horizontal-azul.svg" alt="F&amp;G Seguro Garantia" width="177" height="58" />
       <h1>Minhas Apólices</h1>
-      <p>F&G Corretora de Seguros — consulte suas apólices pelo CNPJ</p>
+      <p>Consulte suas apólices pelo CNPJ</p>
     </div>
 
     <div class="search-card">
@@ -239,7 +235,7 @@
 
     <div id="resultado"></div>
 
-    <div class="footer">F&G Corretora de Seguros · Acesso exclusivo ao titular do CNPJ</div>
+    <div class="footer">F&G Seguro Garantia · Acesso exclusivo ao titular do CNPJ</div>
   </div>
 
   <a href="https://wa.me/5515998618659?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20minhas%20ap%C3%B3lices." target="_blank" rel="noopener noreferrer" class="whatsapp-btn">

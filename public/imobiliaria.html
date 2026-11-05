@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="fg-build" content="__FG_BUILD_TIME__" />
   <title>Portal Imobiliária — F&G Seguro Garantia</title>
+  <link rel="icon" type="image/svg+xml" href="marca/fg-icone.svg" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,12 +65,9 @@
       display: flex; align-items: center; justify-content: space-between; gap: 18px;
     }
     .topbar-left { display: flex; align-items: center; gap: 13px; }
-    .logo {
-      width: 42px; height: 42px; background: var(--navy); border-radius: 15px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .02em;
-      box-shadow: var(--shadow-sm); flex-shrink: 0;
-    }
+    /* Logo oficial (public/marca), na versão azul para o fundo claro do topo. */
+    .marca { display: block; height: 38px; width: auto; flex-shrink: 0; }
+    .topbar-divisor { width: 1px; height: 30px; background: rgba(27,38,59,.14); flex-shrink: 0; }
     /* Não usar seletor de elemento aqui: o nome do parceiro é uma div comum */
     .topbar-nome { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.25; }
     .topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; line-height: 1.25; }
@@ -518,6 +516,7 @@
     }
     @media (max-width: 640px) {
       .topbar { padding: 0 16px; }
+      .marca { height: 30px; }
       .form-grid { grid-template-columns: 1fr; }
       .form-grid .full { grid-column: 1; }
       .stat-grid { grid-template-columns: 1fr 1fr; }
@@ -631,7 +630,8 @@
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div class="logo">F&G</div>
+    <img class="marca" src="marca/fg-logo-horizontal-azul.svg" alt="F&amp;G Seguro Garantia" width="116" height="38" />
+    <div class="topbar-divisor" aria-hidden="true"></div>
     <div>
       <div class="topbar-nome" id="nome-parceiro">Carregando...</div>
       <div class="sub">Portal Imobiliária — F&G Seguro Garantia</div>
