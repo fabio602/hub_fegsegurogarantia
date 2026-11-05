@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="fg-build" content="__FG_BUILD_TIME__" />
-  <title>Portal do Parceiro — F&G Seguro Garantia</title>
+  <title>Portal do Parceiro · F&G Seguro Garantia</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,13 +75,11 @@
       padding: 0 32px; height: 68px;
       display: flex; align-items: center; justify-content: space-between; gap: 18px;
     }
-    .topbar-left { display: flex; align-items: center; gap: 13px; }
-    .logo {
-      width: 42px; height: 42px; background: var(--navy); border-radius: 15px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--gold); font-weight: 800; font-size: 13px; letter-spacing: .02em;
-      box-shadow: var(--shadow-sm); flex-shrink: 0;
-    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    /* Logo oficial (public/marca), na versão azul para o fundo claro do topo. */
+    .marca { display: block; height: 40px; width: auto; flex-shrink: 0; }
+    .topbar-divisor { width: 1px; height: 30px; background: rgba(27,38,59,.14); flex-shrink: 0; }
+    .topbar-textos { min-width: 0; }
     .topbar-title { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.25; }
     .topbar-sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; line-height: 1.25; }
     .topbar-actions { display: flex; gap: 9px; align-items: center; }
@@ -578,7 +577,9 @@
     @media (max-width: 720px) {
       .btn-senha-top .rot { display: none; }
       .btn-senha-top { padding: 9px 13px; }
-      .topbar-sub { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* No celular o topo fica só com o logo; o nome do parceiro já está na saudação. */
+      .topbar-divisor, .topbar-textos { display: none; }
+      .marca { height: 34px; }
     }
 
     /* ── MOVIMENTO REDUZIDO ── */
@@ -617,8 +618,9 @@
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-left">
-      <div class="logo">F&G</div>
-      <div>
+      <img class="marca" src="marca/fg-logo-horizontal-azul.svg" alt="F&amp;G Seguro Garantia" width="122" height="40" />
+      <span class="topbar-divisor" aria-hidden="true"></span>
+      <div class="topbar-textos">
         <div class="topbar-title">Portal do Parceiro</div>
         <div class="topbar-sub" id="nome-parceiro">Carregando...</div>
       </div>
