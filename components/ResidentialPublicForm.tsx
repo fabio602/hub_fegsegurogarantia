@@ -144,7 +144,7 @@ const ResidentialPublicForm: React.FC = () => {
         <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden bg-areia text-slate-800 custom-scroll">
             <header className="bg-navy text-white border-b-4 border-gold">
                 <div className="max-w-3xl mx-auto px-5 py-8 flex flex-col sm:flex-row sm:items-center gap-6">
-                    <img src="/logo.svg" alt="F&G Corretora" className="h-16 w-auto object-contain" />
+                    <img src="/marca/fg-logo-horizontal-bege.svg" alt="F&G Seguro Garantia" className="h-14 w-auto object-contain self-start sm:self-auto" />
                     <div>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-areia">
                             Seguro Residencial / Locatícia

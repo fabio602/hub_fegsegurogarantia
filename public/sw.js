@@ -4,7 +4,9 @@
 // tudo que sobrou do SW anterior. Foi para v2 junto com o aviso de versão
 // nova, porque o v1 servia o index.html do cache antes da rede — quem já
 // tinha o hub aberto ficava uma visita inteira atrasado a cada deploy.
-const CACHE_NAME = 'fg-hub-v2';
+// v3: troca do logo e dos ícones. Imagem é cache-first, então sem trocar o
+// nome do cache o ícone antigo continuaria aparecendo para quem já usava.
+const CACHE_NAME = 'fg-hub-v3';
 const SUPABASE_DOMAIN = 'hfjvwibucplyhsvnwfor.supabase.co';
 
 // Assets estáticos que vão para cache imediatamente
@@ -15,7 +17,8 @@ const PRECACHE_ASSETS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/logo.svg',
+  '/marca/fg-icone.svg',
+  '/marca/fg-logo-horizontal-bege.svg',
 ];
 
 // ── Instalação: pré-cache dos assets principais ──────────────────────────────

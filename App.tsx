@@ -383,7 +383,7 @@ const App: React.FC = () => {
             const name = payload.new?.name ?? payload.new?.phone ?? 'Contato';
             new Notification(`WhatsApp · ${name}`, {
               body: msg.length > 80 ? msg.substring(0, 80) + '…' : msg,
-              icon: '/logo.svg',
+              icon: '/icons/icon-192.png',
             });
           }
         }
@@ -451,7 +451,7 @@ const App: React.FC = () => {
 
   const Logo = () => (
     <div className="flex items-center justify-center">
-      <img src="/logo.svg" alt="F&G Corretora" className="h-20 w-auto object-contain" />
+      <img src="/marca/fg-logo-horizontal-bege.svg" alt="F&G Seguro Garantia" className="h-14 w-auto object-contain" />
     </div>
   );
 
