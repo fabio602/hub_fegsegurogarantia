@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
+import { bccResidencial } from '../_shared/copiasResidencial.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -328,7 +329,8 @@ async function enviar(
     body: JSON.stringify({
       from: 'Fábio — F&G Seguro Garantia <fabio@fegsegurogarantia.com.br>',
       to,
-      bcc: [BCC],
+      // Teste vai só para o Fábio; o envio real copia a equipe do Residencial.
+      bcc: testMode ? [BCC] : await bccResidencial(BCC),
       subject: `${testMode ? '[TESTE] ' : ''}Relatório de Repasse — ${competencia} | F&G Seguro Garantia`,
       html: emailHtml,
       attachments: [{
