@@ -1085,7 +1085,9 @@ export default function ImobiliariaRepasse() {
     if (c.status_apolice && c.status_apolice !== 'ativo') {
       p.push(STATUS_APOLICE_LABELS[c.status_apolice] || c.status_apolice);
     }
-    if (emAndamento(c)) p.push('Apólice não emitida');
+    // Aprovado sem número de apólice também entra: o card saiu do atendimento,
+    // o repasse já está na cobrança e a apólice ainda não existe.
+    if (emAndamento(c) || !String(c.numero_apolice || '').trim()) p.push('Apólice não emitida');
     return p;
   };
   const precisamAtencao = clientes
@@ -1093,11 +1095,19 @@ export default function ImobiliariaRepasse() {
     .filter(x => x.problemas.length > 0);
   // Fora da tabela de ativos = fora do total mensal e fora do e-mail automático.
   const foraDaCobranca = (c: any) => !ativos.some(a => a.id === c.id);
-  const encerrados = clientes.filter(c => c.status === 'encerrado');
+  // Encerrado é quem saiu de vez: status 'encerrado' ou 'cancelado' (padrão
+  // antigo, usado também para desistência e reprovação) ou uma das saídas no
+  // campo Situação. Antes só contava status 'encerrado' e os gravados como
+  // 'cancelado' não apareciam em lugar nenhum da tela.
+  const ehEncerrado = (c: any) => c.status === 'encerrado' || c.status === 'cancelado' || encerrado(c);
+  const encerrados = clientes
+    .filter(ehEncerrado)
+    .sort((a, b) => String((b as any).kanban_status_em || b.updated_at || b.created_at || '')
+      .localeCompare(String((a as any).kanban_status_em || a.updated_at || a.created_at || '')));
   // Repasse quitado sai da tabela de ativos. Enquanto a baixa puder ser
   // desfeita ele fica à vista aqui, senão um clique errado em Quitar Repasse
   // só teria conserto pela busca.
-  const quitados = clientes.filter(c => (c as any).is_repasse !== true && c.repasse_baixa_anterior && c.status !== 'encerrado');
+  const quitados = clientes.filter(c => (c as any).is_repasse !== true && c.repasse_baixa_anterior && !ehEncerrado(c));
   const totalMensal = ativos.reduce((s, c) => s + Number(c.valor_seguro), 0);
 
   // Busca em TODOS os clientes, não só nos ativos.
@@ -1654,7 +1664,10 @@ export default function ImobiliariaRepasse() {
           // renovação e espera a resposta da imobiliária no portal. Quando ela
           // responde, o cadastro passa para Pendências do portal (no topo).
           { key: 'renovacao',            label: 'Renovação: aguardando imobiliária', accent: '#b45309', labelColor: '#b45309' },
-          { key: 'recusado',             label: 'Recusado',             accent: '#9b1c1c', labelColor: '#9b1c1c' },
+          // Não existe coluna de recusado: cadastro encerrado (desistiu, reprovado,
+          // cancelado, saiu do imóvel) sai da pipeline na hora e fica na aba
+          // Quitados e encerrados com o motivo. kanban_status = 'recusado' continua
+          // sendo gravado, só não é exibido aqui.
         ];
         return (
           <div>
@@ -1663,9 +1676,9 @@ export default function ImobiliariaRepasse() {
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
-            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(160px, 1fr))', gap: '10px' }}>
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(160px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
-                // Etapas em andamento aparecem sempre; Aprovado e Recusado por 3 dias,
+                // Etapas em andamento aparecem sempre; Aprovado por 3 dias,
                 // contados de quando o card ENTROU na etapa (kanban_status_em).
                 // Antes contava da criação do pedido: aprovar um pedido com mais de
                 // 3 dias fazia o card sumir na hora.
@@ -2105,17 +2118,43 @@ export default function ImobiliariaRepasse() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <button onClick={() => setShowEncerrados(e => !e)}
             className="w-full flex items-center justify-between px-7 py-4 hover:bg-slate-50 transition-colors">
-            <p className="font-bold text-slate-500 text-sm">{encerrados.length} cliente(s) encerrado(s)</p>
+            <p className="font-bold text-slate-500 text-sm">{encerrados.length} cliente(s) encerrado(s)<span className="font-semibold text-slate-400"> · clique para abrir o cadastro</span></p>
             {showEncerrados ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
           </button>
           {showEncerrados && (
             <div className="border-t border-slate-100">
-              {encerrados.map(c => (
-                <div key={c.id} className="flex items-center justify-between px-7 py-3 border-b border-slate-50 opacity-50">
-                  <span className="text-sm font-bold text-slate-600">{c.inquilino_nome}</span>
-                  <span className="text-xs text-slate-400">{c.seguradora} · {c.numero_apolice} · {fmtBRL(Number(c.valor_seguro))} · {c.total_parcelas}/{c.total_parcelas}</span>
-                </div>
-              ))}
+              {encerrados.map(c => {
+                // Motivo da saída: a situação gravada no cadastro, com a mesma cor
+                // do campo Situação. Sem situação de saída, vale o status geral.
+                const sa = (c as any).status_apolice;
+                const saida = SITUACOES_ENCERRAMENTO.find(x => x.valor === sa);
+                const motivo = saida?.rotulo || STATUS_APOLICE_LABELS[sa] || (c.status === 'cancelado' ? 'Cancelado' : 'Encerrado');
+                const quando = (c as any).kanban_status_em || c.updated_at;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => openEditStatus(c)}
+                    title="Abrir o cadastro"
+                    className="w-full flex items-center justify-between gap-3 flex-wrap px-7 py-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-bold text-[13px] text-navy">{c.inquilino_nome}</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {[c.seguradora, c.numero_apolice || 'sem apólice emitida', quando ? `atualizado em ${fmtDataISO(String(quando).slice(0, 10))}` : ''].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                    <span
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-xl shrink-0"
+                      style={saida
+                        ? { color: saida.cor, background: saida.bg, border: `1px solid ${saida.borda}` }
+                        : { color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                    >
+                      {motivo}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -2509,7 +2548,9 @@ export default function ImobiliariaRepasse() {
                     <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
                     <option value="aguardando_cliente">👤 Aguardando o Cliente</option>
                     <option value="aprovado">✅ Aprovado</option>
-                    <option value="recusado">❌ Recusado</option>
+                    {/* Encerrar é pelo campo Situação abaixo, que também tira da carteira
+                        e do repasse. Aqui só aparece para exibir quem já está encerrado. */}
+                    {editStatusForm.kanban_status === 'recusado' && <option value="recusado" disabled>Encerrado</option>}
                   </select>
                 </div>
                 <div>
@@ -2533,7 +2574,7 @@ export default function ImobiliariaRepasse() {
               {VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice) && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] font-bold text-amber-700">
                   <AlertTriangle size={13} className="mt-px shrink-0" />
-                  <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card vai para <strong>Recusado</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
+                  <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card sai da pipeline e vai para <strong>Quitados e encerrados</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
                 </div>
               )}
               {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (

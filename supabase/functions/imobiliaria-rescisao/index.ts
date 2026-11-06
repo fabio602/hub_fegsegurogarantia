@@ -17,6 +17,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { bccResidencial } from '../_shared/copiasResidencial.ts';
 
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -105,12 +106,15 @@ serve(async (req) => {
         </div>
       </div>`;
 
+    const copias = (await bccResidencial(FABIO_EMAIL)).filter(e => e !== FABIO_EMAIL);
     const envio = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_KEY}` },
       body: JSON.stringify({
         from: 'F&G Seguro Garantia <contato@fegsegurogarantia.com.br>',
         to: [FABIO_EMAIL],
+        // Cópia para quem cuida do Residencial (lista em residencial_config).
+        ...(copias.length > 0 ? { bcc: copias } : {}),
         subject: `🔴 Rescisão solicitada — ${nome} (${parceiro?.name || 'imobiliária'})`,
         html,
       }),
