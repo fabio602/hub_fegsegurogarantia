@@ -62,6 +62,9 @@ const colorToHeader = (colorKey: string) => {
 // Elas precisam existir em todo Kanban, senão os leads movidos por status
 // sumiriam da tela; por isso são fundidas na configuração salva do usuário.
 const REQUIRED_COLUMNS: KanbanColumn[] = [
+    // Participantes que não venceram a licitação (migração 137), criados pela
+    // tarefa noturna que lê as propostas: lead de prioridade menor.
+    { id: '2ª opção', title: '2ª opção (participantes)', color: 'fg_blue_2', protected: true },
     { id: 'Em contato', title: 'Em contato', color: 'fg_gold_1', protected: true },
     // Leads do garimpo com telefone mas sem e-mail: a Bruna trabalha manualmente.
     { id: 'Contato por WhatsApp', title: 'Contato por WhatsApp', color: 'fg_gold_2', protected: true },
@@ -2283,12 +2286,21 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                         })()}
 
                                         {/* Grupo PNCP: homologação, valor homologado e edital */}
-                                        {prospect.source === 'pncp_auto' && (() => {
+                                        {(prospect.source === 'pncp_auto' || prospect.source === 'pncp_participante') && (() => {
+                                            const participante = prospect.source === 'pncp_participante';
                                             const dias = diasDesdeData(prospect.data_homologacao);
                                             const linkEdital = urlEditalPncp(prospect.numero_licitacao);
                                             const valorHomologado = Number(prospect.valor_contrato) || 0;
                                             return (
                                                 <div className="flex flex-col gap-1.5">
+                                                    {participante && (
+                                                        <span
+                                                            className="self-start inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200"
+                                                            title="Participou desta licitação e não venceu: lead de 2ª opção"
+                                                        >
+                                                            2ª opção · participou sem vencer
+                                                        </span>
+                                                    )}
                                                     {dias !== null ? (
                                                         <span
                                                             className={`self-start inline-flex text-[10px] font-bold px-2 py-0.5 rounded-md border ${classeSeloHomologacao(dias)}`}
@@ -2307,7 +2319,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     <div className="flex items-center justify-between gap-2 min-w-0">
                                                         {valorHomologado > 0 ? (
                                                             <span className="text-[11px] text-slate-600 truncate" title={prospect.orgao_licitante || undefined}>
-                                                                {dias !== null ? 'Homologado' : 'Contrato'} {formatCurrency(valorHomologado)}
+                                                                {participante ? 'Proposta' : dias !== null ? 'Homologado' : 'Contrato'} {formatCurrency(valorHomologado)}
                                                             </span>
                                                         ) : <span />}
                                                         {linkEdital && (
