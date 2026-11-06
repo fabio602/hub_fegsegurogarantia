@@ -311,7 +311,7 @@
 
     /* ── KANBAN ── */
     .kanban-scroll { overflow-x: auto; padding-bottom: 12px; margin: 0 -4px; }
-    .kanban-wrap { display: grid; grid-template-columns: repeat(6, minmax(165px, 1fr)); gap: 12px; padding: 0 4px; align-items: flex-start; min-width: 980px; }
+    .kanban-wrap { display: grid; grid-template-columns: repeat(5, minmax(165px, 1fr)); gap: 12px; padding: 0 4px; align-items: flex-start; min-width: 820px; }
     .kanban-col { background: rgba(255,255,255,.62); border-radius: var(--r); padding: 15px; border: 1px solid var(--line); border-top: 3px solid var(--line); }
     .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; padding: 0 2px; }
     .kanban-col-title { font-size: 12.5px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; }
@@ -767,13 +767,6 @@
         <span class="kanban-count" id="k-count-aprovado">0</span>
       </div>
       <div id="k-col-aprovado"><div class="kanban-empty">Nenhum</div></div>
-    </div>
-    <div class="kanban-col col-recusado">
-      <div class="kanban-col-header">
-        <span class="kanban-col-title"><i class="ponto"></i>Recusado</span>
-        <span class="kanban-count" id="k-count-recusado">0</span>
-      </div>
-      <div id="k-col-recusado"><div class="kanban-empty">Nenhum</div></div>
     </div>
   </div>
   </div>
@@ -1992,16 +1985,19 @@
     { key: 'aguardando_seguradora',id:'seguradora',   label: '<svg class="ico ico-inline"><use href="#i-relogio"/></svg> Aguardando Seguradora' },
     { key: 'aguardando_cliente',  id: 'cliente',      label: 'Aguardando o Cliente' },
     { key: 'aprovado',            id: 'aprovado',     label: '<svg class="ico ico-inline"><use href="#i-check"/></svg> Aprovado' },
-    { key: 'recusado',            id: 'recusado',     label: '<svg class="ico ico-inline"><use href="#i-x"/></svg> Recusado' },
   ];
 
   function renderKanban(cs) {
     const tresDiasAtras = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-    // Kanban: pending always | approved/rejected only if < 3 days old
+    // Etapas em andamento aparecem sempre; Aprovado por 3 dias contados de
+    // quando o card entrou na etapa (kanban_status_em), igual ao HUB. Contar da
+    // criação do pedido escondia na hora quem era aprovado depois de 3 dias.
+    // Cadastro encerrado (desistiu, reprovado, cancelado) não tem coluna: sai
+    // do quadro e aparece na carteira com o motivo.
     const kanbanCs = cs.filter(c => {
       const status = c.kanban_status || 'solicitado';
       if (['solicitado','atendimento_iniciado','aguardando_seguradora','aguardando_cliente'].includes(status)) return true;
-      return new Date(c.created_at) >= tresDiasAtras;
+      return new Date(c.kanban_status_em || c.created_at) >= tresDiasAtras;
     });
     KANBAN_COLS.forEach(col => {
       try {

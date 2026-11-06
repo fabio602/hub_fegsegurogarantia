@@ -1654,7 +1654,10 @@ export default function ImobiliariaRepasse() {
           // renovação e espera a resposta da imobiliária no portal. Quando ela
           // responde, o cadastro passa para Pendências do portal (no topo).
           { key: 'renovacao',            label: 'Renovação: aguardando imobiliária', accent: '#b45309', labelColor: '#b45309' },
-          { key: 'recusado',             label: 'Recusado',             accent: '#9b1c1c', labelColor: '#9b1c1c' },
+          // Não existe coluna de recusado: cadastro encerrado (desistiu, reprovado,
+          // cancelado, saiu do imóvel) sai da pipeline na hora e fica na aba
+          // Quitados e encerrados com o motivo. kanban_status = 'recusado' continua
+          // sendo gravado, só não é exibido aqui.
         ];
         return (
           <div>
@@ -1663,9 +1666,9 @@ export default function ImobiliariaRepasse() {
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
-            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(160px, 1fr))', gap: '10px' }}>
+            <div className="flex gap-2 pb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(160px, 1fr))', gap: '10px' }}>
               {KANBAN_COLS.map(col => {
-                // Etapas em andamento aparecem sempre; Aprovado e Recusado por 3 dias,
+                // Etapas em andamento aparecem sempre; Aprovado por 3 dias,
                 // contados de quando o card ENTROU na etapa (kanban_status_em).
                 // Antes contava da criação do pedido: aprovar um pedido com mais de
                 // 3 dias fazia o card sumir na hora.
@@ -2509,7 +2512,9 @@ export default function ImobiliariaRepasse() {
                     <option value="aguardando_seguradora">⏳ Aguardando Seguradora</option>
                     <option value="aguardando_cliente">👤 Aguardando o Cliente</option>
                     <option value="aprovado">✅ Aprovado</option>
-                    <option value="recusado">❌ Recusado</option>
+                    {/* Encerrar é pelo campo Situação abaixo, que também tira da carteira
+                        e do repasse. Aqui só aparece para exibir quem já está encerrado. */}
+                    {editStatusForm.kanban_status === 'recusado' && <option value="recusado" disabled>Encerrado</option>}
                   </select>
                 </div>
                 <div>
@@ -2533,7 +2538,7 @@ export default function ImobiliariaRepasse() {
               {VALORES_ENCERRAMENTO.includes(editStatusForm.status_apolice) && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] font-bold text-amber-700">
                   <AlertTriangle size={13} className="mt-px shrink-0" />
-                  <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card vai para <strong>Recusado</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
+                  <span>Encerra o cadastro: sai da carteira ativa do portal da imobiliária, o card sai da pipeline e vai para <strong>Quitados e encerrados</strong>, o repasse é desmarcado e o Residencial recebe <strong>{SITUACOES_ENCERRAMENTO.find(s => s.valor === editStatusForm.status_apolice)?.rotulo}</strong>.</span>
                 </div>
               )}
               {['emitido','aprovado'].includes(editStatusForm.status_residencial) && (
