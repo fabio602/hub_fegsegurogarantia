@@ -1,8 +1,9 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Gavel, Clock, FileSearch, CircleAlert, Minus } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters.ts';
+import { ROTULO_ETAPA, hojeSaoPaulo, rotuloDia } from '../../../lib/contatoLead.ts';
 import {
-  DOSSIE_LABEL, POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao, telefoneEfetivo,
+  DOSSIE_LABEL, ETAPA_CLASSES, POR_PAGINA, STATUS_CLASSES, STATUS_LABEL, formatCnpj, formatDataBr, nomeExibicao, telefoneEfetivo,
   type RadarEmpresa,
 } from './radarTipos.ts';
 
@@ -59,6 +60,29 @@ export function DossieIcone({ empresa }: { empresa: Pick<RadarEmpresa, 'dossie_s
   return <span className={`${base} text-slate-400`} title={titulo} aria-label={titulo}><Minus size={13} aria-hidden="true" /></span>;
 }
 
+/**
+ * Situação na lista: descartado/excluído mostram o status; os demais mostram
+ * a etapa da abordagem e o próximo contato (amber quando é hoje ou atrasado).
+ */
+export function SituacaoCelula({ empresa }: { empresa: RadarEmpresa }) {
+  if (empresa.status !== 'novo') return <StatusBadge status={empresa.status} />;
+  if (!empresa.etapa) return <span className="text-[11px] text-slate-500">Não iniciada</span>;
+  const encerrado = empresa.etapa === 'ganho' || empresa.etapa === 'perdido';
+  const vencido = !encerrado && !!empresa.proximo_passo && empresa.proximo_passo <= hojeSaoPaulo();
+  return (
+    <span className="inline-flex flex-col items-start gap-0.5">
+      <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${ETAPA_CLASSES[empresa.etapa]}`}>
+        {ROTULO_ETAPA[empresa.etapa]}
+      </span>
+      {!encerrado && empresa.proximo_passo && (
+        <span className={`text-[10px] font-bold whitespace-nowrap ${vencido ? 'text-amber-800' : 'text-slate-500'}`}>
+          {vencido ? 'Retomar ' : 'Próx. '}{rotuloDia(empresa.proximo_passo)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 const th = 'px-3 py-3 whitespace-nowrap';
 const td = 'px-3 py-2.5 align-middle';
 
@@ -86,7 +110,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
               <th scope="col" className={th}>Mais recente</th>
               <th scope="col" className={th}>Porte</th>
               <th scope="col" className={`${th} text-center`} title="Dossiê do PJe TRF3: execuções/embargos">Dossiê</th>
-              <th scope="col" className={`${th} pr-5`}>Status</th>
+              <th scope="col" className={`${th} pr-5`}>Abordagem</th>
             </tr>
           </thead>
           <tbody>
@@ -147,7 +171,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
                   <td className={`${td} tabular-nums text-slate-700 whitespace-nowrap`}>{formatDataBr(e.data_inscricao_mais_recente)}</td>
                   <td className={`${td} text-[11px] text-slate-700 whitespace-nowrap`}>{e.porte ?? ''}</td>
                   <td className={`${td} text-center`}><DossieIcone empresa={e} /></td>
-                  <td className={`${td} pr-5`}><StatusBadge status={e.status} /></td>
+                  <td className={`${td} pr-5`}><SituacaoCelula empresa={e} /></td>
                 </tr>
               );
             })}

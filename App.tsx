@@ -937,7 +937,7 @@ const App: React.FC = () => {
               {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {vista === 'posvenda' && <Carteira />}
               {vista === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
-              {vista === 'radar' && <RadarView onAbrirKanban={() => navigate('prospeccao')} />}
+              {vista === 'radar' && <RadarView />}
               {vista === 'radar-advogados' && <RadarAdvogadosView />}
               {vista === 'prospeccao-email' && <ProspeccaoEmail />}
               {vista === 'email-trilhas' && <EmailTrilhas />}
