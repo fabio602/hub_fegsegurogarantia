@@ -1085,7 +1085,9 @@ export default function ImobiliariaRepasse() {
     if (c.status_apolice && c.status_apolice !== 'ativo') {
       p.push(STATUS_APOLICE_LABELS[c.status_apolice] || c.status_apolice);
     }
-    if (emAndamento(c)) p.push('Apólice não emitida');
+    // Aprovado sem número de apólice também entra: o card saiu do atendimento,
+    // o repasse já está na cobrança e a apólice ainda não existe.
+    if (emAndamento(c) || !String(c.numero_apolice || '').trim()) p.push('Apólice não emitida');
     return p;
   };
   const precisamAtencao = clientes
