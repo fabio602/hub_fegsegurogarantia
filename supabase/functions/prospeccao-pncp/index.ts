@@ -1065,6 +1065,9 @@ async function coletarHomologacoes(
       vencedor_nome: principal.nome,
       vencedor_porte: principal.porte,
       material_ou_servico: principal.materialOuServico,
+      // Todos os vencedores, cada um com o valor que levou (migração 138).
+      // Licitação por itens pode ter vários; cada um vira lead com o próprio valor.
+      vencedores: vencedores.map((v) => ({ cnpj: v.cnpj, nome: v.nome, valor: v.valor, porte: v.porte, material_ou_servico: v.materialOuServico })),
       ...(dataResultado ? { homologado_em: dataResultado } : {}),
       ...(resultadoAntigo
         ? { descartado_em: new Date().toISOString(), descartado_motivo: `Resultado antigo (publicado em ${dataResultado})` }
@@ -1116,7 +1119,10 @@ async function coletarHomologacoes(
   // CNPJs cujo e-mail ja foi consultado e nao existe: pular para sempre.
   const semEmailDefinitivo = new Set<string>();
   {
-    const cnpjsProntos: string[] = prontos.map((p) => String((p as { vencedor_cnpj: string }).vencedor_cnpj));
+    const cnpjsProntos: string[] = prontos.flatMap((p) => {
+      const salvos = Array.isArray(p.vencedores) ? (p.vencedores as { cnpj?: string }[]) : [];
+      return salvos.length ? salvos.map((v) => cleanCnpj(String(v.cnpj ?? ''))) : [String((p as { vencedor_cnpj: string }).vencedor_cnpj)];
+    });
     const cnpjs = [...new Set(cnpjsProntos)].filter((c) => !conhecidos.has(c));
     for (let i = 0; i < cnpjs.length; i += 200) {
       const { data } = await supabase.from('prospeccao_pncp_cnpj_cache')
@@ -1138,37 +1144,48 @@ async function coletarHomologacoes(
 
   for (const p of prontos) {
     marcarEnfileirado.push(Number(p.id));
-    const cnpj = String(p.vencedor_cnpj ?? '');
-    if (cnpj.length !== 14) continue;
-    if (conhecidos.has(cnpj) || semEmailDefinitivo.has(cnpj) || jaEnfileirados.has(cnpj) || vistos.has(cnpj)) continue;
-    vistos.add(cnpj);
+    // Lista de vencedores gravada pela migração 138. Linhas antigas (sem a
+    // lista) seguem o comportamento anterior: só o vencedor principal, com o
+    // valor homologado da licitação inteira.
+    type VencedorSalvo = { cnpj?: string; nome?: string; valor?: number; porte?: string; material_ou_servico?: string };
+    const salvos = Array.isArray(p.vencedores) ? (p.vencedores as VencedorSalvo[]) : [];
+    const lista: VencedorSalvo[] = salvos.length
+      ? salvos
+      : [{ cnpj: String(p.vencedor_cnpj ?? ''), nome: String(p.vencedor_nome ?? ''), porte: String(p.vencedor_porte ?? ''), material_ou_servico: String(p.material_ou_servico ?? '') }];
+    for (const v of lista) {
+      const cnpj = cleanCnpj(String(v.cnpj ?? ''));
+      if (cnpj.length !== 14) continue;
+      if (conhecidos.has(cnpj) || semEmailDefinitivo.has(cnpj) || jaEnfileirados.has(cnpj) || vistos.has(cnpj)) continue;
+      vistos.add(cnpj);
+      const valorVencedor = Number(v.valor ?? 0) || 0;
 
-    const contrato: Contrato = {
-      cnpj,
-      razaoPncp: String(p.vencedor_nome ?? ''),
-      orgao: String(p.orgao_nome ?? ''),
-      objeto: String(p.objeto ?? ''),
-      valor: Number(p.valor_homologado ?? 0),
-      numeroLicitacao: String(p.numero_controle_pncp ?? ''),
-      municipio: String(p.municipio ?? ''),
-      uf: String(p.uf ?? ''),
-      processo: String(p.situacao ?? ''),
-      numeroControlePncp: String(p.numero_controle_pncp ?? ''),
-      dataHomologacao: String(p.homologado_em ?? ''),
-      modalidade: String(p.modalidade_nome ?? ''),
-      termos: (p.termos as string[]) ?? [],
-      porte: String(p.vencedor_porte ?? ''),
-      materialOuServico: String(p.material_ou_servico ?? ''),
-      prioritario: p.prioritario === true,
-    };
+      const contrato: Contrato = {
+        cnpj,
+        razaoPncp: String(v.nome ?? ''),
+        orgao: String(p.orgao_nome ?? ''),
+        objeto: String(p.objeto ?? ''),
+        valor: valorVencedor > 0 ? valorVencedor : Number(p.valor_homologado ?? 0),
+        numeroLicitacao: String(p.numero_controle_pncp ?? ''),
+        municipio: String(p.municipio ?? ''),
+        uf: String(p.uf ?? ''),
+        processo: String(p.situacao ?? ''),
+        numeroControlePncp: String(p.numero_controle_pncp ?? ''),
+        dataHomologacao: String(p.homologado_em ?? ''),
+        modalidade: String(p.modalidade_nome ?? ''),
+        termos: (p.termos as string[]) ?? [],
+        porte: String(v.porte ?? ''),
+        materialOuServico: String(v.material_ou_servico ?? ''),
+        prioritario: p.prioritario === true,
+      };
 
-    filaRows.push({
-      execucao_id: execId,
-      ordem: ++ordem,
-      cnpj,
-      contrato,
-      data_referencia: dataRef,
-    });
+      filaRows.push({
+        execucao_id: execId,
+        ordem: ++ordem,
+        cnpj,
+        contrato,
+        data_referencia: dataRef,
+      });
+    }
   }
 
   for (let i = 0; i < filaRows.length; i += 500) {
