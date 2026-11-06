@@ -316,12 +316,15 @@ const STATUS_ARQUIVO_PNCP = 'Arquivo PNCP';
 // Também não é coluna: fica sempre fora do quadro.
 const STATUS_ARQUIVO_GARIMPO = 'Arquivo Garimpo';
 const statusArquivado = (s?: string | null) => s === STATUS_ARQUIVO_PNCP || s === STATUS_ARQUIVO_GARIMPO;
-async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]> {
+async function buscarTodosProspects<T = Prospect>(
+    colunas: string,
+    filtro?: (q: any) => any,
+): Promise<T[]> {
     const todos: T[] = [];
     for (let de = 0; ; de += PAGINA_PROSPECTS) {
-        const { data, error } = await supabase
-            .from('prospects')
-            .select(colunas)
+        let q: any = supabase.from('prospects').select(colunas);
+        if (filtro) q = filtro(q);
+        const { data, error } = await q
             .order('created_at', { ascending: false })
             .order('id', { ascending: true }) // desempate estável entre páginas
             .range(de, de + PAGINA_PROSPECTS - 1);
@@ -928,11 +931,23 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const fetchProspects = async () => {
-        setLoading(true);
+    // O quadro carrega só os leads ativos. Os arquivados (Garimpo e PNCP) eram
+    // mais de 80% das linhas e deixavam toda atualização lenta; o arquivo PNCP
+    // só vem quando a caixa "Ver arquivo PNCP" está marcada.
+    const verArquivoPncpRef = useRef(false);
+    const [qtdArquivoPncp, setQtdArquivoPncp] = useState(0);
+    const fetchProspects = async (opcoes?: { silencioso?: boolean }) => {
+        if (!opcoes?.silencioso) setLoading(true);
         try {
-            const data = await buscarTodosProspects<Prospect>('*');
+            const fora = verArquivoPncpRef.current
+                ? `("${STATUS_ARQUIVO_GARIMPO}")`
+                : `("${STATUS_ARQUIVO_GARIMPO}","${STATUS_ARQUIVO_PNCP}")`;
+            const [data, contagem] = await Promise.all([
+                buscarTodosProspects<Prospect>('*', (q) => q.or(`status.is.null,status.not.in.${fora}`)),
+                supabase.from('prospects').select('id', { count: 'exact', head: true }).eq('status', STATUS_ARQUIVO_PNCP),
+            ]);
             setProspects(data);
+            if (typeof contagem.count === 'number') setQtdArquivoPncp(contagem.count);
             // Fallback: quando não há "tempo na coluna" salvo em memória,
             // usamos `status_entered_at` (quando existir) senão `created_at` apenas para não ficar vazio.
             setLeadEnteredAtMs(prev => {
@@ -950,9 +965,64 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         } catch (error) {
             console.error('Error fetching prospects:', error);
         } finally {
-            setLoading(false);
+            if (!opcoes?.silencioso) setLoading(false);
         }
     };
+
+    // Marcar/desmarcar "Ver arquivo PNCP" busca de novo, com ou sem o arquivo.
+    useEffect(() => {
+        if (verArquivoPncpRef.current === verArquivoPncp) return;
+        verArquivoPncpRef.current = verArquivoPncp;
+        fetchProspects({ silencioso: true });
+    }, [verArquivoPncp]);
+
+    // Tempo real: quando outra pessoa move um card, registra um toque, cria
+    // lembrete ou mexe nas colunas, o quadro de todos se atualiza sozinho em
+    // poucos segundos, sem F5. As mudanças chegam em rajada (mover vários
+    // cards), então junta tudo em uma recarga só. Durante o arraste a recarga
+    // espera, para o card não pular da mão.
+    const arrastandoRef = useRef(false);
+    const recargaPendenteRef = useRef<{ leads: boolean; toques: boolean; tarefas: boolean; colunas: boolean }>(
+        { leads: false, toques: false, tarefas: false, colunas: false });
+    const timerRecargaRef = useRef<number | null>(null);
+    const executarRecarga = () => {
+        timerRecargaRef.current = null;
+        if (arrastandoRef.current) { agendarRecarga(); return; }
+        const p = recargaPendenteRef.current;
+        recargaPendenteRef.current = { leads: false, toques: false, tarefas: false, colunas: false };
+        if (p.leads) fetchProspects({ silencioso: true });
+        if (p.toques) fetchToques();
+        if (p.tarefas) fetchTasks();
+        if (p.colunas) recarregarColunasRef.current?.();
+    };
+    const agendarRecarga = (o?: Partial<{ leads: boolean; toques: boolean; tarefas: boolean; colunas: boolean }>) => {
+        if (o) recargaPendenteRef.current = { ...recargaPendenteRef.current, ...Object.fromEntries(Object.entries(o).filter(([, v]) => v)) };
+        if (timerRecargaRef.current !== null) return;
+        timerRecargaRef.current = window.setTimeout(executarRecarga, 1500);
+    };
+    const recarregarColunasRef = useRef<(() => void) | null>(null);
+    recarregarColunasRef.current = recarregarColunas;
+    arrastandoRef.current = isDragging;
+    useEffect(() => {
+        const canal = supabase
+            .channel('kanban-leads')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'prospects' }, () => agendarRecarga({ leads: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'prospect_toques' }, () => agendarRecarga({ toques: true, leads: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_tasks' }, () => agendarRecarga({ tarefas: true }))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'kanban_colunas' }, () => agendarRecarga({ colunas: true }))
+            .subscribe();
+        // Rede de segurança: ao voltar para a aba (ou se o tempo real cair),
+        // atualiza tudo de uma vez.
+        const aoVoltar = () => {
+            if (document.visibilityState === 'visible') agendarRecarga({ leads: true, toques: true, tarefas: true });
+        };
+        document.addEventListener('visibilitychange', aoVoltar);
+        return () => {
+            document.removeEventListener('visibilitychange', aoVoltar);
+            if (timerRecargaRef.current !== null) window.clearTimeout(timerRecargaRef.current);
+            supabase.removeChannel(canal);
+        };
+    }, []);
 
     /** Resumo dos toques por lead, a partir de prospect_toques. */
     const montarToques = (linhas: LinhaToque[]) => {
@@ -2944,7 +3014,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
                         />
                         <span className="text-[12px] font-bold text-slate-600">
-                            Ver arquivo PNCP ({prospects.filter(p => p.status === STATUS_ARQUIVO_PNCP).length})
+                            Ver arquivo PNCP ({qtdArquivoPncp})
                         </span>
                     </label>
                 )}
