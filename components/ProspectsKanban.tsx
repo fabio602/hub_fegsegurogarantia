@@ -308,6 +308,11 @@ function telefonesDoLead(p: Prospect): { validos: TelefoneLead[]; temInvalido: b
 // Status de quem saiu do quadro pelo arquivamento automático (migração 118).
 // Não é coluna do Kanban: o filtro principal esconde esses leads.
 const STATUS_ARQUIVO_PNCP = 'Arquivo PNCP';
+// Leads de garimpo (energia, imobiliárias, consultores) tirados do quadro em
+// 06/11/2026 (migração 136), quando a prospecção passou a focar no PNCP.
+// Também não é coluna: fica sempre fora do quadro.
+const STATUS_ARQUIVO_GARIMPO = 'Arquivo Garimpo';
+const statusArquivado = (s?: string | null) => s === STATUS_ARQUIVO_PNCP || s === STATUS_ARQUIVO_GARIMPO;
 async function buscarTodosProspects<T = Prospect>(colunas: string): Promise<T[]> {
     const todos: T[] = [];
     for (let de = 0; ; de += PAGINA_PROSPECTS) {
@@ -2106,7 +2111,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
         const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
         const verArquivo = verArquivoPncp && modo === 'equipe';
-        const matchesArquivo = verArquivo ? p.status === STATUS_ARQUIVO_PNCP : p.status !== STATUS_ARQUIVO_PNCP;
+        const matchesArquivo = verArquivo ? p.status === STATUS_ARQUIVO_PNCP : !statusArquivado(p.status);
         const matchesEncerrado = verEncerrados ? leadEncerrado(p) : !leadEncerrado(p);
         return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo && matchesEncerrado;
     });
@@ -3089,7 +3094,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                     // Todos os leads da pessoa, em qualquer coluna (inclusive as dela por etapa).
                                     const dono = column.responsavel_email.toLowerCase();
                                     const dele = prospects.filter(p => (p.responsavel_email || '').toLowerCase() === dono
-                                        && !leadEncerrado(p) && p.status !== STATUS_ARQUIVO_PNCP);
+                                        && !leadEncerrado(p) && !statusArquivado(p.status));
                                     const por = (e: EtapaLead) => dele.filter(p => (p.etapa || 'contatar') === e).length;
                                     const hojeIso = hojeSaoPaulo();
                                     const atrasados = dele.filter(p => !!p.proximo_passo && p.proximo_passo.slice(0, 10) < hojeIso).length;
