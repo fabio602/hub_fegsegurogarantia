@@ -668,8 +668,6 @@ const App: React.FC = () => {
                 isGroupActive={RESIDENCIAL_VIEWS.includes(activeView)}
               >
                 <NavSubItem view="residential" label="Registro de Vendas" badge={badges.vencimentos} />
-                <NavSubItem view="residencial-seguradoras" label="Seguradoras" />
-                <NavSubItem view="residencial-garantidoras" label="Garantidoras" />
                 <NavSubItem view="imobiliaria-repasse" label="Repasse Imobiliárias" badge={badges.imobiliaria} />
                 <FeatureTip
                   id="garantia-calc-2026"
@@ -679,7 +677,6 @@ const App: React.FC = () => {
                 >
                   <NavSubItem view="garantia-locaticia" label="Garantia Locatícia" />
                 </FeatureTip>
-                <NavSubItem view="inadimplentes" label="Inadimplentes" />
               </NavGroup>
               )}
 
