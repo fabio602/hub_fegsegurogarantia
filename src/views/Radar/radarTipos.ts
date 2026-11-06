@@ -6,6 +6,8 @@
  * radar_pje_fila (migração 079).
  */
 
+import type { EtapaLead, MotivoPerda, ResultadoContato } from '../../../types.ts';
+
 export type RadarStatus = 'novo' | 'excluido' | 'enviado_kanban' | 'descartado';
 export type DossieStatus = 'nenhum' | 'fila' | 'pronto' | 'sem_processos' | 'erro';
 export type GarantiaInformada = 'seguro' | 'penhora' | 'deposito' | 'fianca' | 'nenhuma' | 'nao_sei';
@@ -64,7 +66,63 @@ export interface RadarEmpresa {
   contato_manual_atualizado_em?: string | null;
   telefone_efetivo?: string | null;
   email_efetivo?: string | null;
+  // Abordagem no próprio Radar (migração 134). etapa nula = não iniciada.
+  responsavel_email?: string | null;
+  responsavel_em?: string | null;
+  etapa?: EtapaLead | null;
+  proximo_passo?: string | null;
+  motivo_perda?: MotivoPerda | null;
+  encerrado_em?: string | null;
+  ultimo_toque_em?: string | null;
 }
+
+export type FalouCom = 'empresa' | 'advogado' | 'contador' | 'outro';
+
+export const FALOU_COM_LABEL: Record<FalouCom, string> = {
+  empresa: 'Empresa',
+  advogado: 'Advogado',
+  contador: 'Contador',
+  outro: 'Outro',
+};
+
+/** Contato registrado na abordagem (tabela radar_toques). */
+export interface RadarToque {
+  id: string;
+  cnpj: string;
+  canal: 'whatsapp' | 'email' | 'ligacao';
+  resultado: ResultadoContato | null;
+  falou_com: FalouCom | null;
+  nota: string | null;
+  proximo_passo: string | null;
+  autor_email: string | null;
+  created_at: string;
+}
+
+/** Filtro de abordagem da tela: etapas ativas, encerrados ou não iniciados. */
+export type FiltroAbordagem = '' | 'nao_iniciada' | 'ativas' | 'contatar' | 'tentando' | 'conversa' | 'cotacao' | 'encerradas';
+
+export const FILTRO_ABORDAGEM_LABEL: Record<Exclude<FiltroAbordagem, ''>, string> = {
+  nao_iniciada: 'Não iniciada',
+  ativas: 'Em abordagem (todas)',
+  contatar: 'A contatar',
+  tentando: 'Tentando contato',
+  conversa: 'Em conversa',
+  cotacao: 'Cotação',
+  encerradas: 'Encerradas (ganho ou perdido)',
+};
+
+/**
+ * Cor da etapa, pelo mapa semântico: blue informação, amber alerta (tentando
+ * sem resposta), emerald sucesso, slate encerrado sem sucesso. gold nunca.
+ */
+export const ETAPA_CLASSES: Record<EtapaLead, string> = {
+  contatar: 'bg-blue-50 text-blue-700 border-blue-200',
+  tentando: 'bg-amber-50 text-amber-800 border-amber-200',
+  conversa: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  cotacao: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  ganho: 'bg-emerald-600 text-white border-emerald-600',
+  perdido: 'bg-slate-100 text-slate-600 border-slate-200',
+};
 
 /** Telefone a usar: efetivo da view, senão manual, senão o da BrasilAPI. */
 export const telefoneEfetivo = (e: Pick<RadarEmpresa, 'telefone' | 'telefone_manual' | 'telefone_efetivo'>): string | null =>
@@ -149,6 +207,10 @@ export interface RadarFiltros {
   mostrarExcluidos: boolean;
   /** Fase 2: '' = todos. */
   dossie: DossieFiltro;
+  /** Abordagem (migração 134): '' = todas. */
+  abordagem: FiltroAbordagem;
+  /** Só os leads que eu assumi. */
+  meus: boolean;
 }
 
 export const FILTROS_INICIAIS: RadarFiltros = {
@@ -162,6 +224,8 @@ export const FILTROS_INICIAIS: RadarFiltros = {
   receitas: [],
   mostrarExcluidos: false,
   dossie: '',
+  abordagem: '',
+  meus: false,
 };
 
 export const DOSSIE_FILTRO_LABEL: Record<DossieFiltro, string> = {
@@ -252,7 +316,8 @@ export const UFS = [
 ];
 
 /** Status que o usuário escolhe no filtro. Excluído entra só com "mostrar excluídos". */
-export const STATUS_FILTRAVEIS: RadarStatus[] = ['novo', 'enviado_kanban', 'descartado'];
+// enviado_kanban saiu do filtro: os leads do Radar não vão mais ao Kanban (migração 134).
+export const STATUS_FILTRAVEIS: RadarStatus[] = ['novo', 'descartado'];
 
 export const STATUS_LABEL: Record<RadarStatus, string> = {
   novo: 'Novo',
