@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Copy, KanbanSquare, Ban, RotateCcw, Loader2, ExternalLink, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck, CircleAlert, Pencil, Undo2 } from 'lucide-react';
+import { X, Copy, Ban, RotateCcw, Loader2, Mail, Phone, Building2, Users, FileText, Gavel, Scale, ChevronDown, ChevronRight, Search, ShieldCheck, CircleAlert, Pencil, Undo2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { formatCurrency } from '../../../utils/formatters.ts';
 import ModalPortal from '../../../components/ModalPortal.tsx';
 import { useToast } from '../../../components/Toast.tsx';
 import { ScoreBadge, StatusBadge } from './RadarTabela.tsx';
+import RadarAbordagem from './RadarAbordagem.tsx';
 import {
   DOSSIE_CLASSES, DOSSIE_LABEL, GARANTIA_OPCOES, MOTIVO_LABEL, alertaSemAdvogado, classeCurta, dossieAntigo, formatCnpj, formatCompetencia,
   emailEfetivo, formatDataBr, formatDataHoraBr, formatTelefone, inscricaoGarantida, leituraDossie, nomeExibicao, receitasResumo, telefoneEfetivo,
@@ -14,9 +15,8 @@ import {
 interface Props {
   empresa: RadarEmpresa;
   onFechar: () => void;
-  /** Chamado com a linha já atualizada depois de enviar, descartar ou reverter. */
+  /** Chamado com a linha já atualizada depois de registrar contato, descartar ou reverter. */
   onAtualizada: (e: RadarEmpresa) => void;
-  onAbrirKanban: () => void;
 }
 
 const secao = 'text-[10px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5';
@@ -144,10 +144,10 @@ function ContatoEditavel({ rotulo, icone, manual, api, tipo, ocupado, onSalvar, 
  * Vai por ModalPortal porque o wrapper .animate-fade-in do App.tsx cria um
  * bloco de contenção para position: fixed (ver comentário em ModalPortal).
  */
-export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKanban }: Props) {
+export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) {
   const { toast } = useToast();
   const [inscricoes, setInscricoes] = useState<RadarInscricao[] | null>(null);
-  const [salvando, setSalvando] = useState<'kanban' | 'descartar' | 'reverter' | null>(null);
+  const [salvando, setSalvando] = useState<'descartar' | 'reverter' | null>(null);
   const [pedindoMotivo, setPedindoMotivo] = useState(false);
   const [motivo, setMotivo] = useState('');
   // Fase 2: dossiê do PJe
@@ -236,64 +236,6 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
     if (data) onAtualizada(data as RadarEmpresa);
   };
 
-  const enviarKanban = async () => {
-    setSalvando('kanban');
-    try {
-      const socio = empresa.socios?.[0]?.nome ?? null;
-      const nomeEmpresa = empresa.nome_fantasia || empresa.razao_social || empresa.nome_devedor;
-      const descricao = [
-        'Origem: Radar PGFN (dívida ativa da União, ajuizada)',
-        `Valor total inscrito: ${formatCurrency(Number(empresa.valor_total))}`,
-        `Inscrições: ${empresa.qtd_inscricoes}`,
-        `Receitas: ${receitasResumo(empresa.receitas).join(', ') || '-'}`,
-        `Garantia em alguma inscrição: ${empresa.tem_garantia ? 'sim' : 'não'}`,
-        `Competência PGFN: ${formatCompetencia(empresa.competencia_ultima)}`,
-        empresa.cnae_descricao ? `CNAE: ${empresa.cnae_principal} - ${empresa.cnae_descricao}` : '',
-        empresa.porte ? `Porte: ${empresa.porte}` : '',
-        `Score Radar: ${empresa.score}`,
-        // Fase 2: dossiê do PJe, quando houver
-        (empresa.dossie_status === 'pronto' || empresa.dossie_status === 'sem_processos')
-          ? `Execuções fiscais: ${empresa.qtd_execucoes}, Embargos: ${empresa.qtd_embargos}` : '',
-        advogados.length > 0
-          ? `Advogados: ${advogados.map(a => `${a.nome}${a.oab ? ` (${a.oab})` : ''}`).join(', ')}` : '',
-      ].filter(Boolean).join('\n');
-
-      // Mesmo mecanismo da Edge Function lead-cotacao: insert direto em
-      // prospects, coluna "Novos Leads". Só colunas que já existem na tabela.
-      const { data: prospect, error: pErr } = await supabase.from('prospects').insert({
-        name: socio || nomeEmpresa,
-        company: nomeEmpresa,
-        cnpj: formatCnpj(empresa.cnpj),
-        email: emailEfetivo(empresa),
-        phonenumber: telefoneEfetivo(empresa),
-        city: empresa.municipio,
-        state: empresa.uf,
-        status: 'Novos Leads',
-        status_entered_at: new Date().toISOString(),
-        source: 'radar',
-        product_type: 'Seguro Garantia',
-        segmento: empresa.cnae_descricao,
-        decisor: socio,
-        description: descricao,
-        tags: ['radar', 'pgfn'],
-        cnae_principal: empresa.cnae_principal,
-      }).select('id').single();
-      if (pErr || !prospect) throw new Error(pErr?.message ?? 'sem retorno');
-
-      const { error: rErr } = await supabase.from('radar_empresas')
-        .update({ status: 'enviado_kanban', prospect_id: prospect.id, motivo_exclusao: null, atualizado_em: new Date().toISOString() })
-        .eq('cnpj', empresa.cnpj);
-      if (rErr) throw new Error(rErr.message);
-
-      await recarregar();
-      toast('Lead criado em Novos Leads.', 'success');
-    } catch (e) {
-      toast(`Falha ao enviar ao Kanban: ${e instanceof Error ? e.message : e}`, 'error');
-    } finally {
-      setSalvando(null);
-    }
-  };
-
   const descartar = async () => {
     const m = motivo.trim();
     if (!m) { toast('Informe o motivo do descarte.', 'warning'); return; }
@@ -309,7 +251,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
   const reverter = async () => {
     setSalvando('reverter');
     const { error } = await supabase.from('radar_empresas')
-      .update({ status: 'novo', motivo_exclusao: null, prospect_id: null, atualizado_em: new Date().toISOString() })
+      .update({ status: 'novo', motivo_exclusao: null, atualizado_em: new Date().toISOString() })
       .eq('cnpj', empresa.cnpj);
     if (error) toast(`Falha ao reverter: ${error.message}`, 'error');
     else { await recarregar(); toast('Empresa de volta para novo.', 'success'); }
@@ -367,7 +309,6 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
     setSalvandoGarantia(false);
   };
 
-  const enviada = empresa.status === 'enviado_kanban';
   const ocupado = salvando !== null;
   const leitura = leituraDossie(empresa);
   const naFila = empresa.dossie_status === 'fila';
@@ -411,6 +352,8 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
                 {MOTIVO_LABEL[empresa.motivo_exclusao] ?? empresa.motivo_exclusao}
               </p>
             )}
+
+            {empresa.status === 'novo' && <RadarAbordagem empresa={empresa} onRecarregar={recarregar} />}
 
             {/* Dívida */}
             <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -697,18 +640,6 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada, onAbrirKa
               </form>
             )}
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={enviarKanban} disabled={enviada || ocupado}
-                title={enviada ? 'Esta empresa já está no Kanban' : 'Cria um lead em Novos Leads'}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy hover:bg-navy-light text-areia border border-gold/35 text-[11px] font-bold uppercase tracking-wider shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {salvando === 'kanban' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <KanbanSquare size={14} aria-hidden="true" />}
-                {enviada ? 'Já no Kanban' : 'Enviar ao Kanban'}
-              </button>
-              {enviada && (
-                <button type="button" onClick={onAbrirKanban}
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-100 transition-colors">
-                  <ExternalLink size={13} aria-hidden="true" /> Abrir no Kanban
-                </button>
-              )}
               {empresa.status === 'novo' && !pedindoMotivo && (
                 <button type="button" onClick={() => setPedindoMotivo(true)} disabled={ocupado}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-bold uppercase tracking-wider hover:bg-amber-100 disabled:opacity-50 transition-colors">

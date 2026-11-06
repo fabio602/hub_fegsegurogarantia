@@ -3,8 +3,8 @@ import { Search, ShieldCheck, RotateCcw, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase.ts';
 import { REGIOES, municipiosDaRegiao, normalizarMunicipio, regiaoDosMunicipios } from './radarRegioes.ts';
 import {
-  DOSSIE_FILTRO_LABEL, FILTROS_INICIAIS, RECEITAS, STATUS_FILTRAVEIS, STATUS_LABEL, UFS,
-  type DossieFiltro, type RadarFiltros as Filtros, type RadarStatus,
+  DOSSIE_FILTRO_LABEL, FILTRO_ABORDAGEM_LABEL, FILTROS_INICIAIS, RECEITAS, STATUS_FILTRAVEIS, STATUS_LABEL, UFS,
+  type DossieFiltro, type FiltroAbordagem, type RadarFiltros as Filtros, type RadarStatus,
 } from './radarTipos.ts';
 
 interface Props {
@@ -247,6 +247,21 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
               <option key={d || 'todos'} value={d}>{DOSSIE_FILTRO_LABEL[d]}</option>
             ))}
           </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="radar-abordagem" className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Abordagem</label>
+          <select id="radar-abordagem" value={filtros.abordagem} onChange={e => set('abordagem', e.target.value as FiltroAbordagem)}
+            className={`${campo} py-1.5 text-[11px] font-bold cursor-pointer`}>
+            <option value="">Todas</option>
+            {(Object.keys(FILTRO_ABORDAGEM_LABEL) as Exclude<FiltroAbordagem, ''>[]).map(a => (
+              <option key={a} value={a}>{FILTRO_ABORDAGEM_LABEL[a]}</option>
+            ))}
+          </select>
+          <button type="button" aria-pressed={filtros.meus} onClick={() => set('meus', !filtros.meus)}
+            title="Só os leads que você assumiu" className={chip(filtros.meus)}>
+            Meus
+          </button>
         </div>
 
         <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer select-none">

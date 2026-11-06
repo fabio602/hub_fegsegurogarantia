@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Radar, Database, Sparkles, Terminal } from 'lucide-react';
+import { Radar, Database, Sparkles, Terminal, CalendarClock, NotebookPen } from 'lucide-react';
+import { hojeSaoPaulo } from '../../../lib/contatoLead.ts';
 import { supabase } from '../../../lib/supabase.ts';
 import { useToast } from '../../../components/Toast.tsx';
 import RadarFiltros from './RadarFiltros.tsx';
@@ -15,21 +16,26 @@ interface Resumo {
   competencia: string | null;
   porStatus: Record<RadarStatus, number>;
   semEnriquecimento: number;
+  /** Abordagem (migração 134): etapas ativas e contatos para hoje ou atrasados. */
+  emAbordagem: number;
+  paraHoje: number;
 }
 
-interface Props {
-  /** Abre o Kanban de prospecção (o hub não tem link direto para um card). */
-  onAbrirKanban: () => void;
-}
+const ETAPAS_ATIVAS = ['contatar', 'tentando', 'conversa', 'cotacao'];
 
 const COMANDO = 'python scripts/radar/pgfn_ingest.py --competencia AAAAMM --uf SP';
 
 /**
  * Radar · Fase 1: empresas da base de devedores da PGFN, filtradas,
  * enriquecidas e pontuadas. Lista server-side (range do Supabase, 50 por
- * página) com drawer de detalhe e envio ao Kanban.
+ * página) com drawer de detalhe. A abordagem do lead (dono, etapa, contatos)
+ * acontece aqui mesmo, sem passar pelo Kanban (migração 134).
  */
-export default function RadarView({ onAbrirKanban }: Props) {
+export default function RadarView() {
+  const [meuEmail, setMeuEmail] = useState('');
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMeuEmail((data.user?.email || '').toLowerCase()));
+  }, []);
   const { toast } = useToast();
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIAIS);
   const [buscaAplicada, setBuscaAplicada] = useState('');
@@ -58,7 +64,9 @@ export default function RadarView({ onAbrirKanban }: Props) {
     receitas: filtros.receitas,
     mostrarExcluidos: filtros.mostrarExcluidos,
     dossie: filtros.dossie,
-  }), [buscaAplicada, filtros.uf, filtros.municipios, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos, filtros.dossie]);
+    abordagem: filtros.abordagem,
+    meus: filtros.meus,
+  }), [buscaAplicada, filtros.uf, filtros.municipios, filtros.valorMin, filtros.valorMax, filtros.somenteGarantia, filtros.status, filtros.receitas, filtros.mostrarExcluidos, filtros.dossie, filtros.abordagem, filtros.meus]);
 
   // Qualquer filtro novo volta para a primeira página.
   useEffect(() => { setPagina(0); }, [filtrosServidor]);
@@ -67,7 +75,8 @@ export default function RadarView({ onAbrirKanban }: Props) {
     const contar = (aplicar: (q: any) => any) =>
       aplicar(supabase.from('radar_empresas').select('cnpj', { count: 'exact', head: true }))
         .then(({ count }: { count: number | null }) => count ?? 0);
-    const [ingestoes, ultima, novo, enviado, descartado, excluido, semEnr] = await Promise.all([
+    const hoje = hojeSaoPaulo();
+    const [ingestoes, ultima, novo, enviado, descartado, excluido, semEnr, emAbordagem, paraHoje] = await Promise.all([
       supabase.from('radar_ingestoes').select('id', { count: 'exact', head: true }).then(r => r.count ?? 0),
       supabase.from('radar_empresas').select('competencia_ultima').order('competencia_ultima', { ascending: false }).limit(1).maybeSingle().then(r => r.data?.competencia_ultima ?? null),
       contar(q => q.eq('status', 'novo')),
@@ -75,12 +84,16 @@ export default function RadarView({ onAbrirKanban }: Props) {
       contar(q => q.eq('status', 'descartado')),
       contar(q => q.eq('status', 'excluido')),
       contar(q => q.eq('status', 'novo').is('enriquecido_em', null)),
+      contar(q => q.eq('status', 'novo').in('etapa', ETAPAS_ATIVAS)),
+      contar(q => q.eq('status', 'novo').in('etapa', ETAPAS_ATIVAS).lte('proximo_passo', hoje)),
     ]);
     setResumo({
       temIngestao: ingestoes > 0,
       competencia: ultima,
       porStatus: { novo, enviado_kanban: enviado, descartado, excluido },
       semEnriquecimento: semEnr,
+      emAbordagem,
+      paraHoje,
     });
   }, []);
 
@@ -103,6 +116,12 @@ export default function RadarView({ onAbrirKanban }: Props) {
     if (f.dossie === 'com_embargos') q = q.gt('qtd_embargos', 0);
     else if (f.dossie === 'sem_advogado') q = q.gt('qtd_execucoes_sem_advogado', 0);
     else if (f.dossie) q = q.eq('dossie_status', f.dossie);
+    // Abordagem (migração 134)
+    if (f.abordagem === 'nao_iniciada') q = q.is('etapa', null);
+    else if (f.abordagem === 'ativas') q = q.in('etapa', ETAPAS_ATIVAS);
+    else if (f.abordagem === 'encerradas') q = q.in('etapa', ['ganho', 'perdido']);
+    else if (f.abordagem) q = q.eq('etapa', f.abordagem);
+    if (f.meus) q = q.eq('responsavel_email', meuEmail || '-');
     if (f.busca) {
       const digitos = f.busca.replace(/\D/g, '');
       q = digitos.length >= 4 && digitos.length === f.busca.replace(/[.\-\/\s]/g, '').length
@@ -112,6 +131,8 @@ export default function RadarView({ onAbrirKanban }: Props) {
 
     const de = pagina * POR_PAGINA;
     // Empate no score: quem já tem dossiê (dossie_em preenchido) vem antes de quem não tem.
+    // Em abordagem, o próximo contato mais antigo vem primeiro.
+    if (f.abordagem && f.abordagem !== 'nao_iniciada') q = q.order('proximo_passo', { ascending: true, nullsFirst: false });
     const { data, count, error } = await q
       .order('score', { ascending: false })
       .order('dossie_em', { ascending: false, nullsFirst: false })
@@ -128,7 +149,7 @@ export default function RadarView({ onAbrirKanban }: Props) {
       setTotal(count ?? 0);
     }
     setCarregando(false);
-  }, [filtrosServidor, pagina, toast]);
+  }, [filtrosServidor, pagina, toast, meuEmail]);
 
   useEffect(() => { carregarResumo(); }, [carregarResumo]);
   useEffect(() => { carregarLista(); }, [carregarLista]);
@@ -160,7 +181,18 @@ export default function RadarView({ onAbrirKanban }: Props) {
           </div>
           {resumo && resumo.temIngestao && (
             <dl className="flex flex-wrap gap-2">
-              {(['novo', 'enviado_kanban', 'descartado', 'excluido'] as RadarStatus[]).map(s => (
+              <div><button type="button" onClick={() => setFiltros({ ...filtros, abordagem: 'ativas', status: [] })}
+                title="Ver os leads em abordagem" className="text-left px-3 py-2 rounded-xl bg-areia-clara border border-linha min-w-[5.5rem] hover:border-gold transition-colors">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1"><NotebookPen size={9} aria-hidden="true" /> Em abordagem</span>
+                <span className="block text-base font-black text-navy tabular-nums leading-tight">{resumo.emAbordagem.toLocaleString('pt-BR')}</span>
+              </button></div>
+              <div><button type="button" onClick={() => setFiltros({ ...filtros, abordagem: 'ativas', status: [] })}
+                title="Contatos marcados para hoje ou atrasados"
+                className={`text-left px-3 py-2 rounded-xl border min-w-[5.5rem] hover:border-gold transition-colors ${resumo.paraHoje > 0 ? 'bg-amber-50 border-amber-200' : 'bg-areia-clara border-linha'}`}>
+                <span className={`text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 ${resumo.paraHoje > 0 ? 'text-amber-800' : 'text-slate-600'}`}><CalendarClock size={9} aria-hidden="true" /> Para hoje</span>
+                <span className={`block text-base font-black tabular-nums leading-tight ${resumo.paraHoje > 0 ? 'text-amber-800' : 'text-navy'}`}>{resumo.paraHoje.toLocaleString('pt-BR')}</span>
+              </button></div>
+              {(['novo', 'descartado', 'excluido'] as RadarStatus[]).map(s => (
                 <div key={s} className="px-3 py-2 rounded-xl bg-areia-clara border border-linha min-w-[5.5rem]">
                   <dt className="text-[9px] font-bold uppercase tracking-widest text-slate-600">{STATUS_LABEL[s]}</dt>
                   <dd className="text-base font-black text-navy tabular-nums leading-tight">{resumo.porStatus[s].toLocaleString('pt-BR')}</dd>
@@ -211,7 +243,6 @@ export default function RadarView({ onAbrirKanban }: Props) {
           empresa={selecionada}
           onFechar={() => setSelecionada(null)}
           onAtualizada={aoAtualizar}
-          onAbrirKanban={onAbrirKanban}
         />
       )}
     </section>
