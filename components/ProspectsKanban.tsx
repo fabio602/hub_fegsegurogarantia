@@ -615,7 +615,6 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         try { localStorage.setItem('kanban_ordem_v1', v); } catch { /* ignore */ }
     };
     // Filtro rápido: mostrar só os leads do PNCP com homologação registrada.
-    const [soHomologadasPncp, setSoHomologadasPncp] = useState(false);
 
     // ── E-mail da licitação ──────────────────────────────────────────────────
     // Estado da trilha de cada lead, para o card saber se o botão está livre
@@ -2106,14 +2105,12 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             (p.cnpj || '').includes(searchQuery) ||
             (p.tags || []).some(t => (t || '').toLowerCase().includes(searchQuery.toLowerCase()));
         const matchesTag = !tagFilter || (p.tags || []).includes(tagFilter);
-        const matchesHomologadas = !soHomologadasPncp ||
-            (p.source === 'pncp_auto' && !!p.data_homologacao);
         const matchesAguardando = !soAguardandoE1 || estadoE1(p).estado === 'aguardando';
         const matchesSemContato = !soSemContato || !toquesPorLead[p.id];
         const verArquivo = verArquivoPncp && modo === 'equipe';
         const matchesArquivo = verArquivo ? p.status === STATUS_ARQUIVO_PNCP : !statusArquivado(p.status);
         const matchesEncerrado = verEncerrados ? leadEncerrado(p) : !leadEncerrado(p);
-        return matchesProduct && matchesTag && matchesSearch && matchesHomologadas && matchesAguardando && matchesSemContato && matchesArquivo && matchesEncerrado;
+        return matchesProduct && matchesTag && matchesSearch && matchesAguardando && matchesSemContato && matchesArquivo && matchesEncerrado;
     });
 
     // Tags existentes nos leads carregados, da mais usada para a menos usada.
@@ -2917,15 +2914,6 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                         <option value="homologacao">Homologação mais recente (PNCP)</option>
                     </select>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={soHomologadasPncp}
-                        onChange={(e) => setSoHomologadasPncp(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-gold/30 cursor-pointer"
-                    />
-                    <span className="text-[12px] font-bold text-slate-600">Só homologadas do PNCP</span>
-                </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                         type="checkbox"
