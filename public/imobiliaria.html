@@ -845,6 +845,8 @@
 #orc .s-row.tot span{color:var(--s-ink);font-weight:800;font-size:15px}
 #orc .s-pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 #orc #orc-o-rpay{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+#orc #orc-o-pay{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:520px){#orc #orc-o-pay{grid-template-columns:1fr}}
 #orc .s-opt{border:1.5px solid var(--s-line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
 #orc .s-opt.best{border-color:var(--s-navy)}
 #orc .s-opt-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
@@ -905,7 +907,7 @@
         <p class="msg" id="orc-erro"></p>
       </div>
 
-      <!-- Forma de pagamento: só boleto em 12x. Os seletores de cartão e boleto 4x ficam ocultos; para voltar, tire o hidden e ajuste o estado inicial no script. -->
+      <!-- Forma de pagamento: bloco oculto. A garantia (S8) sempre mostra as 4 formas da S8 e o seletor dela não é mais usado; o residencial segue só no boleto em 12x. Para voltar os seletores do residencial, tire o hidden e ajuste o estado inicial no script. -->
       <div class="grp" id="orc-g-pag" hidden>
         <h2>Forma de pagamento</h2>
         <label id="orc-l-pg">Garantia locatícia
@@ -957,26 +959,32 @@
             <div class="s-rows">
               <div class="s-row" hidden><span>Aluguel mensal</span><span id="orc-o-aluguel"></span></div>
               <div class="s-row" hidden><span>Condomínio / IPTU mensal</span><span id="orc-o-iptu"></span></div>
-              <div class="s-row" hidden><span>Garantia de 12 meses (10% do valor anual)</span><span id="orc-o-premio"></span></div>
-              <div class="s-row" hidden><span>Taxa de cadastro (única)</span><span>R$&nbsp;250,00</span></div>
-              <div class="s-row tot"><span>Valor da garantia</span><span id="orc-o-total"></span></div>
+              <div class="s-row tot"><span>Garantia de 12 meses</span><span id="orc-o-premio"></span></div>
+              <div class="s-row"><span>Taxa de adesão (única, paga à parte)</span><span id="orc-o-adesao"></span></div>
             </div>
 
+            <!-- Formas de pagamento da garantia (S8 Garante). A cobrança e o parcelamento são feitos pela S8; não há juros nem taxa de boleto da F&G. -->
+            <div class="s-k">Formas de pagamento da garantia</div>
             <div class="s-pay" id="orc-o-pay">
-              <div class="s-opt best" id="orc-opt-cartao">
-                <div class="s-opt-h"><b>Cartão de crédito</b><span class="s-pill">Sem juros</span></div>
-                <div class="s-big"><small>12x de </small><span id="orc-o-pc"></span></div>
-                <div class="s-line2">12 parcelas iguais, sem acréscimo.</div>
-                <div class="s-tot"><span>Total no cartão</span><b id="orc-o-tc"></b></div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>1. Pix à vista</b><span class="s-pill">Com desconto</span></div>
+                <div class="s-line2">Pagamento único no Pix, com desconto sobre o valor da garantia. O valor com desconto é informado na contratação.</div>
               </div>
-              <div class="s-opt" id="orc-opt-boleto">
-                <div class="s-opt-h"><b>Boleto bancário</b><span class="s-pill j">Com juros</span></div>
-                <div class="s-big"><small>1ª parcela </small><span id="orc-o-b1"></span></div>
-                <div class="s-line2">Depois, <b>11 parcelas de <span id="orc-o-bn"></span></b>. A 1ª parcela já inclui a taxa de cadastro. Cada boleto inclui R$&nbsp;3,50 de emissão.</div>
-                <div class="s-tot"><span>Total no boleto</span><b id="orc-o-tb"></b></div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>2. Cartão de crédito</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-big"><small><span id="orc-o-cn"></span>x de </small><span id="orc-o-cp"></span></div>
+              </div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>3. Entrada no Pix + boleto</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-big"><small>Entrada </small><span id="orc-o-e1"></span></div>
+                <div class="s-line2"><span id="orc-o-e1pct"></span>% no Pix, mais <b><span id="orc-o-e1n"></span>x de <span id="orc-o-e1p"></span></b> no boleto.</div>
+              </div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>4. Entrada no Pix + cartão</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-big"><small>Entrada </small><span id="orc-o-e2"></span></div>
+                <div class="s-line2"><span id="orc-o-e2pct"></span>% no Pix, mais <b><span id="orc-o-e2n"></span>x de <span id="orc-o-e2p"></span></b> no cartão.</div>
               </div>
             </div>
-            <div class="s-warn" id="orc-o-warn"></div>
 
             <div class="s-k">O que a garantia cobre</div>
             <div class="s-cov">
@@ -1277,14 +1285,15 @@
   };
 
   // ── GARANTIA LOCATÍCIA NO ORÇAMENTO: CONFIGURAÇÃO ──
-  // Os juros do boleto da garantia são os mesmos do seguro residencial:
-  // usa RES_CFG.boletoJurosPct na quantidade de parcelas abaixo.
+  // Garantidora: S8 Garante. A própria S8 cobra e parcela (Pix, cartão e
+  // boleto), sem juros; a F&G não emite boleto nem cobra juros da garantia.
   const GAR_CFG = {
     taxaPct: 10,          // % sobre o valor anual (aluguel + condomínio/IPTU) x 12
-    setup: 250.00,        // taxa de cadastro, cobrada na 1ª parcela
-    parcelasCartao: 12,   // cartão sem juros
-    parcelasBoleto: 12,   // boleto com juros
-    emissaoBoleto: 3.50,  // somado a cada boleto
+    adesao: 200.00,       // taxa de adesão S8, cobrada à parte, fora das parcelas
+    parcelasCartao: 3,    // cartão de crédito sem juros
+    // Entrada no Pix + saldo parcelado, sem juros
+    entradaBoleto: { pct: 50, parcelas: 11 },
+    entradaCartao: { pct: 20, parcelas: 11 },
   };
 
   // Faixa em que o imóvel se enquadra, ou null se passar da última.
@@ -2535,18 +2544,22 @@
 
   // ── ORÇAMENTO DE LOCAÇÃO (garantia + seguro residencial, com download em PDF ou imagem) ──
   (function () {
-    // Constantes da garantia vêm de GAR_CFG; juros do boleto vêm da tabela do seguro (RES_CFG)
-    const SETUP = Math.round(GAR_CFG.setup * 100), TAXA = GAR_CFG.taxaPct / 100, TAXA_BOLETO = Math.round(GAR_CFG.emissaoBoleto * 100);
+    // Constantes da garantia vêm de GAR_CFG (S8 Garante, sem juros)
+    const TAXA = GAR_CFG.taxaPct / 100;
 
     function calcular(a, i) {     // a, i em centavos
-      const base = (a + i) * 12;
-      const premio = Math.round(base * TAXA);
-      const total = premio + SETUP;
-      const tbolt = Math.round(total * (10000 + Math.round(RES_CFG.boletoJurosPct[GAR_CFG.parcelasBoleto] * 100)) / 10000);
-      const pc = Math.floor(total / 12);
-      const pb = Math.floor((tbolt - SETUP) / 12) + TAXA_BOLETO; // parcela já com a emissão do boleto
-      const totalBoleto = SETUP + pb * 12;
-      return { premio, total, pc, pb, b1: SETUP + pb, totalBoleto, juros: totalBoleto - total };
+      const premio = Math.round((a + i) * 12 * TAXA);
+      // Entrada = % do valor da garantia; o saldo é dividido nas parcelas (arredondado no centavo, como a S8)
+      const entrada = cfg => {
+        const e = Math.round(premio * cfg.pct / 100);
+        return { pct: cfg.pct, valor: e, n: cfg.parcelas, parcela: Math.round((premio - e) / cfg.parcelas) };
+      };
+      return {
+        premio,
+        adesao: Math.round(GAR_CFG.adesao * 100),
+        cn: GAR_CFG.parcelasCartao, cp: Math.round(premio / GAR_CFG.parcelasCartao),
+        e1: entrada(GAR_CFG.entradaBoleto), e2: entrada(GAR_CFG.entradaCartao),
+      };
     }
     function centavos(txt) {      // "1.800,50" -> 180050 ; inválido -> NaN
       const t = String(txt).trim().replace(/\s|R\$/g, '');
@@ -2586,19 +2599,15 @@
       $('o-aluguel').textContent = brl(valido ? a : 0);
       $('o-iptu').textContent = brl(valido ? i : 0);
       $('o-premio').textContent = brl(r.premio);
-      $('o-total').textContent = brl(r.total);
-      $('o-pc').textContent = brl(r.pc);
-      $('o-tc').textContent = brl(r.total);
-      $('o-b1').textContent = brl(r.b1);
-      $('o-bn').textContent = brl(r.pb);
-      $('o-tb').textContent = brl(r.totalBoleto);
-      $('opt-cartao').hidden = pagamento === 'boleto';
-      $('opt-boleto').hidden = pagamento === 'cartao';
-      $('opt-boleto').classList.toggle('best', pagamento === 'boleto');
-      $('o-warn').hidden = pagamento === 'cartao';
-      $('o-warn').textContent = pagamento === 'boleto'
-        ? 'O boleto em 12x inclui ' + brl(r.juros) + ' de juros e emissão de boletos.'
-        : 'O boleto tem juros e taxa de emissão: o total fica ' + brl(r.juros) + ' maior que no cartão de crédito.';
+      $('o-adesao').textContent = brl(r.adesao);
+      $('o-cn').textContent = r.cn;
+      $('o-cp').textContent = brl(r.cp);
+      [['e1', r.e1], ['e2', r.e2]].forEach(([k, e]) => {
+        $('o-' + k).textContent = brl(e.valor);
+        $('o-' + k + 'pct').textContent = e.pct;
+        $('o-' + k + 'n').textContent = e.n;
+        $('o-' + k + 'p').textContent = brl(e.parcela);
+      });
       $('o-res').hidden = produto === 'garantia' || !valido;
       $('o-cliente').textContent = $('cliente').value.trim() || 'Não informado';
       $('o-endereco').textContent = $('endereco').value.trim() || 'Não informado';
