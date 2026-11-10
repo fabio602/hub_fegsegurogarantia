@@ -582,6 +582,7 @@ const App: React.FC = () => {
               {/* ── Dia a dia do Seguro Garantia ─────────── */}
               {podeModulo('garantia') && (
               <>
+                <NavSectionLabel label="Seguro Garantia" />
                 <NavItem view="prospeccao" icon={<SquareKanban size={16} />} label="Prospecção" />
                 <NavGroup
                   groupKey="cotacoes"
