@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { carregarFuncoes, rotuloFuncoes, type FuncaoKey } from '../lib/funcoes.ts';
+import { carregarFuncoes, carregarFuncoesDaEquipe, rotuloFuncoes, type FuncaoKey } from '../lib/funcoes.ts';
 import { situacaoDoLead, diasDesdeTimestamp, type SituacaoLead } from '../lib/situacaoLead.ts';
 import { hojeSaoPaulo, rotuloDia, ROTULO_ETAPA, RESUMO_RESULTADO } from '../lib/contatoLead.ts';
 import { formatCurrency } from '../utils/formatters';
 import BlocoOperacoes from './meuDia/BlocoOperacoes.tsx';
+import BlocoResidencial from './meuDia/BlocoResidencial.tsx';
+import BlocoGestao from './meuDia/BlocoGestao.tsx';
 import type { EtapaLead, ResultadoContato } from '../types';
 
 /**
@@ -13,8 +15,9 @@ import type { EtapaLead, ResultadoContato } from '../types';
  *
  * Mostra a cada pessoa o que ela tem para fazer hoje, conforme a função dela
  * (lib/funcoes.ts). Este arquivo traz a estrutura da tela e o bloco de
- * prospecção (SDR e Closer). Operações, Residencial e a visão de Gestão entram
- * nos próximos passos.
+ * prospecção (SDR e Closer); Operações, Residencial e Gestão ficam em
+ * components/meuDia/. Quem tem a função Gestão vê todos os blocos e pode
+ * abrir o dia de outra pessoa da equipe.
  *
  * A tela só lê. Registrar contato, pegar lead e mudar etapa continuam no
  * Kanban de Leads: cada linha leva para lá.
@@ -68,20 +71,48 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
   const [fila, setFila] = useState(0);
   const [contatosHoje, setContatosHoje] = useState(0);
   const [filtro, setFiltro] = useState<Filtro>('tudo');
+  // Gestão: funções de quem está logado, equipe e de quem é o dia aberto.
+  const [minhasFuncoes, setMinhasFuncoes] = useState<FuncaoKey[]>([]);
+  const [equipe, setEquipe] = useState<{ email: string; nome: string }[]>([]);
+  const [vendo, setVendo] = useState('');
+  const alvo = vendo || eu;
+  const vendoOutro = alvo !== eu;
 
   useEffect(() => {
     if (!eu) return;
+    let vivo = true;
+    (async () => {
+      const [minhas, deTodos, membros] = await Promise.all([
+        carregarFuncoes(eu),
+        carregarFuncoesDaEquipe(),
+        supabase.from('prospeccao_equipe').select('email, nome, ativo'),
+      ]);
+      if (!vivo) return;
+      setMinhasFuncoes(minhas);
+      const nomes: Record<string, string> = {};
+      for (const m of membros.data || []) if (m.ativo !== false) nomes[String(m.email).toLowerCase()] = String(m.nome || '').trim();
+      const lista = Object.keys(deTodos)
+        .filter(e => e !== eu && deTodos[e].length > 0)
+        .map(e => ({ email: e, nome: nomes[e] || e.split('@')[0] }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+      setEquipe(lista);
+    })();
+    return () => { vivo = false; };
+  }, [eu]);
+
+  useEffect(() => {
+    if (!alvo) return;
     let vivo = true;
     (async () => {
       setCarregando(true);
       setErro(null);
       try {
         const [fs, membro, meus, naFila] = await Promise.all([
-          carregarFuncoes(eu),
-          supabase.from('prospeccao_equipe').select('nome').eq('email', eu).maybeSingle(),
+          carregarFuncoes(alvo),
+          supabase.from('prospeccao_equipe').select('nome').eq('email', alvo).maybeSingle(),
           supabase.from('prospects')
             .select('id, company, etapa, proximo_passo, situacao_manual, situacao_manual_em, source, data_homologacao, valor_contrato, orgao_licitante, created_at')
-            .eq('responsavel_email', eu)
+            .eq('responsavel_email', alvo)
             .neq('status', 'Arquivo PNCP'),
           supabase.from('prospects').select('id', { count: 'exact', head: true })
             .eq('status', 'Novos Leads').is('responsavel_email', null),
@@ -103,12 +134,12 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
           for (const t of data || []) {
             if (!mapa[t.prospect_id]) mapa[t.prospect_id] = { em: t.created_at, resultado: t.resultado };
             const dia = new Date(t.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-            if (dia === hoje && String(t.autor_email || '').toLowerCase() === eu) hojeMeus += 1;
+            if (dia === hoje && String(t.autor_email || '').toLowerCase() === alvo) hojeMeus += 1;
           }
         }
         if (!vivo) return;
         setFuncoes(fs);
-        setNome(String(membro.data?.nome || '').trim().split(/\s+/)[0] || '');
+        setNome(String(membro.data?.nome || '').trim().split(/\s+/)[0] || (alvo !== eu ? alvo.split('@')[0] : ''));
         setLeads(ativos);
         setUltimo(mapa);
         setContatosHoje(hojeMeus);
@@ -120,11 +151,15 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
       }
     })();
     return () => { vivo = false; };
-  }, [eu]);
+  }, [alvo, eu]);
 
   const fazProspeccao = funcoes.includes('sdr') || funcoes.includes('closer');
-  const fazOperacoes = funcoes.includes('operacoes');
-  const temBloco = fazProspeccao || fazOperacoes;
+  // Gestão vê tudo no próprio dia; ao abrir o dia de outra pessoa, vê o que ela vê.
+  const souGestor = minhasFuncoes.includes('gestao');
+  const gestaoNoMeuDia = souGestor && !vendoOutro;
+  const fazOperacoes = funcoes.includes('operacoes') || gestaoNoMeuDia;
+  const fazResidencial = funcoes.includes('residencial') || gestaoNoMeuDia;
+  const temBloco = fazProspeccao || fazOperacoes || fazResidencial || gestaoNoMeuDia;
 
   const { contatar, retomar, emConversa, paraAgir } = useMemo(() => {
     const comSituacao = leads.map(l => ({ lead: l, situacao: situacaoDoLead(ultimo[l.id]?.em, l) }));
@@ -182,19 +217,38 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
     <div className="space-y-8 animate-fade-in text-navy">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">{saudacao()}{nome ? `, ${nome}` : ''}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            {vendoOutro ? `Dia de ${nome || alvo}` : `${saudacao()}${nome ? `, ${nome}` : ''}`}
+          </h1>
           <p className="text-base text-slate-600 mt-1">
             {dataPorExtenso()}.{' '}
             {fazProspeccao
-              ? (paraAgir.length ? `Você tem ${plural(paraAgir.length, 'lead', 'leads')} para agir hoje.` : 'Nenhum lead pendente para hoje.')
+              ? (paraAgir.length
+                ? `${vendoOutro ? 'Tem' : 'Você tem'} ${plural(paraAgir.length, 'lead', 'leads')} para agir hoje.`
+                : 'Nenhum lead pendente para hoje.')
               : ''}
           </p>
         </div>
-        {funcoes.length > 0 && (
-          <span className="text-xs font-semibold text-slate-600 bg-white border border-linha rounded-lg px-3 py-1.5">
-            Função: {rotuloFuncoes(funcoes)}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {souGestor && equipe.length > 0 && (
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+              Ver o dia de
+              <select
+                value={vendo}
+                onChange={(e) => { setVendo(e.target.value); setFiltro('tudo'); }}
+                className="px-3 py-2 bg-white border border-linha rounded-lg text-sm font-bold text-navy outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold cursor-pointer"
+              >
+                <option value="">Meu dia</option>
+                {equipe.map(m => <option key={m.email} value={m.email}>{m.nome}</option>)}
+              </select>
+            </label>
+          )}
+          {funcoes.length > 0 && (
+            <span className="text-xs font-semibold text-slate-600 bg-white border border-linha rounded-lg px-3 py-1.5">
+              Função: {rotuloFuncoes(funcoes)}
+            </span>
+          )}
+        </div>
       </header>
 
       {erro && (
@@ -206,18 +260,19 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
       {!temBloco && !erro && (
         <div className="bg-white border border-linha rounded-xl p-6">
           <p className="text-base font-bold">
-            {funcoes.length ? 'Os blocos da sua função estão a caminho.' : 'Você ainda não tem função definida.'}
+            {vendoOutro ? 'Esta pessoa ainda não tem função definida.' : 'Você ainda não tem função definida.'}
           </p>
           <p className="text-sm text-slate-600 mt-1">
-            {funcoes.length
-              ? 'Por enquanto esta tela mostra a prospecção e as operações. Residencial e Gestão entram nos próximos passos.'
-              : 'Peça ao Fábio para marcar a sua função em Usuários do Hub. Ela define o que aparece aqui.'}
+            A função é marcada em Usuários do Hub (menu Ferramentas) e define o que aparece aqui.
           </p>
         </div>
       )}
 
+      {gestaoNoMeuDia && <BlocoGestao onAbrir={onAbrir} />}
+
       {fazProspeccao && (
         <>
+          {gestaoNoMeuDia && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Prospecção</h2>}
           {/* Números do dia: uma faixa só, sem cartão por número */}
           <section aria-label="Resumo do dia" className="grid grid-cols-2 lg:grid-cols-4 bg-white border border-linha rounded-xl divide-x divide-y lg:divide-y-0 divide-linha overflow-hidden">
             {numeros.map(n => (
@@ -328,8 +383,15 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
 
       {fazOperacoes && (
         <>
-          {fazProspeccao && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Operações</h2>}
+          {(fazProspeccao || gestaoNoMeuDia) && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Operações</h2>}
           <BlocoOperacoes onAbrir={onAbrir} />
+        </>
+      )}
+
+      {fazResidencial && (
+        <>
+          {(fazProspeccao || fazOperacoes) && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Residencial</h2>}
+          <BlocoResidencial onAbrir={onAbrir} />
         </>
       )}
     </div>

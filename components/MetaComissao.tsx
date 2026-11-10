@@ -1,3 +1,4 @@
+import { META_PADRAO, DIAS_BASE_PADRAO } from '../lib/metaComissao.ts';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Target, ChevronLeft, ChevronRight, Save, Mail, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -26,8 +27,6 @@ import {
 
 /** Antes deste mês o formulário recalculava a comissão para 20% do prêmio. */
 const MES_CONTAGEM_CORRETA = '2026-09-01';
-const META_PADRAO = 20000;
-const DIAS_BASE_PADRAO = 20;
 const DESTINATARIOS_PADRAO = ['fabio@fegsegurogarantia.com.br'];
 
 interface VendaResumo {
