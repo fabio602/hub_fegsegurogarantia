@@ -49,6 +49,7 @@ import { CommandCenter } from './components/CommandCenter.tsx';
 // quando o usuario abre a aba. ResultsDashboard fica eager porque e a tela
 // inicial (goals) e carregaria no primeiro paint de qualquer jeito.
 const Calculator = lazy(() => import('./components/Calculator'));
+const MeuDia = lazy(() => import('./components/MeuDia.tsx'));
 const PropostaGarantia = lazy(() => import('./components/PropostaGarantia.tsx'));
 const NominationLetter = lazy(() => import('./components/NominationLetter'));
 const InsuranceDirectory = lazy(() => import('./components/InsuranceDirectory'));
@@ -94,6 +95,8 @@ function VistaCarregando() {
 
 type View =
   | 'dashboard'
+  // Início por função (em construção: ainda fora do menu, abre por #meu-dia)
+  | 'meu-dia'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
   | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'radar-advogados' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato' | 'seg-proposta'
@@ -128,6 +131,7 @@ const FINANCEIRO_VIEWS: View[] = ['meta-comissao', 'metas-mensais', 'metas-anuai
 
 const VIEW_TITLES: Record<View, string> = {
   dashboard: 'Bem-vindo ao Hub F&G',
+  'meu-dia': 'Meu dia',
   goals: 'Gestão Comercial · Vendas',
   directory: 'Seguradoras · Garantia',
   banks: 'Bancos Garantidores',
@@ -907,6 +911,7 @@ const App: React.FC = () => {
               {vista === 'goals' && <ResultsDashboard key="goals" initialSection="sales" initialSaleData={pendingSale ?? undefined} />}
               {vista === 'carteira' && <ResultsDashboard key="carteira" initialSection="carteira" hideTabs />}
               {vista === 'posvenda' && <Carteira />}
+              {vista === 'meu-dia' && <MeuDia email={session?.user?.email} onAbrir={(v) => navigate(v as View)} />}
               {vista === 'prospeccao' && <ResultsDashboard key="prospeccao" initialSection="prospects" hideTabs />}
               {vista === 'radar' && <RadarView />}
               {vista === 'radar-advogados' && <RadarAdvogadosView />}

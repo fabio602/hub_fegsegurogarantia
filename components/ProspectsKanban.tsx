@@ -1,3 +1,4 @@
+import { situacaoDoLead, diasDesdeTimestamp, TOQUE_ALERTA_DIAS } from '../lib/situacaoLead.ts';
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Prospect, CRMTask, MotivoPerda, ResultadoContato, EtapaLead } from '../types';
@@ -341,7 +342,6 @@ async function buscarTodosProspects<T = Prospect>(
 // próximo passo (migração 122). O card mostra o último toque de cada canal,
 // o último resultado e o próximo contato combinado.
 type CanalToque = CanalContato;
-const TOQUE_ALERTA_DIAS = 3;
 interface ToqueCanal { em: string; autor: string | null }
 interface ToqueRegistrado { em: string; canal: CanalToque; resultado: ResultadoContato | null; autor: string | null }
 interface ToquesDoLead {
@@ -417,33 +417,14 @@ const BLOCO_INFO: Record<BlocoLead, { titulo: string; dica: string; ponto: strin
     retomar:    { titulo: 'Retomar',             dica: `Chegou o dia do próximo contato (ou, sem data marcada, ${TOQUE_ALERTA_DIAS} dias ou mais sem contato).`, ponto: 'bg-amber-500', faixa: 'border-l-amber-500' },
     aguardando: { titulo: 'Em contato', dica: 'Contato feito; o próximo contato ainda não chegou.', ponto: 'bg-emerald-500', faixa: 'border-l-emerald-500' },
 };
-const blocoDoLead = (t?: ToquesDoLead, p?: Prospect): BlocoLead => {
-    // Situação escolhida à mão vale até o próximo toque registrado depois dela.
-    const manual = p?.situacao_manual;
-    const manualEm = p?.situacao_manual_em ? Date.parse(p.situacao_manual_em) : NaN;
-    if (manual && !Number.isNaN(manualEm) && (!t || Date.parse(t.ultimo) <= manualEm)) {
-        if (manual !== 'aguardando') return manual;
-        const dias = diasDesdeTimestamp(p?.situacao_manual_em);
-        return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
-    }
-    if (!t) return 'contatar';
-    // Próximo contato combinado manda; sem ele, vale a regra dos dias sem contato.
-    if (p?.proximo_passo) return proximoPassoVencido(p.proximo_passo) ? 'retomar' : 'aguardando';
-    const dias = diasDesdeTimestamp(t.ultimo);
-    return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
-};
+// A regra mora em lib/situacaoLead.ts, compartilhada com o "Meu dia".
+const blocoDoLead = (t?: ToquesDoLead, p?: Prospect): BlocoLead => situacaoDoLead(t?.ultimo, p);
 const BLOCOS_STORAGE_KEY = 'kanban_blocos_recolhidos_v1';
 
 /** Data (AAAA-MM-DD) do horário de São Paulo, para contar os toques do dia. */
 const diaSaoPaulo = (ts: string | number | Date): string =>
     new Date(ts).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
-const diasDesdeTimestamp = (ts?: string | null): number | null => {
-    if (!ts) return null;
-    const t = Date.parse(ts);
-    if (Number.isNaN(t)) return null;
-    return Math.max(0, Math.floor((Date.now() - t) / 86400000));
-};
 
 interface ProspectsKanbanProps {
     onProductChange?: (product: string) => void;
