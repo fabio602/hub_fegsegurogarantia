@@ -5,7 +5,7 @@ import { proximoPassoVencido } from './contatoLead.ts';
  * É a mesma regra dos blocos do Kanban de Leads e do "Meu dia": mudar aqui
  * muda nos dois lugares.
  *
- *  - contatar:   nenhum contato registrado ainda;
+ *  - contatar:   nenhum contato registrado ainda (e sem adiamento para depois de hoje);
  *  - aguardando: próximo contato marcado para depois de hoje (ou, sem data,
  *                último contato há menos de TOQUE_ALERTA_DIAS);
  *  - retomar:    chegou o dia do próximo contato (ou, sem data, último contato
@@ -41,7 +41,9 @@ export function situacaoDoLead(ultimoContato: string | null | undefined, p?: Lea
     const dias = diasDesdeTimestamp(p?.situacao_manual_em);
     return dias !== null && dias >= TOQUE_ALERTA_DIAS ? 'retomar' : 'aguardando';
   }
-  if (!ultimoContato) return 'contatar';
+  // Sem contato ainda: é "contatar", a não ser que o primeiro contato tenha sido
+  // adiado para depois de hoje (botão Adiar do Meu dia).
+  if (!ultimoContato) return p?.proximo_passo && !proximoPassoVencido(p.proximo_passo) ? 'aguardando' : 'contatar';
   // Próximo contato combinado manda; sem ele, vale a regra dos dias sem contato.
   if (p?.proximo_passo) return proximoPassoVencido(p.proximo_passo) ? 'retomar' : 'aguardando';
   const dias = diasDesdeTimestamp(ultimoContato);
