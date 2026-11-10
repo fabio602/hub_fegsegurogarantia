@@ -119,7 +119,7 @@ const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calcul
 const PROSPECCAO_VIEWS: View[] = ['prospeccao', 'pncp-auto', 'radar', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email'];
 const COTACOES_VIEWS: View[] = ['seg-licitante', 'seg-contrato', 'seg-proposta'];
 // Telas de apoio, reunidas no grupo "Ferramentas" do menu (menu curto de 10/11/2026).
-const FERRAMENTAS_VIEWS: View[] = ['pncp-auto', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'whatsapp', 'whatsapp-blast', 'email-followup', 'manual', 'usuarios'];
+const FERRAMENTAS_VIEWS: View[] = ['pncp-auto', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'whatsapp', 'whatsapp-blast', 'email-followup', 'manual', 'usuarios'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 // Operacao de seguro auto encerrada em 31/08/2026 (indicacao para o parceiro).
 // O historico de vendas continua no banco; para reabrir o menu, basta true.
@@ -598,6 +598,8 @@ const App: React.FC = () => {
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                   <NavSubItem view="seg-proposta" label="Gerar Proposta" />
                 </NavGroup>
+                {/* Seguradoras subiu de Ferramentas em 10/11/2026: quem cota usa todo dia. */}
+                <NavItem view="directory" icon={<Shield size={16} />} label="Seguradoras" />
                 <NavItem view="goals" icon={<ClipboardList size={16} />} label="Registro de Vendas" />
                 <NavItem view="carteira" icon={<Briefcase size={16} />} label="Carteira de Clientes" />
                 <NavItem view="posvenda" icon={<Repeat size={16} />} label="Pós-venda" />
@@ -715,7 +717,6 @@ const App: React.FC = () => {
                     <NavSubItem view="garimpo" label="Garimpo Google Maps" />
                     <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
                     <NavSubItem view="prospeccao-email" label="Contatos nas Trilhas" />
-                    <NavSubItem view="directory" label="Seguradoras" />
                     <NavSubItem view="banks" label="Bancos Garantidores" />
                     <NavSubItem view="letter" label="Carta de Nomeação" />
                     <NavSubItem view="calculator" label="Cálculo de Garantia" />
