@@ -27,6 +27,12 @@ import {
   Handshake,
   Radar,
   HeartPulse,
+  SquareKanban,
+  FileSignature,
+  ClipboardList,
+  Briefcase,
+  Repeat,
+  Wrench,
 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { ADMIN_EMAIL, carregarModulos, viewsDosModulos } from './lib/permissoes.ts';
@@ -108,6 +114,9 @@ const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calcul
 // Telas do subgrupo Prospecção que aparecem no menu. `pncp-prospeccao` e `pnpc`
 // continuam no código, mas saíram do menu (ver docs/menu/MENU-PROSPECCAO.md).
 const PROSPECCAO_VIEWS: View[] = ['prospeccao', 'pncp-auto', 'radar', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email'];
+const COTACOES_VIEWS: View[] = ['seg-licitante', 'seg-contrato', 'seg-proposta'];
+// Telas de apoio, reunidas no grupo "Ferramentas" do menu (menu curto de 10/11/2026).
+const FERRAMENTAS_VIEWS: View[] = ['pncp-auto', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'whatsapp', 'whatsapp-blast', 'email-followup', 'manual', 'usuarios'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
 // Operacao de seguro auto encerrada em 31/08/2026 (indicacao para o parceiro).
 // O historico de vendas continua no banco; para reabrir o menu, basta true.
@@ -282,6 +291,7 @@ const App: React.FC = () => {
     garantia: false,
     prospeccao: false,
     cotacoes: false,
+    ferramentas: false,
     financeiro: false,
     auto: false,
     residencial: false,
@@ -395,9 +405,8 @@ const App: React.FC = () => {
 
   // Auto-expand the group that contains the active view
   useEffect(() => {
-    if (GARANTIA_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true }));
-    if (PROSPECCAO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, prospeccao: true }));
-    if (['seg-licitante', 'seg-contrato', 'seg-proposta'].includes(activeView)) setOpenGroups(prev => ({ ...prev, garantia: true, cotacoes: true }));
+    if (COTACOES_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, cotacoes: true }));
+    if (FERRAMENTAS_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, ferramentas: true }));
     if (FINANCEIRO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, financeiro: true }));
     if (AUTO_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, auto: true }));
     if (RESIDENCIAL_VIEWS.includes(activeView)) setOpenGroups(prev => ({ ...prev, residencial: true }));
@@ -456,27 +465,27 @@ const App: React.FC = () => {
   );
 
   // ── Plain top-level nav item ────────────────────────────────────
+  // Item ativo: fundo navy-light e barra dourada à esquerda (o dourado marca
+  // onde a pessoa está, sem virar um botão cheio).
   const NavItem: React.FC<{ view: View; icon: React.ReactNode; label: string; badge?: number }> = ({ view, icon, label, badge }) => (
     <button
       onClick={() => navigate(view)}
-      className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
+      aria-current={activeView === view ? 'page' : undefined}
+      className={`flex items-center justify-between w-full pl-3 pr-3.5 py-2.5 rounded-lg border-l-[3px] transition-colors group ${
         activeView === view
-          ? 'bg-gold text-navy shadow-2xl shadow-gold/25'
-          : 'text-slate-300 hover:bg-navy-light hover:text-areia'
+          ? 'bg-navy-light text-white border-gold'
+          : 'text-slate-300 border-transparent hover:bg-navy-light hover:text-white'
       }`}
     >
-      <div className="flex items-center gap-3">
-        <span className={`${activeView === view ? 'text-navy' : 'text-slate-400 group-hover:text-gold'} transition-colors`}>{icon}</span>
-        <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
+      <div className="flex items-center gap-3 min-w-0">
+        <span className={`${activeView === view ? 'text-gold' : 'text-slate-400 group-hover:text-gold'} transition-colors shrink-0`}>{icon}</span>
+        <span className={`text-sm truncate ${activeView === view ? 'font-bold' : 'font-medium'}`}>{label}</span>
       </div>
-      <div className="flex items-center gap-1.5">
-        {badge != null && badge > 0 && (
-          <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-xl flex items-center justify-center">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        )}
-        {activeView === view && <ChevronRight size={12} className="opacity-70" />}
-      </div>
+      {badge != null && badge > 0 && (
+        <span className="min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-xl flex items-center justify-center">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </button>
   );
 
@@ -493,23 +502,22 @@ const App: React.FC = () => {
       <div>
         <button
           onClick={() => toggleGroup(groupKey)}
-          className={`flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group ${
-            isGroupActive
-              ? 'bg-navy-light text-white'
-              : 'text-slate-300 hover:bg-navy-light hover:text-areia'
+          aria-expanded={!!isOpen}
+          className={`flex items-center justify-between w-full pl-3 pr-3.5 py-2.5 rounded-lg border-l-[3px] border-transparent transition-colors group ${
+            isGroupActive ? 'text-white' : 'text-slate-300 hover:bg-navy-light hover:text-white'
           }`}
         >
-          <div className="flex items-center gap-3">
-            <span className={`${isGroupActive ? 'text-gold' : 'text-slate-400 group-hover:text-gold'} transition-colors`}>{icon}</span>
-            <span className="font-bold text-[12px] tracking-tight whitespace-nowrap">{label}</span>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className={`${isGroupActive ? 'text-gold' : 'text-slate-400 group-hover:text-gold'} transition-colors shrink-0`}>{icon}</span>
+            <span className={`text-sm truncate ${isGroupActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
           </div>
           <ChevronDown
             size={12}
-            className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+            className={`text-slate-400 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           />
         </button>
         {isOpen && (
-          <div className="mt-1 ml-3 pl-3 border-l-2 border-gold/20 space-y-0.5 py-1">
+          <div className="mt-0.5 ml-5 pl-2 border-l border-white/10 space-y-0.5 py-0.5">
             {children}
           </div>
         )}
@@ -521,53 +529,24 @@ const App: React.FC = () => {
   const NavSubItem: React.FC<{ view: View; label: string; badge?: number; icon?: React.ReactNode }> = ({ view, label, badge, icon }) => (
     <button
       onClick={() => navigate(view)}
-      className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
+      aria-current={activeView === view ? 'page' : undefined}
+      className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors text-[13px] ${
         activeView === view
-          ? 'bg-gold text-navy shadow-md shadow-gold/20'
-          : 'text-slate-400 hover:text-areia hover:bg-navy-light'
+          ? 'bg-navy-light text-white font-bold'
+          : 'text-slate-400 font-medium hover:text-white hover:bg-navy-light'
       }`}
     >
-      <span className="flex items-center gap-1.5">{icon}{label}</span>
+      <span className="flex items-center gap-1.5 min-w-0 truncate">{icon}{label}</span>
       {badge != null && badge > 0 && <BadgeDot count={badge} />}
     </button>
   );
 
-  // ── Rótulo de seção dentro de um sub-grupo (só texto, não clicável) ──
+  // ── Rótulo de seção (só texto, não clicável) ─────────────────────
   const NavSectionLabel: React.FC<{ label: string }> = ({ label }) => (
-    <div className="px-4 mt-3 pt-2 pb-1 text-[9px] font-bold text-gold/70 select-none border-t border-gold/15">
+    <div className="px-3.5 pt-5 pb-1.5 text-[11px] font-semibold text-slate-500 select-none">
       {label}
     </div>
   );
-
-  // ── Collapsible sub-group inside a NavGroup ───────────────────────
-  const NavSubGroup: React.FC<{
-    groupKey: string;
-    label: string;
-    isGroupActive: boolean;
-    children: React.ReactNode;
-  }> = ({ groupKey, label, isGroupActive, children }) => {
-    const isOpen = openGroups[groupKey];
-    return (
-      <div>
-        <button
-          onClick={() => toggleGroup(groupKey)}
-          className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all text-[11px] font-bold tracking-tight ${
-            isGroupActive
-              ? 'text-gold bg-navy-light'
-              : 'text-slate-400 hover:text-areia hover:bg-navy-light'
-          }`}
-        >
-          <span>{label}</span>
-          <ChevronDown size={10} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {isOpen && (
-          <div className="mt-0.5 ml-3 pl-3 border-l border-gold/15 space-y-0.5 py-0.5">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <ToastProvider>
@@ -597,74 +576,41 @@ const App: React.FC = () => {
               <Logo />
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-0.5" aria-label="Menu principal">
               <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Visão Geral" />
 
-              {/* ── Seguro Garantia ─────────────────────── */}
+              {/* ── Dia a dia do Seguro Garantia ─────────── */}
               {podeModulo('garantia') && (
-              <NavGroup
-                groupKey="garantia"
-                icon={<ShieldCheck size={16} />}
-                label="Seguro Garantia"
-                isGroupActive={GARANTIA_VIEWS.includes(activeView) || FINANCEIRO_VIEWS.includes(activeView)}
-              >
-                <NavSubGroup
+              <>
+                <NavSectionLabel label="Seguro Garantia" />
+                <NavItem view="prospeccao" icon={<SquareKanban size={16} />} label="Prospecção" />
+                <NavGroup
                   groupKey="cotacoes"
+                  icon={<FileSignature size={16} />}
                   label="Cotações"
-                  isGroupActive={['seg-licitante', 'seg-contrato', 'seg-proposta'].includes(activeView)}
+                  isGroupActive={COTACOES_VIEWS.includes(activeView)}
                 >
                   <NavSubItem view="seg-licitante" label="Seguro Licitante" />
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                   <NavSubItem view="seg-proposta" label="Gerar Proposta" />
-                </NavSubGroup>
-                <NavSubItem view="goals" label="Registro de Vendas" />
-                <NavSubItem view="carteira" label="Carteira de Clientes" />
-                <NavSubItem view="posvenda" label="Pós-venda" />
-                <NavSubGroup
-                  groupKey="prospeccao"
-                  label="Prospecção"
-                  isGroupActive={PROSPECCAO_VIEWS.includes(activeView)}
-                >
-                  <NavSubItem view="prospeccao" label="Kanban de Leads" />
-                  <NavSectionLabel label="Licitações" />
-                  <NavSubItem view="pncp-auto" label="PNCP Automático" />
-                  <NavSectionLabel label="Garantia Judicial Fiscal" />
-                  <NavSubItem view="radar" label="Radar PGFN" icon={<Radar size={12} aria-hidden="true" />} />
-                  <NavSubItem view="radar-advogados" label="Advogados TRF3" icon={<Scale size={12} aria-hidden="true" />} />
-                  <NavSectionLabel label="Outras Fontes" />
-                  <NavSubItem view="garimpo" label="Garimpo Google Maps" />
-                  <NavSectionLabel label="E-mail" />
-                  <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
-                  <NavSubItem view="prospeccao-email" label="Contatos nas Trilhas" />
-                </NavSubGroup>
-                <NavSubItem view="directory" label="Seguradoras" />
-                <NavSubItem view="banks" label="Bancos Garantidores" />
-                <NavSubItem view="letter" label="Carta de Nomeação" />
-                <NavSubItem view="calculator" label="Cálculo de Garantia" />
-                <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
-                <NavSubItem view="formularios" label="Formulários" />
-              </NavGroup>
+                </NavGroup>
+                <NavItem view="goals" icon={<ClipboardList size={16} />} label="Registro de Vendas" />
+                <NavItem view="carteira" icon={<Briefcase size={16} />} label="Carteira de Clientes" />
+                <NavItem view="posvenda" icon={<Repeat size={16} />} label="Pós-venda" />
+                <NavItem view="radar" icon={<Radar size={16} />} label="Radar fiscal" />
+              </>
               )}
 
-              {/* ── Seguro AUTO ─────────────────────────── */}
-              {MODULO_AUTO_ATIVO && podeModulo('auto') && (
-              <NavGroup
-                groupKey="auto"
-                icon={<Car size={16} />}
-                label="Seguro AUTO"
-                isGroupActive={AUTO_VIEWS.includes(activeView)}
-              >
-                <NavSubItem view="auto" label="Registro de Vendas" />
-                <NavSubItem view="auto-seguradoras" label="Seguradoras" />
-              </NavGroup>
+              {/* ── Outras linhas ─────────────────────────── */}
+              {(podeModulo('residencial') || podeModulo('saude') || podeModulo('rc') || (MODULO_AUTO_ATIVO && podeModulo('auto'))) && (
+                <NavSectionLabel label="Outras linhas" />
               )}
 
-              {/* ── Seguro Residencial ──────────────────── */}
               {podeModulo('residencial') && (
               <NavGroup
                 groupKey="residencial"
                 icon={<Home size={16} />}
-                label="Residencial / Locatícia"
+                label="Residencial"
                 isGroupActive={RESIDENCIAL_VIEWS.includes(activeView)}
               >
                 <NavSubItem view="residential" label="Registro de Vendas" badge={badges.vencimentos} />
@@ -680,20 +626,6 @@ const App: React.FC = () => {
               </NavGroup>
               )}
 
-              {/* ── Responsabilidade Civil ──────────────── */}
-              {podeModulo('rc') && (
-              <NavGroup
-                groupKey="rc"
-                icon={<ShieldAlert size={16} />}
-                label="Resp. Civil"
-                isGroupActive={RC_VIEWS.includes(activeView)}
-              >
-                <NavSubItem view="rc" label="Registro de Vendas" />
-                <NavSubItem view="rc-seguradoras" label="Seguradoras" />
-              </NavGroup>
-              )}
-
-              {/* ── Plano de Saúde ───────────────────────── */}
               {podeModulo('saude') && (
               <NavGroup
                 groupKey="saude"
@@ -709,12 +641,40 @@ const App: React.FC = () => {
               </NavGroup>
               )}
 
-              {/* ── Gestão Financeira ────────────────────── */}
+              {podeModulo('rc') && (
+              <NavGroup
+                groupKey="rc"
+                icon={<ShieldAlert size={16} />}
+                label="Resp. Civil"
+                isGroupActive={RC_VIEWS.includes(activeView)}
+              >
+                <NavSubItem view="rc" label="Registro de Vendas" />
+                <NavSubItem view="rc-seguradoras" label="Seguradoras" />
+              </NavGroup>
+              )}
+
+              {MODULO_AUTO_ATIVO && podeModulo('auto') && (
+              <NavGroup
+                groupKey="auto"
+                icon={<Car size={16} />}
+                label="Seguro AUTO"
+                isGroupActive={AUTO_VIEWS.includes(activeView)}
+              >
+                <NavSubItem view="auto" label="Registro de Vendas" />
+                <NavSubItem view="auto-seguradoras" label="Seguradoras" />
+              </NavGroup>
+              )}
+
+              {/* ── Gestão ────────────────────────────────── */}
+              {(podeModulo('financeiro') || podeModulo('parceiros') || podeModulo('agenda')) && (
+                <NavSectionLabel label="Gestão" />
+              )}
+
               {podeModulo('financeiro') && (
               <NavGroup
                 groupKey="financeiro"
                 icon={<Target size={16} />}
-                label="Gestão Financeira"
+                label="Metas"
                 isGroupActive={FINANCEIRO_VIEWS.includes(activeView)}
               >
                 <NavSubItem view="meta-comissao" label="Meta de Comissão" />
@@ -722,28 +682,6 @@ const App: React.FC = () => {
                 <NavSubItem view="metas-anuais" label="Metas Anuais" />
               </NavGroup>
               )}
-
-              {podeModulo('whatsapp') && (
-              <FeatureTip
-                id="whatsapp-hub-2026"
-                title="WhatsApp Hub integrado"
-                description="Gerencie todas as conversas, envie mensagens em massa e vincule contatos ao CRM direto por aqui."
-              >
-                <NavGroup
-                  groupKey="whatsapp"
-                  icon={<MessageSquare size={16} />}
-                  label="WhatsApp"
-                  isGroupActive={['whatsapp', 'whatsapp-blast'].includes(activeView)}
-                >
-                  <NavSubItem view="whatsapp" label={`Inbox${unreadWhatsApp > 0 ? ` (${unreadWhatsApp})` : ''}`} />
-                  <NavSubItem view="whatsapp-blast" label="Prospecção" />
-                </NavGroup>
-              </FeatureTip>
-              )}
-
-              {podeModulo('email-followup') && <NavItem view="email-followup" icon={<Mail size={16} />} label="Follow-up de Email" />}
-              {podeModulo('manual') && <NavItem view="manual" icon={<FileText size={16} />} label="Manual de Procedimentos" />}
-              {podeModulo('agenda') && <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />}
               {podeModulo('parceiros') && (
               <FeatureTip
                 id="parceiros-portal-2026"
@@ -754,8 +692,44 @@ const App: React.FC = () => {
                 <NavItem view="parceiros" icon={<Users size={16} />} label="Parceiros" />
               </FeatureTip>
               )}
-              {session?.user?.email === ADMIN_EMAIL && (
-                <NavItem view="usuarios" icon={<ShieldCheck size={16} />} label="Usuários do Hub" />
+              {podeModulo('agenda') && <NavItem view="agenda" icon={<Calendar size={16} />} label="Agenda" />}
+
+              {/* ── Ferramentas: telas de apoio, fora do dia a dia ── */}
+              {(podeModulo('garantia') || podeModulo('whatsapp') || podeModulo('email-followup') || podeModulo('manual') || session?.user?.email === ADMIN_EMAIL) && (
+              <>
+                <NavSectionLabel label="Apoio" />
+                <NavGroup
+                  groupKey="ferramentas"
+                  icon={<Wrench size={16} />}
+                  label="Ferramentas"
+                  isGroupActive={FERRAMENTAS_VIEWS.includes(activeView)}
+                >
+                  {podeModulo('garantia') && (
+                  <>
+                    <NavSubItem view="pncp-auto" label="PNCP Automático" />
+                    <NavSubItem view="radar-advogados" label="Advogados TRF3" />
+                    <NavSubItem view="garimpo" label="Garimpo Google Maps" />
+                    <NavSubItem view="email-trilhas" label="Trilhas de E-mail" />
+                    <NavSubItem view="prospeccao-email" label="Contatos nas Trilhas" />
+                    <NavSubItem view="directory" label="Seguradoras" />
+                    <NavSubItem view="banks" label="Bancos Garantidores" />
+                    <NavSubItem view="letter" label="Carta de Nomeação" />
+                    <NavSubItem view="calculator" label="Cálculo de Garantia" />
+                    <NavSubItem view="endosso-allseg" label="Endosso Allseg" />
+                    <NavSubItem view="formularios" label="Formulários" />
+                  </>
+                  )}
+                  {podeModulo('whatsapp') && (
+                  <>
+                    <NavSubItem view="whatsapp" label={`WhatsApp: Inbox${unreadWhatsApp > 0 ? ` (${unreadWhatsApp})` : ''}`} />
+                    <NavSubItem view="whatsapp-blast" label="WhatsApp: Prospecção" />
+                  </>
+                  )}
+                  {podeModulo('email-followup') && <NavSubItem view="email-followup" label="Follow-up de Email" />}
+                  {podeModulo('manual') && <NavSubItem view="manual" label="Manual de Procedimentos" />}
+                  {session?.user?.email === ADMIN_EMAIL && <NavSubItem view="usuarios" label="Usuários do Hub" />}
+                </NavGroup>
+              </>
               )}
             </nav>
           </div>
