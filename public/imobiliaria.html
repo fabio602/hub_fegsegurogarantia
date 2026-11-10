@@ -899,9 +899,19 @@
 
       <div class="grp" id="orc-g-valores">
         <h2>Valores</h2>
-        <div class="two">
-          <label for="orc-aluguel" id="orc-l-alug">Aluguel (R$)<input type="text" id="orc-aluguel" inputmode="decimal" value="" placeholder="0,00"></label>
-          <label for="orc-iptu" id="orc-l-iptu">Condomínio / IPTU (R$)<input type="text" id="orc-iptu" inputmode="decimal" value="" placeholder="0,00"></label>
+        <div id="orc-l-custos">
+          <p class="sub" style="margin:0 0 8px">Custos mensais da locação, como no cadastro da S8. Custo não informado (ou zerado) não tem cobertura.</p>
+          <div class="two">
+            <label for="orc-aluguel">Aluguel (R$)<input type="text" id="orc-aluguel" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-condominio">Condomínio (R$)<input type="text" id="orc-condominio" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-agua">Água (R$)<input type="text" id="orc-agua" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-energia">Energia (R$)<input type="text" id="orc-energia" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-iptu">IPTU (R$)<input type="text" id="orc-iptu" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-lixo">Taxa de lixo (R$)<input type="text" id="orc-lixo" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-incendio">Seguro incêndio (R$)<input type="text" id="orc-incendio" inputmode="decimal" value="" placeholder="0,00"></label>
+            <label for="orc-gas">Gás (R$)<input type="text" id="orc-gas" inputmode="decimal" value="" placeholder="0,00"></label>
+          </div>
+          <p class="sub" style="margin:8px 0 0">Custo total de locação: <b id="orc-custo-total">R$ 0,00</b></p>
         </div>
         <label for="orc-imovel" id="orc-l-imovel">Valor do imóvel (R$) <small>Define a faixa de preço do seguro residencial.</small><input type="text" id="orc-imovel" inputmode="decimal" value="" placeholder="Ex.: 400.000,00"></label>
         <p class="msg" id="orc-erro"></p>
@@ -953,12 +963,11 @@
 
           <div class="s-prod" id="orc-o-gar">
             <div class="s-title">
-              <span class="s-tag" id="orc-t1">Produto 1</span><h3>Garantia Locatícia</h3>
+              <span class="s-tag" id="orc-t1">Produto 1</span><h3>Garantia Locatícia · Plano Prata</h3>
               <p>Garante o contrato de aluguel por 12 meses, com renovação a cada 12 meses.</p>
             </div>
             <div class="s-rows">
-              <div class="s-row" hidden><span>Aluguel mensal</span><span id="orc-o-aluguel"></span></div>
-              <div class="s-row" hidden><span>Condomínio / IPTU mensal</span><span id="orc-o-iptu"></span></div>
+              <div class="s-row"><span>Custo mensal da locação (base do cálculo)</span><span id="orc-o-custo"></span></div>
               <div class="s-row tot"><span>Garantia de 12 meses</span><span id="orc-o-premio"></span></div>
               <div class="s-row"><span>Taxa de adesão (única, paga à parte)</span><span id="orc-o-adesao"></span></div>
             </div>
@@ -988,7 +997,7 @@
 
             <div class="s-k">O que a garantia cobre</div>
             <div class="s-cov">
-              <span>Aluguéis atrasados</span><span>Condomínio e IPTU</span><span>Multas contratuais</span><span>Água e luz</span><span>Despejo com assessoria jurídica</span>
+              <span>Aluguel: até 14x o aluguel (<b id="orc-o-cv-alug"></b>)</span><span>Mobília: até 1x o aluguel (<b id="orc-o-cv-mob"></b>)</span><span>Rescisão: até 3x o aluguel (<b id="orc-o-cv-resc"></b>)</span><span>Limpeza: até R$ 200,00</span><span>Bônus de vistoria de entrada: R$ 90,00</span>
             </div>
           </div>
 
@@ -1288,7 +1297,7 @@
   // Garantidora: S8 Garante. A própria S8 cobra e parcela (Pix, cartão e
   // boleto), sem juros; a F&G não emite boleto nem cobra juros da garantia.
   const GAR_CFG = {
-    taxaPct: 10,          // % sobre o valor anual (aluguel + condomínio/IPTU) x 12
+    taxaPct: 10,          // Plano Prata S8: 10% sobre o custo total mensal da locação x 12
     adesao: 200.00,       // taxa de adesão S8, cobrada à parte, fora das parcelas
     parcelasCartao: 3,    // cartão de crédito sem juros
     // Entrada no Pix + saldo parcelado, sem juros
@@ -2546,6 +2555,8 @@
   (function () {
     // Constantes da garantia vêm de GAR_CFG (S8 Garante, sem juros)
     const TAXA = GAR_CFG.taxaPct / 100;
+    // Custos da locação além do aluguel (mesmos campos da S8); entram na base do cálculo
+    const OUTROS = ['condominio', 'agua', 'energia', 'iptu', 'lixo', 'incendio', 'gas'];
 
     function calcular(a, i) {     // a, i em centavos
       const premio = Math.round((a + i) * 12 * TAXA);
@@ -2579,12 +2590,13 @@
     $('imob').value = (session?.name || '').replace('Imobiliária ', '');
 
     function render() {
-      const a = centavos($('aluguel').value), i = centavos($('iptu').value);
+      const a = centavos($('aluguel').value), i = OUTROS.reduce((t, id) => t + centavos($(id).value), 0);
+      $('custo-total').textContent = Number.isFinite(a + i) ? brl(a + i) : 'valor inválido';
       const soRes = produto === 'residencial', temRes = produto !== 'garantia';
       const im = centavos($('imovel').value);
       const numOk = Number.isFinite(im) && (soRes || (Number.isFinite(a) && Number.isFinite(i)));
       valido = numOk && (soRes || a > 0) && (!temRes || im > 0);
-      $('l-iptu').hidden = $('l-alug').hidden = soRes;
+      $('l-custos').hidden = soRes;
       $('o-gar').hidden = soRes || !valido;
       $('vazio').hidden = valido;
       $('l-imovel').hidden = !temRes;
@@ -2596,8 +2608,10 @@
       const seguro = renderRes(valido && temRes ? im : 0, 0); // sem somar o aluguel: essa soma é da imobiliária
       $('b-pdf').disabled = $('b-png').disabled = $('b-enviar').disabled = !valido;
       const r = calcular(valido ? a : 0, valido ? i : 0);
-      $('o-aluguel').textContent = brl(valido ? a : 0);
-      $('o-iptu').textContent = brl(valido ? i : 0);
+      $('o-custo').textContent = brl(valido ? a + i : 0);
+      $('o-cv-alug').textContent = brl(valido ? a * 14 : 0);
+      $('o-cv-mob').textContent = brl(valido ? a : 0);
+      $('o-cv-resc').textContent = brl(valido ? a * 3 : 0);
       $('o-premio').textContent = brl(r.premio);
       $('o-adesao').textContent = brl(r.adesao);
       $('o-cn').textContent = r.cn;
@@ -2656,7 +2670,7 @@
         render();
       });
     }
-    ['aluguel', 'iptu', 'imovel'].forEach(id => mascaraReais($(id), render));
+    ['aluguel', ...OUTROS, 'imovel'].forEach(id => mascaraReais($(id), render));
     seg('seg', v => pagamento = v);
     seg('seg-prod', v => produto = v);
     seg('seg-ps', v => { pagS = v.startsWith('boleto') ? 'boleto' : v; if (pagS === 'boleto') segBol = Number(v.slice(6)); });
@@ -2708,7 +2722,8 @@
     }
     // Mesmo comportamento do botão da calculadora: leva os valores para "Dados do Inquilino"
     $('b-enviar').addEventListener('click', () => {
-      const a = centavos($('aluguel').value), i = centavos($('iptu').value);
+      // O formulário de cotação só tem "IPTU e/ou Condomínio": leva condomínio + IPTU
+      const a = centavos($('aluguel').value), i = centavos($('condominio').value) + centavos($('iptu').value);
       if (produto !== 'residencial' && a > 0) document.getElementById('f-valor-aluguel').value = (a / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       if (produto !== 'residencial' && i > 0) document.getElementById('f-iptu').value = (i / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       const im = centavos($('imovel').value), fIm = document.getElementById('f-valor-imovel'), fNome = document.getElementById('f-nome');
