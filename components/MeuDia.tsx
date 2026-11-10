@@ -8,6 +8,9 @@ import { formatCurrency } from '../utils/formatters';
 import BlocoOperacoes from './meuDia/BlocoOperacoes.tsx';
 import BlocoResidencial from './meuDia/BlocoResidencial.tsx';
 import BlocoGestao from './meuDia/BlocoGestao.tsx';
+import MinhasTarefas from './meuDia/MinhasTarefas.tsx';
+import AcoesItem from './meuDia/AcoesItem.tsx';
+import { carregarFixados, gravarFixado, chaveFixado, type TipoFixado } from '../lib/meuDiaFixados.ts';
 import type { EtapaLead, ResultadoContato } from '../types';
 
 /**
@@ -19,8 +22,10 @@ import type { EtapaLead, ResultadoContato } from '../types';
  * components/meuDia/. Quem tem a função Gestão vê todos os blocos e pode
  * abrir o dia de outra pessoa da equipe.
  *
- * A tela só lê. Registrar contato, pegar lead e mudar etapa continuam no
- * Kanban de Leads: cada linha leva para lá.
+ * A pessoa pode ajustar o próprio dia: criar tarefas (MinhasTarefas), fixar um
+ * item no topo e adiar (AcoesItem). Adiar um lead grava o próximo contato no
+ * próprio lead, então vale também no Kanban. Registrar contato, pegar lead e
+ * mudar etapa continuam no Kanban de Leads: cada linha leva para lá.
  */
 
 interface LeadDoDia {
@@ -77,6 +82,49 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
   const [vendo, setVendo] = useState('');
   const alvo = vendo || eu;
   const vendoOutro = alvo !== eu;
+  // Ajustes do próprio dia: itens fixados e a faixa de aviso com "Desfazer".
+  const [fixados, setFixados] = useState<Set<string>>(new Set());
+  const [aviso, setAviso] = useState<{ texto: string; desfazer?: () => void } | null>(null);
+  const avisar = (texto: string, desfazer?: () => void) => setAviso({ texto, desfazer });
+
+  useEffect(() => {
+    if (!alvo) return;
+    let vivo = true;
+    setAviso(null);
+    carregarFixados(alvo).then(f => { if (vivo) setFixados(f); });
+    return () => { vivo = false; };
+  }, [alvo]);
+
+  const fixar = async (tipo: TipoFixado, id: string | number, marcar: boolean) => {
+    const chave = chaveFixado(tipo, id);
+    const aplicar = (ligado: boolean) => setFixados(atual => {
+      const novo = new Set(atual);
+      if (ligado) novo.add(chave); else novo.delete(chave);
+      return novo;
+    });
+    aplicar(marcar);
+    const falha = await gravarFixado(eu, tipo, id, marcar);
+    if (falha) { aplicar(!marcar); avisar(`Não consegui ${marcar ? 'fixar' : 'soltar'} o item: ${falha}`); }
+  };
+
+  const adiarLead = async (l: LeadDoDia, dia: string) => {
+    const anterior = l.proximo_passo;
+    const gravar = async (valor: string | null) => {
+      setLeads(lista => lista.map(x => (x.id === l.id ? { ...x, proximo_passo: valor } : x)));
+      const { error } = await supabase.from('prospects').update({ proximo_passo: valor }).eq('id', l.id);
+      return error ? error.message : null;
+    };
+    const falha = await gravar(dia);
+    if (falha) {
+      setLeads(lista => lista.map(x => (x.id === l.id ? { ...x, proximo_passo: anterior } : x)));
+      avisar(`Não consegui adiar ${l.company || 'o lead'}: ${falha}`);
+      return;
+    }
+    avisar(`${l.company || 'Lead'} adiado para ${rotuloDia(dia)}.`, async () => {
+      const erroDesfazer = await gravar(anterior);
+      setAviso(erroDesfazer ? { texto: `Não consegui desfazer: ${erroDesfazer}` } : null);
+    });
+  };
 
   useEffect(() => {
     if (!eu) return;
@@ -173,7 +221,13 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
     return { contatar: c, retomar: r, emConversa: conv, paraAgir: [...r, ...c] };
   }, [leads, ultimo]);
 
-  const lista = filtro === 'contatar' ? contatar : filtro === 'retomar' ? retomar : paraAgir;
+  const listaDoFiltro = filtro === 'contatar' ? contatar : filtro === 'retomar' ? retomar : paraAgir;
+  // Fixados primeiro, mantendo a ordem original dentro de cada grupo.
+  const lista = [
+    ...listaDoFiltro.filter(l => fixados.has(chaveFixado('lead', l.id))),
+    ...listaDoFiltro.filter(l => !fixados.has(chaveFixado('lead', l.id))),
+  ];
+  const podeEditar = !vendoOutro;
   const LIMITE = 12;
 
   const contexto = (l: LeadDoDia): string => {
@@ -257,6 +311,20 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
         </p>
       )}
 
+      {aviso && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 bg-navy text-white rounded-xl pl-5 pr-2 py-1.5 text-sm font-semibold">
+          <span className="py-1.5">{aviso.texto}</span>
+          <span className="flex items-center">
+            {aviso.desfazer && (
+              <button onClick={aviso.desfazer} className="px-3 py-2 font-extrabold underline underline-offset-4 hover:text-gold">Desfazer</button>
+            )}
+            <button onClick={() => setAviso(null)} className="px-3 py-2 text-slate-300 hover:text-white">Fechar</button>
+          </span>
+        </div>
+      )}
+
+      {alvo && <MinhasTarefas email={alvo} somenteLeitura={vendoOutro} />}
+
       {!temBloco && !erro && (
         <div className="bg-white border border-linha rounded-xl p-6">
           <p className="text-base font-bold">
@@ -312,6 +380,7 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
               <ul>
                 {lista.slice(0, LIMITE).map(l => {
                   const retomada = retomar.includes(l);
+                  const estaFixado = fixados.has(chaveFixado('lead', l.id));
                   return (
                     <li key={l.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3.5 border-b border-linha">
                       <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full shrink-0 ${retomada ? 'bg-amber-500' : 'bg-sky-500'}`} />
@@ -322,6 +391,14 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
                       <span className={`text-xs font-bold px-2 py-1 rounded-md ${retomada ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-900'}`}>
                         {retomada ? (l.proximo_passo ? `Retomar: ${rotuloDia(l.proximo_passo)}` : 'Retomar') : 'Primeiro contato'}
                       </span>
+                      {podeEditar && (
+                        <AcoesItem
+                          nome={l.company || 'lead'}
+                          fixado={estaFixado}
+                          onFixar={(marcar) => fixar('lead', l.id, marcar)}
+                          onAdiar={(dia) => adiarLead(l, dia)}
+                        />
+                      )}
                       <button
                         onClick={() => onAbrir('prospeccao')}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-bold border border-navy rounded-lg hover:bg-navy hover:text-white transition-colors"
@@ -384,7 +461,7 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
       {fazOperacoes && (
         <>
           {(fazProspeccao || gestaoNoMeuDia) && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Operações</h2>}
-          <BlocoOperacoes onAbrir={onAbrir} />
+          <BlocoOperacoes onAbrir={onAbrir} fixados={fixados} podeEditar={podeEditar} onFixar={(id, marcar) => fixar('posvenda', id, marcar)} avisar={avisar} />
         </>
       )}
 

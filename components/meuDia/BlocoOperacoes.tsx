@@ -4,6 +4,9 @@ import { supabase } from '../../lib/supabase';
 import { GATILHOS, fmt } from '../../lib/posvendaGatilhos.ts';
 import { hojeSaoPaulo } from '../../lib/contatoLead.ts';
 import { formatCurrency } from '../../utils/formatters';
+import { rotuloDia } from '../../lib/contatoLead.ts';
+import { chaveFixado } from '../../lib/meuDiaFixados.ts';
+import AcoesItem from './AcoesItem.tsx';
 
 /**
  * "Meu dia", bloco de Operações: cotações em andamento e pós-venda aberto.
@@ -13,7 +16,8 @@ import { formatCurrency } from '../../utils/formatters';
  * O endosso depende de o cliente pedir: aqui a pessoa vê quem avisar (garantia
  * vencendo, acompanhamento do contrato) e resolve na tela Pós-venda.
  *
- * Só leitura. Concluir tarefa e registrar contato continuam no Pós-venda.
+ * Quem tem a função pode fixar e adiar uma tarefa de pós-venda daqui (o
+ * adiamento vale para todos). Concluir e registrar contato continuam no Pós-venda.
  */
 
 interface Toque {
@@ -52,7 +56,17 @@ const maisDias = (iso: string, dias: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const BlocoOperacoes: React.FC<{ onAbrir: (view: string) => void }> = ({ onAbrir }) => {
+interface BlocoOperacoesProps {
+  onAbrir: (view: string) => void;
+  /** Chaves dos itens fixados por quem está vendo ("posvenda:<id>"). */
+  fixados: Set<string>;
+  /** Falso quando o gestor abre o dia de outra pessoa: não fixa nem adia. */
+  podeEditar: boolean;
+  onFixar: (id: string, marcar: boolean) => void;
+  avisar: (texto: string, desfazer?: () => void) => void;
+}
+
+const BlocoOperacoes: React.FC<BlocoOperacoesProps> = ({ onAbrir, fixados, podeEditar, onFixar, avisar }) => {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [toques, setToques] = useState<Toque[]>([]);
@@ -116,6 +130,29 @@ const BlocoOperacoes: React.FC<{ onAbrir: (view: string) => void }> = ({ onAbrir
     );
   }
 
+  // Adiar muda o vencimento da tarefa no banco: ela some daqui e do Pós-venda
+  // até a data escolhida, para todo mundo.
+  const adiar = async (t: Toque, dia: string) => {
+    const gravar = async (valor: string) => {
+      const { error } = await supabase.from('posvenda_toques').update({ vence_em: valor }).eq('id', t.id);
+      return error ? error.message : null;
+    };
+    const falha = await gravar(dia);
+    const nome = t.sales?.nome || 'Tarefa';
+    if (falha) { avisar(`Não consegui adiar a tarefa de ${nome}: ${falha}`); return; }
+    setToques(lista => lista.filter(x => x.id !== t.id));
+    avisar(`Pós-venda de ${nome} adiado para ${rotuloDia(dia)}.`, async () => {
+      const erroDesfazer = await gravar(t.vence_em);
+      if (erroDesfazer) { avisar(`Não consegui desfazer: ${erroDesfazer}`); return; }
+      setToques(lista => [...lista, t].sort((a, b) => a.vence_em.localeCompare(b.vence_em)));
+      avisar(`Pós-venda de ${nome} voltou para a lista.`);
+    });
+  };
+
+  const ordenados = [
+    ...toques.filter(t => fixados.has(chaveFixado('posvenda', t.id))),
+    ...toques.filter(t => !fixados.has(chaveFixado('posvenda', t.id))),
+  ];
   const atrasados = toques.filter(t => t.vence_em < hoje).length;
   const paradas = cotacoes.filter(c => diasEntre(c.created_at || c.data || hoje, hoje) >= 3).length;
   const LIMITE = 10;
@@ -146,7 +183,7 @@ const BlocoOperacoes: React.FC<{ onAbrir: (view: string) => void }> = ({ onAbrir
           </div>
           {toques.length === 0 && <p className="text-sm text-slate-600 py-6">Nenhuma tarefa de pós-venda para hoje.</p>}
           <ul>
-            {toques.slice(0, LIMITE).map(t => {
+            {ordenados.slice(0, LIMITE).map(t => {
               const g = GATILHOS[t.gatilho];
               const atraso = diasEntre(t.vence_em, hoje);
               return (
@@ -159,6 +196,14 @@ const BlocoOperacoes: React.FC<{ onAbrir: (view: string) => void }> = ({ onAbrir
                   <span className={`text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap ${atraso > 0 ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-900'}`}>
                     {g?.rot || t.gatilho}{atraso > 0 ? ` · há ${atraso} dia${atraso === 1 ? '' : 's'}` : ''}
                   </span>
+                  {podeEditar && (
+                    <AcoesItem
+                      nome={t.sales?.nome || 'tarefa'}
+                      fixado={fixados.has(chaveFixado('posvenda', t.id))}
+                      onFixar={(marcar) => onFixar(t.id, marcar)}
+                      onAdiar={(dia) => adiar(t, dia)}
+                    />
+                  )}
                   <button
                     onClick={() => onAbrir('posvenda')}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-bold border border-navy rounded-lg hover:bg-navy hover:text-white transition-colors"
