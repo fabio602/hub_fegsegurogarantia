@@ -5,6 +5,7 @@ import { carregarFuncoes, rotuloFuncoes, type FuncaoKey } from '../lib/funcoes.t
 import { situacaoDoLead, diasDesdeTimestamp, type SituacaoLead } from '../lib/situacaoLead.ts';
 import { hojeSaoPaulo, rotuloDia, ROTULO_ETAPA, RESUMO_RESULTADO } from '../lib/contatoLead.ts';
 import { formatCurrency } from '../utils/formatters';
+import BlocoOperacoes from './meuDia/BlocoOperacoes.tsx';
 import type { EtapaLead, ResultadoContato } from '../types';
 
 /**
@@ -122,6 +123,8 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
   }, [eu]);
 
   const fazProspeccao = funcoes.includes('sdr') || funcoes.includes('closer');
+  const fazOperacoes = funcoes.includes('operacoes');
+  const temBloco = fazProspeccao || fazOperacoes;
 
   const { contatar, retomar, emConversa, paraAgir } = useMemo(() => {
     const comSituacao = leads.map(l => ({ lead: l, situacao: situacaoDoLead(ultimo[l.id]?.em, l) }));
@@ -200,14 +203,14 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
         </p>
       )}
 
-      {!fazProspeccao && !erro && (
+      {!temBloco && !erro && (
         <div className="bg-white border border-linha rounded-xl p-6">
           <p className="text-base font-bold">
             {funcoes.length ? 'Os blocos da sua função estão a caminho.' : 'Você ainda não tem função definida.'}
           </p>
           <p className="text-sm text-slate-600 mt-1">
             {funcoes.length
-              ? 'Por enquanto esta tela mostra a prospecção. Operações, Residencial e Gestão entram nos próximos passos.'
+              ? 'Por enquanto esta tela mostra a prospecção e as operações. Residencial e Gestão entram nos próximos passos.'
               : 'Peça ao Fábio para marcar a sua função em Usuários do Hub. Ela define o que aparece aqui.'}
           </p>
         </div>
@@ -320,6 +323,13 @@ const MeuDia: React.FC<MeuDiaProps> = ({ email, onAbrir }) => {
               </section>
             </aside>
           </div>
+        </>
+      )}
+
+      {fazOperacoes && (
+        <>
+          {fazProspeccao && <h2 className="text-2xl font-extrabold tracking-tight pt-4 border-t border-linha">Operações</h2>}
+          <BlocoOperacoes onAbrir={onAbrir} />
         </>
       )}
     </div>
