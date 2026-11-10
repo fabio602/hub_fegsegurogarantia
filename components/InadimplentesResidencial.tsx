@@ -276,7 +276,7 @@ export default function InadimplentesResidencial() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-navy rounded-2xl p-5">
-          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Pendente</p>
+          <p className="text-white/50 text-xs font-bold mb-1">Total Pendente</p>
           <p className="text-gold text-2xl font-black">{fmtBRL(totalPendente)}</p>
         </div>
         {(['inadimplente', 'contatado', 'boleto_solicitado', 'pago'] as const).map(s => {
@@ -284,7 +284,7 @@ export default function InadimplentesResidencial() {
           return (
             <div key={s} onClick={() => setFilterStatus(filterStatus === s ? '' : s)}
               className={`bg-white rounded-2xl p-5 border cursor-pointer transition-all hover:shadow-md ${filterStatus === s ? 'border-navy' : 'border-slate-100'}`}>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{cfg.label}</p>
+              <p className="text-slate-400 text-xs font-bold mb-1">{cfg.label}</p>
               <p className="text-2xl font-black text-slate-800">{counts[s] || 0}</p>
             </div>
           );
@@ -312,7 +312,7 @@ export default function InadimplentesResidencial() {
                   />
                 </th>
                 {['CPF','Nome','Apólice','Parcela','Vencimento','Valor','Tel. PDF','Tel. Base'].map(h => (
-                  <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-amber-800">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left text-[10px] font-bold text-amber-800">{h}</th>
                 ))}
               </tr></thead>
               <tbody>

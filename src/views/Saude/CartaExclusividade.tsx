@@ -46,7 +46,7 @@ const dataPorExtensoMinuscula = (d: Date) =>
 const inputCls =
   'w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold text-slate-800 bg-slate-50';
 const rotuloCls =
-  'text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1';
+  'text-[10px] font-bold text-slate-400 block mb-1';
 
 const CartaExclusividade: React.FC = () => {
   const { toast } = useToast();

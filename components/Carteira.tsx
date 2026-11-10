@@ -210,7 +210,7 @@ export default function Carteira() {
         <div>
           <div className="flex items-center gap-2.5 mb-3">
             <span className="w-6 h-[3px] bg-gold rounded-sm" />
-            <span className="text-[10px] font-black tracking-widest uppercase text-navy/60">Carteira</span>
+            <span className="text-[10px] font-bold text-navy/60">Carteira</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-navy">
             {toques.length ? 'Fila de hoje' : 'Fila zerada'}
@@ -225,7 +225,7 @@ export default function Carteira() {
         <div className="inline-flex bg-areia-escura rounded-[10px] p-[3px]">
           {(['foco', 'lista', 'revisar'] as Vista[]).map(v => (
             <button key={v} onClick={() => setVista(v)}
-              className={`px-4 py-2.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition
+              className={`px-4 py-2.5 rounded-lg text-[11px] font-bold transition
                 ${vista === v ? 'bg-white text-navy shadow-sm' : 'text-navy/60'}`}>
               {v === 'revisar' ? <>Revisar {revisar.length > 0 &&
                 <span className="ml-1.5 bg-amber-100 text-amber-700 rounded-full px-1.5 text-[10px]">{revisar.length}</span>}</> : v}
@@ -254,7 +254,7 @@ export default function Carteira() {
                 <span className="block text-sm font-bold text-navy truncate">{t.sales?.nome}</span>
                 <span className="block text-[13px] text-navy/50 truncate">{GATILHOS[t.gatilho]?.acao(t.sales)}</span>
               </span>
-              <span className="text-[10px] font-black tracking-wider uppercase text-navy/40 whitespace-nowrap">
+              <span className="text-[10px] font-bold text-navy/40 whitespace-nowrap">
                 {GATILHOS[t.gatilho]?.rot}
               </span>
             </button>
@@ -278,7 +278,7 @@ export default function Carteira() {
             <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
               <div className="bg-areia rounded-2xl w-full max-w-2xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
                 <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
-                  <span className="text-[11px] font-black tracking-widest uppercase">Ficha do cliente · {atual.sales?.nome}</span>
+                  <span className="text-[11px] font-bold">Ficha do cliente · {atual.sales?.nome}</span>
                   <button onClick={() => setFichaAberta(false)} aria-label="Fechar ficha do cliente"
                     className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
                 </div>
@@ -300,7 +300,7 @@ export default function Carteira() {
             <div className="min-h-full flex items-start justify-center p-4 sm:p-8">
               <div className="bg-areia rounded-2xl w-full max-w-6xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
                 <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl bg-navy text-white px-5 py-3">
-                  <span className="text-[11px] font-black tracking-widest uppercase">Cadastro completo · {atual.sales?.nome}</span>
+                  <span className="text-[11px] font-bold">Cadastro completo · {atual.sales?.nome}</span>
                   <button onClick={fecharCadastro} aria-label="Fechar cadastro completo"
                     className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 text-sm font-black transition">✕</button>
                 </div>
@@ -330,7 +330,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados
 
   return (
     <article className="bg-white rounded-2xl p-9 shadow-[0_12px_32px_rgba(27,38,59,.07)]">
-      <div className="flex items-center gap-2 flex-wrap mb-4 text-[10px] font-black tracking-widest uppercase">
+      <div className="flex items-center gap-2 flex-wrap mb-4 text-[10px] font-bold">
         {atraso > 0
           ? <span className="bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-md">Atrasado há {atraso} {atraso === 1 ? 'dia' : 'dias'}</span>
           : <span className="bg-navy text-white px-2.5 py-1.5 rounded-md">Hoje</span>}
@@ -352,7 +352,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados
 
       {!semContato && g?.perguntar && (
         <div className="mt-5 p-5 bg-areia border-l-[3px] border-gold rounded-r-[10px]">
-          <div className="text-[10px] font-black tracking-widest uppercase text-navy/60 mb-2">O que perguntar</div>
+          <div className="text-[10px] font-bold text-navy/60 mb-2">O que perguntar</div>
           <p className="text-[15px] leading-relaxed text-navy">{g.perguntar}</p>
         </div>
       )}
@@ -360,7 +360,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados
       {/* Checklist fixa de fim de ligação, igual para todos os gatilhos. */}
       {!semContato && (
         <div className="mt-3 p-4 bg-areia/60 rounded-[10px]">
-          <div className="text-[10px] font-black tracking-widest uppercase text-navy/40 mb-2">Antes de encerrar</div>
+          <div className="text-[10px] font-bold text-navy/40 mb-2">Antes de encerrar</div>
           <ul className="list-disc pl-4 space-y-1.5 text-[13px] leading-relaxed text-navy/70">
             <li className={s.email ? '' : 'text-amber-700 font-semibold'}>
               {s.email ? 'Confirmar o email do cliente' : 'Pedir o email do cliente, que não temos cadastrado'}
@@ -375,7 +375,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados
         {campos.map(c => (
           <div key={c.k} className="group -mx-2 px-2 py-1 rounded-md hover:bg-areia cursor-pointer"
             onClick={() => setEditando(c.k)}>
-            <div className="flex items-center gap-1.5 text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-navy/40 mb-1">
               {c.rot}<Pencil size={10} className="shrink-0 opacity-70 group-hover:opacity-100" aria-hidden />
             </div>
             {editando === c.k ? (
@@ -475,7 +475,7 @@ function CardFoco({ t, hist, semStaff, onAbrirCadastro, onAbrirFicha, onSemDados
       </div>
 
       <details className="mt-5 pt-4 border-t border-navy/10">
-        <summary className="cursor-pointer text-[11px] font-black tracking-widest uppercase text-navy/40 hover:text-navy list-none">
+        <summary className="cursor-pointer text-[11px] font-bold text-navy/40 hover:text-navy list-none">
           Histórico deste cliente
         </summary>
         {hist.length ? hist.map((h: any, n: number) => (
@@ -522,7 +522,7 @@ function Revisar({ itens, onSalvar }: any) {
         return (
           <section key={g.k} className="mb-8">
             <div className="flex items-center gap-3 mb-1.5">
-              <h3 className="text-[11px] font-black tracking-widest uppercase text-amber-700">{g.rot}</h3>
+              <h3 className="text-[11px] font-bold text-amber-700">{g.rot}</h3>
               <span className="text-[11px] font-black text-navy/40">{lista.length}</span>
               <span className="flex-1 h-px bg-navy/10" />
             </div>
@@ -551,19 +551,19 @@ function LinhaRev({ r, aberto, onToggle, onSalvar }: any) {
         <div className="px-5 pb-5 pt-1 border-t border-navy/10">
           <div className="flex gap-5 flex-wrap mt-4">
             <label className="flex-1 min-w-[170px]">
-              <span className="block text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1.5">Modalidade</span>
+              <span className="block text-[10px] font-bold text-navy/40 mb-1.5">Modalidade</span>
               <select value={tipo} onChange={e => setTipo(e.target.value)}
                 className="w-full text-sm font-semibold border border-navy/15 rounded-lg px-3 py-2.5">
                 {MODALIDADES.map(m => <option key={m}>{m}</option>)}
               </select>
             </label>
             <label className="flex-1 min-w-[170px]">
-              <span className="block text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1.5">Início</span>
+              <span className="block text-[10px] font-bold text-navy/40 mb-1.5">Início</span>
               <input type="date" value={ini || ''} onChange={e => setIni(e.target.value)}
                 className="w-full text-sm font-semibold border border-navy/15 rounded-lg px-3 py-2.5" />
             </label>
             <label className="flex-1 min-w-[170px]">
-              <span className="block text-[10px] font-black tracking-widest uppercase text-navy/40 mb-1.5">Fim</span>
+              <span className="block text-[10px] font-bold text-navy/40 mb-1.5">Fim</span>
               <input type="date" value={fim || ''} onChange={e => setFim(e.target.value)}
                 className="w-full text-sm font-semibold border border-navy/15 rounded-lg px-3 py-2.5" />
             </label>

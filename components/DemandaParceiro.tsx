@@ -174,7 +174,7 @@ const SITUACAO: Record<CotacaoPortal['status'], { rotulo: string; classe: string
 function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
     return (
         <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{rotulo}</div>
+            <div className="text-[10px] font-bold text-slate-400">{rotulo}</div>
             <div className="text-xs font-semibold text-navy mt-0.5 break-words">{children}</div>
         </div>
     );

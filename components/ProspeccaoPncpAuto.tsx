@@ -150,7 +150,7 @@ export default function ProspeccaoPncpAuto() {
     }
 
     const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
-    const rotulo = 'block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5';
+    const rotulo = 'block text-xs font-bold text-slate-500 mb-1.5';
 
     return (
         <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -322,7 +322,7 @@ export default function ProspeccaoPncpAuto() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 border-b border-slate-200">
-                                <tr className="text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                                <tr className="text-left text-[10px] font-bold text-slate-600">
                                     <th className="px-6 py-3">Execução</th>
                                     <th className="px-3 py-3">Referência</th>
                                     <th className="px-3 py-3">Modo</th>

@@ -183,23 +183,23 @@ export default function RadarView() {
             <dl className="flex flex-wrap gap-2">
               <div><button type="button" onClick={() => setFiltros({ ...filtros, abordagem: 'ativas', status: [] })}
                 title="Ver os leads em abordagem" className="text-left px-3 py-2 rounded-xl bg-areia-clara border border-linha min-w-[5.5rem] hover:border-gold transition-colors">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1"><NotebookPen size={9} aria-hidden="true" /> Em abordagem</span>
+                <span className="text-[9px] font-bold text-slate-600 flex items-center gap-1"><NotebookPen size={9} aria-hidden="true" /> Em abordagem</span>
                 <span className="block text-base font-black text-navy tabular-nums leading-tight">{resumo.emAbordagem.toLocaleString('pt-BR')}</span>
               </button></div>
               <div><button type="button" onClick={() => setFiltros({ ...filtros, abordagem: 'ativas', status: [] })}
                 title="Contatos marcados para hoje ou atrasados"
                 className={`text-left px-3 py-2 rounded-xl border min-w-[5.5rem] hover:border-gold transition-colors ${resumo.paraHoje > 0 ? 'bg-amber-50 border-amber-200' : 'bg-areia-clara border-linha'}`}>
-                <span className={`text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 ${resumo.paraHoje > 0 ? 'text-amber-800' : 'text-slate-600'}`}><CalendarClock size={9} aria-hidden="true" /> Para hoje</span>
+                <span className={`text-[9px] font-bold flex items-center gap-1 ${resumo.paraHoje > 0 ? 'text-amber-800' : 'text-slate-600'}`}><CalendarClock size={9} aria-hidden="true" /> Para hoje</span>
                 <span className={`block text-base font-black tabular-nums leading-tight ${resumo.paraHoje > 0 ? 'text-amber-800' : 'text-navy'}`}>{resumo.paraHoje.toLocaleString('pt-BR')}</span>
               </button></div>
               {(['novo', 'descartado', 'excluido'] as RadarStatus[]).map(s => (
                 <div key={s} className="px-3 py-2 rounded-xl bg-areia-clara border border-linha min-w-[5.5rem]">
-                  <dt className="text-[9px] font-bold uppercase tracking-widest text-slate-600">{STATUS_LABEL[s]}</dt>
+                  <dt className="text-[9px] font-bold text-slate-600">{STATUS_LABEL[s]}</dt>
                   <dd className="text-base font-black text-navy tabular-nums leading-tight">{resumo.porStatus[s].toLocaleString('pt-BR')}</dd>
                 </div>
               ))}
               <div className="px-3 py-2 rounded-xl bg-areia-clara border border-linha min-w-[5.5rem]">
-                <dt className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1"><Sparkles size={9} aria-hidden="true" /> Sem enriquecer</dt>
+                <dt className="text-[9px] font-bold text-slate-600 flex items-center gap-1"><Sparkles size={9} aria-hidden="true" /> Sem enriquecer</dt>
                 <dd className="text-base font-black text-navy tabular-nums leading-tight">{resumo.semEnriquecimento.toLocaleString('pt-BR')}</dd>
               </div>
             </dl>

@@ -331,7 +331,7 @@ export default function WhatsAppBlast() {
             {/* Template picker */}
             {showTemplates && (
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Modelos salvos</p>
+                <p className="text-[10px] font-bold text-slate-400">Modelos salvos</p>
                 {loadingTemplates && <div className="flex justify-center py-3"><Loader2 size={16} className="animate-spin text-slate-400" /></div>}
                 <div className="space-y-2">
                   {savedTemplates.map(tpl => (
@@ -417,7 +417,7 @@ export default function WhatsAppBlast() {
             />
             {showPreview && (
               <div className="px-5 pb-5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Preview: como vai aparecer</p>
+                <p className="text-[10px] font-bold text-slate-400 mb-2">Preview: como vai aparecer</p>
                 <div className="bg-whatsapp-bolha rounded-2xl rounded-br-none px-4 py-3 text-sm text-slate-800 shadow-sm max-w-[85%] ml-auto" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {previewMessage(firstContactName)}
                 </div>
@@ -434,7 +434,7 @@ export default function WhatsAppBlast() {
                 { label: 'Máximo', value: maxDelay, set: setMaxDelay },
               ].map(({ label, value, set }) => (
                 <div key={label}>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">{label}</label>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-2">{label}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -466,7 +466,7 @@ export default function WhatsAppBlast() {
                 ].map(({ label, value, color }) => (
                   <div key={label} className={`${color} rounded-2xl px-3 py-3 text-center`}>
                     <p className="text-xl font-black">{value}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{label}</p>
+                    <p className="text-[10px] font-bold opacity-70">{label}</p>
                   </div>
                 ))}
               </div>

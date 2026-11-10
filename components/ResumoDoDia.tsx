@@ -101,7 +101,7 @@ const ResumoDoDia: React.FC<Props> = ({ onFechar }) => {
         : 'bg-white text-slate-600 border-slate-200 hover:border-gold/40 hover:text-navy'}`;
     const cartao = (rotulo: string, valor: React.ReactNode, sub?: string) => (
         <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 min-w-0">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest truncate">{rotulo}</p>
+            <p className="text-[11px] font-bold text-slate-500 truncate">{rotulo}</p>
             <p className="text-2xl font-black text-navy leading-tight">{valor}</p>
             {sub && <p className="text-[11px] text-slate-500">{sub}</p>}
         </div>
@@ -167,7 +167,7 @@ const ResumoDoDia: React.FC<Props> = ({ onFechar }) => {
                                 {!pessoa && (
                                     <div className="overflow-x-auto border border-slate-200 rounded-xl">
                                         <table className="w-full text-sm">
-                                            <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                                            <thead className="bg-slate-50 text-[11px] font-bold text-slate-500">
                                                 <tr>
                                                     {['Pessoa', 'Contatos', 'WhatsApp', 'E-mail', 'Ligação', 'Responderam', 'Cotações', 'Não atendeu', 'Recebidos', 'Encerrados', 'Observações', 'Lembretes'].map(c => (
                                                         <th key={c} className={`px-2.5 py-2 ${c === 'Pessoa' ? 'text-left' : 'text-right'} whitespace-nowrap`}>{c}</th>
@@ -194,7 +194,7 @@ const ResumoDoDia: React.FC<Props> = ({ onFechar }) => {
                                 )}
 
                                 <section className="space-y-2">
-                                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">O que foi feito · {itensVisiveis.length}</h4>
+                                    <h4 className="text-sm font-bold text-slate-400">O que foi feito · {itensVisiveis.length}</h4>
                                     {itensVisiveis.length === 0 ? (
                                         <p className="text-sm text-slate-400 bg-slate-50 border border-slate-200 rounded-xl p-4">Nada registrado neste dia{pessoa ? ` por ${nomeDe(pessoa)}` : ''}.</p>
                                     ) : (

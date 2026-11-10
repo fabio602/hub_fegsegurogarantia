@@ -1606,7 +1606,7 @@ export default function ImobiliariaRepasse() {
                   </p>
                 </div>
                 {(c as any).is_repasse && (
-                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-xl bg-amber-50 text-amber-600 shrink-0">
                     Repasse {Number(c.valor_seguro) > 0 ? '' : '· sem valor'}
                   </span>
                 )}
@@ -1672,7 +1672,7 @@ export default function ImobiliariaRepasse() {
         return (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="font-bold text-slate-700 text-sm uppercase tracking-widest">Pipeline de Solicitações</h3>
+              <h3 className="font-bold text-slate-700 text-sm">Pipeline de Solicitações</h3>
               <span className="text-xs text-slate-400 font-bold">Arraste para mover entre etapas</span>
             </div>
             <div className="overflow-x-auto pb-1">
@@ -1712,7 +1712,7 @@ export default function ImobiliariaRepasse() {
                   >
                     {/* Column header */}
                     <div className="flex items-center justify-between mb-3">
-                      <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1.5px', color: col.labelColor }}>{col.label}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 900, textTransform: '', letterSpacing: '1.5px', color: col.labelColor }}>{col.label}</span>
                       <span style={{ fontSize: '11px', fontWeight: 900, background: `${col.accent}18`, color: col.labelColor, padding: '2px 8px', borderRadius: '20px', minWidth: '24px', textAlign: 'center' }}>{colCards.length}</span>
                     </div>
                     {/* Cards */}
@@ -1839,15 +1839,15 @@ export default function ImobiliariaRepasse() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-navy rounded-2xl p-5 text-white">
-          <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-1">Total Mensal</p>
+          <p className="text-white/50 text-xs font-bold mb-1">Total Mensal</p>
           <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Clientes Ativos</p>
+          <p className="text-slate-400 text-xs font-bold mb-1">Clientes Ativos</p>
           <p className="text-2xl font-black text-slate-800">{ativos.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Envio Automático</p>
+          <p className="text-slate-400 text-xs font-bold mb-1">Envio Automático</p>
           <p className="text-2xl font-black text-slate-800">Todo dia 10</p>
         </div>
       </div>
@@ -1861,42 +1861,42 @@ export default function ImobiliariaRepasse() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nome do Inquilino *</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Nome do Inquilino *</label>
               <input value={form.inquilino_nome} onChange={e => setForm(f => ({ ...f, inquilino_nome: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Maria da Silva" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Seguradora *</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Seguradora *</label>
               <input value={form.seguradora} onChange={e => setForm(f => ({ ...f, seguradora: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: Porto Seguro" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Número da Apólice *</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Número da Apólice *</label>
               <input value={form.numero_apolice} onChange={e => setForm(f => ({ ...f, numero_apolice: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: APL-2024-001" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor do Seguro (R$) *</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Valor do Seguro (R$) *</label>
               <input value={form.valor_seguro} onChange={e => setForm(f => ({ ...f, valor_seguro: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Ex: 150,00" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Parcela Inicial</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Parcela Inicial</label>
               <input type="number" min="1" max="12" value={form.parcela_atual} onChange={e => setForm(f => ({ ...f, parcela_atual: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Total de Parcelas</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Total de Parcelas</label>
               <input type="number" min="1" value={form.total_parcelas} onChange={e => setForm(f => ({ ...f, total_parcelas: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data de Início</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Data de Início</label>
               <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Observações</label>
+              <label className="text-xs font-bold text-slate-500 block mb-1">Observações</label>
               <input value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" placeholder="Opcional" />
             </div>
@@ -1931,15 +1931,15 @@ export default function ImobiliariaRepasse() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Inquilino</th>
-                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Parceiro</th>}
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Seguradora</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Nº Apólice</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Seg. Residencial</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Garantia / Docs</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Valor</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Venc.</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Parcela</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Inquilino</th>
+                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Parceiro</th>}
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Seguradora</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Nº Apólice</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Seg. Residencial</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Garantia / Docs</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Valor</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold text-slate-400">Venc.</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold text-slate-400">Parcela</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -2211,7 +2211,7 @@ export default function ImobiliariaRepasse() {
             ))}
 
             <div className="bg-areia-clara border border-linha rounded-2xl px-5 py-4">
-              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-2">Para lembrar</p>
+              <p className="text-[10px] font-bold text-stone-500 mb-2">Para lembrar</p>
               <ul className="space-y-1.5">
                 {GUIA_LEMBRETES.map(l => (
                   <li key={l} className="flex items-start gap-2 text-[12.5px] text-slate-600 font-semibold leading-relaxed">
@@ -2250,12 +2250,12 @@ export default function ImobiliariaRepasse() {
           </div>
 
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="text-[10px] font-bold text-slate-400 mb-0.5">Inquilino</p>
             <p className="font-bold text-slate-800">{encerramentoModal.cliente.inquilino_nome}</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">O que aconteceu</label>
+            <label className="text-[10px] font-bold text-slate-400">O que aconteceu</label>
             <div className="grid grid-cols-2 gap-2">
               {SITUACOES_ENCERRAMENTO.map(s => {
                 const ativa = encerramentoModal.situacao === s.valor;
@@ -2278,7 +2278,7 @@ export default function ImobiliariaRepasse() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observação (opcional)</label>
+            <label className="text-[10px] font-bold text-slate-400">Observação (opcional)</label>
             <textarea
               rows={2}
               value={encerramentoModal.observacao}
@@ -2346,12 +2346,12 @@ export default function ImobiliariaRepasse() {
             <p className="text-slate-500 text-sm mt-1">Cliente novo do portal. Se já souber o valor mensal, deixe o repasse pronto agora. Se ainda não souber, aprove assim mesmo.</p>
           </div>
           <div className="bg-navy/5 rounded-xl px-4 py-3 border border-gold/20">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Inquilino</p>
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Inquilino</p>
             <p className="font-bold text-slate-800">{repasseSetupModal.nome}</p>
           </div>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor Mensal do Seguro (R$)</label>
+              <label className="text-[10px] font-bold text-slate-400">Valor Mensal do Seguro (R$)</label>
               <input
                 type="text" placeholder="Ex: 182,49"
                 value={repasseSetupForm.valor_seguro}
@@ -2361,7 +2361,7 @@ export default function ImobiliariaRepasse() {
               <p className="text-xs text-slate-400">Este valor será cobrado mensalmente no repasse da imobiliária.</p>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dia de Vencimento do Aluguel</label>
+              <label className="text-[10px] font-bold text-slate-400">Dia de Vencimento do Aluguel</label>
               <div className="flex items-center gap-3">
                 <input
                   type="number" min="1" max="28" placeholder="Ex: 20"
@@ -2373,7 +2373,7 @@ export default function ImobiliariaRepasse() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data do 1º Repasse</label>
+              <label className="text-[10px] font-bold text-slate-400">Data do 1º Repasse</label>
               <input
                 type="date"
                 value={primeiroRepasseSetup}
@@ -2383,7 +2383,7 @@ export default function ImobiliariaRepasse() {
               <p className="text-xs text-slate-400">Vencimento da 2ª parcela, a primeira que a imobiliária repassa. Sugerimos o mês que vem; confira e corrija se for outro mês.</p>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número de Parcelas</label>
+              <label className="text-[10px] font-bold text-slate-400">Número de Parcelas</label>
               <div className="grid grid-cols-3 gap-2">
                 {[6, 12, 24].map(n => (
                   <button key={n} type="button"
@@ -2427,7 +2427,7 @@ export default function ImobiliariaRepasse() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Mês</label>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1">Mês</label>
               <select value={repasseForm.mes} onChange={e => setRepasseForm(f => ({...f, mes: parseInt(e.target.value)}))}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                 {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i) =>
@@ -2435,23 +2435,23 @@ export default function ImobiliariaRepasse() {
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ano</label>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1">Ano</label>
               <input type="number" value={repasseForm.ano} onChange={e => setRepasseForm(f => ({...f, ano: parseInt(e.target.value)}))}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Data do Pagamento</label>
+            <label className="text-[10px] font-bold text-slate-400 block mb-1">Data do Pagamento</label>
             <input type="date" value={repasseForm.data_pagamento} onChange={e => setRepasseForm(f => ({...f, data_pagamento: e.target.value}))}
               className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Comprovante (PDF ou imagem)</label>
+            <label className="text-[10px] font-bold text-slate-400 block mb-1">Comprovante (PDF ou imagem)</label>
             <input type="file" accept="application/pdf,image/*" onChange={e => setRepasseFile(e.target.files?.[0] || null)}
               className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-slate-100 file:font-bold file:text-slate-700" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Observações</label>
+            <label className="text-[10px] font-bold text-slate-400 block mb-1">Observações</label>
             <input value={repasseForm.observacoes} onChange={e => setRepasseForm(f => ({...f, observacoes: e.target.value}))}
               placeholder="Opcional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold" />
           </div>
@@ -2478,7 +2478,7 @@ export default function ImobiliariaRepasse() {
           <div className="px-7 pt-6 pb-4 border-b border-slate-100">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold text-gold-dark uppercase tracking-widest">Atualizar cadastro</p>
+                <p className="text-[10px] font-bold text-gold-dark">Atualizar cadastro</p>
                 <input
                   value={editStatusForm.inquilino_nome}
                   onChange={e => setEditStatusForm(f => ({...f, inquilino_nome: e.target.value}))}
@@ -2537,10 +2537,10 @@ export default function ImobiliariaRepasse() {
 
             {/* ── Andamento ── */}
             <section className="space-y-3">
-              <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Andamento</p>
+              <p className="text-[11px] font-bold text-slate-700">Andamento</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Etapa no kanban</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Etapa no kanban</label>
                   <select value={editStatusForm.kanban_status} onChange={e => setEditStatusForm(f => ({...f, kanban_status: e.target.value}))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                     <option value="solicitado">📬 Solicitado</option>
@@ -2554,7 +2554,7 @@ export default function ImobiliariaRepasse() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Situação do cliente</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Situação do cliente</label>
                   <select value={editStatusForm.status_apolice} onChange={e => setEditStatusForm(f => ({...f, status_apolice: e.target.value}))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-gold">
                     <option value="ativo">🟢 Ativo</option>
@@ -2587,10 +2587,10 @@ export default function ImobiliariaRepasse() {
             {/* ── Seguro Residencial ── a apólice inteira num lugar só */}
             {(temResidencial(editingStatus) || !temGarantia(editingStatus)) && (
               <section className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">🏠 Seguro Residencial</p>
+                <p className="text-[11px] font-bold text-slate-700">🏠 Seguro Residencial</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status da apólice</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Status da apólice</label>
                     <select value={editStatusForm.status_residencial} onChange={e => {
                         const v = e.target.value;
                         setEditStatusForm(f => {
@@ -2608,17 +2608,17 @@ export default function ImobiliariaRepasse() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Seguradora</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Seguradora</label>
                     <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
                       placeholder="Ex: Tokio Marine" className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº da apólice</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Nº da apólice</label>
                     <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
                       placeholder="Número que está no PDF" className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fim da vigência</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Fim da vigência</label>
                     <input type="date" value={editStatusForm.vigencia_fim} onChange={e => { setVigenciaSugerida(false); setEditStatusForm(f => ({...f, vigencia_fim: e.target.value})); }}
                       className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
                     <p className={`text-[10px] mt-1 ${vigenciaSugerida ? 'font-bold text-amber-700' : 'text-slate-400'}`}>
@@ -2627,7 +2627,7 @@ export default function ImobiliariaRepasse() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da apólice</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">PDF da apólice</label>
                   {editStatusForm.apolice_residencial_url
                     ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
@@ -2643,10 +2643,10 @@ export default function ImobiliariaRepasse() {
             {/* ── Garantia Locatícia ── */}
             {temGarantia(editingStatus) && (
               <section className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                <p className="text-[11px] font-black text-slate-700 uppercase tracking-widest">🔒 Garantia Locatícia</p>
+                <p className="text-[11px] font-bold text-slate-700">🔒 Garantia Locatícia</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Status da garantia</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Status da garantia</label>
                     <select value={editStatusForm.status_garantia} onChange={e => setEditStatusForm(f => ({...f, status_garantia: e.target.value}))}
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                       {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -2656,17 +2656,17 @@ export default function ImobiliariaRepasse() {
                   {!temResidencial(editingStatus) && (
                     <>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Garantidora</label>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Garantidora</label>
                         <input value={editStatusForm.seguradora} onChange={e => setEditStatusForm(f => ({...f, seguradora: e.target.value}))}
                           className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nº do contrato</label>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Nº do contrato</label>
                         <input value={editStatusForm.numero_apolice} onChange={e => setEditStatusForm(f => ({...f, numero_apolice: e.target.value}))}
                           className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-mono focus:outline-none focus:border-gold" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Fim da vigência</label>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Fim da vigência</label>
                         <input type="date" value={editStatusForm.vigencia_fim} onChange={e => setEditStatusForm(f => ({...f, vigencia_fim: e.target.value}))}
                           className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm focus:outline-none focus:border-gold" />
                       </div>
@@ -2675,7 +2675,7 @@ export default function ImobiliariaRepasse() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">PDF da apólice</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">PDF da apólice</label>
                     {editStatusForm.apolice_garantia_url
                       ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                           <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
@@ -2688,7 +2688,7 @@ export default function ImobiliariaRepasse() {
                   {/* Termo com a cláusula do seguro que a imobiliária inclui no
                       contrato de locação. Vai anexado no e-mail da apólice. */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Termo da cláusula (vai no contrato)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Termo da cláusula (vai no contrato)</label>
                     {editStatusForm.termo_clausula_url
                       ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                           <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
@@ -2704,7 +2704,7 @@ export default function ImobiliariaRepasse() {
 
             {/* ── Repasse mensal ── */}
             <section className="bg-amber-50 rounded-2xl p-4 space-y-3 border border-amber-100">
-              <p className="text-[11px] font-black text-amber-700 uppercase tracking-widest">Repasse mensal</p>
+              <p className="text-[11px] font-bold text-amber-700">Repasse mensal</p>
               {/* Sem esta marcação o cliente não entra na lista de repasses ativos
                   nem no total mensal. */}
               <label className="flex items-start gap-2 cursor-pointer">
@@ -2728,7 +2728,7 @@ export default function ImobiliariaRepasse() {
                 </p>
               ) : (
                 <div className="max-w-[12rem]">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dia do vencimento do aluguel</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Dia do vencimento do aluguel</label>
                   <input type="number" min="1" max="28" placeholder="Ex: 20"
                     value={editStatusForm.dia_vencimento_aluguel}
                     onChange={e => setEditStatusForm(f => ({...f, dia_vencimento_aluguel: e.target.value}))}
@@ -2739,25 +2739,25 @@ export default function ImobiliariaRepasse() {
               {editStatusForm.is_repasse && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Valor da parcela (R$)</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Valor da parcela (R$)</label>
                     <input type="text" placeholder="Ex: 182,49" value={editStatusForm.valor_seguro}
                       onChange={e => setEditStatusForm(f => ({...f, valor_seguro: e.target.value}))}
                       className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Parcela atual</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Parcela atual</label>
                     <input type="number" min="1" placeholder="Ex: 2" value={editStatusForm.parcela_atual}
                       onChange={e => setEditStatusForm(f => ({...f, parcela_atual: e.target.value}))}
                       className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">De quantas</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">De quantas</label>
                     <input type="number" min="1" placeholder="Ex: 12" value={editStatusForm.total_parcelas}
                       onChange={e => setEditStatusForm(f => ({...f, total_parcelas: e.target.value}))}
                       className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold focus:outline-none focus:border-gold" />
                   </div>
                   <div className="sm:col-span-3">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vencimento da parcela atual</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Vencimento da parcela atual</label>
                     <input type="date"
                       value={editStatusForm.proximo_vencimento || sugerirPrimeiroRepasse(editStatusForm.dia_vencimento_aluguel)}
                       onChange={e => setEditStatusForm(f => ({...f, proximo_vencimento: e.target.value}))}
@@ -2785,7 +2785,7 @@ export default function ImobiliariaRepasse() {
               </button>
             ) : (
               <section className="bg-blue-50 rounded-2xl p-4 space-y-2 border border-blue-100">
-                <p className="text-[11px] font-black text-blue-700 uppercase tracking-widest">Recado para a imobiliária</p>
+                <p className="text-[11px] font-bold text-blue-700">Recado para a imobiliária</p>
                 <textarea rows={3} value={editStatusForm.observacao_imobiliaria}
                   onChange={e => setEditStatusForm(f => ({...f, observacao_imobiliaria: e.target.value}))}
                   placeholder="Ex: Aguardando o cliente enviar o comprovante de renda para seguir com a cotação."

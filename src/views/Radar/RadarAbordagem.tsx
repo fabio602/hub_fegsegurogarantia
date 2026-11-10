@@ -21,8 +21,8 @@ interface Props {
   onRecarregar: () => Promise<void>;
 }
 
-const secao = 'text-[10px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5';
-const botao = 'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+const secao = 'text-[10px] font-bold text-slate-600 flex items-center gap-1.5';
+const botao = 'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
 const campo = 'w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white';
 
 const ROTULO_CANAL: Record<CanalContato, string> = { ligacao: 'Ligação', whatsapp: 'WhatsApp', email: 'E-mail' };
@@ -181,9 +181,9 @@ export default function RadarAbordagem({ empresa, onRecarregar }: Props) {
         <div className="flex flex-wrap items-center gap-2">
           <h3 id="radar-abordagem-titulo" className={secao}><NotebookPen size={12} aria-hidden="true" /> Abordagem</h3>
           {etapa ? (
-            <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${ETAPA_CLASSES[etapa]}`}>{ROTULO_ETAPA[etapa]}</span>
+            <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold ${ETAPA_CLASSES[etapa]}`}>{ROTULO_ETAPA[etapa]}</span>
           ) : (
-            <span className="inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border-slate-200">Não iniciada</span>
+            <span className="inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold bg-slate-50 text-slate-600 border-slate-200">Não iniciada</span>
           )}
           {empresa.responsavel_email && (
             <span className="text-[12px] text-slate-700">com <strong className="text-navy">{nomeDe(empresa.responsavel_email)}</strong></span>
@@ -202,7 +202,7 @@ export default function RadarAbordagem({ empresa, onRecarregar }: Props) {
           {souGestor && (
             <select aria-label="Passar o lead para" value="" disabled={ocupado}
               onChange={e => assumir(e.target.value)}
-              className="px-2 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-700 cursor-pointer hover:border-gold">
+              className="px-2 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 cursor-pointer hover:border-gold">
               <option value="">Passar para...</option>
               {equipe.filter(m => m.ativo && m.email !== empresa.responsavel_email).map(m => <option key={m.email} value={m.email}>{m.nome}</option>)}
             </select>
@@ -268,18 +268,18 @@ export default function RadarAbordagem({ empresa, onRecarregar }: Props) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[10rem_10rem_1fr] gap-2">
             <div>
-              <label htmlFor="radar-falou" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Falou com</label>
+              <label htmlFor="radar-falou"className="block text-[10px] font-bold text-slate-600 mb-1">Falou com</label>
               <select id="radar-falou" value={falouCom} onChange={e => setFalouCom(e.target.value as FalouCom)} className={`${campo} cursor-pointer`}>
                 {(Object.keys(FALOU_COM_LABEL) as FalouCom[]).map(f => <option key={f} value={f}>{FALOU_COM_LABEL[f]}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="radar-prox-toque" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Próximo contato</label>
+              <label htmlFor="radar-prox-toque"className="block text-[10px] font-bold text-slate-600 mb-1">Próximo contato</label>
               <input id="radar-prox-toque" type="date" value={proximo} onChange={e => setProximo(e.target.value)}
                 disabled={resultado === 'sem_interesse'} className={campo} />
             </div>
             <div>
-              <label htmlFor="radar-nota" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Anotação</label>
+              <label htmlFor="radar-nota"className="block text-[10px] font-bold text-slate-600 mb-1">Anotação</label>
               <input id="radar-nota" maxLength={1000} value={nota} onChange={e => setNota(e.target.value)}
                 placeholder="Ex.: falei com o financeiro, pediu para mandar material" className={campo} />
             </div>

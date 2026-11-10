@@ -309,11 +309,11 @@ const Prospeccao: React.FC = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">Modo</p>
+            <p className="text-[11px] text-navy/50">Modo</p>
             <p className="font-semibold text-navy">{campanha.dry_run ? 'Ensaio' : 'Valendo'}</p>
           </div>
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">Último tique</p>
+            <p className="text-[11px] text-navy/50">Último tique</p>
             <p className="font-semibold text-navy">
               {campanha.ultimo_tique
                 ? new Date(campanha.ultimo_tique).toLocaleDateString('pt-BR')
@@ -321,11 +321,11 @@ const Prospeccao: React.FC = () => {
             </p>
           </div>
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">No estoque</p>
+            <p className="text-[11px] text-navy/50">No estoque</p>
             <p className="font-semibold text-navy tabular-nums">{estoque.length}</p>
           </div>
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">Já enviados</p>
+            <p className="text-[11px] text-navy/50">Já enviados</p>
             <p className="font-semibold text-navy tabular-nums">
               {estoque.filter(i => i.enviado_em).length}
             </p>
@@ -365,15 +365,15 @@ const Prospeccao: React.FC = () => {
 
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">Contatos ativos</p>
+            <p className="text-[11px] text-navy/50">Contatos ativos</p>
             <p className="font-semibold text-navy tabular-nums">{ativos}</p>
           </div>
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">Total inscritos</p>
+            <p className="text-[11px] text-navy/50">Total inscritos</p>
             <p className="font-semibold text-navy tabular-nums">{contatos.length}</p>
           </div>
           <div className="border border-linha rounded-lg px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-navy/50">E-mails em 7 dias</p>
+            <p className="text-[11px] text-navy/50">E-mails em 7 dias</p>
             <p className="font-semibold text-navy tabular-nums">{enviados7d}</p>
           </div>
         </div>

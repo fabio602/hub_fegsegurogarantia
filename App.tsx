@@ -534,7 +534,7 @@ const App: React.FC = () => {
 
   // ── Rótulo de seção dentro de um sub-grupo (só texto, não clicável) ──
   const NavSectionLabel: React.FC<{ label: string }> = ({ label }) => (
-    <div className="px-4 mt-3 pt-2 pb-1 text-[9px] font-black tracking-widest uppercase text-gold/70 select-none border-t border-gold/15">
+    <div className="px-4 mt-3 pt-2 pb-1 text-[9px] font-bold text-gold/70 select-none border-t border-gold/15">
       {label}
     </div>
   );
@@ -802,7 +802,7 @@ const App: React.FC = () => {
               <h2 className="text-navy font-black text-base lg:text-xl tracking-tight truncate">
                 {VIEW_TITLES[activeView]}
               </h2>
-              <p className="hidden sm:block text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate">
+              <p className="hidden sm:block text-[10px] text-slate-500 font-bold mt-0.5 truncate">
                 Sessão Ativa: {session?.user?.email?.split('@')[0]}
               </p>
             </div>
@@ -889,7 +889,7 @@ const App: React.FC = () => {
                           {item.icon}
                         </div>
                         <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
-                        <p className="text-[11px] text-slate-400 uppercase font-bold tracking-widest opacity-80">{item.desc}</p>
+                        <p className="text-[11px] text-slate-400 font-bold opacity-80">{item.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -898,7 +898,7 @@ const App: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-6 px-2">
                     <h3 className="text-xl font-black text-slate-800 tracking-tight">Portais Públicos</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Links para enviar aos clientes/parceiros</p>
+                    <p className="text-xs font-bold text-slate-400">Links para enviar aos clientes/parceiros</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[

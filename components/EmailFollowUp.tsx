@@ -410,11 +410,11 @@ export default function EmailFollowUp() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-slate-800 text-xs">{c.nome}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl uppercase ${SOURCE_BADGE[c.source]}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl ${SOURCE_BADGE[c.source]}`}>
                       {c.source}
                     </span>
                     {c.recentlySent && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-emerald-100 text-emerald-700 uppercase">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-emerald-100 text-emerald-700">
                         Email enviado
                       </span>
                     )}
@@ -430,7 +430,7 @@ export default function EmailFollowUp() {
                 {/* Email + prévia + envio */}
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-slate-100 text-slate-600 uppercase">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-slate-100 text-slate-600">
                       Aviso de vencimento
                     </span>
                     {c.email ? (
@@ -608,7 +608,7 @@ export default function EmailFollowUp() {
           {/* ── Tab: Avulso ────────────────────────────────────── */}
           {tab === 'avulso' && (
             <div className="bg-white rounded-2xl border border-slate-100 p-6 max-w-xl">
-              <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wide">Email personalizado</p>
+              <p className="text-xs font-bold text-slate-400 mb-4">Email personalizado</p>
 
               {/* Quick templates */}
               <div className="flex gap-2 mb-5 flex-wrap">
@@ -626,7 +626,7 @@ export default function EmailFollowUp() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Nome do destinatário</label>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1 block">Nome do destinatário</label>
                     <input
                       value={avulso.toName}
                       onChange={e => setAvulso(p => ({ ...p, toName: e.target.value }))}
@@ -635,7 +635,7 @@ export default function EmailFollowUp() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Email *</label>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1 block">Email *</label>
                     <input
                       type="email"
                       value={avulso.toEmail}
@@ -647,7 +647,7 @@ export default function EmailFollowUp() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Assunto *</label>
+                  <label className="text-[10px] font-bold text-slate-400 mb-1 block">Assunto *</label>
                   <input
                     value={avulso.subject}
                     onChange={e => setAvulso(p => ({ ...p, subject: e.target.value }))}
@@ -657,7 +657,7 @@ export default function EmailFollowUp() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Mensagem *</label>
+                  <label className="text-[10px] font-bold text-slate-400 mb-1 block">Mensagem *</label>
                   <textarea
                     value={avulso.message}
                     onChange={e => setAvulso(p => ({ ...p, message: e.target.value }))}
@@ -721,8 +721,8 @@ export default function EmailFollowUp() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Eye size={13} className="text-gold shrink-0" />
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia do e-mail</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-navy/10 text-navy uppercase">{preview.modelo}</span>
+                    <span className="text-[10px] font-bold text-slate-400">Prévia do e-mail</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xl bg-navy/10 text-navy">{preview.modelo}</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1 truncate">
                     Para: <span className="font-bold text-slate-700">{preview.destinatario || 'sem destinatário'}</span>

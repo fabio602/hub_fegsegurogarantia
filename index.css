@@ -3,30 +3,33 @@
 @tailwind utilities;
 
 /*
- * Escala global da interface para equivaler ao visual de 80% de zoom.
+ * Escala global da interface.
  *
- * O Tailwind usa `rem` para espaçamentos, tamanhos e fontes padrão.
- * Reduzindo o font-size da raiz para 80%, todos esses valores escalam
- * automaticamente (p-4, w-80, h-24, text-xl, gap-6, etc.).
+ * O ESPAÇAMENTO continua na escala de 80%: reduzindo o font-size da raiz, tudo
+ * que o Tailwind mede em `rem` (p-4, w-80, h-24, gap-6) encolhe junto. O hub
+ * inteiro foi desenhado assim e mexer nisso obrigaria a reescalar todas as telas.
  *
- * Para os tamanhos de fonte definidos em px arbitrário (text-[10px], etc.),
- * aplicamos overrides explícitos com !important para garantir a escala.
+ * O TEXTO saiu dessa escala em 10/11/2026 (branch visual-base): letra de 8px
+ * não se lê. Os tamanhos de fonte agora são fixos em px:
+ *  - text-xs, text-sm, text-base... ficam no tailwind.config.js (fontSize);
+ *  - os tamanhos em px arbitrário ficam aqui, com piso de 10px.
+ * Ao criar componente novo, não use nada abaixo de text-[11px].
  */
 
 html {
-  font-size: 80%; /* 1rem = 12.8px em vez de 16px */
+  font-size: 80%; /* 1rem = 12.8px em vez de 16px (vale para espaçamento) */
 }
 
-/* --- Tailwind arbitrary font sizes (px → escala ×0.8) --- */
-.text-\[7px\]  { font-size: 5.6px  !important; }
-.text-\[8px\]  { font-size: 6.4px  !important; }
-.text-\[9px\]  { font-size: 7.2px  !important; }
-.text-\[10px\] { font-size: 8px    !important; }
-.text-\[11px\] { font-size: 8.8px  !important; }
-.text-\[12px\] { font-size: 9.6px  !important; }
-.text-\[13px\] { font-size: 10.4px !important; }
-.text-\[14px\] { font-size: 11.2px !important; }
-.text-\[15px\] { font-size: 12px   !important; }
+/* --- Tamanhos de fonte em px arbitrário: valor real, com piso de leitura --- */
+.text-\[7px\]  { font-size: 10px   !important; }
+.text-\[8px\]  { font-size: 10px   !important; }
+.text-\[9px\]  { font-size: 10px   !important; }
+.text-\[10px\] { font-size: 10.5px !important; }
+.text-\[11px\] { font-size: 11px   !important; }
+.text-\[12px\] { font-size: 11.5px !important; }
+.text-\[13px\] { font-size: 12px   !important; }
+.text-\[14px\] { font-size: 13px   !important; }
+.text-\[15px\] { font-size: 13.5px !important; }
 
 /* --- Scrollbar vertical (mantém proporção original) --- */
 .custom-scroll::-webkit-scrollbar {

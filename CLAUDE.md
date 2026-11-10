@@ -117,7 +117,14 @@ Cores categóricas de dados (badges de tipo de produto, etiquetas de urgência d
 
 O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in-*` e `fade-in-*`.
 
-**Atenção à escala global:** o `index.css` define `html { font-size: 80% }` para o hub ficar equivalente a um zoom de 80%. Isso significa que **1rem vale 12,8px e não 16px**, e que todo espaçamento em `rem` (`p-4`, `gap-6`, `w-80`, `text-xl`) já vem reduzido. Os tamanhos em px arbitrário (`text-[10px]` e irmãos) têm override explícito com `!important` no mesmo arquivo para acompanhar a escala. Ao criar componente novo, lembre que o espaçamento vai parecer menor do que o número sugere. É intencional e foi mantido de propósito; se um dia for removido, o hub inteiro precisa ser reescalado junto.
+**Atenção à escala global:** o `index.css` define `html { font-size: 80% }` para o hub ficar equivalente a um zoom de 80%. Isso significa que **1rem vale 12,8px e não 16px**, e que todo **espaçamento** em `rem` (`p-4`, `gap-6`, `w-80`) já vem reduzido. Ao criar componente novo, lembre que o espaçamento vai parecer menor do que o número sugere. É intencional e foi mantido de propósito; se um dia for removido, o hub inteiro precisa ser reescalado junto.
+
+**Tipografia (base visual de 10/11/2026, branch `visual-base`).** O texto saiu da escala de 80%, porque letra de 8px não se lê:
+
+- **Fonte:** Manrope, auto-hospedada (`@fontsource-variable/manrope`, importada no `index.tsx`; `fontFamily.sans` no `tailwind.config.js`). A Inter do Google Fonts fica só para o documento da Carta de Nomeação.
+- **Tamanhos em px fixo:** `text-xs` 11,5px, `text-sm` 12,5px, `text-base` 14px, `text-lg` 15,5px, `text-xl` 17px, `text-2xl` 20px, `text-3xl` 25px, `text-4xl` 30px (em `fontSize` do `tailwind.config.js`). Os tamanhos em px arbitrário têm override no `index.css` com piso de 10px. **Não use nada abaixo de `text-[11px]` em tela nova.**
+- **Rótulo é em escrita normal.** Nada de `uppercase` com `tracking-widest` em rótulo, cabeçalho de tabela, etiqueta ou botão: era a marca de "tela feita por IA" e foi retirada de todas as telas. `uppercase` só em sigla que precisa mesmo (UF, código).
+- **Peso:** `font-black` só de `text-lg` para cima. Em texto pequeno, `font-bold` ou `font-semibold`.
 
 Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS puro, com os tokens declarados em `:root` dentro de cada arquivo.
 

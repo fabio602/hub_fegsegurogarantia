@@ -66,7 +66,7 @@ function Card({ icon, label, value, highlight, copyValue }: { icon: React.ReactN
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <span className={highlight ? 'text-gold' : 'text-slate-400'}>{icon}</span>
-          <span className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
+          <span className={`text-[10px] font-bold ${highlight ? 'text-white/50' : 'text-slate-400'}`}>{label}</span>
         </div>
         {copyValue && <CopyBtn text={copyValue} light={highlight} />}
       </div>
@@ -301,7 +301,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
       {/* History panel */}
       {showHistory && history.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Últimas {MAX_HISTORY} cotações</p>
+          <p className="text-xs font-bold text-slate-400 mb-4">Últimas {MAX_HISTORY} cotações</p>
           {history.map((entry, i) => (
             <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
               <div className="min-w-0">
@@ -414,7 +414,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               <div className="flex-1 min-w-0 space-y-2">
                 {/* Modalidade + Edital */}
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gold">
+                  <p className="text-[10px] font-bold text-gold">
                     {result.modalidade || 'Licitação Pública'}{result.numero_edital ? ` · ${result.numero_edital}` : ''}
                   </p>
                   {result.numero_edital && <CopyBtn text={result.numero_edital} light />}
@@ -513,7 +513,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lotes que o cliente disputa</p>
+                    <p className="text-[10px] font-bold text-slate-400">Lotes que o cliente disputa</p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {marcados.length ? 'A garantia é calculada só sobre os lotes marcados.' : 'Nenhum marcado: o cálculo é o teto (todos os lotes). Marque os que o cliente disputa.'}
                     </p>
@@ -578,7 +578,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-slate-400"><Calendar size={15} /></span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Vigência da Garantia de Proposta</span>
+                <span className="text-[10px] font-bold text-slate-400">Vigência da Garantia de Proposta</span>
               </div>
               <Editavel valor={result.vigencia_garantia_proposta_dias} tipo="numero" placeholder="Dias (ex.: 90)" onSalvar={corrigir('vigencia_garantia_proposta_dias')}>
               {(() => {
@@ -720,7 +720,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-amber-100/50 transition-all">
                 <div className="flex items-center gap-2">
                   <Info size={15} className="text-amber-600" />
-                  <span className="font-bold text-amber-800 text-xs uppercase tracking-[1.5px]">Observações</span>
+                  <span className="font-bold text-amber-800 text-xs">Observações</span>
                 </div>
                 {showObs ? <ChevronUp size={15} className="text-amber-600" /> : <ChevronDown size={15} className="text-amber-600" />}
               </button>
@@ -732,7 +732,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
 
           {result.parse_error && (
             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resposta bruta</p>
+              <p className="text-xs font-bold text-slate-500 mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
           )}
@@ -753,7 +753,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   <div className="border border-rose-200 rounded-2xl overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 bg-rose-50 border-b border-rose-200">
                       <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                      <span className="font-bold text-rose-800 text-xs uppercase tracking-widest">Alertas Bloqueantes</span>
+                      <span className="font-bold text-rose-800 text-xs">Alertas Bloqueantes</span>
                     </div>
                     <ul className="px-5 py-3 space-y-2">
                       {bloqueantes.map((a, i) => {
@@ -772,7 +772,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
                   <div className="border border-amber-200 rounded-2xl overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
                       <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-                      <span className="font-bold text-amber-800 text-xs uppercase tracking-widest">Alertas de Sanidade</span>
+                      <span className="font-bold text-amber-800 text-xs">Alertas de Sanidade</span>
                     </div>
                     <ul className="px-5 py-3 space-y-2">
                       {outros.map((a, i) => {
@@ -796,7 +796,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 bg-rose-100 border-b border-rose-200">
                 <AlertTriangle size={15} className="text-rose-600 shrink-0" />
-                <span className="font-bold text-rose-800 text-xs uppercase tracking-widest">Pendências Bloqueantes</span>
+                <span className="font-bold text-rose-800 text-xs">Pendências Bloqueantes</span>
                 <span className="ml-auto text-[10px] font-bold text-rose-600 bg-rose-200 px-2 py-0.5 rounded-xl">Confirme antes do Double Check</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
@@ -814,7 +814,7 @@ export default function LicitanteAnalyzer({ onVerVendas }: { onVerVendas?: () =>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-200">
                 <Info size={14} className="text-slate-500 shrink-0" />
-                <span className="font-bold text-slate-600 text-xs uppercase tracking-widest">Recomendações Operacionais</span>
+                <span className="font-bold text-slate-600 text-xs">Recomendações Operacionais</span>
               </div>
               <ul className="px-5 py-3 space-y-1.5">
                 {result.recomendacoes.map((r, i) => (

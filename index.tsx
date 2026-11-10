@@ -1,6 +1,8 @@
 // Entrada do Tailwind e dos estilos globais. Precisa vir antes dos componentes
 // para o PostCSS gerar o CSS no build.
 import './index.css';
+// Fonte da interface, servida pelo próprio hub (sem depender do Google Fonts).
+import '@fontsource-variable/manrope';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';

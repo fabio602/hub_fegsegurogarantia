@@ -423,7 +423,7 @@ const PncpProspection: React.FC = () => {
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                        <label className="block text-[10px] font-bold text-slate-400 mb-2">
                             UF
                         </label>
                         <select
@@ -440,7 +440,7 @@ const PncpProspection: React.FC = () => {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                        <label className="block text-[10px] font-bold text-slate-400 mb-2">
                             Valor mínimo (R$)
                         </label>
                         <input
@@ -453,7 +453,7 @@ const PncpProspection: React.FC = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                        <label className="block text-[10px] font-bold text-slate-400 mb-2">
                             Período (dias)
                         </label>
                         <select
@@ -529,7 +529,7 @@ const PncpProspection: React.FC = () => {
                                     </p>
                                 </div>
                                 <span
-                                    className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-xl ${probBadgeClasses(
+                                    className={`shrink-0 text-[10px] font-bold px-3 py-1 rounded-xl ${probBadgeClasses(
                                         c.probabilidadeSg
                                     )}`}
                                 >
@@ -543,21 +543,21 @@ const PncpProspection: React.FC = () => {
                                 <div className="flex items-start gap-2">
                                     <DollarSign size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase text-slate-400">Valor global</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Valor global</p>
                                         <p className="font-bold text-slate-800">{formatCurrency(c.valorGlobal)}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <Briefcase size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase text-slate-400">Órgão</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Órgão</p>
                                         <p className="font-bold text-slate-800 leading-snug">{c.orgaoRazaoSocial || '—'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase text-slate-400">Local</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Local</p>
                                         <p className="font-bold text-slate-800">
                                             {c.municipioNome || '—'} / {c.ufSigla || '—'}
                                         </p>
@@ -566,7 +566,7 @@ const PncpProspection: React.FC = () => {
                                 <div className="flex items-start gap-2 sm:col-span-2 lg:col-span-1">
                                     <Calendar size={16} className="text-gold mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-[10px] font-bold uppercase text-slate-400">Assinatura</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Assinatura</p>
                                         <p className="font-bold text-slate-800">{formatAssinatura(c.dataAssinatura)}</p>
                                     </div>
                                 </div>
@@ -574,7 +574,7 @@ const PncpProspection: React.FC = () => {
 
                             {contact && (
                                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-2">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                    <p className="text-[10px] font-bold text-slate-500">
                                         BrasilAPI (Receita Federal)
                                     </p>
                                     <div className="grid sm:grid-cols-2 gap-3 text-sm">
@@ -610,7 +610,7 @@ const PncpProspection: React.FC = () => {
                                         </div>
                                     </div>
                                     <div
-                                        className={`mt-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide px-3 py-2 rounded-xl ${
+                                        className={`mt-2 inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl ${
                                             q.ok ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
                                         }`}
                                     >

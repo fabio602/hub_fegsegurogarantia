@@ -66,7 +66,7 @@ const AvisoEntrada: React.FC<{ onAbrirRepasse: () => void }> = ({ onAbrirRepasse
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4 border-b border-slate-100">
           <div>
-            <p className="text-[10px] font-bold text-gold-dark uppercase tracking-widest">Repasse Imobiliárias</p>
+            <p className="text-[10px] font-bold text-gold-dark">Repasse Imobiliárias</p>
             <h3 className="font-black text-slate-800 text-lg mt-0.5">O que chegou para você</h3>
           </div>
           <button onClick={fechar} title="Fechar" className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><X size={18} className="text-slate-400" /></button>

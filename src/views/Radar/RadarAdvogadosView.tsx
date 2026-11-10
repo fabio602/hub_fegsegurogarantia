@@ -69,7 +69,7 @@ export default function RadarAdvogadosView() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr className="text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+              <tr className="text-left text-[10px] font-bold text-slate-600">
                 <th scope="col" className="px-5 py-3">Advogado</th>
                 <th scope="col" className="px-3 py-3">OAB</th>
                 <th scope="col" className="px-3 py-3 text-right">Empresas</th>

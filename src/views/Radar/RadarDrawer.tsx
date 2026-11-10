@@ -19,7 +19,7 @@ interface Props {
   onAtualizada: (e: RadarEmpresa) => void;
 }
 
-const secao = 'text-[10px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5';
+const secao = 'text-[10px] font-bold text-slate-600 flex items-center gap-1.5';
 const botaoCopiar = 'p-1 rounded-md text-slate-600 hover:text-navy hover:bg-slate-100 transition-colors';
 // UFs cobertas pelo PJe do TRF3, o único que o worker consulta.
 const UFS_TRF3 = ['SP', 'MS'];
@@ -46,7 +46,7 @@ const agruparAdvogados = (lista: RadarAdvogadoProcesso[]): AdvogadoAgrupado[] =>
 };
 const dado = (rotulo: string, valor: React.ReactNode) => (
   <div>
-    <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{rotulo}</dt>
+    <dt className="text-[10px] font-bold text-slate-600">{rotulo}</dt>
     <dd className="text-sm text-slate-800 font-medium break-words">{valor || <span className="text-slate-500">Não informado</span>}</dd>
   </div>
 );
@@ -84,7 +84,7 @@ function ContatoEditavel({ rotulo, icone, manual, api, tipo, ocupado, onSalvar, 
 
   return (
     <div>
-      <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+      <dt className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
         {icone} {rotulo}
         {manual && <span className="ml-1 px-1.5 py-px rounded bg-blue-50 text-blue-700 border border-blue-200 text-[9px] normal-case tracking-normal">manual</span>}
       </dt>
@@ -125,10 +125,10 @@ function ContatoEditavel({ rotulo, icone, manual, api, tipo, ocupado, onSalvar, 
         )}
         {manual && (
           <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] text-slate-600">
-            <span className="font-bold uppercase tracking-wider text-[9px]">BrasilAPI</span>
+            <span className="font-bold text-[9px]">BrasilAPI</span>
             <span className={tipo === 'email' ? 'break-all' : ''}>{api ?? 'não informado'}</span>
             <button type="button" onClick={onRestaurar} disabled={ocupado}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 bg-white text-slate-700 text-[10px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 transition-colors">
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 bg-white text-slate-700 text-[10px] font-bold hover:border-gold hover:text-navy disabled:opacity-50 transition-colors">
               <Undo2 size={10} aria-hidden="true" /> Restaurar
             </button>
           </div>
@@ -435,7 +435,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 id="radar-dossie-titulo" className={secao}><Gavel size={12} aria-hidden="true" /> Processos no TRF3 (PJe)</h3>
-                  <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${DOSSIE_CLASSES[empresa.dossie_status]}`}>
+                  <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold whitespace-nowrap ${DOSSIE_CLASSES[empresa.dossie_status]}`}>
                     {DOSSIE_LABEL[empresa.dossie_status]}
                   </span>
                   {empresa.dossie_em && <span className="text-[11px] text-slate-600">em {formatDataHoraBr(empresa.dossie_em)}</span>}
@@ -443,7 +443,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
                 {noTrf3 ? (
                   <button type="button" onClick={buscarProcessos} disabled={naFila || prontoRecente || enfileirando}
                     title={naFila ? 'Já está na fila do worker' : prontoRecente ? 'Dossiê atualizado há menos de 30 dias' : 'Coloca a empresa na fila do PJe com prioridade máxima'}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold hover:border-gold hover:text-navy disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     {enfileirando ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <Search size={13} aria-hidden="true" />}
                     {rotuloBusca}
                   </button>
@@ -491,7 +491,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
                           <span className="mt-0.5 text-slate-500" aria-hidden="true">{aberto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
                           <span className="flex-1 min-w-0 space-y-1">
                             <span className="flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${
+                              <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold ${
                                 p.classe_codigo === 1118 ? 'bg-areia-escura text-navy border-linha' : 'bg-white text-navy border-linha'
                               }`}>{classeCurta(p.classe_codigo)}</span>
                               <span className="font-mono text-[12px] font-bold text-navy">{p.numero_cnj}</span>
@@ -560,7 +560,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
                 <p className="text-[11px] text-slate-600 mt-1">Preencha depois de conversar com o advogado ou a empresa.</p>
                 <form onSubmit={e => { e.preventDefault(); salvarGarantia(); }} className="mt-2 grid grid-cols-1 md:grid-cols-[12rem_1fr_auto] gap-2 items-end">
                   <div>
-                    <label htmlFor="radar-garantia" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Garantia</label>
+                    <label htmlFor="radar-garantia"className="block text-[10px] font-bold text-slate-600 mb-1">Garantia</label>
                     <select id="radar-garantia" value={garantia} onChange={e => setGarantia(e.target.value as GarantiaInformada | '')}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white cursor-pointer">
                       <option value="">Selecione</option>
@@ -568,13 +568,13 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="radar-garantia-obs" className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Observação</label>
+                    <label htmlFor="radar-garantia-obs"className="block text-[10px] font-bold text-slate-600 mb-1">Observação</label>
                     <input id="radar-garantia-obs" maxLength={300} value={garantiaObs} onChange={e => setGarantiaObs(e.target.value)}
                       placeholder="Ex.: seguro da Junto vence em 03/2027"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white" />
                   </div>
                   <button type="submit" disabled={salvandoGarantia || !garantia}
-                    className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-light text-areia border border-gold/35 text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    className="px-4 py-2 rounded-xl bg-navy hover:bg-navy-light text-areia border border-gold/35 text-[11px] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     {salvandoGarantia ? <Loader2 size={14} className="animate-spin" aria-label="Salvando" /> : 'Salvar'}
                   </button>
                 </form>
@@ -594,7 +594,7 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[12px]">
-                    <thead className="bg-slate-50 border-y border-slate-200 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                    <thead className="bg-slate-50 border-y border-slate-200 text-left text-[10px] font-bold text-slate-600">
                       <tr>
                         <th scope="col" className="px-5 py-2">Número</th>
                         <th scope="col" className="px-3 py-2">Receita</th>
@@ -624,17 +624,17 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
             {pedindoMotivo && (
               <form onSubmit={e => { e.preventDefault(); descartar(); }} className="flex items-end gap-2 animate-in fade-in duration-200">
                 <div className="flex-1">
-                  <label htmlFor="radar-motivo" className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Motivo do descarte</label>
+                  <label htmlFor="radar-motivo"className="block text-[10px] font-bold text-slate-600 mb-1">Motivo do descarte</label>
                   <input id="radar-motivo" autoFocus maxLength={200} value={motivo} onChange={e => setMotivo(e.target.value)}
                     placeholder="Ex.: já é cliente, fora do perfil, sem contato"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white" />
                 </div>
                 <button type="submit" disabled={ocupado || !motivo.trim()}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 transition-colors">
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold disabled:opacity-50 transition-colors">
                   {salvando === 'descartar' ? <Loader2 size={14} className="animate-spin" aria-label="Salvando" /> : 'Confirmar'}
                 </button>
                 <button type="button" onClick={() => { setPedindoMotivo(false); setMotivo(''); }} disabled={ocupado}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors">
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-slate-700 text-[11px] font-bold hover:bg-slate-50 transition-colors">
                   Cancelar
                 </button>
               </form>
@@ -642,13 +642,13 @@ export default function RadarDrawer({ empresa, onFechar, onAtualizada }: Props) 
             <div className="flex flex-wrap items-center gap-2">
               {empresa.status === 'novo' && !pedindoMotivo && (
                 <button type="button" onClick={() => setPedindoMotivo(true)} disabled={ocupado}
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-bold uppercase tracking-wider hover:bg-amber-100 disabled:opacity-50 transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-bold hover:bg-amber-100 disabled:opacity-50 transition-colors">
                   <Ban size={13} aria-hidden="true" /> Descartar
                 </button>
               )}
               {empresa.status !== 'novo' && (
                 <button type="button" onClick={reverter} disabled={ocupado}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold uppercase tracking-wider hover:border-gold hover:text-navy disabled:opacity-50 transition-colors">
+                  className="ml-auto flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold hover:border-gold hover:text-navy disabled:opacity-50 transition-colors">
                   {salvando === 'reverter' ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : <RotateCcw size={13} aria-hidden="true" />}
                   Reverter para novo
                 </button>

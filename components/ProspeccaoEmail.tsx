@@ -195,7 +195,7 @@ export default function ProspeccaoEmail() {
 
   const EmailStatus = ({ sent, sentAt, day }: { sent: boolean; sentAt: string | null; day: string }) => (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] font-bold text-slate-400 uppercase">{day}</span>
+      <span className="text-[10px] font-bold text-slate-400">{day}</span>
       {sent ? (
         <CheckCircle2 size={14} className="text-emerald-500" title={sentAt ? new Date(sentAt).toLocaleDateString('pt-BR') : 'Enviado'} />
       ) : (
@@ -243,7 +243,7 @@ export default function ProspeccaoEmail() {
           { label: 'Pausados', value: contatos.filter(c => !c.ativo).length, color: 'bg-white border border-slate-100', val: 'text-amber-600' },
         ].map((s, i) => (
           <div key={i} className={`${s.color} rounded-2xl p-4 shadow-sm`}>
-            <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${s.color.includes('1B263B') ? 'text-white/50' : 'text-slate-400'}`}>{s.label}</p>
+            <p className={`text-[10px] font-bold mb-1 ${s.color.includes('1B263B') ? 'text-white/50' : 'text-slate-400'}`}>{s.label}</p>
             <p className={`text-2xl font-black ${s.val}`}>{s.value}</p>
           </div>
         ))}
@@ -280,7 +280,7 @@ export default function ProspeccaoEmail() {
             </div>
             <div className="flex gap-2 items-center flex-wrap">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Trilha do lote</label>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1">Trilha do lote</label>
                 <select
                   value={importTrilha}
                   onChange={e => setImportTrilha(e.target.value)}
@@ -302,9 +302,9 @@ export default function ProspeccaoEmail() {
           <div className="overflow-x-auto max-h-48">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200"><tr>
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Nome</th>
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Empresa</th>
-                <th className="text-left px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Email</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold text-slate-600">Nome</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold text-slate-600">Empresa</th>
+                <th className="text-left px-4 py-2 text-[10px] font-bold text-slate-600">Email</th>
               </tr></thead>
               <tbody>
                 {importPreview.slice(0, 10).map((r, i) => (
@@ -343,12 +343,12 @@ export default function ProspeccaoEmail() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Contato</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Empresa</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Trilha</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Email</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">Início</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-600" colSpan={5}>Status Emails</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-600">Contato</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-600">Empresa</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-600">Trilha</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-600">Email</th>
+                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-600">Início</th>
+                  <th className="text-center px-5 py-3 text-[10px] font-bold text-slate-600"colSpan={5}>Status Emails</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -419,7 +419,7 @@ export default function ProspeccaoEmail() {
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Trilha</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1.5">Trilha</label>
                   <select
                     value={form.trilha}
                     onChange={e => setForm(prev => ({ ...prev, trilha: e.target.value }))}
@@ -442,7 +442,7 @@ export default function ProspeccaoEmail() {
                   { label: 'Cidade (para o [CIDADE] dos e-mails)', key: 'cidade', placeholder: 'Ex: Sorocaba' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1.5">{f.label}</label>
                     <input
                       type={f.type || 'text'}
                       placeholder={f.placeholder}

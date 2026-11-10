@@ -480,7 +480,7 @@ const LeadFormFields = ({
 }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4 col-span-2">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Informações Principais</h4>
+            <h4 className="text-sm font-bold text-slate-400 border-b border-slate-100 pb-2">Informações Principais</h4>
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Empresa *</label>
@@ -503,7 +503,7 @@ const LeadFormFields = ({
             <input type="text" value={form.decisor || ''} onChange={(e) => setForm({ ...form, decisor: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all" placeholder="Nome do decisor" />
         </div>
         <div className="space-y-4 col-span-2 mt-2">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Contato & Detalhes</h4>
+            <h4 className="text-sm font-bold text-slate-400 border-b border-slate-100 pb-2">Contato & Detalhes</h4>
         </div>
         <div className="space-y-1.5 col-span-2 md:col-span-1">
             <label className="text-sm font-bold text-slate-700">Telefone / Celular</label>
@@ -569,7 +569,7 @@ const LeadFormFields = ({
         {form.product_type === 'Judicial Depósito Recursal' && (
             <>
                 <div className="space-y-4 col-span-2 mt-4">
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Dados do Processo</h4>
+                    <h4 className="text-sm font-bold text-slate-400 border-b border-slate-100 pb-2">Dados do Processo</h4>
                 </div>
                 <div className="space-y-1.5 col-span-2 md:col-span-1">
                     <label className="text-sm font-bold text-slate-700">Nº do Processo</label>
@@ -587,7 +587,7 @@ const LeadFormFields = ({
             <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all resize-none" placeholder={observationHistory ? "Digite a nova atualização. Será adicionada ao histórico com data/hora." : "Anotações sobre este lead..."} />
             {observationHistory && (
                 <div className="mt-2 bg-white border border-slate-200 rounded-xl p-3">
-                    <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-2">Histórico de observações</p>
+                    <p className="text-[11px] font-bold text-slate-400 mb-2">Histórico de observações</p>
                     <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words font-sans">{observationHistory}</pre>
                 </div>
             )}
@@ -2203,7 +2203,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Loader2 size={40} className="animate-spin mb-4 text-gold" />
-                <p className="font-bold uppercase tracking-widest text-xs">Carregando prospectos...</p>
+                <p className="font-bold text-xs">Carregando prospectos...</p>
             </div>
         );
     }
@@ -2262,7 +2262,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 const atual = blocoDoLead(toquesPorLead[prospect.id], prospect);
                                                                 return (
                                                                     <div className="border-b border-slate-100 pb-1">
-                                                                        <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marcar como</p>
+                                                                        <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400">Marcar como</p>
                                                                         {ORDEM_BLOCOS.filter(b => b !== atual).map(b => (
                                                                             <button key={b} onClick={() => definirSituacao(prospect, b)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                                                                                 <span className={`w-2 h-2 rounded-full ${BLOCO_INFO[b].ponto}`} /> {BLOCO_INFO[b].titulo}
@@ -2279,7 +2279,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                 </div>
                                                             ) : encerrandoMenuId === prospect.id ? (
                                                                 <div className="border-b border-slate-100 pb-1">
-                                                                    <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Encerrar: motivo</p>
+                                                                    <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400">Encerrar: motivo</p>
                                                                     {MOTIVOS_PERDA.map(m => (
                                                                         <button key={m} onClick={() => encerrarLead(prospect, m)} className="w-full flex items-center gap-3 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                                                                             {ROTULO_MOTIVO_PERDA[m]}
@@ -2296,7 +2296,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                                     </button>
                                                                 </div>
                                                             )}
-                                                            <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mover para</p>
+                                                            <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-slate-400">Mover para</p>
                                                             {columns.filter(col => col.id !== prospect.status).map(col => (
                                                                 <button key={col.id} onClick={() => handleMoveToColumn(prospect.id, col.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors">
                                                                     <MoveRight size={14} className="text-slate-400" /> {col.title}
@@ -2865,7 +2865,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             >
                                 <div className="shrink-0 p-4 rounded-xl shadow-sm bg-navy text-white flex flex-col gap-1" title={DICA_ETAPA[etapa]}>
                                     <div className="flex justify-between items-center">
-                                        <h3 className="font-bold text-sm uppercase tracking-widest">{ROTULO_ETAPA[etapa]}</h3>
+                                        <h3 className="font-bold text-sm">{ROTULO_ETAPA[etapa]}</h3>
                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-white/20">{leads.length}</span>
                                     </div>
                                     <p className="text-[11px] font-bold opacity-80">
@@ -2883,7 +2883,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 return novo;
                                             })}
                                             title="Leads com o próximo contato marcado para depois de hoje. Eles voltam para o topo no dia."
-                                            className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-navy transition-colors"
+                                            className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold text-slate-500 hover:text-navy transition-colors"
                                         >
                                             <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                             <span>Agendados para depois</span>
@@ -2982,7 +2982,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
             {/* Linha 2: ordem, caixas de filtro e legenda das cores */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Tempo</label>
+                    <label className="text-[10px] font-bold text-slate-400 whitespace-nowrap">Tempo</label>
                     <select
                         value={leadAgeSort}
                         onChange={(e) => {
@@ -3111,7 +3111,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             {/* Column Header */}
                             <div className={`shrink-0 p-4 rounded-xl shadow-sm flex flex-col gap-1 cursor-grab active:cursor-grabbing ${headerClass}`}>
                                 <div className="flex justify-between items-center mb-1">
-                                    <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 min-w-0">
+                                    <h3 className="font-bold text-sm flex items-center gap-2 min-w-0">
                                         <GripVertical size={14} className="opacity-50" />
                                         {editingColId === column.id ? (
                                             <input
@@ -3129,7 +3129,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                     }
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="w-full max-w-[190px] px-2 py-1 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold tracking-wider uppercase text-sm"
+                                                className="w-full max-w-[190px] px-2 py-1 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white/30 font-bold text-sm"
                                             />
                                         ) : (
                                             <span
@@ -3277,7 +3277,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                                 draggable={false}
                                                 onClick={(e) => { e.stopPropagation(); alternarBloco(chave); }}
                                                 title={info.dica}
-                                                className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-navy transition-colors"
+                                                className="flex items-center gap-2 px-2 pt-2 pb-1 text-[11px] font-bold text-slate-500 hover:text-navy transition-colors"
                                             >
                                                 <span className={`w-2 h-2 rounded-full ${info.ponto}`} />
                                                 <span>{info.titulo}</span>
@@ -3422,7 +3422,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                             
                               {/* Insurer Limits Section for New Lead */}
                               <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                  <h4 className="text-sm font-bold text-slate-400">Limites de Seguradoras</h4>
                                   {newLimitesArray.length > 0 && (
                                       <div className="space-y-2">
                                           {newLimitesArray.map((lim, i) => (
@@ -3610,7 +3610,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                               {/* Direita: o e-mail como ele vai chegar */}
                               <div className="p-6 overflow-hidden flex flex-col bg-slate-50/50">
                                   <div className="flex items-center justify-between mb-2">
-                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prévia</span>
+                                      <span className="text-[10px] font-bold text-slate-400">Prévia</span>
                                       {emailLicCarregando && <Loader2 size={14} className="animate-spin text-gold" />}
                                   </div>
                                   <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -3721,7 +3721,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                       </form>
 
                                       <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                          <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Observacoes do Lead</h4>
+                                          <h4 className="text-sm font-bold text-slate-400">Observacoes do Lead</h4>
                                           <CaixaObservacaoLead
                                               key={editingLead.id}
                                               ref={caixaObsRef}
@@ -3733,7 +3733,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
                                           />
 
                                           <div className="mt-5">
-                                              <h5 className="text-xs font-bold text-navy uppercase tracking-widest mb-2">Histórico de observações</h5>
+                                              <h5 className="text-xs font-bold text-navy mb-2">Histórico de observações</h5>
                                               <div className="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
                                                   {editObservationEntries.length === 0 ? (
                                                       <div className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl p-3">
@@ -3778,7 +3778,7 @@ const ProspectsKanban: React.FC<ProspectsKanbanProps> = ({ onConvertToSale }) =>
 
                                       {/* Insurer Limits Section */}
                                       <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-                                          <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Limites de Seguradoras</h4>
+                                          <h4 className="text-sm font-bold text-slate-400">Limites de Seguradoras</h4>
                                           {editLimitesArray.length > 0 && (
                                               <div className="space-y-2">
                                                   {editLimitesArray.map((lim, i) => (

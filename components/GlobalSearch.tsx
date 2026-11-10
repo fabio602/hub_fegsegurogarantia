@@ -153,7 +153,7 @@ export function GlobalSearch({ onNavigate }: GlobalSearchProps) {
         )}
         {!query && (
           <div style={{ padding: '20px 24px' }}>
-            <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: '#94a3b8', marginBottom: '12px' }}>Atalhos de teclado</p>
+            <p style={{ fontSize: '11px', fontWeight: 900, textTransform: '', letterSpacing: '1px', color: '#94a3b8', marginBottom: '12px' }}>Atalhos de teclado</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[
                 ['Ctrl + K', 'Busca global'],

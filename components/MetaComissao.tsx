@@ -237,10 +237,10 @@ const MetaComissao: React.FC = () => {
       <div className="rounded-2xl border border-linha bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2 text-sm">
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Meta mensal</p><p className="font-bold text-navy text-base tabular-nums">{brl(metaDoMes.meta_mensal)}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Dias úteis base</p><p className="font-bold text-navy text-base tabular-nums">{metaDoMes.dias_uteis_base}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Meta diária</p><p className="font-bold text-navy text-base tabular-nums">{brl(calc.metaDiaria)}</p></div>
-            <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Meta semanal</p><p className="font-bold text-navy text-base tabular-nums">{brl(calc.metaSemanal)}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-400">Meta mensal</p><p className="font-bold text-navy text-base tabular-nums">{brl(metaDoMes.meta_mensal)}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-400">Dias úteis base</p><p className="font-bold text-navy text-base tabular-nums">{metaDoMes.dias_uteis_base}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-400">Meta diária</p><p className="font-bold text-navy text-base tabular-nums">{brl(calc.metaDiaria)}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-400">Meta semanal</p><p className="font-bold text-navy text-base tabular-nums">{brl(calc.metaSemanal)}</p></div>
           </div>
           {!editando && (
             <button type="button" onClick={abrirEdicao} className="text-xs font-bold text-gold-dark hover:text-navy underline underline-offset-4">
@@ -253,17 +253,17 @@ const MetaComissao: React.FC = () => {
         )}
         {editando && (
           <div className="mt-4 pt-4 border-t border-linha grid grid-cols-1 md:grid-cols-3 gap-4">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Meta mensal (R$)
+            <label className="text-xs font-bold text-slate-500">Meta mensal (R$)
               <input value={metaInput} onChange={e => setMetaInput(formatCurrency(parseFloat(e.target.value.replace(/\D/g, '') || '0') / 100))} className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-normal normal-case tracking-normal text-navy outline-none focus:border-gold" />
             </label>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dias úteis base
+            <label className="text-xs font-bold text-slate-500">Dias úteis base
               <input type="number" min={1} max={31} value={diasInput} onChange={e => setDiasInput(e.target.value)} className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-normal normal-case tracking-normal text-navy outline-none focus:border-gold" />
             </label>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Relatório semanal para
+            <label className="text-xs font-bold text-slate-500">Relatório semanal para
               <input value={destInput} onChange={e => setDestInput(e.target.value)} placeholder="e-mails separados por vírgula" className="mt-1 w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-normal normal-case tracking-normal text-navy outline-none focus:border-gold" />
             </label>
             <div className="md:col-span-3 flex items-center gap-3">
-              <button type="button" onClick={salvarConfig} disabled={salvando} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-navy text-gold text-xs font-bold uppercase tracking-widest hover:bg-navy-light disabled:opacity-60"><Save size={14} /> {salvando ? 'Salvando' : 'Salvar'}</button>
+              <button type="button"onClick={salvarConfig} disabled={salvando} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-navy text-gold text-xs font-bold hover:bg-navy-light disabled:opacity-60"><Save size={14} /> {salvando ? 'Salvando' : 'Salvar'}</button>
               <button type="button" onClick={() => setEditando(false)} className="text-xs font-bold text-slate-500 hover:text-navy">Cancelar</button>
               {aviso && <span className="text-xs text-rose-600">{aviso}</span>}
             </div>
@@ -384,7 +384,7 @@ const MetaComissao: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-left text-[10px] uppercase tracking-widest text-slate-400 border-b border-linha">
+                  <tr className="text-left text-[10px] text-slate-400 border-b border-linha">
                     <th className="py-2 pr-3">Data</th><th className="py-2 pr-3">Cliente</th><th className="py-2 pr-3">Seguradora</th><th className="py-2 pr-3">Modalidade</th><th className="py-2 pr-3 text-right">Prêmio</th><th className="py-2 text-right">Comissão</th>
                   </tr>
                 </thead>
@@ -413,7 +413,7 @@ const MetaComissao: React.FC = () => {
 
 const Cartao: React.FC<{ titulo: string; destaque?: boolean; realce?: boolean; children: React.ReactNode }> = ({ titulo, destaque, realce, children }) => (
   <div className={`rounded-2xl p-5 border ${realce ? 'bg-areia border-gold/40' : 'bg-white border-linha'} ${destaque ? 'lg:col-span-1' : ''}`}>
-    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{titulo}</p>
+    <p className="text-[10px] font-bold text-slate-400 mb-2">{titulo}</p>
     {children}
   </div>
 );

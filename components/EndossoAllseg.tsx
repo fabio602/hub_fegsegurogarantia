@@ -76,7 +76,7 @@ const Field: React.FC<{
   readOnly?: boolean;
 }> = ({ label, id, value, onChange, placeholder, type = 'text', half, readOnly }) => (
   <div className={half ? 'col-span-1' : ''}>
-    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</label>
+    <label className="block text-[10px] font-bold text-slate-400 mb-1">{label}</label>
     <input
       type={type}
       value={value}
@@ -90,7 +90,7 @@ const Field: React.FC<{
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
+    <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm">
       {title}
     </div>
     <div className="p-5 grid grid-cols-2 gap-4">
@@ -294,7 +294,7 @@ const EndossoAllseg: React.FC = () => {
 
       {/* OBJETO */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm tracking-widest uppercase">
+        <div className="px-6 py-3 bg-rose-600 text-white font-bold text-sm">
           Objeto do Seguro
         </div>
         <div className="p-5 space-y-4">
@@ -329,7 +329,7 @@ const EndossoAllseg: React.FC = () => {
 
       {/* DATA */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data do Documento</label>
+        <label className="block text-[10px] font-bold text-slate-400 mb-1">Data do Documento</label>
         <input
           type="date"
           value={form.local_data}

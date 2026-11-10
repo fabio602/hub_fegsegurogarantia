@@ -124,7 +124,7 @@ const LeadLinhaDoTempo: React.FC<Props> = ({ lead, observacoes, nomeDe, versao =
 
     return (
         <section className="space-y-3">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <h4 className="text-sm font-bold text-slate-400 flex items-center gap-2">
                 <History size={14} /> Linha do tempo
             </h4>
 
