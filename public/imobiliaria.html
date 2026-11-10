@@ -976,22 +976,28 @@
             <div class="s-k">Formas de pagamento da garantia</div>
             <div class="s-pay" id="orc-o-pay">
               <div class="s-opt">
-                <div class="s-opt-h"><b>1. Pix à vista</b><span class="s-pill">Com desconto</span></div>
-                <div class="s-line2">Pagamento único no Pix, com desconto sobre o valor da garantia. O valor com desconto é informado na contratação.</div>
+                <div class="s-opt-h"><b>1. Pix à vista</b><span class="s-pill">Até 10% de desconto</span></div>
+                <div class="s-line2">Pagamento único no Pix. O desconto (até 10%) é informado na contratação.</div>
               </div>
               <div class="s-opt">
-                <div class="s-opt-h"><b>2. Cartão de crédito</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-opt-h"><b>2. Cartão de crédito</b><span class="s-pill">Sem juros em 3x</span></div>
                 <div class="s-big"><small><span id="orc-o-cn"></span>x de </small><span id="orc-o-cp"></span></div>
+                <div class="s-line2">Ou em até 12x com juros, valor informado na contratação.</div>
               </div>
               <div class="s-opt">
-                <div class="s-opt-h"><b>3. Entrada no Pix + boleto</b><span class="s-pill">Sem juros</span></div>
-                <div class="s-big"><small>Entrada </small><span id="orc-o-e1"></span></div>
-                <div class="s-line2"><span id="orc-o-e1pct"></span>% no Pix, mais <b><span id="orc-o-e1n"></span>x de <span id="orc-o-e1p"></span></b> no boleto.</div>
-              </div>
-              <div class="s-opt">
-                <div class="s-opt-h"><b>4. Entrada no Pix + cartão</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-opt-h"><b>3. Entrada no Pix + cartão</b><span class="s-pill">Sem juros</span></div>
                 <div class="s-big"><small>Entrada </small><span id="orc-o-e2"></span></div>
-                <div class="s-line2"><span id="orc-o-e2pct"></span>% no Pix, mais <b><span id="orc-o-e2n"></span>x de <span id="orc-o-e2p"></span></b> no cartão.</div>
+                <div class="s-line2"><span id="orc-o-e2pct"></span>% no Pix, mais <b>até <span id="orc-o-e2n"></span>x de <span id="orc-o-e2p"></span></b> no cartão.</div>
+              </div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>4. Entrada no Pix + boleto</b><span class="s-pill j">Com juros</span></div>
+                <div class="s-big"><small>Entrada </small><span id="orc-o-e3"></span></div>
+                <div class="s-line2"><span id="orc-o-e3pct"></span>% no Pix, mais saldo em até <span id="orc-o-e3n"></span>x no boleto com juros, valor informado na contratação.</div>
+              </div>
+              <div class="s-opt">
+                <div class="s-opt-h"><b>5. Entrada no Pix + boleto</b><span class="s-pill">Sem juros</span></div>
+                <div class="s-big"><small>Entrada </small><span id="orc-o-e1"></span></div>
+                <div class="s-line2"><span id="orc-o-e1pct"></span>% no Pix, mais <b>até <span id="orc-o-e1n"></span>x de <span id="orc-o-e1p"></span></b> no boleto.</div>
               </div>
             </div>
 
@@ -1301,8 +1307,9 @@
     adesao: 200.00,       // taxa de adesão S8, cobrada à parte, fora das parcelas
     parcelasCartao: 3,    // cartão de crédito sem juros
     // Entrada no Pix + saldo parcelado, sem juros
-    entradaBoleto: { pct: 50, parcelas: 11 },
-    entradaCartao: { pct: 20, parcelas: 11 },
+    entradaBoleto: { pct: 50, parcelas: 11 },         // boleto sem juros
+    entradaCartao: { pct: 20, parcelas: 12 },         // cartão sem juros
+    entradaBoletoJuros: { pct: 30, parcelas: 11 },    // boleto com juros (parcela informada pela S8)
   };
 
   // Faixa em que o imóvel se enquadra, ou null se passar da última.
@@ -2569,7 +2576,7 @@
         premio,
         adesao: Math.round(GAR_CFG.adesao * 100),
         cn: GAR_CFG.parcelasCartao, cp: Math.round(premio / GAR_CFG.parcelasCartao),
-        e1: entrada(GAR_CFG.entradaBoleto), e2: entrada(GAR_CFG.entradaCartao),
+        e1: entrada(GAR_CFG.entradaBoleto), e2: entrada(GAR_CFG.entradaCartao), e3: entrada(GAR_CFG.entradaBoletoJuros),
       };
     }
     function centavos(txt) {      // "1.800,50" -> 180050 ; inválido -> NaN
@@ -2622,6 +2629,7 @@
         $('o-' + k + 'n').textContent = e.n;
         $('o-' + k + 'p').textContent = brl(e.parcela);
       });
+      $('o-e3').textContent = brl(r.e3.valor); $('o-e3pct').textContent = r.e3.pct; $('o-e3n').textContent = r.e3.n;
       $('o-res').hidden = produto === 'garantia' || !valido;
       $('o-cliente').textContent = $('cliente').value.trim() || 'Não informado';
       $('o-endereco').textContent = $('endereco').value.trim() || 'Não informado';
