@@ -7,6 +7,8 @@
 --      (prospects.proximo_passo e posvenda_toques.vence_em);
 --   3. fixar um item no topo da lista: marcação pessoal, não muda o item.
 --
+-- Aplicada no banco em 10/11/2026.
+--
 -- As duas tabelas são pessoais: cada um lê e escreve só o que é seu. O admin
 -- lê tudo, porque a visão de Gestão abre o dia de qualquer pessoa.
 

@@ -19,7 +19,8 @@ export async function carregarFixados(email: string): Promise<Set<string>> {
 export async function gravarFixado(email: string, tipo: TipoFixado, id: string | number, fixar: boolean): Promise<string | null> {
   const linha = { user_email: email.toLowerCase(), tipo, item_id: String(id) };
   const { error } = fixar
-    ? await supabase.from('meu_dia_fixados').upsert(linha, { onConflict: 'user_email,tipo,item_id' })
+    ? // ignoreDuplicates: fixar duas vezes não é erro, e a tabela não tem política de UPDATE.
+      await supabase.from('meu_dia_fixados').upsert(linha, { onConflict: 'user_email,tipo,item_id', ignoreDuplicates: true })
     : await supabase.from('meu_dia_fixados').delete().eq('user_email', linha.user_email).eq('tipo', tipo).eq('item_id', linha.item_id);
   return error ? error.message : null;
 }
