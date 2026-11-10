@@ -54,7 +54,7 @@ const inputCls = 'w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm 
 // (dava a impressão de estar "digitando letra por letra").
 const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{label}</label>
+    <label className="text-[10px] font-bold text-slate-400 block mb-1.5">{label}</label>
     {children}
     {dica && <p className="text-[11px] text-slate-400 mt-1 leading-snug">{dica}</p>}
   </div>
@@ -354,7 +354,7 @@ export default function EmailTrilhas() {
         {/* Lista de trilhas */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Trilhas</p>
+            <p className="text-[10px] font-bold text-slate-400">Trilhas</p>
           </div>
           <div className="divide-y divide-slate-50">
             {trilhas.map(t => {
@@ -625,7 +625,7 @@ export default function EmailTrilhas() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assunto</p>
+                  <p className="text-[10px] font-bold text-slate-400">Assunto</p>
                   <p className="font-bold text-slate-800 text-sm truncate">{preview.assunto}</p>
                 </div>
                 <button onClick={() => setPreview(null)} className="p-2 hover:bg-slate-100 rounded-xl shrink-0">

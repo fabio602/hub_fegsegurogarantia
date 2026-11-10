@@ -45,7 +45,7 @@ export default function VisualizadorTrecho({ titulo, evidencia, pdf, onFechar }:
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-slate-100">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gold-dark">Origem do dado</p>
+            <p className="text-[10px] font-bold text-gold-dark">Origem do dado</p>
             <h3 className="font-black text-slate-800 text-lg leading-tight">{titulo}</h3>
             <p className="text-xs text-slate-400 mt-0.5">
               {manual ? 'Informado manualmente na conferência' : `${pdf?.nome ?? 'Edital'} · página ${pdf?.paginaLocal ?? evidencia.pagina}`}

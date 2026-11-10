@@ -300,7 +300,7 @@ export default function GarimpoAutomatico() {
     }
 
     const campo = 'w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
-    const rotulo = 'block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5';
+    const rotulo = 'block text-xs font-bold text-slate-500 mb-1.5';
 
     return (
         <section className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -338,31 +338,31 @@ export default function GarimpoAutomatico() {
                     <div className="flex flex-wrap items-center gap-6 text-center">
                         <div>
                             <p className="text-2xl font-black text-slate-800">{enviadosHoje}<span className="text-sm text-slate-400 font-bold"> / {totalLimites}</span></p>
-                            <p className="text-[10px] font-bold uppercase text-slate-400">Enviados hoje</p>
+                            <p className="text-[10px] font-bold text-slate-400">Enviados hoje</p>
                         </div>
                         <div>
                             <p className="text-2xl font-black text-slate-800">{resumo?.enviadosPncpHoje ?? 0}</p>
-                            <p className="text-[10px] font-bold uppercase text-slate-400">PNCP ({resumo?.limitePncp ?? 0}/dia)</p>
+                            <p className="text-[10px] font-bold text-slate-400">PNCP ({resumo?.limitePncp ?? 0}/dia)</p>
                         </div>
                         <div>
                             <p className="text-2xl font-black text-slate-800">{resumo?.enviadosGarimpoHoje ?? 0}</p>
-                            <p className="text-[10px] font-bold uppercase text-slate-400">Garimpo ({resumo?.limitesCampanhas ?? 0}/dia)</p>
+                            <p className="text-[10px] font-bold text-slate-400">Garimpo ({resumo?.limitesCampanhas ?? 0}/dia)</p>
                         </div>
                         <div>
                             <p className={`text-2xl font-black ${(resumo?.bouncesHoje ?? 0) > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
                                 {resumo?.bouncesHoje ?? 0}<span className="text-sm text-slate-400 font-bold"> ({taxaBounce.toFixed(1)}%)</span>
                             </p>
-                            <p className="text-[10px] font-bold uppercase text-slate-400">Bounces hoje</p>
+                            <p className="text-[10px] font-bold text-slate-400">Bounces hoje</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <div>
-                                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pausar em (%)</label>
+                                <label className="block text-[10px] font-bold text-slate-400 mb-1">Pausar em (%)</label>
                                 <input type="number" className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold"
                                     value={reputacao?.bounce_max_percentual ?? 5}
                                     onChange={e => reputacao && setReputacao({ ...reputacao, bounce_max_percentual: Number(e.target.value) })} />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Mín. bounces</label>
+                                <label className="block text-[10px] font-bold text-slate-400 mb-1">Mín. bounces</label>
                                 <input type="number" className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold"
                                     value={reputacao?.bounce_min_quantidade ?? 2}
                                     onChange={e => reputacao && setReputacao({ ...reputacao, bounce_min_quantidade: Number(e.target.value) })} />
@@ -517,7 +517,7 @@ export default function GarimpoAutomatico() {
                         ].map(([estado, label]) => (
                             <div key={estado} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center">
                                 <p className="text-2xl font-black text-slate-800">{estoque[estado] ?? 0}</p>
-                                <p className="text-[10px] font-bold uppercase text-slate-400 leading-tight">{label}</p>
+                                <p className="text-[10px] font-bold text-slate-400 leading-tight">{label}</p>
                             </div>
                         ))}
                     </div>
@@ -535,7 +535,7 @@ export default function GarimpoAutomatico() {
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="text-left text-xs text-slate-400 uppercase tracking-wide">
+                                        <tr className="text-left text-xs text-slate-400">
                                             <th className="px-6 py-3">Dia</th>
                                             <th className="px-3 py-3">Modo</th>
                                             <th className="px-3 py-3 text-right">Garimpados</th>

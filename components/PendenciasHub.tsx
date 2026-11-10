@@ -299,7 +299,7 @@ const PendenciasHub: React.FC = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                     <Loader2 size={36} className="animate-spin mb-3 text-gold" />
-                    <p className="font-bold uppercase tracking-widest text-xs">Carregando pendências…</p>
+                    <p className="font-bold text-xs">Carregando pendências…</p>
                 </div>
             ) : lista.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-500 font-medium">
@@ -321,11 +321,11 @@ const PendenciasHub: React.FC = () => {
                                     <div className="min-w-0 flex-1 space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="text-lg font-black text-navy leading-tight">{p.titulo}</h3>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl bg-slate-100 text-slate-600">
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-slate-100 text-slate-600">
                                                 {labelPrioridade(p.prioridade)}
                                             </span>
                                             {p.concluida && (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl bg-emerald-100 text-emerald-800">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-xl bg-emerald-100 text-emerald-800">
                                                     Concluída
                                                 </span>
                                             )}
@@ -355,7 +355,7 @@ const PendenciasHub: React.FC = () => {
                                         </div>
                                         {prazoInfo && !p.concluida ? (
                                             <p
-                                                className={`text-xs font-bold uppercase tracking-wide ${
+                                                className={`text-xs font-bold ${
                                                     prazoInfo.vencido ? 'text-rose-600' : 'text-slate-600'
                                                 }`}
                                             >
@@ -444,7 +444,7 @@ const PendenciasHub: React.FC = () => {
                                   </div>
                               )}
                               <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">
                                       Título *
                                   </label>
                                   <input
@@ -455,7 +455,7 @@ const PendenciasHub: React.FC = () => {
                                   />
                               </div>
                               <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">
                                       Descrição
                                   </label>
                                   <textarea
@@ -467,7 +467,7 @@ const PendenciasHub: React.FC = () => {
                                   />
                               </div>
                               <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">
                                       Responsável
                                   </label>
                                   <select
@@ -485,7 +485,7 @@ const PendenciasHub: React.FC = () => {
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div>
-                                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                      <label className="block text-[10px] font-bold text-slate-400 mb-1.5">
                                           Prazo
                                       </label>
                                       <input
@@ -496,7 +496,7 @@ const PendenciasHub: React.FC = () => {
                                       />
                                   </div>
                                   <div>
-                                      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                                      <label className="block text-[10px] font-bold text-slate-400 mb-1.5">
                                           Prioridade
                                       </label>
                                       <select

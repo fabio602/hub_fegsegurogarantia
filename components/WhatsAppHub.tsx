@@ -1310,7 +1310,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                             {naoLidas[lead.phone] > 99 ? '99+' : naoLidas[lead.phone]}
                           </span>
                         )}
-                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-xl shrink-0 ${
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xl shrink-0 ${
                           lead.status === 'novo' ? 'bg-emerald-500/20 text-emerald-400' :
                           lead.status === 'em atendimento' ? 'bg-blue-500/20 text-blue-400' :
                           lead.status === 'cotação enviada' ? 'bg-amber-500/20 text-amber-400' :
@@ -1434,7 +1434,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                               onClick={() => pularParaMensagem(a)}
                               className="w-full text-left px-3 py-2 hover:bg-areia-clara border-b border-slate-50 last:border-0 transition-colors"
                             >
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                              <p className="text-[10px] font-bold text-slate-400">
                                 {a.direction === 'outbound' ? 'Você' : (selectedLead?.name ?? 'Cliente')} · {new Date(a.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} {new Date(a.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                               <p className="text-xs text-slate-700 line-clamp-2 mt-0.5">{a.message}</p>
@@ -1500,7 +1500,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
                   {/* Separador de dia, igual ao do WhatsApp */}
                   {(i === 0 || new Date(messages[i - 1].created_at).toDateString() !== new Date(msg.created_at).toDateString()) && (
                     <div className="flex justify-center py-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-1 shadow-sm">
+                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-1 shadow-sm">
                         {rotuloDoDia(msg.created_at)}
                       </span>
                     </div>
@@ -1942,7 +1942,7 @@ export default function WhatsAppHub({ onGoToSale }: { onGoToSale?: (data: { nome
             ) : (
               <div className="p-6 space-y-5">
                 <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dados do contato</p>
+                  <p className="text-[10px] font-bold text-slate-400">Dados do contato</p>
                   <p className="text-sm font-bold text-slate-800">{crmModalLead.name}</p>
                   <p className="text-xs text-slate-500">{crmModalLead.phone}</p>
                   <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-xl w-fit">Origem: WhatsApp</p>

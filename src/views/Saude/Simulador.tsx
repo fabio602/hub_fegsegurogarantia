@@ -206,19 +206,19 @@ const Simulador: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <label className="block">
-            <span className="text-xs uppercase tracking-wider text-navy/50">Empresa</span>
+            <span className="text-xs text-navy/50">Empresa</span>
             <input value={empresa} onChange={e => setEmpresa(e.target.value)}
               placeholder="Metalúrgica Boituva"
               className="mt-1 w-full border border-linha rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gold" />
           </label>
           <label className="block">
-            <span className="text-xs uppercase tracking-wider text-navy/50">Cidade</span>
+            <span className="text-xs text-navy/50">Cidade</span>
             <input value={cidade} onChange={e => setCidade(e.target.value)}
               placeholder="Boituva"
               className="mt-1 w-full border border-linha rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gold" />
           </label>
           <label className="block">
-            <span className="text-xs uppercase tracking-wider text-navy/50">Proposta válida até</span>
+            <span className="text-xs text-navy/50">Proposta válida até</span>
             <input type="date" value={validade} min={HOJE()} onChange={e => setValidade(e.target.value)}
               className="mt-1 w-full border border-linha rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gold" />
           </label>
@@ -226,7 +226,7 @@ const Simulador: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <label className="flex-1 block">
-            <span className="text-xs uppercase tracking-wider text-navy/50">
+            <span className="text-xs text-navy/50">
               Idades, separadas por vírgula ou espaço
             </span>
             <input value={idadesTexto} onChange={e => setIdadesTexto(e.target.value)}
@@ -245,7 +245,7 @@ const Simulador: React.FC = () => {
         </div>
 
         <div>
-          <p className="text-xs uppercase tracking-wider text-navy/50 mb-2">
+          <p className="text-xs text-navy/50 mb-2">
             Vidas por faixa etária, dá para ajustar na mão
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -273,7 +273,7 @@ const Simulador: React.FC = () => {
         </div>
 
         <div>
-          <p className="text-xs uppercase tracking-wider text-navy/50 mb-2">Adicionais</p>
+          <p className="text-xs text-navy/50 mb-2">Adicionais</p>
           <div className="flex flex-wrap gap-2">
             {adicionais.map(a => {
               const ativo = selecionados.includes(a.codigo);
@@ -364,7 +364,7 @@ const Simulador: React.FC = () => {
           <section className="bg-white border border-linha rounded-xl p-6 md:p-8 space-y-7">
             <header className="flex flex-wrap justify-between gap-4 border-b border-linha pb-5">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-gold-dark">Proposta de plano de saúde</p>
+                <p className="text-xs text-gold-dark">Proposta de plano de saúde</p>
                 <h2 className="text-2xl font-bold text-navy mt-1">{empresa || 'Sua empresa'}</h2>
                 <p className="text-navy/60 text-sm mt-1">
                   Unimed Sorocaba, plano empresarial{cidade ? ` · atendimento em ${cidade}` : ''}
@@ -415,7 +415,7 @@ const Simulador: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-sm">
               <div className="border border-linha rounded-xl p-4">
-                <p className="text-xs uppercase tracking-wider text-gold-dark mb-2">Já começa valendo</p>
+                <p className="text-xs text-gold-dark mb-2">Já começa valendo</p>
                 <ul className="space-y-1 text-navy/80">
                   {CARENCIAS.map(c => (
                     <li key={c.prazo}>
@@ -427,7 +427,7 @@ const Simulador: React.FC = () => {
                 </ul>
               </div>
               <div className="border border-linha rounded-xl p-4">
-                <p className="text-xs uppercase tracking-wider text-gold-dark mb-2">
+                <p className="text-xs text-gold-dark mb-2">
                   Quanto custa usar, em {acomodacao}
                 </p>
                 <ul className="space-y-1 text-navy/80">

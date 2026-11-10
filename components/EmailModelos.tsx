@@ -85,7 +85,7 @@ const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-xl text-xs fo
 // a cada render, desmonta o input e o campo perde o foco a cada tecla.
 const Campo = ({ label, dica, children }: { label: string; dica?: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">{label}</label>
+    <label className="text-[10px] font-bold text-slate-400 block mb-1">{label}</label>
     {children}
     {dica && <p className="text-[10px] text-slate-400 mt-1 leading-snug">{dica}</p>}
   </div>
@@ -185,7 +185,7 @@ export default function EmailModelos() {
         {/* Lista */}
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-4 py-2.5 border-b border-slate-100">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Modelos</p>
+            <p className="text-[10px] font-bold text-slate-400">Modelos</p>
           </div>
           <div className="divide-y divide-slate-50">
             {modelos.map(m => {
@@ -239,7 +239,7 @@ export default function EmailModelos() {
 
             {/* Variáveis */}
             <div className="bg-slate-50 rounded-xl px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-2">
+              <p className="text-[10px] font-bold text-slate-400 mb-2">
                 Trocadas na hora do envio
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -304,7 +304,7 @@ export default function EmailModelos() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Eye size={13} className="text-gold shrink-0" />
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Prévia com dados de exemplo</span>
+                    <span className="text-[10px] font-bold text-slate-400">Prévia com dados de exemplo</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1 truncate">
                     Assunto: <span className="font-bold text-slate-700">{preview.subject}</span>

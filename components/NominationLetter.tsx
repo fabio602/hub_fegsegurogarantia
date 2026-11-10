@@ -163,7 +163,7 @@ const NominationLetter: React.FC = () => {
 
             {/* CNPJ — campo principal em destaque */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 ml-1 flex items-center gap-2">
                 CNPJ da empresa
                 {cnpjStatus === 'loading' && <span className="flex items-center gap-1 text-slate-400 font-semibold normal-case text-[10px]"><Loader2 size={10} className="animate-spin" /> Consultando Receita Federal...</span>}
                 {cnpjStatus === 'found' && <span className="flex items-center gap-1 text-emerald-500 font-bold normal-case text-[10px]"><CheckCircle2 size={10} /> Dados preenchidos automaticamente</span>}
@@ -189,7 +189,7 @@ const NominationLetter: React.FC = () => {
             <div className={`space-y-6 transition-opacity duration-300 ${cnpjStatus === 'idle' ? 'opacity-50' : 'opacity-100'}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 ml-1 flex items-center gap-1.5">
                   Razão Social do Tomador
                   {cnpjStatus === 'found' && data.razaoSocial && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                 </label>
@@ -205,7 +205,7 @@ const NominationLetter: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 flex items-center gap-1.5">
                     Cidade
                     {cnpjStatus === 'found' && data.cidade && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
@@ -217,7 +217,7 @@ const NominationLetter: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 flex items-center gap-1.5">
                     Telefone
                     {cnpjStatus === 'found' && data.telefone && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
@@ -229,7 +229,7 @@ const NominationLetter: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 ml-1 flex items-center gap-1.5">
                     E-mail
                     {cnpjStatus === 'found' && data.email && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ auto</span>}
                   </label>
@@ -248,7 +248,7 @@ const NominationLetter: React.FC = () => {
                  <UserCheck size={24} />
               </div>
               <div className="flex-1 w-full space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
                   Nome do Assinante Responsável
                   {cnpjStatus === 'found' && data.nomeAssinatura && <span className="text-emerald-400 text-[10px] font-bold normal-case">✓ sócio da empresa</span>}
                 </label>
@@ -265,7 +265,7 @@ const NominationLetter: React.FC = () => {
 
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 h-full">
-               <h3 className="font-bold text-navy text-xs uppercase tracking-widest flex items-center gap-2">
+               <h3 className="font-bold text-navy text-xs flex items-center gap-2">
                   <ShieldCheck size={16} className="text-gold" />
                   Seleção Cias
                </h3>
@@ -306,7 +306,7 @@ const NominationLetter: React.FC = () => {
       {/* Visualização do Documento (Ajustado para Página Única A4) */}
       <div className="flex flex-col items-center gap-6 py-10 bg-slate-100/50 rounded-2xl border border-dashed border-slate-200">
          <div className="flex items-center gap-3">
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[4px]">Preview A4 • Versão de Página Única</p>
+            <p className="text-slate-500 font-bold text-[10px]">Preview A4 • Versão de Página Única</p>
          </div>
 
          {/* Container A4 Rigoroso */}
@@ -320,21 +320,21 @@ const NominationLetter: React.FC = () => {
                 {/* PNG e não SVG: o html2canvas do html2pdf desenha PNG sem perder nitidez. */}
                 <img src="/marca/fg-logo-horizontal-azul.png" alt="F&G Seguro Garantia" style={{ height: '16mm', width: 'auto' }} />
                 <div className="text-right space-y-0.5">
-                   <p className="text-[10px] font-bold text-navy uppercase tracking-wider">Doc Ref: FG-{Math.floor(Math.random() * 9000) + 1000}</p>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase leading-tight">
+                   <p className="text-[10px] font-bold text-navy">Doc Ref: FG-{Math.floor(Math.random() * 9000) + 1000}</p>
+                   <p className="text-[10px] font-bold text-slate-400 leading-tight">
                       CNPJ: 56.123.874/0001-90 | SUSEP: 242160653
                    </p>
                 </div>
             </div>
 
             <div className="text-center mb-8">
-                <h2 className="text-lg font-black text-navy uppercase tracking-[6px] py-4 border-y border-slate-100 bg-slate-50/30">Carta de Nomeação</h2>
+                <h2 className="text-lg font-black text-navy py-4 border-y border-slate-100 bg-slate-50/30">Carta de Nomeação</h2>
             </div>
 
             <div className="space-y-6 text-slate-700 leading-relaxed text-[12px] text-justify">
               <div>
-                <p className="font-bold text-navy uppercase text-[10px] tracking-[1.5px] mb-1">À atenção do:</p>
-                <p className="font-bold text-slate-900 uppercase text-[10px] pl-2">
+                <p className="font-bold text-navy text-[10px] mb-1">À atenção do:</p>
+                <p className="font-bold text-slate-900 text-[10px] pl-2">
                   Departamento de Cadastro, Subscrição e Produção
                 </p>
               </div>
@@ -349,7 +349,7 @@ const NominationLetter: React.FC = () => {
                 {/* Lista de Seguradoras em Grade Compacta */}
                 <div className="grid grid-cols-2 gap-y-2 gap-x-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                    {data.seguradoras.map(s => (
-                      <div key={s} className="flex items-center gap-2 text-[10px] font-bold text-navy uppercase tracking-tight">
+                      <div key={s} className="flex items-center gap-2 text-[10px] font-bold text-navy">
                          <div className="w-2 h-2 rounded-full bg-gold" /> {s}
                       </div>
                    ))}
@@ -373,14 +373,14 @@ const NominationLetter: React.FC = () => {
             <div className="mt-auto pb-6">
               <div className="flex flex-col items-center">
                 <div className="w-64 h-[0.5px] bg-slate-300 mb-4"></div>
-                <p className="text-[11px] font-bold text-navy uppercase tracking-widest text-center">
+                <p className="text-[11px] font-bold text-navy text-center">
                   {data.nomeAssinatura || data.razaoSocial || 'ASSINATURA DO RESPONSÁVEL'}
                 </p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">
+                <p className="text-[10px] font-bold text-slate-400 mt-1">
                    CNPJ: {data.cnpj || '00.000.000/0000-00'}
                 </p>
                 
-                <div className="mt-6 flex items-center gap-6 text-[10px] font-bold text-slate-500 uppercase">
+                <div className="mt-6 flex items-center gap-6 text-[10px] font-bold text-slate-500">
                   {data.telefone && (
                     <div className="flex items-center gap-1">
                       <Phone size={10} className="text-gold shrink-0" />
@@ -395,7 +395,7 @@ const NominationLetter: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between items-end mt-10 text-[10px] font-bold text-slate-300 tracking-widest uppercase pt-2 border-t border-slate-50">
+              <div className="flex justify-between items-end mt-10 text-[10px] font-bold text-slate-300 pt-2 border-t border-slate-50">
                 <p>{data.cidade}, {data.dataExtenso}</p>
                 <p className="flex items-center gap-1 italic">
                   <ShieldCheck size={10} className="text-gold" />
@@ -409,7 +409,7 @@ const NominationLetter: React.FC = () => {
             <div className="absolute top-0 left-0 w-1.5 h-32 bg-gold"></div>
          </div>
          
-         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">O PDF gerado respeitará o limite de 297mm de altura.</p>
+         <p className="text-slate-400 text-[10px] font-bold">O PDF gerado respeitará o limite de 297mm de altura.</p>
       </div>
     </div>
   );

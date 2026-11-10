@@ -92,7 +92,7 @@ const InternalProcedures: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
             {/* Sidebar Sub-Navigation */}
             <aside className="w-full lg:w-72 shrink-0 space-y-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit sticky top-28">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[4px] px-4 mb-4">Sumário</p>
+                <p className="text-[10px] font-bold text-slate-400 px-4 mb-4">Sumário</p>
 
                 <NavItem id="home" icon={Home} label="Início" />
 
@@ -162,7 +162,7 @@ const InternalProcedures: React.FC = () => {
                                     Nosso objetivo principal é a excelência no atendimento. Nenhuma ação do cliente em nossa direção pode ficar sem retorno.
                                 </p>
                                 <div className="space-y-4">
-                                    <h4 className="font-bold text-navy uppercase text-xs tracking-widest flex items-center gap-2">
+                                    <h4 className="font-bold text-navy text-xs flex items-center gap-2">
                                         <Star size={14} className="text-gold" /> Regras de Ouro
                                     </h4>
                                     <ul className="space-y-3 text-sm">
@@ -214,7 +214,7 @@ const InternalProcedures: React.FC = () => {
                                     </div>
                                     <h4 className="font-black text-navy text-xl mb-2">{item.title}</h4>
                                     <p className="text-3xl font-black text-gold mb-2">{item.time}</p>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.desc}</p>
+                                    <p className="text-xs font-bold text-slate-400">{item.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -237,7 +237,7 @@ const InternalProcedures: React.FC = () => {
                                     Toda seguradora libera limites de forma imediata se o cliente tiver uma boa saúde financeira, isso chamamos aqui de <strong>limite básico</strong>. Quando há necessidade de maiores limites é necessário enviar os documentos nas seguradoras e aguardar a liberação de novos limites.
                                 </p>
                                 <div className="space-y-4">
-                                    <h4 className="font-bold text-navy text-sm uppercase tracking-widest">Tipos de Cadastro</h4>
+                                    <h4 className="font-bold text-navy text-sm">Tipos de Cadastro</h4>
                                     <ul className="space-y-3">
                                         <li className="flex gap-3 text-slate-600 font-medium"><CircleCheck size={16} className="text-gold" /> <span className="font-bold">Eletrônico:</span> Junto Seguros (analisa e cadastra direto na cotação).</li>
                                         <li className="flex gap-3 text-slate-600 font-medium"><CircleCheck size={16} className="text-gold" /> <span className="font-bold">Tradicional:</span> Tokio Marine (exige cadastro antes de cotar).</li>
@@ -250,7 +250,7 @@ const InternalProcedures: React.FC = () => {
                                     Documentação
                                 </h3>
                                 <div className="bg-slate-50 p-6 rounded-2xl">
-                                    <h4 className="font-bold text-navy text-xs uppercase tracking-widest mb-4">Empresa Ltda / SA</h4>
+                                    <h4 className="font-bold text-navy text-xs mb-4">Empresa Ltda / SA</h4>
                                     <ul className="space-y-2 text-sm text-slate-600">
                                         <li>• Contrato Social e alterações</li>
                                         <li>• Balanços últimos 03 anos (Ativo/Passivo/DRE)</li>
@@ -300,7 +300,7 @@ const InternalProcedures: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-xs flex items-center gap-2">
+                                <h4 className="font-bold text-navy text-xs flex items-center gap-2">
                                     <Clock size={16} className="text-gold" /> Vigência e Prazos
                                 </h4>
                                 <ul className="space-y-3 text-slate-600 text-sm">
@@ -309,14 +309,14 @@ const InternalProcedures: React.FC = () => {
                                 </ul>
                             </div>
                             <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-xs flex items-center gap-2">
+                                <h4 className="font-bold text-navy text-xs flex items-center gap-2">
                                     <Receipt size={16} className="text-gold" /> Importância Segurada
                                 </h4>
                                 <p className="text-sm text-slate-600">Normalmente 1% do valor do edital. Validar valor final com o cliente.</p>
                             </div>
                         </div>
                         <div className="bg-blue-50 p-10 rounded-2xl border border-blue-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-blue-900 uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-blue-900 text-sm flex items-center gap-3">
                                 <Info size={20} className="text-blue-600" />
                                 ⚠️ Nova Regra de Cautela - Evite Desclassificação
                             </h4>
@@ -326,14 +326,14 @@ const InternalProcedures: React.FC = () => {
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-white p-4 rounded-2xl border border-blue-200">
-                                        <p className="text-xs font-bold text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <p className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-2">
                                             <CircleCheck size={14} className="text-emerald-600" />
                                             Início da vigência
                                         </p>
                                         <p className="text-sm text-slate-700">Sempre coloque <span className="font-bold text-blue-900">1 dia antes</span> da data da licitação.</p>
                                     </div>
                                     <div className="bg-white p-4 rounded-2xl border border-blue-200">
-                                        <p className="text-xs font-bold text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <p className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-2">
                                             <CircleCheck size={14} className="text-emerald-600" />
                                             Fim da vigência
                                         </p>
@@ -341,13 +341,13 @@ const InternalProcedures: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200">
-                                    <p className="text-xs font-bold text-amber-900 uppercase tracking-widest mb-2">Por quê?</p>
+                                    <p className="text-xs font-bold text-amber-900 mb-2">Por quê?</p>
                                     <p className="text-sm text-amber-900 leading-relaxed">
                                         Algumas seguradoras iniciam a vigência apenas às 24h da data escolhida. Se a licitação for às 09h da manhã, podem alegar que a apólice ainda não vale.
                                     </p>
                                 </div>
                                 <div className="bg-navy p-6 rounded-2xl">
-                                    <p className="text-xs font-bold text-gold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <p className="text-xs font-bold text-gold mb-3 flex items-center gap-2">
                                         📅 Exemplo Prático
                                     </p>
                                     <p className="text-white text-sm mb-2">
@@ -378,7 +378,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Documentação */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <FileText size={20} className="text-gold" />
                                 Documentação
                             </h4>
@@ -400,7 +400,7 @@ const InternalProcedures: React.FC = () => {
                                 <div className="flex items-start gap-3">
                                     <TriangleAlert size={20} className="text-rose-600 shrink-0" />
                                     <div className="space-y-2">
-                                        <p className="text-sm font-bold text-rose-900 uppercase tracking-wide">Atenção</p>
+                                        <p className="text-sm font-bold text-rose-900">Atenção</p>
                                         <p className="text-sm text-rose-800 leading-relaxed">
                                             <span className="font-bold">Não emitir o seguro enquanto não tivermos a minuta.</span>
                                         </p>
@@ -414,7 +414,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Verificações Importantes */}
                         <div className="bg-navy p-10 rounded-2xl shadow-xl space-y-6">
-                            <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-gold text-sm flex items-center gap-3">
                                 <ClipboardList size={20} />
                                 Verificações Importantes
                             </h4>
@@ -470,7 +470,7 @@ const InternalProcedures: React.FC = () => {
                                 <div className="flex items-start gap-3">
                                     <Info size={20} className="text-gold shrink-0" />
                                     <div className="space-y-2">
-                                        <p className="text-gold font-bold text-sm uppercase tracking-widest">Valor da IS</p>
+                                        <p className="text-gold font-bold text-sm">Valor da IS</p>
                                         <p className="text-white text-sm leading-relaxed">
                                             Confirme <span className="font-bold">todas essas informações diretamente na minuta/contrato</span>.
                                         </p>
@@ -503,7 +503,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Buscar Alternativas */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <Search size={20} className="text-gold" />
                                 Buscar Alternativas
                             </h4>
@@ -546,7 +546,7 @@ const InternalProcedures: React.FC = () => {
                                 </div>
                                 <div>
                                     <h4 className="font-black text-gold text-xl">Objetivo: Agilidade</h4>
-                                    <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">Prioridade Máxima</p>
+                                    <p className="text-slate-400 text-xs font-bold">Prioridade Máxima</p>
                                 </div>
                             </div>
                             <p className="text-slate-300 text-sm leading-relaxed">
@@ -565,7 +565,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Análise Opções de Seguradoras */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <Search size={20} className="text-gold" />
                                 Análise Opções de Seguradoras
                             </h4>
@@ -584,7 +584,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Abordagem com Cliente */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <MessageSquare size={20} className="text-gold" />
                                 Abordagem com Cliente
                             </h4>
@@ -621,7 +621,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Documentação Adicional */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <Paperclip size={20} className="text-gold" />
                                 Documentação Adicional
                             </h4>
@@ -646,7 +646,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Análise das Documentações */}
                         <div className="bg-navy p-10 rounded-2xl text-white shadow-xl space-y-6">
-                            <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-gold text-sm flex items-center gap-3">
                                 <TrendingUp size={20} />
                                 Análise das documentações
                             </h4>
@@ -655,15 +655,15 @@ const InternalProcedures: React.FC = () => {
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="bg-white/10 p-6 rounded-2xl border border-white/20">
-                                    <p className="text-gold font-bold text-xs uppercase tracking-widest mb-2">Pergunta 1</p>
+                                    <p className="text-gold font-bold text-xs mb-2">Pergunta 1</p>
                                     <p className="text-white text-sm font-medium">Qual o capital social da empresa?</p>
                                 </div>
                                 <div className="bg-white/10 p-6 rounded-2xl border border-white/20">
-                                    <p className="text-gold font-bold text-xs uppercase tracking-widest mb-2">Pergunta 2</p>
+                                    <p className="text-gold font-bold text-xs mb-2">Pergunta 2</p>
                                     <p className="text-white text-sm font-medium">Qual o valor da dívida?</p>
                                 </div>
                                 <div className="bg-white/10 p-6 rounded-2xl border border-white/20">
-                                    <p className="text-gold font-bold text-xs uppercase tracking-widest mb-2">Pergunta 3</p>
+                                    <p className="text-gold font-bold text-xs mb-2">Pergunta 3</p>
                                     <p className="text-white text-sm font-medium">Qual o faturamento da empresa?</p>
                                 </div>
                             </div>
@@ -700,7 +700,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Quando Usar */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                 <Info size={20} className="text-gold" />
                                 Quando Usar Afiançadoras
                             </h4>
@@ -714,16 +714,16 @@ const InternalProcedures: React.FC = () => {
                             <div className="flex items-start gap-3">
                                 <TriangleAlert size={24} className="text-rose-600 shrink-0" />
                                 <div className="space-y-4">
-                                    <h4 className="font-black text-rose-900 text-lg uppercase tracking-wide">Atenção</h4>
+                                    <h4 className="font-black text-rose-900 text-lg">Atenção</h4>
                                     <div className="space-y-4">
                                         <div className="bg-white p-5 rounded-2xl border border-rose-200">
-                                            <p className="text-xs font-bold text-rose-900 uppercase tracking-wide mb-2">Última Alternativa</p>
+                                            <p className="text-xs font-bold text-rose-900 mb-2">Última Alternativa</p>
                                             <p className="text-sm text-rose-800 leading-relaxed">
                                                 Essa é nossa <span className="font-bold">última alternativa</span>, porque nem sempre será aceito pelo órgão público.
                                             </p>
                                         </div>
                                         <div className="bg-white p-5 rounded-2xl border border-rose-200">
-                                            <p className="text-xs font-bold text-rose-900 uppercase tracking-wide mb-2">Validação Obrigatória</p>
+                                            <p className="text-xs font-bold text-rose-900 mb-2">Validação Obrigatória</p>
                                             <p className="text-sm text-rose-800 leading-relaxed">
                                                 É sempre importante <span className="font-bold">validar com o cliente</span> se o órgão público aceita uma garantia feita por uma empresa privada.
                                             </p>
@@ -735,7 +735,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Processo Comercial */}
                         <div className="bg-blue-50 p-10 rounded-2xl border border-blue-200 shadow-sm space-y-6">
-                            <h4 className="font-bold text-blue-900 uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-blue-900 text-sm flex items-center gap-3">
                                 <Briefcase size={20} className="text-blue-600" />
                                 Processo Comercial
                             </h4>
@@ -763,7 +763,7 @@ const InternalProcedures: React.FC = () => {
 
                         {/* Contatos */}
                         <div className="bg-navy p-10 rounded-2xl shadow-xl space-y-6">
-                            <h4 className="font-bold text-gold uppercase tracking-widest text-sm flex items-center gap-3">
+                            <h4 className="font-bold text-gold text-sm flex items-center gap-3">
                                 <Headset size={20} />
                                 Contatos das Afiançadoras
                             </h4>
@@ -797,7 +797,7 @@ const InternalProcedures: React.FC = () => {
                         {/* Cobrança de Documentos Pendentes */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                                <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                     <FileText size={20} className="text-gold" />
                                     Cobrança de Documentos Pendentes
                                 </h4>
@@ -830,7 +830,7 @@ Caso haja alguma dúvida, estamos à disposição. Abraços,`)}
                         {/* Agradecimento Envio de Cadastro */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                                <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                     <CircleCheck size={20} className="text-emerald-600" />
                                     Agradecimento Envio de Cadastro
                                 </h4>
@@ -859,7 +859,7 @@ Permanecemos à disposição. Abraços,`)}
                         {/* Comunicação de Limites Aprovados */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                                <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                     <Star size={20} className="text-amber-500" />
                                     Comunicação de Limites Aprovados
                                 </h4>
@@ -900,7 +900,7 @@ Até breve!`)}
                         {/* Cobrança de Inadimplência */}
                         <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-navy uppercase tracking-widest text-sm flex items-center gap-3">
+                                <h4 className="font-bold text-navy text-sm flex items-center gap-3">
                                     <TriangleAlert size={20} className="text-rose-600" />
                                     Cobrança de Inadimplência
                                 </h4>
@@ -951,7 +951,7 @@ Atenciosamente,`)}
                                 <Lightbulb size={32} />
                             </div>
                             <div>
-                                <h4 className="font-bold text-gold uppercase text-xs tracking-widest mb-1">Dica de Especialista</h4>
+                                <h4 className="font-bold text-gold text-xs mb-1">Dica de Especialista</h4>
                                 <p className="text-sm text-slate-300">Não fale "posso te vender um seguro?". Fale como um especialista que resolve um problema real: <span className="text-white font-bold">tempo, custo, agilidade ou risco.</span></p>
                             </div>
                         </div>
@@ -998,12 +998,12 @@ Atenciosamente,`)}
                                         </div>
                                         <div className="text-right">
                                             <h4 className="font-black text-navy text-xl mb-1">{item.title}</h4>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.subtitle}</p>
+                                            <p className="text-[10px] font-bold text-slate-400">{item.subtitle}</p>
                                         </div>
                                     </div>
                                     <p className="text-sm text-slate-600 leading-relaxed mb-6 font-medium">{item.desc}</p>
                                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                        <p className="text-xs text-navy font-bold mb-2 uppercase tracking-tight">Exemplo Prático:</p>
+                                        <p className="text-xs text-navy font-bold mb-2">Exemplo Prático:</p>
                                         <p className="text-xs text-slate-500 italic leading-relaxed">{item.example}</p>
                                     </div>
                                 </div>
@@ -1066,7 +1066,7 @@ Atenciosamente,`)}
                             </div>
 
                             <div className="bg-navy p-8 rounded-2xl text-white space-y-4 shadow-xl">
-                                <h5 className="text-gold font-bold uppercase text-xs tracking-widest flex items-center gap-2">
+                                <h5 className="text-gold font-bold text-xs flex items-center gap-2">
                                     <TrendingUp size={16} /> Estratégia Geral
                                 </h5>
                                 <p className="text-slate-300 text-sm leading-relaxed">
@@ -1080,7 +1080,7 @@ Atenciosamente,`)}
                                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-navy px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 1: Passando pela Secretaria</h4>
-                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Autoridade Emprestada</span>
+                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl">Autoridade Emprestada</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">
@@ -1094,12 +1094,12 @@ Atenciosamente,`)}
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
-                                                <p className="font-bold text-blue-900 text-xs uppercase mb-3 text-center">Cenário A: Ela passa o nome</p>
+                                                <p className="font-bold text-blue-900 text-xs mb-3 text-center">Cenário A: Ela passa o nome</p>
                                                 <p className="text-xs text-blue-800 leading-relaxed italic">"Ah, é a Mariana."</p>
                                                 <p className="text-xs font-bold text-blue-900 mt-2">Você: "Perfeito. Você pode me passar para a Mariana, por favor?"</p>
                                             </div>
                                             <div className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                                <p className="font-bold text-orange-900 text-xs uppercase mb-3 text-center">Cenário B: É o dono mesmo</p>
+                                                <p className="font-bold text-orange-900 text-xs mb-3 text-center">Cenário B: É o dono mesmo</p>
                                                 <p className="text-xs text-orange-800 leading-relaxed italic">"Como é um assunto de prazos de edital, eu preciso enviar uma informação técnica..."</p>
                                                 <p className="text-xs font-bold text-orange-900 mt-2">Peça o e-mail direto ou WhatsApp antes de desligar.</p>
                                             </div>
@@ -1111,7 +1111,7 @@ Atenciosamente,`)}
                                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-gold px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 2: Falando com o Decisor</h4>
-                                        <span className="bg-navy text-gold text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Abordagem Consultiva</span>
+                                        <span className="bg-navy text-gold text-[10px] font-bold px-3 py-1 rounded-xl">Abordagem Consultiva</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">
@@ -1121,13 +1121,13 @@ Atenciosamente,`)}
                                             "Olá <span className="font-bold">[Nome]</span>, Sou a <span className="font-bold">[SEU NOME]</span> da F&G Seguro Garantia. Tudo bem? Vou ser bem breve. Vi que vocês estão ativos em algumas licitações recentes..."
                                         </p>
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pergunta de Validação:</p>
+                                            <p className="text-[10px] font-bold text-slate-400">Pergunta de Validação:</p>
                                             <div className="bg-navy text-white p-6 rounded-2xl font-bold text-sm">
                                                 "Hoje, para cumprir a exigência dos editais, vocês já utilizam o Seguro Garantia?"
                                             </div>
                                         </div>
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">A Pergunta Chave:</p>
+                                            <p className="text-[10px] font-bold text-slate-400">A Pergunta Chave:</p>
                                             <div className="bg-slate-100 p-6 rounded-2xl font-bold text-sm text-navy">
                                                 "Hoje, o que eu precisaria fazer para nos tornarmos uma opção de cotação na sua próxima demanda?"
                                             </div>
@@ -1139,7 +1139,7 @@ Atenciosamente,`)}
                                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                                     <div className="bg-navy px-8 py-5 flex justify-between items-center text-white">
                                         <h4 className="font-black text-lg">Parte 3: O Fechamento</h4>
-                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-widest">Baixo Risco</span>
+                                        <span className="bg-gold text-navy text-[10px] font-bold px-3 py-1 rounded-xl">Baixo Risco</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <p className="text-slate-600 text-sm leading-relaxed">
@@ -1157,15 +1157,15 @@ Atenciosamente,`)}
                                 <h4 className="text-xl font-black text-navy border-b pb-4">Como lidar com as Objeções da Secretaria</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">"Manda e-mail geral"</p>
+                                        <p className="text-[10px] font-bold text-slate-400">"Manda e-mail geral"</p>
                                         <p className="text-xs text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-4">"O e-mail geral costuma demorar. Você não teria o e-mail de quem toca as licitações? Prometo que só envio se for estritamente sobre isso."</p>
                                     </div>
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">"Não atendem corretores"</p>
+                                        <p className="text-[10px] font-bold text-slate-400">"Não atendem corretores"</p>
                                         <p className="text-xs text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-4">"É especificamente sobre a liberação de limite para os contratos públicos. É um assunto financeiro estratégico."</p>
                                     </div>
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">"Já temos corretor"</p>
+                                        <p className="text-[10px] font-bold text-slate-400">"Já temos corretor"</p>
                                         <p className="text-xs text-slate-600 leading-relaxed italic border-l-2 border-slate-200 pl-4">"Que bom! Minha intenção não é substituir seu corretor agora, é apenas garantir que não estejam pagando taxa acima do mercado por falta de comparação."</p>
                                     </div>
                                 </div>
@@ -1174,15 +1174,15 @@ Atenciosamente,`)}
                             {/* Dicas de Ouro */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="bg-navy p-8 rounded-2xl text-white">
-                                    <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">1. Evite a palavra "Vender"</h5>
+                                    <h5 className="font-bold text-gold text-xs mb-4">1. Evite a palavra"Vender"</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">Troque por <span className="text-white">Validar, Comparar, Cadastrar ou Otimizar</span>.</p>
                                 </div>
                                 <div className="bg-navy p-8 rounded-2xl text-white">
-                                    <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">2. Use Jargões do Nicho</h5>
+                                    <h5 className="font-bold text-gold text-xs mb-4">2. Use Jargões do Nicho</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">Falar "Edital", "Tomador", "Apólice", "Seguradora" mostra autoridade.</p>
                                 </div>
                                 <div className="bg-navy p-8 rounded-2xl text-white">
-                                    <h5 className="font-bold text-gold text-xs uppercase mb-4 tracking-widest">3. Peça Ajuda</h5>
+                                    <h5 className="font-bold text-gold text-xs mb-4">3. Peça Ajuda</h5>
                                     <p className="text-xs text-slate-400 leading-relaxed">"Estou meio perdido, preciso falar sobre o edital... quem você me recomenda?"</p>
                                 </div>
                             </div>
@@ -1206,11 +1206,11 @@ Atenciosamente,`)}
                                         <h5 className="font-bold flex items-center gap-2 mt-0 mb-0">
                                             <MessageSquare size={18} /> WhatsApp
                                         </h5>
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Ágil e Humano</span>
+                                        <span className="text-[10px] font-bold opacity-80">Ágil e Humano</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Mensagem 1: Abertura</p>
+                                            <p className="text-[10px] font-bold text-slate-400">Mensagem 1: Abertura</p>
                                             <div className="bg-white p-4 rounded-xl text-xs text-slate-600 border border-slate-100 italic relative group">
                                                 "Olá, [Nome do Decisor]. Tudo bem? Aqui é [Seu Nome], da F&G. Tentei contato por telefone... Peguei seu contato com a [Nome da Secretária]..."
                                                 <button onClick={() => copyToClipboard('Olá, [Nome do Decisor]. Tudo bem?\nAqui é [Seu Nome], da F&G.\nTentei contato por telefone, mas imagino que esteja corrido. Peguei seu contato com a [Nome da Secretária] pois vi que a [Nome da Empresa do Cliente] tem participado ativamente de licitações recentes.')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1219,7 +1219,7 @@ Atenciosamente,`)}
                                             </div>
                                         </div>
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Mensagem 2: O Gancho</p>
+                                            <p className="text-[10px] font-bold text-slate-400">Mensagem 2: O Gancho</p>
                                             <div className="bg-white p-4 rounded-xl text-xs text-slate-600 border border-slate-100 italic relative group">
                                                 "Não quero tomar seu tempo... O meu objetivo é simples: ser um ponto de verificação de preço... Faz sentido pra você?"
                                                 <button onClick={() => copyToClipboard('Não quero tomar seu tempo com apresentações. O meu objetivo é simples: ser um ponto de verificação de preço para os seus Seguros Garantia.\nNa próxima demanda que tiver na mesa, me permite fazer um cálculo sem compromisso? Se meu preço for melhor, a gente avança. Se não, você mantém seu corretor atual sabendo que ele está cobrando o justo.\nFaz sentido pra você?')} className="absolute top-2 right-2 p-2 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1236,17 +1236,17 @@ Atenciosamente,`)}
                                         <h5 className="font-bold flex items-center gap-2 mt-0 mb-0">
                                             <MailOpen size={18} /> E-mail
                                         </h5>
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Formal e Autoridade</span>
+                                        <span className="text-[10px] font-bold opacity-80">Formal e Autoridade</span>
                                     </div>
                                     <div className="p-8 space-y-6">
                                         <div className="bg-white p-6 rounded-2xl border border-blue-50 space-y-3">
-                                            <p className="text-[10px] font-bold text-blue-400 uppercase">Assunto:</p>
+                                            <p className="text-[10px] font-bold text-blue-400">Assunto:</p>
                                             <p className="text-xs font-bold text-navy">Seguro Garantia / [Nome da Empresa] - Otimização de Custos</p>
                                             <div className="h-[1px] bg-slate-100 my-4"></div>
                                             <p className="text-[11px] text-slate-500 leading-relaxed italic">
                                                 "Olá, [Nome]... conforme meu contato com a [Secretária]... Quero apenas que me envie o edital para uma cotação desafiante..."
                                             </p>
-                                            <button onClick={() => copyToClipboard('Assunto: Seguro Garantia / [Nome da Empresa do Cliente] - Otimização de Custos\n\nOlá, [Nome do Decisor].\n\nConforme meu contato telefônico hoje com a [Nome da Secretária/Recepção], estou escrevendo diretamente a você pois identificamos a [Nome da Empresa] ativa em processos licitatórios recentes.\n\nSabemos que o Seguro Garantia é uma commodity necessária, mas que impacta a margem do contrato se não for bem negociado.\n\nMinha proposta é prática:\nNão quero que troque de corretor agora. Quero apenas que, na sua próxima necessidade de apólice (seja de participação ou execução), você me envie o edital para uma cotação desafiante.\n\nO que ganhamos com isso?\n1. Você valida se as taxas que paga hoje estão competitivas.\n2. Eu tenho a chance de provar nosso valor na prática, com preço e agilidade na emissão.\n\nPosso ficar no seu radar para a próxima?\n\nAtenciosamente,\n[Seu Nome]\n[Seu Link do WhatsApp]')} className="w-full py-3 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors mt-4">
+                                            <button onClick={() => copyToClipboard('Assunto: Seguro Garantia / [Nome da Empresa do Cliente] - Otimização de Custos\n\nOlá, [Nome do Decisor].\n\nConforme meu contato telefônico hoje com a [Nome da Secretária/Recepção], estou escrevendo diretamente a você pois identificamos a [Nome da Empresa] ativa em processos licitatórios recentes.\n\nSabemos que o Seguro Garantia é uma commodity necessária, mas que impacta a margem do contrato se não for bem negociado.\n\nMinha proposta é prática:\nNão quero que troque de corretor agora. Quero apenas que, na sua próxima necessidade de apólice (seja de participação ou execução), você me envie o edital para uma cotação desafiante.\n\nO que ganhamos com isso?\n1. Você valida se as taxas que paga hoje estão competitivas.\n2. Eu tenho a chance de provar nosso valor na prática, com preço e agilidade na emissão.\n\nPosso ficar no seu radar para a próxima?\n\nAtenciosamente,\n[Seu Nome]\n[Seu Link do WhatsApp]')} className="w-full py-3 bg-blue-600 text-white rounded-xl text-[10px] font-bold hover:bg-blue-700 transition-colors mt-4">
                                                 Copiar Roteiro E-mail
                                             </button>
                                         </div>
@@ -1265,7 +1265,7 @@ Atenciosamente,`)}
                                             <Zap size={28} />
                                         </div>
                                         <h4 className="text-2xl font-black text-navy mb-2">O "Pulo do Gato"</h4>
-                                        <p className="text-xs font-bold text-gold uppercase tracking-widest">Mensagem de áudio no WhatsApp</p>
+                                        <p className="text-xs font-bold text-gold">Mensagem de áudio no WhatsApp</p>
                                     </div>
                                     <div className="md:w-2/3 bg-slate-50 p-8 rounded-2xl border border-slate-100">
                                         <p className="text-sm text-slate-500 mb-6 italic leading-relaxed">
@@ -1327,7 +1327,7 @@ Atenciosamente,`)}
                                     Gestão Interna (CRM)
                                 </h3>
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">O que saber sobre seu cliente:</p>
+                                    <p className="text-[10px] font-bold text-slate-400">O que saber sobre seu cliente:</p>
                                     <ul className="space-y-3">
                                         {[
                                             'Pessoas de contato, e-mails e telefones diretos.',
@@ -1362,7 +1362,7 @@ Atenciosamente,`)}
                                     </p>
                                     <button
                                         onClick={() => copyToClipboard('Oi, Sr. XXX,\n\nEstamos na expectativa para saber como foi o pregão de hoje. Por favor, nos mantenha informados. Estamos na torcida por aqui!')}
-                                        className="bg-gold text-navy px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gold-hover transition-all shadow-xl shadow-gold/10"
+                                        className="bg-gold text-navy px-8 py-4 rounded-xl font-bold text-xs hover:bg-gold-hover transition-all shadow-xl shadow-gold/10"
                                     >
                                         COPIAR MENSAGEM PROATIVA
                                     </button>

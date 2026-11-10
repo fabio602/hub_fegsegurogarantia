@@ -25,6 +25,22 @@ export default {
   ],
   theme: {
     extend: {
+      // Fonte da interface (auto-hospedada via @fontsource-variable/manrope).
+      fontFamily: {
+        sans: ['"Manrope Variable"', 'Manrope', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+      },
+      // Texto em px fixo: fica FORA da escala de 80% do index.css (que continua
+      // valendo para espaçamento). Antes text-xs dava 9,6px e text-sm 11,2px.
+      fontSize: {
+        xs:   ['11.5px', { lineHeight: '1.4' }],
+        sm:   ['12.5px', { lineHeight: '1.45' }],
+        base: ['14px',   { lineHeight: '1.5' }],
+        lg:   ['15.5px', { lineHeight: '1.5' }],
+        xl:   ['17px',   { lineHeight: '1.4' }],
+        '2xl': ['20px',  { lineHeight: '1.3' }],
+        '3xl': ['25px',  { lineHeight: '1.2' }],
+        '4xl': ['30px',  { lineHeight: '1.15' }],
+      },
       colors: {
         // Navy institucional. `light` é o tom usado em hover dentro do sidebar;
         // `dark` é o rodapé do sidebar (mais fechado que o DEFAULT).

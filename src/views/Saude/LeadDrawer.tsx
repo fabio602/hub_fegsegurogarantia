@@ -89,7 +89,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
     tipo: 'text' | 'number' | 'date' | 'email' = 'text',
   ) => (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-wider text-navy/50">{rotulo}</span>
+      <span className="text-[11px] text-navy/50">{rotulo}</span>
       <input
         type={tipo}
         value={(rascunho[chave] as string | number | null) ?? ''}
@@ -156,10 +156,10 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
           )}
 
           <section className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Empresa</h3>
+            <h3 className="text-xs text-gold-dark font-semibold">Empresa</h3>
             {campo('Empresa', 'empresa')}
             <div>
-              <span className="text-[11px] uppercase tracking-wider text-navy/50">CNPJ</span>
+              <span className="text-[11px] text-navy/50">CNPJ</span>
               <p className="mt-1 text-sm text-navy tabular-nums">
                 {mascararCnpj(rascunho.cnpj) || 'não informado'}
               </p>
@@ -173,7 +173,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Contato</h3>
+            <h3 className="text-xs text-gold-dark font-semibold">Contato</h3>
             <div className="grid grid-cols-2 gap-3">
               {campo('Nome', 'contato')}
               {campo('Cargo', 'cargo')}
@@ -189,11 +189,11 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Qualificação</h3>
+            <h3 className="text-xs text-gold-dark font-semibold">Qualificação</h3>
             <div className="grid grid-cols-2 gap-3">
               {campo('Vidas', 'vidas', 'number')}
               <label className="block">
-                <span className="text-[11px] uppercase tracking-wider text-navy/50">Plano de interesse</span>
+                <span className="text-[11px] text-navy/50">Plano de interesse</span>
                 <select
                   value={rascunho.plano_interesse ?? ''}
                   onChange={e => {
@@ -226,7 +226,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
             )}
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wider text-navy/50">Mês de renovação</span>
+              <span className="text-[11px] text-navy/50">Mês de renovação</span>
               <select
                 value={rascunho.mes_renovacao ?? ''}
                 onChange={e => {
@@ -243,7 +243,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
             {campo('Próxima ação', 'proxima_acao')}
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wider text-navy/50">Observações</span>
+              <span className="text-[11px] text-navy/50">Observações</span>
               <textarea rows={3}
                 value={rascunho.observacoes ?? ''}
                 onChange={e => setRascunho(p => ({ ...p, observacoes: e.target.value }))}
@@ -253,7 +253,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Cotações</h3>
+            <h3 className="text-xs text-gold-dark font-semibold">Cotações</h3>
             {cotacoes.length === 0 && (
               <p className="text-sm text-navy/50">Nenhuma cotação salva para este lead.</p>
             )}
@@ -277,13 +277,13 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-xs uppercase tracking-wider text-gold-dark font-semibold">Documentos</h3>
+            <h3 className="text-xs text-gold-dark font-semibold">Documentos</h3>
             <Documentos leadId={lead.id} />
           </section>
 
           {lead.status === 'Implantado' && (
             <section className="space-y-3">
-              <h3 className="text-xs uppercase tracking-wider text-emerald-700 font-semibold">Fechamento</h3>
+              <h3 className="text-xs text-emerald-700 font-semibold">Fechamento</h3>
               <div className="grid grid-cols-2 gap-3">
                 {campo('Vigência prevista', 'vigencia_prevista', 'date')}
                 {campo('Implantado em', 'implantado_em', 'date')}
@@ -295,7 +295,7 @@ const LeadDrawer: React.FC<Props> = ({ lead, onFechar, onSalvo }) => {
 
           {lead.status === 'Perdido' && (
             <section className="space-y-3">
-              <h3 className="text-xs uppercase tracking-wider text-rose-700 font-semibold">Motivo da perda</h3>
+              <h3 className="text-xs text-rose-700 font-semibold">Motivo da perda</h3>
               <textarea rows={3}
                 value={rascunho.motivo_perda ?? ''}
                 onChange={e => setRascunho(p => ({ ...p, motivo_perda: e.target.value }))}

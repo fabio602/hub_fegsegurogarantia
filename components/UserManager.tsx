@@ -183,7 +183,7 @@ const UserManager: React.FC = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
+                            <label className="text-[10px] font-bold text-slate-400">Email</label>
                             <input
                                 type="email"
                                 value={form.email}
@@ -193,7 +193,7 @@ const UserManager: React.FC = () => {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha</label>
+                            <label className="text-[10px] font-bold text-slate-400">Senha</label>
                             <input
                                 type="text"
                                 value={form.password}
@@ -230,7 +230,7 @@ const UserManager: React.FC = () => {
                           </h3>
                           <p className="text-sm text-slate-500 font-medium">{pwForm.email}</p>
                           <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nova senha</label>
+                              <label className="text-[10px] font-bold text-slate-400">Nova senha</label>
                               <input
                                   type="text"
                                   value={pwForm.password}
@@ -358,11 +358,11 @@ const UserManager: React.FC = () => {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acesso</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Criado em</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Último acesso</th>
-                                <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ações</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400">Email</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400">Acesso</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400">Criado em</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-400">Último acesso</th>
+                                <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-400">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">

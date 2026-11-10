@@ -444,7 +444,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     {naAplCount > 0 && <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-xl">{naAplCount} N/A</span>}
                   </div>
                   {result.veredicto && (
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl uppercase tracking-widest ${
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-xl ${
                       result.veredicto === 'PODE EMITIR' ? 'bg-emerald-700 text-white' :
                       result.veredicto === 'EMITIR COM RESSALVA' ? 'bg-amber-600 text-white' :
                       'bg-rose-700 text-white'
@@ -466,15 +466,15 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-700 text-sm">{item.campo}</span>
-                        <span className={`text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-0.5 rounded-xl ${cfg.badge}`}>{cfg.label}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xl ${cfg.badge}`}>{cfg.label}</span>
                       </div>
                       <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                         <div>
-                          <span className="text-slate-400 uppercase tracking-[1px] font-bold">Esperado: </span>
+                          <span className="text-slate-400 font-bold">Esperado: </span>
                           <span className="text-slate-600 font-semibold">{item.esperado}</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 uppercase tracking-[1px] font-bold">Minuta: </span>
+                          <span className="text-slate-400 font-bold">Minuta: </span>
                           <span className={`font-semibold ${item.status === 'divergencia' ? 'text-rose-700' : item.status === 'ok' || item.status === 'atencao_favoravel' ? 'text-slate-600' : 'text-amber-700'}`}>{item.encontrado}</span>
                         </div>
                       </div>
@@ -510,7 +510,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
               {showMsg && (
                 <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in duration-200">
                   <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mensagem WhatsApp</span>
+                    <span className="text-xs font-bold text-slate-500">Mensagem WhatsApp</span>
                     <button onClick={copyMsg}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                       {copied ? <><Check size={12} /> Copiado!</> : <><Copy size={12} /> Copiar</>}
@@ -561,7 +561,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
                   {/* Preview dos dados pré-preenchidos */}
                   <div className="bg-slate-50 border-b border-slate-200 px-5 py-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Dados pré-preenchidos da minuta</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-3">Dados pré-preenchidos da minuta</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
                       {[
                         ['Cliente', result.minuta_dados.tomador],
@@ -581,11 +581,11 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
                   {/* Campos a preencher */}
                   <div className="p-5 space-y-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete para registrar</p>
+                    <p className="text-[10px] font-bold text-slate-400">Complete para registrar</p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Data da Venda *</label>
+                        <label className="text-xs font-bold text-slate-600 block mb-1.5">Data da Venda *</label>
                         <input
                           type="date"
                           value={vendaForm.data}
@@ -595,7 +595,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Vendedor *</label>
+                        <label className="text-xs font-bold text-slate-600 block mb-1.5">Vendedor *</label>
                         <select
                           value={vendaForm.vendedor}
                           onChange={e => setVendaForm(f => ({ ...f, vendedor: e.target.value }))}
@@ -609,7 +609,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-[1px] block mb-1.5">Comissão (R$)</label>
+                        <label className="text-xs font-bold text-slate-600 block mb-1.5">Comissão (R$)</label>
                         <input
                           type="text"
                           placeholder="Ex: R$ 500,00"
@@ -653,7 +653,7 @@ export default function MinutaValidator({ dadosOriginais, tipo, campoLabels, onV
 
           {result.parse_error && (
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resposta bruta</p>
+              <p className="text-xs font-bold text-slate-500 mb-2">Resposta bruta</p>
               <pre className="text-xs text-slate-600 whitespace-pre-wrap">{result.raw}</pre>
             </div>
           )}

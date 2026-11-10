@@ -169,7 +169,7 @@ const GarantiaLocaticia: React.FC = () => {
   );
 
   const InputLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+    <label className="text-[10px] font-bold text-slate-400 px-1">
       {children}
     </label>
   );
@@ -273,7 +273,7 @@ const GarantiaLocaticia: React.FC = () => {
               </div>
               {(aluguel > 0 || outros > 0) && (
                 <div className="bg-slate-50 rounded-xl px-4 py-3 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Base Mensal</span>
+                  <span className="text-xs font-bold text-slate-400">Base Mensal</span>
                   <span className="text-sm font-bold text-slate-800">{fmtBRL(aluguel + outros)}</span>
                 </div>
               )}
@@ -393,7 +393,7 @@ const GarantiaLocaticia: React.FC = () => {
             <>
               {/* Desembolso mensal — destaque */}
               <div className="bg-navy rounded-2xl p-6 text-center">
-                <p className="text-gold/70 text-xs font-bold uppercase tracking-widest mb-2">
+                <p className="text-gold/70 text-xs font-bold mb-2">
                   {forma === 'boleto' ? '1º MÊS' : 'DESEMBOLSO MENSAL'}
                 </p>
                 <p className="text-gold text-4xl font-black">
@@ -402,7 +402,7 @@ const GarantiaLocaticia: React.FC = () => {
                 <p className="text-white/50 text-xs mt-1">aluguel + parcela da garantia</p>
                 {result.forma === 'boleto' && (
                   <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">DO 2º AO 12º MÊS</p>
+                    <p className="text-white/60 text-xs font-bold mb-1">DO 2º AO 12º MÊS</p>
                     <p className="text-white text-2xl font-black">{fmtBRL(result.desembolso_demais)}</p>
                   </div>
                 )}
@@ -428,7 +428,7 @@ const GarantiaLocaticia: React.FC = () => {
                         : 'bg-white border-slate-100'
                     }`}
                   >
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{card.label}</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-2">{card.label}</p>
                     <p className="text-lg font-black text-slate-800">{card.value}</p>
                   </div>
                 ))}
@@ -438,11 +438,11 @@ const GarantiaLocaticia: React.FC = () => {
               {result.forma === 'boleto' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Custo do Financiamento</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-2">Custo do Financiamento</p>
                     <p className="text-lg font-black text-amber-600">{fmtBRL(result.custo_financiamento)}</p>
                   </div>
                   <div className="bg-white rounded-2xl p-5 border border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Taxa Mensal Efetiva</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-2">Taxa Mensal Efetiva</p>
                     <p className="text-lg font-black text-slate-800">{(result.taxa_mensal_efetiva * 100).toFixed(2).replace('.', ',')}% a.m.</p>
                   </div>
                 </div>
@@ -455,9 +455,9 @@ const GarantiaLocaticia: React.FC = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50">
-                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Parcela</th>
-                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vencimento</th>
-                        <th className="px-4 py-2 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400">Parcela</th>
+                        <th className="px-4 py-2 text-left text-[10px] font-bold text-slate-400">Vencimento</th>
+                        <th className="px-4 py-2 text-right text-[10px] font-bold text-slate-400">Valor</th>
                       </tr>
                     </thead>
                     <tbody>

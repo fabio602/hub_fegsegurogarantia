@@ -143,7 +143,7 @@ export function CommandCenter({ onNavigate }: CommandCenterProps) {
         ].map(s => (
           <div key={s.label} onClick={s.onClick}
             className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm cursor-pointer hover:shadow-md hover:border-gold/30 transition-all">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
+            <p className="text-[10px] font-bold text-slate-400 mb-2">{s.label}</p>
             <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}

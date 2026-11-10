@@ -190,7 +190,7 @@ const BanksDirectory: React.FC = () => {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Loader2 size={40} className="animate-spin mb-4 text-gold" />
-                <p className="font-bold uppercase tracking-widest text-xs">Carregando Base...</p>
+                <p className="font-bold text-xs">Carregando Base...</p>
             </div>
         );
     }
@@ -272,7 +272,7 @@ const BanksDirectory: React.FC = () => {
                             <div className="p-8 space-y-8 flex-1 bg-slate-50/30">
                                 {/* Prêmios Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mb-4">
                                         <DollarSign size={16} className="text-gold" /> Prêmios Mínimos
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -306,7 +306,7 @@ const BanksDirectory: React.FC = () => {
 
                                 {/* Gerente Comercial Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mb-4">
                                         <UserCircle size={16} className="text-gold" /> Gerente Comercial
                                     </h4>
                                     <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
@@ -319,11 +319,11 @@ const BanksDirectory: React.FC = () => {
                                         ) : (
                                             <>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Nome</span>
+                                                    <span className="text-xs text-slate-400 font-bold">Nome</span>
                                                     <span className="font-bold text-slate-800">{data.gerente.nome || 'Não informado'}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Telefone</span>
+                                                    <span className="text-xs text-slate-400 font-bold">Telefone</span>
                                                     {data.gerente.telefone ? (
                                                         <WhatsAppPhoneLink phone={data.gerente.telefone} className="font-bold text-slate-600" />
                                                     ) : (
@@ -331,7 +331,7 @@ const BanksDirectory: React.FC = () => {
                                                     )}
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">E-mail</span>
+                                                    <span className="text-xs text-slate-400 font-bold">E-mail</span>
                                                     <span className="font-bold text-blue-600">{data.gerente.email || 'Não informado'}</span>
                                                 </div>
                                             </>
@@ -341,7 +341,7 @@ const BanksDirectory: React.FC = () => {
 
                                 {/* Documentos Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mb-4">
                                         <FileText size={16} className="text-gold" /> Documentos Necessários
                                     </h4>
                                     {isEditing ? (
@@ -369,7 +369,7 @@ const BanksDirectory: React.FC = () => {
 
                                 {/* Requisitos Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mb-4">
                                         <Info size={16} className="text-gold" /> Requisitos para Contratação
                                     </h4>
                                     {isEditing ? (
@@ -401,7 +401,7 @@ const BanksDirectory: React.FC = () => {
 
                                 {/* Documentos Conta Section */}
                                 <div>
-                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+                                    <h4 className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mb-4">
                                         <FileText size={16} className="text-gold" /> Documentos - Abertura de Conta
                                     </h4>
                                     {isEditing ? (
@@ -444,7 +444,7 @@ const BanksDirectory: React.FC = () => {
                         <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl flex items-center justify-center text-slate-200 group-hover:text-gold group-hover:scale-110 transition-all mb-8 border border-slate-50">
                             <ShieldPlus size={48} />
                         </div>
-                        <span className="text-slate-400 font-bold uppercase tracking-[4px] group-hover:text-navy">Adicionar Banco</span>
+                        <span className="text-slate-400 font-bold group-hover:text-navy">Adicionar Banco</span>
                     </button>
                 )}
             </div>

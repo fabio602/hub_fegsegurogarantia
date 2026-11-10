@@ -261,7 +261,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
       {categorias.map(cat => (
         <div key={cat} className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
           <div className="px-5 py-3 bg-slate-50/60 border-b border-slate-100">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat}</p>
+            <p className="text-[10px] font-bold text-slate-400">{cat}</p>
           </div>
           <div className="divide-y divide-slate-100">
             {filtrados.filter(f => f.categoria === cat).map(f => (
@@ -271,7 +271,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="text-sm font-bold text-slate-800 truncate">{f.nome}</p>
                     {f.vigencia && (
-                      <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                      <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
                         {f.vigencia}
                       </span>
                     )}
@@ -350,7 +350,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
 
               <div className="px-6 py-5 space-y-4 overflow-y-auto">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nome</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Nome</label>
                   <input
                     value={form.nome}
                     onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
@@ -361,7 +361,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Descrição</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Descrição</label>
                   <input
                     value={form.descricao}
                     onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
@@ -370,7 +370,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Categoria</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Categoria</label>
                   <input
                     list={idDatalist}
                     value={form.categoria}
@@ -384,7 +384,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
                   </datalist>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vigência</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Vigência</label>
                   <input
                     value={form.vigencia}
                     onChange={e => setForm(f => ({ ...f, vigencia: e.target.value }))}
@@ -394,7 +394,7 @@ export default function Formularios({ modulo = 'garantia' }: { modulo?: ModuloFo
                   <p className="text-[10px] text-slate-400 mt-1">Opcional. Aparece como selo no card, para não mandar preço vencido.</p>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Arquivo</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">Arquivo</label>
                   <input
                     type="file"
                     onChange={e => setArquivo(e.target.files?.[0] ?? null)}

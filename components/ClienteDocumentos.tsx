@@ -122,7 +122,7 @@ export default function ClienteDocumentos({ nome, cnpj, documentos, aoMudar }: P
 
   return (
     <div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1 flex justify-between items-center">
+      <p className="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1 flex justify-between items-center">
         <span>Documentos do Cliente</span>
         <button
           onClick={() => { setErro(''); setAbrindoForm(v => !v); }}
@@ -175,7 +175,7 @@ export default function ClienteDocumentos({ nome, cnpj, documentos, aoMudar }: P
             <div key={d.id} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-xl">
               <FileText size={13} className="text-gold shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold text-slate-700 uppercase truncate">
+                <p className="text-[10px] font-bold text-slate-700 truncate">
                   {d.tipo}{d.ano ? ` · ${d.ano}` : ''}
                 </p>
                 {d.arquivo_nome && <p className="text-[10px] text-slate-400 truncate">{d.arquivo_nome}</p>}

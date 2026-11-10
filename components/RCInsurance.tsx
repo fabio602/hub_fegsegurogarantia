@@ -78,7 +78,7 @@ const isExpired = (date: string) => {
 };
 
 const RC_INPUT_CLS = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-all";
-const RC_LABEL_CLS = "block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5";
+const RC_LABEL_CLS = "block text-[10px] font-bold text-slate-500 mb-1.5";
 type RCFieldOnChange = React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
 
 const RCInputField: React.FC<{
@@ -415,7 +415,7 @@ const RCInsurance: React.FC = () => {
           <h2 className="text-2xl font-black text-navy tracking-tight flex items-center gap-2">
             <ShieldAlert size={22} className="text-gold" /> Responsabilidade Civil
           </h2>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gestão de apólices e clientes RC</p>
+          <p className="text-xs text-slate-400 font-bold mt-1">Gestão de apólices e clientes RC</p>
         </div>
         <div className="flex items-center gap-2">
           {rcExtractMsg && <p className="text-xs font-bold mr-2" style={{ color: rcExtractMsg.startsWith('✅') ? '#2d6a4f' : '#dc2626' }}>{rcExtractMsg}</p>}
@@ -438,7 +438,7 @@ const RCInsurance: React.FC = () => {
           { label: 'Vencidos', value: stats.vencidos, color: 'text-rose-600' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{s.label}</p>
+            <p className="text-[10px] font-bold text-slate-400">{s.label}</p>
             <p className={`text-3xl font-black mt-1 ${s.color}`}>{s.value}</p>
           </div>
         ))}
@@ -488,7 +488,7 @@ const RCInsurance: React.FC = () => {
 
             {/* Dados do Cliente */}
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3">Dados do Cliente / Segurado</p>
+              <p className="text-[10px] font-bold text-gold mb-3">Dados do Cliente / Segurado</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <RCInputField formData={rcFd} onChange={rcOc} id="nome" label="Nome / Razão Social" required colSpan="sm:col-span-2 lg:col-span-2" />
                 <RCInputField formData={rcFd} onChange={rcOc} id="nome_contato" label="Nome do Contato / Responsável" placeholder="Ex: João Silva" colSpan="sm:col-span-2 lg:col-span-1" />
@@ -503,7 +503,7 @@ const RCInsurance: React.FC = () => {
 
             {/* Dados da Apólice */}
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3">Dados da Apólice</p>
+              <p className="text-[10px] font-bold text-gold mb-3">Dados da Apólice</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <RCInputField formData={rcFd} onChange={rcOc}id="seguradora" label="Seguradora" />
                 <RCInputField formData={rcFd} onChange={rcOc}id="apolice" label="Nº Apólice" />
@@ -520,7 +520,7 @@ const RCInsurance: React.FC = () => {
 
             {/* Observações */}
             <div>
-              <label htmlFor="obs" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Observações</label>
+              <label htmlFor="obs"className="block text-[10px] font-bold text-slate-500 mb-1.5">Observações</label>
               <textarea
                 id="obs"
                 rows={3}
@@ -533,7 +533,7 @@ const RCInsurance: React.FC = () => {
             {/* Parcelas / Boletos */}
             {editingId && (
               <div className="border-t border-slate-100 pt-6">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-4 flex items-center gap-2">
+                <p className="text-[10px] font-bold text-gold mb-4 flex items-center gap-2">
                   <FileText size={12} /> Parcelas / Boletos
                   {!formData.email && <span className="text-amber-500 font-bold normal-case text-[10px]">Sem e-mail. Configure para enviar boletos</span>}
                 </p>
@@ -571,23 +571,23 @@ const RCInsurance: React.FC = () => {
 
                 {/* Add boleto form */}
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Adicionar parcela</p>
+                  <p className="text-[10px] font-bold text-slate-400">Adicionar parcela</p>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Nº Parcela</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Nº Parcela</label>
                       <input type="number" min="1" value={rcBoletoForm.parcela} onChange={e => setRcBoletoForm(f => ({...f, parcela: e.target.value}))} placeholder="1" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Vencimento</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Vencimento</label>
                       <input type="date" value={rcBoletoForm.vencimento} onChange={e => setRcBoletoForm(f => ({...f, vencimento: e.target.value}))} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Valor</label>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Valor</label>
                       <input type="text" value={rcBoletoForm.valor} onChange={e => setRcBoletoForm(f => ({...f, valor: e.target.value}))} placeholder="R$ 0,00" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gold transition-all" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">PDF do Boleto</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">PDF do Boleto</label>
                     <input type="file" accept="application/pdf" onChange={e => setRcBoletoForm(f => ({...f, file: e.target.files?.[0] || null}))} className="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-navy file:text-gold hover:file:bg-navy-light cursor-pointer" />
                   </div>
                   <button onClick={handleAddRCBoleto} disabled={rcBoletoAdding || !rcBoletoForm.parcela || !rcBoletoForm.file} className="flex items-center gap-2 bg-navy text-gold px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-navy-light disabled:opacity-50 transition-all">
@@ -707,7 +707,7 @@ const RCInsurance: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
                   {['Cliente', 'CPF/CNPJ', 'Contato', 'Tipo RC', 'Atividade', 'Apólice', 'Limite', 'Prêmio', 'Comissão', 'Fim Vigência', 'Situação', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>

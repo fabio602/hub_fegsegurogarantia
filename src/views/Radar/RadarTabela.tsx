@@ -28,7 +28,7 @@ export function ScoreBadge({ score }: { score: number }) {
 
 export function StatusBadge({ status }: { status: RadarEmpresa['status'] }) {
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${STATUS_CLASSES[status]}`}>
+    <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold whitespace-nowrap ${STATUS_CLASSES[status]}`}>
       {STATUS_LABEL[status]}
     </span>
   );
@@ -71,7 +71,7 @@ export function SituacaoCelula({ empresa }: { empresa: RadarEmpresa }) {
   const vencido = !encerrado && !!empresa.proximo_passo && empresa.proximo_passo <= hojeSaoPaulo();
   return (
     <span className="inline-flex flex-col items-start gap-0.5">
-      <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${ETAPA_CLASSES[empresa.etapa]}`}>
+      <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold whitespace-nowrap ${ETAPA_CLASSES[empresa.etapa]}`}>
         {ROTULO_ETAPA[empresa.etapa]}
       </span>
       {!encerrado && empresa.proximo_passo && (
@@ -96,7 +96,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 border-b border-slate-200">
-            <tr className="text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+            <tr className="text-left text-[10px] font-bold text-slate-600">
               <th scope="col" className={`${th} pl-5`}>Score</th>
               <th scope="col" className={th}>Empresa</th>
               <th scope="col" className={th}>CNPJ</th>
@@ -158,7 +158,7 @@ export default function RadarTabela({ empresas, total, pagina, carregando, selec
                   <td className={`${td} text-slate-700 whitespace-nowrap`}>{e.municipio ?? ''}</td>
                   <td className={`${td} text-slate-700 whitespace-nowrap tabular-nums`}>
                     {telefoneEfetivo(e) ?? ''}
-                    {e.telefone_manual && <span className="ml-1 text-[9px] font-bold uppercase text-blue-700">manual</span>}
+                    {e.telefone_manual && <span className="ml-1 text-[9px] font-bold text-blue-700">manual</span>}
                   </td>
                   <td className={`${td} text-right tabular-nums text-slate-700`}>{e.qtd_inscricoes}</td>
                   <td className={`${td} text-right tabular-nums font-bold text-navy`}>{e.qtd_em_cobranca ?? 0}</td>

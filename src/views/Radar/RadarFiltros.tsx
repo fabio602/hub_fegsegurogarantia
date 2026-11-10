@@ -13,7 +13,7 @@ interface Props {
 }
 
 const campo = 'px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold focus:bg-white transition-all';
-const rotulo = 'block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1';
+const rotulo = 'block text-[10px] font-bold text-slate-600 mb-1';
 
 interface MunicipioOpcao { municipio: string; empresas: number; }
 
@@ -220,7 +220,7 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <div role="group" aria-label="Status" className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Status</span>
+          <span className="text-[10px] font-bold text-slate-600">Status</span>
           {STATUS_FILTRAVEIS.map(s => (
             <button key={s} type="button" aria-pressed={filtros.status.includes(s)}
               onClick={() => set('status', alternarLista<RadarStatus>(filtros.status, s))} className={chip(filtros.status.includes(s))}>
@@ -230,7 +230,7 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
         </div>
 
         <div role="group" aria-label="Receita" className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Receita</span>
+          <span className="text-[10px] font-bold text-slate-600">Receita</span>
           {RECEITAS.map(r => (
             <button key={r} type="button" aria-pressed={filtros.receitas.includes(r)}
               onClick={() => set('receitas', alternarLista<string>(filtros.receitas, r))} className={chip(filtros.receitas.includes(r))}>
@@ -240,7 +240,7 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="radar-dossie" className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Dossiê</label>
+          <label htmlFor="radar-dossie"className="text-[10px] font-bold text-slate-600">Dossiê</label>
           <select id="radar-dossie" value={filtros.dossie} onChange={e => set('dossie', e.target.value as DossieFiltro)}
             className={`${campo} py-1.5 text-[11px] font-bold cursor-pointer`}>
             {(Object.keys(DOSSIE_FILTRO_LABEL) as DossieFiltro[]).map(d => (
@@ -250,7 +250,7 @@ export default function RadarFiltros({ filtros, onChange }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="radar-abordagem" className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Abordagem</label>
+          <label htmlFor="radar-abordagem"className="text-[10px] font-bold text-slate-600">Abordagem</label>
           <select id="radar-abordagem" value={filtros.abordagem} onChange={e => set('abordagem', e.target.value as FiltroAbordagem)}
             className={`${campo} py-1.5 text-[11px] font-bold cursor-pointer`}>
             <option value="">Todas</option>

@@ -227,7 +227,7 @@ const PropostaGarantia: React.FC = () => {
       <section className="bg-areia-clara border border-dashed border-gold/60 rounded-2xl p-6 space-y-5">
         <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-lg font-black text-navy">Controle Interno</h2>
-          <span className="text-[10px] font-bold uppercase tracking-widest bg-gold text-white rounded-full px-3 py-1">não aparece no PDF</span>
+          <span className="text-[10px] font-bold bg-gold text-white rounded-full px-3 py-1">não aparece no PDF</span>
           {f.numero && <span className="ml-auto text-sm font-semibold text-navy">Editando {f.numero}</span>}
         </div>
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4 xl:grid-cols-7">
@@ -259,7 +259,7 @@ const PropostaGarantia: React.FC = () => {
             ['Honorários', c.honorarios], ['Receita F&G', c.receita],
           ].map(([rot, v], i) => (
             <div key={rot as string} className="bg-white border border-gold/40 rounded-xl px-4 py-3">
-              <span className="block text-[10px] uppercase tracking-widest text-slate-500">{rot}</span>
+              <span className="block text-[10px] text-slate-500">{rot}</span>
               <strong className={`text-xl tabular-nums ${i === 3 ? 'text-gold-dark' : 'text-navy'}`}>{brl(v as number)}</strong>
             </div>
           ))}
@@ -290,7 +290,7 @@ const PropostaGarantia: React.FC = () => {
         <h2 className="text-lg font-black text-navy pt-2">Resumo da Proposta</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm tabular-nums">
-            <thead><tr className="text-[10px] uppercase tracking-widest text-slate-500 border-b-2 border-linha">
+            <thead><tr className="text-[10px] text-slate-500 border-b-2 border-linha">
               <th className="text-left py-2 px-3">Descrição</th><th className="text-right py-2 px-3">Valor (R$)</th></tr></thead>
             <tbody>
               <tr className="border-b border-linha"><td className="py-2 px-3">Importância Segurada (IS)</td><td className="py-2 px-3 text-right">{brl(c.IS)}</td></tr>
@@ -370,7 +370,7 @@ const PropostaGarantia: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
-              <thead><tr className="text-[10px] uppercase tracking-widest text-slate-500 border-b-2 border-linha text-left">
+              <thead><tr className="text-[10px] text-slate-500 border-b-2 border-linha text-left">
                 <th className="py-2 px-3">Nº</th><th className="py-2 px-3">Data</th><th className="py-2 px-3">Tomador</th>
                 <th className="py-2 px-3 text-right">IS</th><th className="py-2 px-3 text-right">Prêmio</th>
                 <th className="py-2 px-3 text-right">Honorários</th><th className="py-2 px-3 text-right">Total</th>
