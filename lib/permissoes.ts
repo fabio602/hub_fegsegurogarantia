@@ -43,7 +43,7 @@ export const MODULOS: Modulo[] = [
  * nem saber que entrou. `sureties` fica junto por não ter item de menu — só é
  * alcançada por dentro de outras telas.
  */
-export const VIEWS_LIVRES = ['dashboard', 'sureties'];
+export const VIEWS_LIVRES = ['dashboard', 'meu-dia', 'sureties'];
 
 /**
  * Lê os módulos liberados para um e-mail.
