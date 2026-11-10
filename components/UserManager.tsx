@@ -123,7 +123,7 @@ const UserManager: React.FC = () => {
         if (email === ADMIN_EMAIL) return 'Administrador';
         const m = permMap[email];
         if (!m) return 'Acesso total';
-        if (!m.length) return 'Só a Visão Geral';
+        if (!m.length) return 'Só o Meu dia';
         return `${m.length} de ${TODOS_MODULOS.length} módulos`;
     };
 
@@ -377,7 +377,7 @@ const UserManager: React.FC = () => {
 
                           <div className="shrink-0 p-8 pt-4 space-y-4 border-t border-slate-100">
                               <p className="text-[11px] text-slate-500 font-medium bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
-                                  A Visão Geral fica sempre visível. Sem ela a pessoa abriria o hub numa tela em branco.
+                                  O Meu dia fica sempre visível. Sem ele a pessoa abriria o hub numa tela em branco.
                                   A mudança vale na hora, sem precisar deslogar. Marcar todos os módulos equivale a acesso total.
                               </p>
 

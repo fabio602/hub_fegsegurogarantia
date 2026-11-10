@@ -95,7 +95,7 @@ function VistaCarregando() {
 
 type View =
   | 'dashboard'
-  // Início por função (em construção: ainda fora do menu, abre por #meu-dia)
+  // Mesmo conteúdo do início (dashboard); mantido para o endereço #meu-dia continuar valendo
   | 'meu-dia'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
@@ -130,7 +130,7 @@ const SAUDE_VIEWS: View[] = ['saude-funil', 'saude-simulador', 'saude-prospeccao
 const FINANCEIRO_VIEWS: View[] = ['meta-comissao', 'metas-mensais', 'metas-anuais'];
 
 const VIEW_TITLES: Record<View, string> = {
-  dashboard: 'Bem-vindo ao Hub F&G',
+  dashboard: 'Meu dia',
   'meu-dia': 'Meu dia',
   goals: 'Gestão Comercial · Vendas',
   directory: 'Seguradoras · Garantia',
@@ -581,7 +581,7 @@ const App: React.FC = () => {
             </div>
 
             <nav className="space-y-0.5" aria-label="Menu principal">
-              <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Visão Geral" />
+              <NavItem view="dashboard" icon={<LayoutDashboard size={16} />} label="Meu dia" />
 
               {/* ── Dia a dia do Seguro Garantia ─────────── */}
               {podeModulo('garantia') && (
@@ -809,73 +809,17 @@ const App: React.FC = () => {
           {/* Limite largo para aproveitar monitores grandes, sem esticar ao infinito em ultrawide */}
           <div className="max-w-[1800px] mx-auto pb-20 lg:pb-16">
 
-            {/* ── Visão Geral ──────────────────────────────────── */}
+            {/* ── Início: Meu dia ──────────────────────────────── */}
             {activeView === 'dashboard' && (
               <div className="space-y-8 animate-fade-in">
-                {/* Exceção da regra de raio: só o hero do dashboard mantém raio maior */}
-                <div className="bg-navy rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-14 text-white relative overflow-hidden shadow-3xl">
-                  <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
-                    <div>
-                      <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black mb-3 lg:mb-6 tracking-tighter leading-tight">
-                        Eficiência em <br /><span className="text-gold">Seguros Corporativos.</span>
-                      </h1>
-                      <p className="text-slate-400 max-w-lg text-sm lg:text-base leading-relaxed font-medium hidden sm:block">
-                        O Hub centralizado da F&G Corretora permite que você gerencie cálculos, documentos e metas com precisão absoluta.
-                      </p>
-                      <div className="mt-5 lg:mt-8 flex flex-wrap gap-3">
-                        <button onClick={() => navigate('goals')} className="bg-gold text-white px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 active:scale-95 flex items-center gap-2 text-sm">
-                          Registro de Vendas <ChevronRight size={14} />
-                        </button>
-                        <button onClick={() => navigate('goals')} className="bg-white/5 text-white border border-white/10 px-5 py-3 lg:px-8 lg:py-4 rounded-xl lg:rounded-2xl font-bold hover:bg-white/10 transition-all text-sm">Performance</button>
-                      </div>
-                    </div>
-                    <div className="hidden lg:flex justify-end">
-                      <div className="relative">
-                        <div className="w-64 h-64 bg-gradient-to-br from-gold to-navy rounded-[4rem] flex items-center justify-center shadow-2xl p-0.5 rotate-3">
-                          <div className="bg-navy w-full h-full rounded-[3.8rem] flex items-center justify-center -rotate-3 overflow-hidden">
-                            <ShieldCheck size={112} className="text-gold opacity-40" />
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"></div>
-                          </div>
-                        </div>
-                        <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-2xl shadow-2xl">
-                          <Target size={26} className="text-gold" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute -right-20 -top-20 w-96 h-96 bg-gold opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
-                  <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-gold opacity-[0.05] rounded-full blur-[100px] pointer-events-none"></div>
-                </div>
+                {/* Início por função (10/11/2026): substituiu o hero e os atalhos da antiga Visão Geral. */}
+                <Suspense fallback={<VistaCarregando />}>
+                  <MeuDia email={session?.user?.email} onAbrir={(v) => navigate(v as View)} />
+                </Suspense>
 
-                <div>
+                <div className="pt-4 border-t border-linha">
                   <div className="flex items-center justify-between mb-6 px-2">
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Atalhos Operacionais</h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {([
-                      { title: 'Garantia', desc: 'Registro de Vendas', icon: <FileText size={22} />, view: 'goals' as View, color: 'bg-indigo-50 text-indigo-600' },
-                      { title: 'Residencial', desc: 'Registro de Clientes', icon: <Home size={22} />, view: 'residential' as View, color: 'bg-emerald-50 text-emerald-600' },
-                      { title: 'WhatsApp', desc: 'Central de Mensagens', icon: <Users size={22} />, view: 'whatsapp' as View, color: 'bg-amber-50 text-amber-600' },
-                      { title: 'Parceiros', desc: 'Acessos & Portais', icon: <Users size={22} />, view: 'parceiros' as View, color: 'bg-slate-100 text-navy' },
-                    ] as { title: string; desc: string; icon: React.ReactNode; view: View; color: string }[])
-                      // Atalho para tela sem permissão vira botão morto — some.
-                      .filter(item => podeVer(item.view))
-                      .map((item, idx) => (
-                      <button key={idx} onClick={() => navigate(item.view)}
-                        className="bg-white p-8 rounded-2xl border border-slate-100 hover:border-gold hover:shadow-lg transition-all duration-300 text-left group flex flex-col relative overflow-hidden">
-                        <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300 shadow-sm`}>
-                          {item.icon}
-                        </div>
-                        <h3 className="font-black text-slate-800 text-xl mb-2 tracking-tighter">{item.title}</h3>
-                        <p className="text-[11px] text-slate-400 font-bold opacity-80">{item.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-6 px-2">
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Portais Públicos</h3>
+                    <h3 className="text-xl font-extrabold text-navy tracking-tight">Portais públicos</h3>
                     <p className="text-xs font-bold text-slate-400">Links para enviar aos clientes/parceiros</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
