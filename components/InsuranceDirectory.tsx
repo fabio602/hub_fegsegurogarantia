@@ -272,8 +272,8 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-navy to-gold opacity-40 group-hover:opacity-100 transition-opacity" />
 
               {/* Card Header */}
-              <div className="p-8 pb-4 flex items-center justify-between">
-                <div className="flex-1">
+              <div className="p-8 pb-4 flex items-start justify-between">
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <input
                       className="font-black text-slate-800 border-b-4 border-gold outline-none bg-slate-50 px-4 py-2 text-2xl w-full rounded-t-xl"
@@ -282,10 +282,10 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                       placeholder="Nome da Cia"
                     />
                   ) : (
-                    <h3 className="font-black text-slate-800 text-3xl tracking-tighter leading-none group-hover:text-gold transition-colors">{ins.nome}</h3>
+                    <h3 className="font-black text-slate-800 text-3xl tracking-tighter leading-tight [overflow-wrap:anywhere] group-hover:text-gold transition-colors">{ins.nome}</h3>
                   )}
                 </div>
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2 ml-4 shrink-0">
                   {isEditing ? (
                     <div className="flex items-center gap-2">
                       <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarAgoraDiretorio} />
