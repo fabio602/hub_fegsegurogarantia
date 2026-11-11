@@ -7,6 +7,8 @@
 // Ações (POST JSON):
 //   { acao: 'criar', token, dados }   envia a análise para a S8 (POST /analises)
 //   { acao: 'listar', token }         análises da imobiliária, com status atualizado
+//   { acao: 'contratar', token, id, dados }  análise aprovada vira solicitação
+//                                     em imobiliaria_clientes (migração 143)
 //   { acao: 'sincronizar' }           usado pelo cron s8-analises-sync: atualiza
 //                                     o status das análises abertas, sem token
 //
@@ -316,10 +318,98 @@ function paraTela(r: any) {
     imovel_resumo: r.imovel_resumo, aluguel: r.aluguel, custo_total: r.custo_total,
     guarantee_value: r.guarantee_value, s8_status: r.status, situacao: situacao(r),
     analysis_completed_at: r.analysis_completed_at, created_at: r.created_at,
+    contratacao_solicitada_em: r.contratacao_solicitada_em ?? null,
   };
 }
 
-const COLS = 'id, partner_id, s8_id, contract_number, status, guarantee_value, inquilino_nome, imovel_resumo, aluguel, custo_total, analysis_completed_at, status_consultado_em, decisao_avisada_em, created_at';
+const COLS = 'id, partner_id, s8_id, contract_number, status, guarantee_value, inquilino_nome, imovel_resumo, aluguel, custo_total, analysis_completed_at, status_consultado_em, decisao_avisada_em, contratacao_solicitada_em, created_at';
+
+// ── contratar: análise aprovada vira solicitação (migração 143) ───────────
+// Cria a linha em imobiliaria_clientes no fluxo de Minhas Solicitações, com a
+// garantia já aprovada e a intenção de contratar. A ativação continua com a
+// F&G (liberar contratação, documentos e pagamento).
+async function contratar(sb: SupabaseClient, parceiro: { id: number; name: string }, corpo: any) {
+  const { data: r0 } = await sb.from('s8_analises').select('*')
+    .eq('id', txt(corpo.id, 40)).eq('partner_id', parceiro.id).maybeSingle();
+  if (!r0) throw new Erro('Análise não encontrada.', 404);
+  if (r0.contratacao_solicitada_em) throw new Erro('A contratação desta análise já foi enviada à F&G.', 409);
+
+  // confere o status na S8 antes de seguir
+  let r = r0;
+  try { r = await atualizar(sb, r0); } catch { /* usa o último status gravado */ }
+  if (situacao(r) !== 'aprovada') throw new Erro('Só dá para contratar uma análise aprovada.', 400);
+
+  const d = corpo.dados ?? {};
+  const dataPag = txt(d.data_primeiro_pag_aluguel, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataPag)) throw new Erro('Informe a data do primeiro pagamento do aluguel.');
+  const dia = Number(d.dia_vencimento_aluguel);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 28) throw new Erro('Informe o dia de vencimento do aluguel (1 a 28).');
+  const comResidencial = d.residencial === true;
+  const valorImovel = Number(d.valor_imovel);
+  const tipoImovel = ['Casa', 'Apartamento', 'Comercial'].includes(d.tipo_imovel) ? d.tipo_imovel : null;
+  if (comResidencial && !(valorImovel > 0)) throw new Erro('Para cotar o seguro residencial, informe o valor do imóvel.');
+  if (comResidencial && !tipoImovel) throw new Erro('Para cotar o seguro residencial, informe o tipo de imóvel.');
+
+  // reserva: dois cliques não geram duas solicitações
+  const { data: reservado } = await sb.from('s8_analises')
+    .update({ contratacao_solicitada_em: new Date().toISOString() })
+    .eq('id', r.id).is('contratacao_solicitada_em', null).select('id').maybeSingle();
+  if (!reservado) throw new Erro('A contratação desta análise já foi enviada à F&G.', 409);
+
+  const p = r.payload ?? {};
+  const end = p.property_address ?? {};
+  const custos = p.rental_costs ?? {};
+  const tipoSeguro = comResidencial ? 'residencial_garantia' : 'garantia';
+  const enderecoTxt = [end.address, end.district, [end.city, end.state].filter(Boolean).join('/')].filter(Boolean).join(', ');
+  const iptuCond = (Number(custos.iptu) || 0) + (Number(custos.condominio) || 0);
+  const obs = `Garantia aprovada na análise de crédito pelo portal (contrato S8 ${r.contract_number ?? ''}, garantia anual ${brl(r.guarantee_value)}).`;
+
+  const linha = {
+    inquilino_nome: r.inquilino_nome, cpf: r.inquilino_documento,
+    email_inquilino: r.inquilino_email, telefone: r.inquilino_telefone,
+    cep: end.cep ?? null, endereco_imovel: enderecoTxt || null,
+    numero_imovel: end.number ?? null, complemento_imovel: end.complement ?? null,
+    tipo_imovel: tipoImovel ?? (p.property_type === 'Comercial' ? 'Comercial' : null),
+    valor_imovel: comResidencial ? valorImovel : null,
+    valor_aluguel: r.aluguel, valor_iptu: iptuCond || null,
+    data_primeiro_pag_aluguel: dataPag, dia_vencimento_aluguel: dia,
+    intencao: 'contratar', partner_id: parceiro.id, tipo_seguro: tipoSeguro,
+    seguradora: '', numero_apolice: '', valor_seguro: 0,
+    parcela_atual: 1, total_parcelas: 12,
+    data_inicio: new Date().toISOString().slice(0, 10), status: 'ativo',
+    status_garantia: 'aprovado',
+    status_residencial: comResidencial ? 'aguardando_cotacao' : null,
+    kanban_status: 'solicitado', is_repasse: true,
+    observacao_imobiliaria: obs,
+  };
+  const { data: cli, error } = await sb.from('imobiliaria_clientes').insert(linha).select('id').single();
+  if (error) {
+    await sb.from('s8_analises').update({ contratacao_solicitada_em: null }).eq('id', r.id);
+    throw error;
+  }
+  await sb.from('s8_analises').update({ imobiliaria_cliente_id: cli.id, updated_at: new Date().toISOString() }).eq('id', r.id);
+
+  // espelho na esteira residencial, igual ao imobiliaria-nova-cotacao
+  await sb.from('residential_clients').insert({
+    nome: r.inquilino_nome, cpf: r.inquilino_documento, email: r.inquilino_email, telefone: r.inquilino_telefone,
+    produto: comResidencial ? 'Garantia Locatícia & Seguro Residencial' : 'Apenas Garantia Locatícia',
+    cep_imovel: end.cep ?? null, endereco_imovel: enderecoTxt || null, numero_imovel: end.number ?? null,
+    complemento_imovel: end.complement ?? null, tipo_imovel: linha.tipo_imovel,
+    valor_imovel: comResidencial ? String(valorImovel) : null, valor_aluguel: String(r.aluguel ?? ''),
+    data_primeiro_pag_aluguel: dataPag, valor_iptu_condominio: iptuCond ? String(iptuCond) : null,
+    situacao: 'Lead (site)', parceiro_nome: parceiro.name, origem_publica: false,
+  }).then(({ error: e }) => { if (e) console.error('[s8-analise] espelho residencial', e.message); });
+
+  await email(`Contratar garantia aprovada: ${r.inquilino_nome} (${parceiro.name})`, `
+    <p>A <b>${esc(parceiro.name)}</b> quer contratar a garantia locatícia aprovada na análise de crédito.</p>
+    <p><b>Inquilino:</b> ${esc(r.inquilino_nome)}<br><b>Imóvel:</b> ${esc(r.imovel_resumo)}<br>
+    <b>Contrato S8:</b> ${esc(r.contract_number ?? '')} &nbsp; <b>Garantia anual:</b> ${brl(r.guarantee_value)}<br>
+    <b>Aluguel:</b> ${brl(r.aluguel)} &nbsp; <b>1º pagamento do aluguel:</b> ${esc(dataPag.split('-').reverse().join('/'))} &nbsp; <b>Vencimento:</b> dia ${dia}<br>
+    <b>Seguro residencial:</b> ${comResidencial ? 'sim, cotar' : 'não'}</p>
+    <p>A solicitação já está em Minhas Solicitações do portal (coluna Solicitado) e no HUB. A ativação segue com a F&amp;G.</p>`);
+
+  return { cliente_id: cli.id };
+}
 
 async function listar(sb: SupabaseClient, parceiroId: number) {
   const { data, error } = await sb.from('s8_analises').select(COLS)
@@ -367,6 +457,7 @@ Deno.serve(async (req) => {
     switch (corpo.acao) {
       case 'criar': return json({ success: true, ...(await criar(sb, parceiro, corpo.dados)) });
       case 'listar': return json({ success: true, ...(await listar(sb, parceiro.id)) });
+      case 'contratar': return json({ success: true, ...(await contratar(sb, parceiro, corpo)) });
       default: return json({ success: false, error: 'Ação desconhecida' }, 400);
     }
   } catch (e) {

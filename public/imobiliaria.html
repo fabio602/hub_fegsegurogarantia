@@ -1217,6 +1217,11 @@
 #an .pulso{width:8px;height:8px;border-radius:50%;background:currentColor;animation:anpulso 1.2s ease-in-out infinite}
 @keyframes anpulso{0%,100%{opacity:.25}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){#an .pulso{animation:none}}
+#an .contratar{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+#an .btn.ouro{background:#C69C6D;color:#1B263B}
+#an .btn.sec{background:#fff;color:var(--muted);border:1px solid var(--line)}
+#an .mini{display:flex;flex-direction:column;gap:10px}
+#an .mini .acoes{display:grid;grid-template-columns:1fr 2fr;gap:8px}
 #an .vazio{color:var(--muted);font-size:13px;padding:24px;text-align:center;border:1px dashed var(--line);border-radius:14px}
   </style>
 
@@ -3379,11 +3384,75 @@
     return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`;
   }
   function anRodape(a) {
-    if (a.situacao === 'aprovada') return `<div class="rodape" style="background:var(--ok-bg);color:var(--ok)">Aprovada. A F&amp;G entra em contato para seguir com a contratação.</div>`;
+    if (a.situacao === 'aprovada' && a.contratacao_solicitada_em) return `<div class="rodape" style="background:var(--ok-bg);color:var(--ok)">Contratação enviada à F&amp;G em ${fmtData(a.contratacao_solicitada_em)}. <button type="button" class="lnk" onclick="goTo('kanban')">Acompanhar em Minhas Solicitações</button></div>`;
+    if (a.situacao === 'aprovada') return anContratarHtml(a);
     if (a.situacao === 'contrato_ativo') return `<div class="rodape" style="background:var(--blue-bg);color:var(--blue)">Garantia contratada.</div>`;
     if (a.situacao === 'nao_aprovada') return `<div class="rodape" style="background:var(--rose-bg);color:var(--rose)">Não aprovada na análise de crédito. Fale com a F&amp;G se quiser tentar com outro inquilino ou composição de renda.</div>`;
     return `<div class="rodape" style="background:var(--amber-bg);color:var(--amber)">Aguardando a resposta da análise. Esta tela atualiza sozinha.</div>`;
   }
+  // ── contratar a garantia aprovada (ação contratar, migração 143) ──
+  let anFormAberto = null;
+  function anContratarHtml(a) {
+    const aberto = anFormAberto === a.id;
+    return `<div class="rodape" style="background:var(--ok-bg);color:var(--ok)">Aprovada. Quando o inquilino for fechar, envie a contratação para a F&amp;G.</div>
+      <div class="contratar">
+        ${aberto ? `<div class="mini" id="an-ct-${a.id}">
+          <div class="two">
+            <label>1º pagamento do aluguel *<input type="date" data-c="data"></label>
+            <label>Dia de vencimento *<input type="text" data-c="dia" inputmode="numeric" maxlength="2" placeholder="1 a 28"></label>
+          </div>
+          <label class="check"><input type="checkbox" data-c="res" onchange="this.closest('.mini').querySelector('[data-res]').hidden=!this.checked"><span>Também quero o seguro residencial para este imóvel</span></label>
+          <div class="two" data-res hidden>
+            <label>Tipo de imóvel *<select data-c="tipo"><option value="">Selecione</option><option>Casa</option><option>Apartamento</option><option>Comercial</option></select></label>
+            <label>Valor do imóvel *<input type="text" class="an-r" data-c="valor" inputmode="decimal" placeholder="0,00"></label>
+          </div>
+          <div class="msg err" data-c="msg" hidden></div>
+          <div class="acoes">
+            <button type="button" class="btn sec" onclick="anFecharContratar()">Cancelar</button>
+            <button type="button" class="btn ouro" data-c="btn" onclick="anContratar('${a.id}')">Enviar contratação</button>
+          </div>
+        </div>` : `<button type="button" class="btn ouro" onclick="anAbrirContratar('${a.id}')">Contratar a garantia com a F&amp;G</button>`}
+      </div>`;
+  }
+  function anAbrirContratar(id) {
+    anFormAberto = id; anRender();
+    const box = document.getElementById('an-ct-' + id);
+    if (box) { box.querySelectorAll('.an-r').forEach(el => mascaraReais(el)); box.querySelector('[data-c="data"]').focus(); }
+  }
+  function anFecharContratar() { anFormAberto = null; anRender(); anAgendar(); }
+  async function anContratar(id) {
+    const box = document.getElementById('an-ct-' + id);
+    const g = k => box.querySelector(`[data-c="${k}"]`);
+    const msg = g('msg');
+    const erro = t => { msg.hidden = false; msg.textContent = t; };
+    msg.hidden = true;
+    const data = g('data').value;
+    const dia = parseInt(g('dia').value, 10);
+    const res = g('res').checked;
+    if (!data) return erro('Informe a data do primeiro pagamento do aluguel.');
+    if (!dia || dia < 1 || dia > 28) return erro('Informe o dia de vencimento do aluguel (1 a 28).');
+    const valor = parseValorBRL(g('valor').value);
+    if (res && !g('tipo').value) return erro('Escolha o tipo de imóvel para o seguro residencial.');
+    if (res && !(valor > 0)) return erro('Informe o valor do imóvel para o seguro residencial.');
+    const btn = g('btn');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const r = await anChamar({ acao: 'contratar', id, dados: {
+        data_primeiro_pag_aluguel: data, dia_vencimento_aluguel: dia,
+        residencial: res, tipo_imovel: g('tipo').value || undefined, valor_imovel: valor || undefined } });
+      if (!r.success) { btn.disabled = false; btn.textContent = 'Enviar contratação'; return erro(r.error || 'Não foi possível enviar.'); }
+      anFormAberto = null;
+      const a = anAnalises.find(x => x.id === id);
+      if (a) a.contratacao_solicitada_em = new Date().toISOString();
+      anRender();
+      if (typeof carregar === 'function') carregar();
+      anCarregar();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Enviar contratação';
+      erro('Sem conexão. Tente de novo.');
+    }
+  }
+
   function anRender() {
     const box = document.getElementById('an-lista');
     const lista = anAnalises.filter(a => !anFiltro || a.situacao === anFiltro || (anFiltro === 'aprovada' && a.situacao === 'contrato_ativo'));
@@ -3414,7 +3483,7 @@
       const r = await anChamar({ acao: 'listar' });
       if (r.success) {
         anAnalises = r.analises || [];
-        anRender();
+        if (!anFormAberto) anRender();
         document.getElementById('an-atualizado').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       } else if (!r.sessao_expirada) {
         document.getElementById('an-lista').innerHTML = `<div class="vazio">${esc(r.error || 'Não foi possível carregar.')}</div>`;
