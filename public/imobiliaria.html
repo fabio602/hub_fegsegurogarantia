@@ -597,6 +597,10 @@
     <path d="M19 8V5.5a1 1 0 0 0-1-1H6a2.5 2.5 0 0 0 0 5h13a1 1 0 0 1 1 1v3.5h-3a2 2 0 0 0 0 4h3"/>
     <path d="M3.5 7v11.5a2.5 2.5 0 0 0 2.5 2.5h13a1 1 0 0 0 1-1v-3.5"/>
   </symbol>
+  <symbol id="i-analise" viewBox="0 0 24 24">
+    <path d="M12 2.8 4.5 5.6v5.8c0 4.6 3.1 8.6 7.5 9.8 4.4-1.2 7.5-5.2 7.5-9.8V5.6z"/>
+    <path d="m8.8 12 2.3 2.3 4.2-4.4"/>
+  </symbol>
   <symbol id="i-recibo" viewBox="0 0 24 24">
     <path d="M5 2.8v18.4l2-1.1 2 1.1 2-1.1 2 1.1 2-1.1 2 1.1V2.8l-2 1.1-2-1.1-2 1.1-2-1.1-2 1.1z"/>
     <path d="M15.5 8.5h-5a1.9 1.9 0 0 0 0 3.8h3a1.9 1.9 0 0 1 0 3.8h-5"/>
@@ -650,6 +654,7 @@
     <div class="nav-pill" id="nav-pill"></div>
     <button class="nav-btn active" data-p="dashboard" onclick="goTo('dashboard')"><svg class="ico"><use href="#i-inicio"/></svg>Início</button>
     <button class="nav-btn" data-p="cotacao" onclick="goTo('cotacao')"><svg class="ico"><use href="#i-cotacao"/></svg>Solicitar Cotação</button>
+    <button class="nav-btn" data-p="analise" onclick="goTo('analise')"><svg class="ico"><use href="#i-analise"/></svg>Análise de Crédito</button>
     <button class="nav-btn" data-p="kanban" onclick="goTo('kanban')"><svg class="ico"><use href="#i-pipeline"/></svg>Minhas Solicitações</button>
     <button class="nav-btn" data-p="carteira" onclick="goTo('carteira')"><svg class="ico"><use href="#i-carteira"/></svg>Carteira de Clientes</button>
     <button class="nav-btn" data-p="fatura" onclick="goTo('fatura')"><svg class="ico"><use href="#i-fatura"/></svg>Fatura Mensal</button>
@@ -1148,6 +1153,166 @@
   </div>
 </div>
 
+<!-- ANÁLISE DE CRÉDITO (garantia locatícia, resposta da garantidora em tempo real; migração 142, function s8-analise) -->
+<div class="page" id="page-analise">
+  <div class="section-header">
+    <h2>Análise de crédito do inquilino</h2>
+    <p>Envie os dados do inquilino e acompanhe aqui a resposta da análise da garantia locatícia. Na maioria dos casos o resultado sai em menos de um minuto.</p>
+  </div>
+
+  <div id="an">
+  <style>
+#an{--line:rgba(27,38,59,.12);--muted:#6b7688;--ok:#0f7a55;--ok-bg:#e3f4ec;--amber:#8a5a00;--amber-bg:#fdf3dc;--rose:#b4233c;--rose-bg:#fbe7ea;--blue:#24508f;--blue-bg:#e6eef9;color:var(--ink);font-size:14px}
+#an *{box-sizing:border-box}
+#an [hidden]{display:none!important}
+#an .wrap{display:grid;grid-template-columns:minmax(360px,560px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:1000px){#an .wrap{grid-template-columns:minmax(0,1fr)}}
+#an .panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:16px}
+#an .grp{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+#an .grp:first-child{border-top:0;padding-top:0}
+#an .grp h3{font-size:13px;font-weight:700;color:#8a6436;margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#an label{font-size:12.5px;font-weight:600;display:flex;flex-direction:column;gap:5px;min-width:0}
+#an label small{font-weight:400;color:var(--muted)}
+#an input[type=text],#an input[type=email],#an input[type=tel],#an select,#an textarea{font:inherit;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+#an textarea{min-height:70px;resize:vertical}
+#an input:focus-visible,#an select:focus-visible,#an textarea:focus-visible,#an button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#an .erro-campo{border-color:#dc2626!important}
+#an .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#an .three{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+#an .four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:560px){#an .two,#an .three,#an .four{grid-template-columns:1fr 1fr}}
+#an .loc{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;background:#fbfaf7}
+#an .loc-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700}
+#an .lnk{font:inherit;font-size:12.5px;font-weight:600;background:none;border:0;color:#8a6436;cursor:pointer;padding:0}
+#an .lnk.rem{color:var(--rose)}
+#an .check{flex-direction:row;align-items:flex-start;gap:9px;font-weight:500;line-height:1.45}
+#an .check input{width:17px;height:17px;accent-color:#C69C6D;flex:none;margin-top:1px}
+#an .tot{background:#f8f5f0;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+#an .tot b{font-size:15px}
+#an .note{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+#an .btn{font:inherit;font-weight:600;padding:13px;border-radius:12px;border:0;background:#1B263B;color:#fff;cursor:pointer;width:100%}
+#an .btn:disabled{opacity:.5;cursor:not-allowed}
+#an .msg{font-size:13px;line-height:1.5;border-radius:10px;padding:10px 12px}
+#an .msg.ok{background:var(--ok-bg);color:var(--ok)}
+#an .msg.err{background:var(--rose-bg);color:var(--rose)}
+#an .lista-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#an .lista-h h3{font-size:16px;font-weight:700;margin:0}
+#an .lista-h small{color:var(--muted);font-size:12px}
+#an .filtros{display:flex;gap:6px;flex-wrap:wrap}
+#an .filtros button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+#an .filtros button[aria-pressed=true]{background:#1B263B;color:#fff;border-color:#1B263B}
+#an .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+#an .card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#fff}
+#an .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+#an .card .nome{font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
+#an .card .sub{color:var(--muted);font-size:12.5px;line-height:1.45;overflow-wrap:anywhere}
+#an .card .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12.5px}
+#an .card .kv span{color:var(--muted);display:block;font-size:11.5px}
+#an .card .rodape{font-size:12.5px;line-height:1.45;border-radius:10px;padding:8px 10px}
+#an .bdg{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+#an .bdg.em_analise{background:var(--amber-bg);color:var(--amber)}
+#an .bdg.aprovada{background:var(--ok-bg);color:var(--ok)}
+#an .bdg.contrato_ativo{background:var(--blue-bg);color:var(--blue)}
+#an .bdg.nao_aprovada{background:var(--rose-bg);color:var(--rose)}
+#an .pulso{width:8px;height:8px;border-radius:50%;background:currentColor;animation:anpulso 1.2s ease-in-out infinite}
+@keyframes anpulso{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#an .pulso{animation:none}}
+#an .vazio{color:var(--muted);font-size:13px;padding:24px;text-align:center;border:1px dashed var(--line);border-radius:14px}
+  </style>
+
+  <div class="panel" id="an-sem-token" hidden>
+    <p class="note">Para usar a análise de crédito, entre de novo no portal. Sua sessão é antiga e precisa ser renovada.</p>
+    <button class="btn" type="button" onclick="sair()">Entrar de novo</button>
+  </div>
+
+  <div class="wrap" id="an-wrap">
+    <form class="panel" id="an-form" novalidate onsubmit="event.preventDefault(); anEnviar();">
+      <div class="grp">
+        <h3>Inquilino <button type="button" class="lnk" onclick="anAddLoc()">+ Adicionar outro inquilino</button></h3>
+        <div id="an-locs"></div>
+      </div>
+
+      <div class="grp">
+        <h3>Imóvel</h3>
+        <div class="two">
+          <label>Tipo de imóvel
+            <select id="an-tipo" onchange="anTipo()"><option>Residencial</option><option>Comercial</option></select>
+          </label>
+          <label>CEP <small id="an-cep-st"></small>
+            <input type="text" id="an-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" oninput="anCep(this)">
+          </label>
+        </div>
+        <label id="an-ramo-l" hidden>Ramo de atividade *
+          <input type="text" id="an-ramo" placeholder="Ex.: loja de roupas, escritório de contabilidade">
+        </label>
+        <div class="three">
+          <label>Rua *<input type="text" id="an-rua"></label>
+          <label>Número *<input type="text" id="an-num"></label>
+          <label>Complemento<input type="text" id="an-comp"></label>
+        </div>
+        <div class="three">
+          <label>Bairro *<input type="text" id="an-bairro"></label>
+          <label>Cidade *<input type="text" id="an-cidade"></label>
+          <label>UF *<input type="text" id="an-uf" maxlength="2" style="text-transform:uppercase"></label>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h3>Custos mensais da locação</h3>
+        <div class="four">
+          <label>Aluguel *<input type="text" class="an-r" id="an-c-aluguel" inputmode="decimal" placeholder="0,00"></label>
+          <label>Condomínio<input type="text" class="an-r" id="an-c-condominio" inputmode="decimal" placeholder="0,00"></label>
+          <label>IPTU mensal<input type="text" class="an-r" id="an-c-iptu" inputmode="decimal" placeholder="0,00"></label>
+          <label>Seguro incêndio<input type="text" class="an-r" id="an-c-seguro_incendio" inputmode="decimal" placeholder="0,00"></label>
+          <label>Água<input type="text" class="an-r" id="an-c-agua" inputmode="decimal" placeholder="0,00"></label>
+          <label>Energia<input type="text" class="an-r" id="an-c-energia" inputmode="decimal" placeholder="0,00"></label>
+          <label>Gás<input type="text" class="an-r" id="an-c-gas" inputmode="decimal" placeholder="0,00"></label>
+          <label>Taxa de lixo<input type="text" class="an-r" id="an-c-taxa_lixo" inputmode="decimal" placeholder="0,00"></label>
+        </div>
+        <div class="tot">
+          <span>Custo total mensal <b id="an-total">R$ 0,00</b></span>
+          <span>Garantia estimada (anual) <b id="an-garantia">R$ 0,00</b></span>
+        </div>
+        <small style="color:var(--muted);font-size:12px;line-height:1.45">Estimativa: 10% do custo mensal x 12, mais a taxa de adesão. O valor final vem na resposta da análise.</small>
+      </div>
+
+      <div class="grp">
+        <h3>Documentos <small style="font-weight:400;color:var(--muted)">opcional</small></h3>
+        <label>Documentos do inquilino <small>(RG, CNH, comprovante de renda; PDF ou imagem, até 8 arquivos)</small>
+          <input type="file" id="an-docs" multiple accept=".pdf,.jpg,.jpeg,.png">
+        </label>
+        <label>Extrato bancário <small>(PDF baixado do banco, últimos 90 dias; exigido em aluguéis mais altos)</small>
+          <input type="file" id="an-extrato" multiple accept=".pdf">
+        </label>
+        <p class="note" id="an-extrato-aviso" hidden></p>
+        <label>Observações<textarea id="an-obs" maxlength="800" placeholder="Algo que a análise precisa saber"></textarea></label>
+      </div>
+
+      <div class="grp">
+        <label class="check"><input type="checkbox" id="an-lgpd">
+          <span>Confirmo que o inquilino autorizou a consulta de crédito e o envio dos dados dele para a análise da garantia locatícia.</span>
+        </label>
+        <div class="msg" id="an-msg" hidden></div>
+        <button class="btn" id="an-btn" type="submit">Enviar para análise</button>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="lista-h">
+        <div><h3>Análises enviadas</h3><small id="an-atualizado"></small></div>
+        <div class="filtros" id="an-filtros">
+          <button type="button" aria-pressed="true" data-f="">Todas</button>
+          <button type="button" aria-pressed="false" data-f="em_analise">Em análise</button>
+          <button type="button" aria-pressed="false" data-f="aprovada">Aprovadas</button>
+          <button type="button" aria-pressed="false" data-f="nao_aprovada">Não aprovadas</button>
+        </div>
+      </div>
+      <div class="cards" id="an-lista"><div class="vazio">Carregando...</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
 <!-- CARTEIRA -->
 <div class="page" id="page-carteira">
   <div style="margin-bottom:20px;">
@@ -1250,6 +1415,9 @@
   </button>
   <button class="mob-btn" id="mob-cotacao" onclick="goTo('cotacao')">
     <span class="mob-icon"><svg class="ico"><use href="#i-cotacao"/></svg></span>Cotação
+  </button>
+  <button class="mob-btn" id="mob-analise" onclick="goTo('analise')">
+    <span class="mob-icon"><svg class="ico"><use href="#i-analise"/></svg></span>Análise
   </button>
   <button class="mob-btn" id="mob-kanban" onclick="goTo('kanban')">
     <span class="mob-icon"><svg class="ico"><use href="#i-pipeline"/></svg></span>Pipeline
@@ -1390,7 +1558,7 @@
     if (page) page.classList.add('active');
     const btn = document.querySelector('.nav-btn[data-p="' + id + '"]');
     if (btn) { btn.classList.add('active'); moverPill(btn); }
-    const mobIds = {dashboard:'mob-dashboard', cotacao:'mob-cotacao', kanban:'mob-kanban', carteira:'mob-carteira', fatura:'mob-fatura'};
+    const mobIds = {dashboard:'mob-dashboard', cotacao:'mob-cotacao', analise:'mob-analise', kanban:'mob-kanban', carteira:'mob-carteira', fatura:'mob-fatura'};
     if (mobIds[id]) { const mb = document.getElementById(mobIds[id]); if(mb) mb.classList.add('active'); }
     // Recontagem dos KPIs ao voltar para o início
     if (id === 'dashboard') {
@@ -2951,6 +3119,338 @@
       rtChannel = iniciarRealtime();
     }
   }, 10000);
+
+  // ── ANÁLISE DE CRÉDITO (Edge Function s8-analise, migração 142) ──────────
+  // O portal nunca fala direto com a garantidora: manda o token do login para
+  // a function, que guarda a chave da API. Enquanto houver análise em
+  // andamento e a tela estiver aberta, a lista é consultada a cada 15 s.
+  const AN_URL = `${SUPABASE_URL}/functions/v1/s8-analise`;
+  const AN_SIT = {
+    em_analise: 'Em análise',
+    aprovada: 'Aprovada',
+    contrato_ativo: 'Contrato ativo',
+    nao_aprovada: 'Não aprovada',
+  };
+  let anAnalises = [];
+  let anFiltro = '';
+  let anTimer = null;
+  let anCarregando = false;
+  let anConfirmarReenvio = false;
+  let anCepBuscado = '';
+  let anLocSeq = 0;
+
+  async function anChamar(corpo) {
+    const res = await fetch(AN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ ...corpo, token: session?.token }),
+    });
+    const json = await res.json().catch(() => ({ success: false, error: 'Resposta inválida do servidor.' }));
+    if (json.sessao_expirada) { anSemToken(); }
+    return { status: res.status, ...json };
+  }
+
+  function anSemToken() {
+    document.getElementById('an-sem-token').hidden = false;
+    document.getElementById('an-wrap').hidden = true;
+  }
+
+  // ── inquilinos ──
+  function anLocHtml(id, n) {
+    return `<div class="loc" data-loc="${id}">
+      <div class="loc-h"><span>${n === 1 ? 'Inquilino principal' : 'Inquilino ' + n}</span>
+        ${n === 1 ? '' : `<button type="button" class="lnk rem" onclick="anRemLoc(${id})">Remover</button>`}</div>
+      <label>Nome completo *<input type="text" data-k="name" autocomplete="off"></label>
+      <div class="two">
+        <label>CPF ou CNPJ *<input type="text" data-k="document" inputmode="numeric" oninput="anDoc(this)"></label>
+        <label>Celular com DDD *<input type="tel" data-k="phone" inputmode="numeric" placeholder="(15) 99999-9999" oninput="anTel(this)"></label>
+      </div>
+      <div class="two">
+        <label>E-mail<input type="email" data-k="email"></label>
+        <label>Renda mensal<input type="text" class="an-r" data-k="monthly_income" inputmode="decimal" placeholder="0,00"></label>
+      </div>
+      <div class="two" data-rep hidden>
+        <label>Representante legal *<input type="text" data-k="rep_name"></label>
+        <label>CPF do representante *<input type="text" data-k="rep_doc" inputmode="numeric" oninput="anDoc(this)"></label>
+      </div>
+    </div>`;
+  }
+  function anRenumerar() {
+    document.querySelectorAll('#an-locs .loc').forEach((el, i) => {
+      el.querySelector('.loc-h span').textContent = i === 0 ? 'Inquilino principal' : 'Inquilino ' + (i + 1);
+    });
+  }
+  function anAddLoc() {
+    const box = document.getElementById('an-locs');
+    if (box.children.length >= 4) { alert('No máximo 4 inquilinos no mesmo contrato.'); return; }
+    box.insertAdjacentHTML('beforeend', anLocHtml(++anLocSeq, box.children.length + 1));
+    box.lastElementChild.querySelectorAll('.an-r').forEach(el => mascaraReais(el));
+    anRenumerar();
+  }
+  function anRemLoc(id) {
+    document.querySelector(`#an-locs [data-loc="${id}"]`)?.remove();
+    anRenumerar();
+  }
+  function anDoc(el) {
+    const d = el.value.replace(/\D/g, '').slice(0, 14);
+    let f = d;
+    if (d.length <= 11) f = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    else f = d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+    el.value = f;
+    const loc = el.closest('.loc');
+    if (loc && el.dataset.k === 'document') loc.querySelector('[data-rep]').hidden = d.length !== 14;
+  }
+  function anTel(el) {
+    const d = el.value.replace(/\D/g, '').slice(0, 11);
+    el.value = d.length <= 2 ? d : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}`
+      : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+
+  // ── imóvel ──
+  function anTipo() {
+    document.getElementById('an-ramo-l').hidden = document.getElementById('an-tipo').value !== 'Comercial';
+  }
+  async function anCep(el) {
+    const d = el.value.replace(/\D/g, '').slice(0, 8);
+    el.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+    const st = document.getElementById('an-cep-st');
+    if (d.length !== 8 || d === anCepBuscado) return;
+    anCepBuscado = d;
+    st.textContent = '(buscando...)';
+    let e = null;
+    try {
+      const r = await fetch('https://brasilapi.com.br/api/cep/v1/' + d);
+      if (r.ok) { const j = await r.json(); e = { rua: j.street, bairro: j.neighborhood, cidade: j.city, uf: j.state }; }
+    } catch (x) {}
+    if (!e) {
+      try {
+        const r = await fetch('https://viacep.com.br/ws/' + d + '/json/');
+        if (r.ok) { const j = await r.json(); if (!j.erro) e = { rua: j.logradouro, bairro: j.bairro, cidade: j.localidade, uf: j.uf }; }
+      } catch (x) {}
+    }
+    if (anCepBuscado !== d) return;
+    if (e && (e.cidade || e.rua)) {
+      if (e.rua) document.getElementById('an-rua').value = e.rua;
+      if (e.bairro) document.getElementById('an-bairro').value = e.bairro;
+      if (e.cidade) document.getElementById('an-cidade').value = e.cidade;
+      if (e.uf) document.getElementById('an-uf').value = e.uf;
+      st.textContent = '(preenchido pelo CEP, confira)';
+      document.getElementById('an-num').focus();
+    } else {
+      st.textContent = '(CEP não encontrado, digite o endereço)';
+    }
+  }
+
+  // ── custos ──
+  const AN_CUSTOS = ['aluguel', 'condominio', 'iptu', 'seguro_incendio', 'agua', 'energia', 'gas', 'taxa_lixo'];
+  function anCustos() {
+    const out = {};
+    AN_CUSTOS.forEach(k => { const v = parseValorBRL(document.getElementById('an-c-' + k).value); if (v > 0) out[k] = v; });
+    return out;
+  }
+  function anTotal() {
+    const total = Object.values(anCustos()).reduce((a, b) => a + b, 0);
+    document.getElementById('an-total').textContent = fmtBRL(total);
+    document.getElementById('an-garantia').textContent = fmtBRL(total * 12 * (GAR_CFG.taxaPct / 100));
+  }
+
+  // ── arquivos ──
+  function anLerArquivos(input, maxQtd, maxMB) {
+    const files = Array.from(input.files || []);
+    if (files.length > maxQtd) throw new Error(`No máximo ${maxQtd} arquivos em "${input.id === 'an-docs' ? 'Documentos' : 'Extrato bancário'}".`);
+    const total = files.reduce((a, f) => a + f.size, 0);
+    if (total > maxMB * 1024 * 1024) throw new Error(`Os arquivos passam de ${maxMB} MB. Envie arquivos menores.`);
+    return Promise.all(files.map(f => new Promise((ok, err) => {
+      const r = new FileReader();
+      r.onload = () => ok({ filename: f.name.replace(/[*#°]/g, ''), content_base64: String(r.result).split(',')[1] || '', content_type: f.type || 'application/octet-stream' });
+      r.onerror = () => err(new Error('Não foi possível ler o arquivo ' + f.name));
+      r.readAsDataURL(f);
+    })));
+  }
+
+  // ── envio ──
+  function anMsg(tipo, texto) {
+    const m = document.getElementById('an-msg');
+    m.hidden = !texto; m.className = 'msg ' + tipo; m.textContent = texto || '';
+  }
+  function anMarcar(el, ok) { if (el) el.classList.toggle('erro-campo', !ok); return ok; }
+
+  async function anEnviar() {
+    anMsg('', '');
+    const faltas = [];
+    const locatarios = [];
+    document.querySelectorAll('#an-locs .loc').forEach((loc, i) => {
+      const g = k => loc.querySelector(`[data-k="${k}"]`);
+      const n = i + 1;
+      const doc = g('document').value.replace(/\D/g, '');
+      if (!anMarcar(g('name'), g('name').value.trim().split(/\s+/).length >= 2)) faltas.push(`Inquilino ${n}: nome completo`);
+      if (!anMarcar(g('document'), doc.length === 11 || doc.length === 14)) faltas.push(`Inquilino ${n}: CPF ou CNPJ`);
+      const tel = g('phone').value.replace(/\D/g, '');
+      if (!anMarcar(g('phone'), tel.length === 10 || tel.length === 11)) faltas.push(`Inquilino ${n}: celular com DDD`);
+      const l = { name: g('name').value.trim(), document: doc, phone: tel, email: g('email').value.trim() || undefined,
+        monthly_income: parseValorBRL(g('monthly_income').value) || undefined };
+      if (doc.length === 14) {
+        const rn = g('rep_name').value.trim(), rd = g('rep_doc').value.replace(/\D/g, '');
+        if (!anMarcar(g('rep_name'), !!rn) | !anMarcar(g('rep_doc'), rd.length === 11)) faltas.push(`Inquilino ${n}: representante legal e CPF`);
+        l.legal_representatives = [{ name: rn, document: rd }];
+      }
+      locatarios.push(l);
+    });
+    const v = id => document.getElementById(id).value.trim();
+    const tipo = v('an-tipo');
+    [['an-rua', 'Rua'], ['an-num', 'Número'], ['an-bairro', 'Bairro'], ['an-cidade', 'Cidade'], ['an-uf', 'UF']]
+      .forEach(([id, rot]) => { if (!anMarcar(document.getElementById(id), !!v(id))) faltas.push('Imóvel: ' + rot); });
+    if (tipo === 'Comercial' && !anMarcar(document.getElementById('an-ramo'), !!v('an-ramo'))) faltas.push('Imóvel: ramo de atividade');
+    const custos = anCustos();
+    if (!anMarcar(document.getElementById('an-c-aluguel'), custos.aluguel > 0)) faltas.push('Valor do aluguel');
+    const lgpd = document.getElementById('an-lgpd').checked;
+    if (!lgpd) faltas.push('Autorização do inquilino');
+    if (faltas.length) { anMsg('err', 'Confira: ' + faltas.join('; ') + '.'); return; }
+
+    const btn = document.getElementById('an-btn');
+    btn.disabled = true; btn.textContent = 'Enviando para análise...';
+    try {
+      const documents = await anLerArquivos(document.getElementById('an-docs'), 8, 15);
+      const bank_statements = await anLerArquivos(document.getElementById('an-extrato'), 6, 15);
+      const dados = {
+        lgpd, locatarios, property_type: tipo, business_type: v('an-ramo'),
+        property_address: { address: v('an-rua'), number: v('an-num'), complement: v('an-comp'), district: v('an-bairro'),
+          city: v('an-cidade'), state: v('an-uf').toUpperCase(), cep: v('an-cep') },
+        rental_costs: custos, observations: v('an-obs'), documents, bank_statements,
+        confirmar_reenvio: anConfirmarReenvio || undefined,
+      };
+      const r = await anChamar({ acao: 'criar', dados });
+      if (r.success) {
+        anConfirmarReenvio = false;
+        document.getElementById('an-extrato-aviso').hidden = true;
+        anMsg('ok', 'Enviado. A resposta aparece ao lado em instantes.');
+        anLimpar();
+        await anCarregar();
+        return;
+      }
+      if (r.precisa_confirmar) {
+        if (confirm((r.error || 'Este CPF/CNPJ já teve análise nos últimos 30 dias.') + '\n\nEnviar uma nova análise mesmo assim?')) {
+          anConfirmarReenvio = true;
+          btn.disabled = false; btn.textContent = 'Enviar para análise';
+          return anEnviar();
+        }
+        anMsg('err', 'Envio cancelado. Este CPF/CNPJ já teve análise nos últimos 30 dias.');
+        return;
+      }
+      if (r.precisa_extrato) {
+        const av = document.getElementById('an-extrato-aviso');
+        av.hidden = false;
+        av.textContent = (r.error || 'Para este valor de aluguel é preciso o extrato bancário.') +
+          (Array.isArray(r.detalhes) && r.detalhes.length ? ' ' + r.detalhes.join(' ') : '') +
+          ' Anexe o PDF do extrato dos últimos 90 dias em nome do inquilino e envie de novo.';
+        document.getElementById('an-extrato').focus();
+        anMsg('err', 'Falta o extrato bancário. Veja o aviso acima.');
+        return;
+      }
+      anMsg('err', r.error || 'Não foi possível enviar. Tente de novo.');
+    } catch (e) {
+      anMsg('err', e.message || 'Não foi possível enviar. Tente de novo.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enviar para análise';
+    }
+  }
+
+  function anLimpar() {
+    document.getElementById('an-locs').innerHTML = '';
+    anLocSeq = 0; anAddLoc();
+    ['an-cep', 'an-ramo', 'an-rua', 'an-num', 'an-comp', 'an-bairro', 'an-cidade', 'an-uf', 'an-obs']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    AN_CUSTOS.forEach(k => { document.getElementById('an-c-' + k).value = ''; });
+    document.getElementById('an-docs').value = '';
+    document.getElementById('an-extrato').value = '';
+    document.getElementById('an-lgpd').checked = false;
+    document.getElementById('an-tipo').value = 'Residencial'; anTipo();
+    document.getElementById('an-cep-st').textContent = '';
+    anCepBuscado = '';
+    anTotal();
+  }
+
+  // ── lista ──
+  function anTempo(a) {
+    if (!a.analysis_completed_at) return '';
+    const s = Math.max(0, (new Date(a.analysis_completed_at) - new Date(a.created_at)) / 1000);
+    if (s < 60) return `${Math.round(s)} s`;
+    if (s < 3600) return `${Math.round(s / 60)} min`;
+    return `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`;
+  }
+  function anRodape(a) {
+    if (a.situacao === 'aprovada') return `<div class="rodape" style="background:var(--ok-bg);color:var(--ok)">Aprovada. A F&amp;G entra em contato para seguir com a contratação.</div>`;
+    if (a.situacao === 'contrato_ativo') return `<div class="rodape" style="background:var(--blue-bg);color:var(--blue)">Garantia contratada.</div>`;
+    if (a.situacao === 'nao_aprovada') return `<div class="rodape" style="background:var(--rose-bg);color:var(--rose)">Não aprovada na análise de crédito. Fale com a F&amp;G se quiser tentar com outro inquilino ou composição de renda.</div>`;
+    return `<div class="rodape" style="background:var(--amber-bg);color:var(--amber)">Aguardando a resposta da análise. Esta tela atualiza sozinha.</div>`;
+  }
+  function anRender() {
+    const box = document.getElementById('an-lista');
+    const lista = anAnalises.filter(a => !anFiltro || a.situacao === anFiltro || (anFiltro === 'aprovada' && a.situacao === 'contrato_ativo'));
+    if (!lista.length) {
+      box.innerHTML = `<div class="vazio">${anAnalises.length ? 'Nenhuma análise neste filtro.' : 'Nenhuma análise enviada ainda.'}</div>`;
+      return;
+    }
+    box.innerHTML = lista.map(a => `
+      <div class="card">
+        <div class="top">
+          <div><div class="nome">${esc(a.inquilino_nome)}</div><div class="sub">${esc(a.imovel_resumo || '')}</div></div>
+          <span class="bdg ${a.situacao}">${a.situacao === 'em_analise' ? '<i class="pulso"></i>' : ''}${AN_SIT[a.situacao] || esc(a.situacao)}</span>
+        </div>
+        <div class="kv">
+          <div><span>Custo mensal</span>${fmtBRL(a.custo_total)}</div>
+          <div><span>Garantia anual</span>${a.guarantee_value ? fmtBRL(a.guarantee_value) : '—'}</div>
+          <div><span>Enviada em</span>${new Date(a.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+          <div><span>${a.analysis_completed_at ? 'Resposta em' : 'Contrato'}</span>${a.analysis_completed_at ? anTempo(a) : esc(a.contract_number || '—')}</div>
+        </div>
+        ${a.analysis_completed_at && a.contract_number ? `<div class="sub">Nº ${esc(a.contract_number)}</div>` : ''}
+        ${anRodape(a)}
+      </div>`).join('');
+  }
+  async function anCarregar() {
+    if (anCarregando) return;
+    anCarregando = true;
+    try {
+      const r = await anChamar({ acao: 'listar' });
+      if (r.success) {
+        anAnalises = r.analises || [];
+        anRender();
+        document.getElementById('an-atualizado').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } else if (!r.sessao_expirada) {
+        document.getElementById('an-lista').innerHTML = `<div class="vazio">${esc(r.error || 'Não foi possível carregar.')}</div>`;
+      }
+    } catch (e) {
+      document.getElementById('an-lista').innerHTML = '<div class="vazio">Sem conexão. Tentando de novo...</div>';
+    } finally {
+      anCarregando = false;
+      anAgendar();
+    }
+  }
+  function anAgendar() {
+    clearTimeout(anTimer);
+    const aberta = document.getElementById('page-analise').classList.contains('active');
+    if (!aberta || document.hidden) return;
+    const pendente = anAnalises.some(a => a.situacao === 'em_analise');
+    anTimer = setTimeout(anCarregar, pendente ? 15000 : 60000);
+  }
+
+  (function anIniciar() {
+    if (!session?.token) { anSemToken(); return; }
+    anAddLoc();
+    document.querySelectorAll('#an-form .four .an-r').forEach(el => mascaraReais(el, anTotal));
+    document.getElementById('an-form').addEventListener('input', e => { if (e.target.classList.contains('an-r')) anTotal(); });
+    document.getElementById('an-filtros').addEventListener('click', e => {
+      const b = e.target.closest('button[data-f]'); if (!b) return;
+      anFiltro = b.dataset.f;
+      document.querySelectorAll('#an-filtros button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      anRender();
+    });
+    // carrega ao abrir a aba e pausa quando sai dela ou a janela fica oculta
+    new MutationObserver(() => {
+      if (document.getElementById('page-analise').classList.contains('active')) anCarregar(); else clearTimeout(anTimer);
+    }).observe(document.getElementById('page-analise'), { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) anAgendar(); });
+  })();
 </script>
   <!-- Avisa o parceiro quando sai versão nova desta página. -->
   <script defer src="aviso-versao.js"></script>
