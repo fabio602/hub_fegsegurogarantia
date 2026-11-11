@@ -62,6 +62,12 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<Insurer>>({});
+  // Só o Fábio cria, edita e exclui seguradoras; a equipe só consulta e copia.
+  const [ehAdmin, setEhAdmin] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) =>
+      setEhAdmin(data?.user?.email === 'fabio@fegsegurogarantia.com.br'));
+  }, []);
 
   useEffect(() => {
     setSearchTerm('');
@@ -201,13 +207,15 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
               className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-gold/10 outline-none min-w-[320px] shadow-sm transition-all font-medium text-slate-700"
             />
           </div>
-          <button
-            onClick={handleAdd}
-            className="bg-gold text-white px-8 py-4 rounded-2xl hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
-          >
-            <Plus size={24} strokeWidth={3} />
-            <span className="hidden sm:inline">Novo</span>
-          </button>
+          {ehAdmin && (
+            <button
+              onClick={handleAdd}
+              className="bg-gold text-white px-8 py-4 rounded-2xl hover:bg-gold-hover transition-all shadow-xl shadow-gold/20 flex items-center gap-2 font-bold"
+            >
+              <Plus size={24} strokeWidth={3} />
+              <span className="hidden sm:inline">Novo</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -296,7 +304,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
                         className="bg-slate-100 text-slate-500 p-3 hover:bg-slate-200 rounded-2xl transition-all"
                       ><X size={20} /></button>
                     </div>
-                  ) : (
+                  ) : ehAdmin && (
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0">
                       <button onClick={() => handleEdit(ins)} className="text-slate-400 hover:text-gold transition-colors p-3 hover:bg-slate-50 rounded-2xl"><Edit3 size={20} /></button>
                       <button onClick={() => handleDelete(ins.id)} className="text-slate-400 hover:text-rose-500 transition-colors p-3 hover:bg-rose-50 rounded-2xl"><X size={20} /></button>
@@ -507,7 +515,7 @@ const InsuranceDirectory: React.FC<DirectoryProps> = ({ tableName, title, subtit
           );
         })}
 
-        {!searchTerm && (
+        {!searchTerm && ehAdmin && (
           <button
             onClick={handleAdd}
             className="bg-slate-50 border-4 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center p-12 group hover:border-gold/40 hover:bg-white transition-all min-h-[400px]"
