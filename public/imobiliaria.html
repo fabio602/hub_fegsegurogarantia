@@ -71,6 +71,19 @@
     /* Não usar seletor de elemento aqui: o nome do parceiro é uma div comum */
     .topbar-nome { color: var(--ink); font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.25; }
     .topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 1px; line-height: 1.25; }
+    .topbar-txt { min-width: 0; }
+    .topbar-rt { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); font-weight: 500; flex-shrink: 0; }
+    .btn-sair { flex-shrink: 0; }
+    /* Celular: uma linha só, nome cortado com reticências, sem o subtítulo */
+    @media (max-width: 640px) {
+      .topbar { height: 60px; gap: 10px; }
+      .topbar-left { min-width: 0; flex: 1; gap: 10px; }
+      .marca { height: 30px; }
+      .topbar-divisor { height: 24px; }
+      .topbar .sub, .topbar-rt .rt-label, .topbar-nome .nome-pref { display: none; }
+      .topbar-nome { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .topbar .btn-sair { padding: 7px 13px; }
+    }
 
     /* ── ÍCONES (SVG traçado, herdam a cor do texto) ── */
     .ico {
@@ -374,6 +387,25 @@
     .rep-table td { padding: 13px 14px; color: rgba(255,255,255,.8); vertical-align: middle; }
     .rep-table .nome { font-weight: 500; color: #fff; }
     .rep-table .valor { font-weight: 600; color: var(--gold); }
+    /* Celular: cada parcela vira um bloco (nome em cima, dados em duas colunas),
+       em vez de uma tabela de 6 colunas que estourava a largura da tela. */
+    @media (max-width: 640px) {
+      .repasse-hero { padding: 22px 18px; }
+      .repasse-hero .total { font-size: 34px; }
+      .pix-box { min-width: 0; width: 100%; }
+      .rep-table thead { display: none; }
+      .rep-table, .rep-table tbody { display: block; width: 100%; }
+      .rep-table tbody tr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; padding: 14px 0; }
+      .rep-table tbody tr:hover { background: transparent; }
+      .rep-table td { display: block; padding: 0; font-size: 12.5px; min-width: 0; overflow-wrap: anywhere; }
+      .rep-table td.nome { grid-column: 1 / -1; font-size: 14px; }
+      .rep-table td[colspan] { grid-column: 1 / -1; }
+      .rep-table td[data-l]::before { content: attr(data-l) ' '; color: rgba(255,255,255,.45); font-size: 11.5px; }
+      .rep-table td.dir { text-align: right; }
+      .rep-table td.apol { order: 1; }  /* desce para a linha de baixo, ao lado da parcela */
+      .rep-table td.dir:has(.sb-parc) { order: 2; }
+      .rep-table td[data-l="Vencimento"] { order: 3; }
+    }
 
     /* Histórico de repasses */
     .hist-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -636,14 +668,14 @@
   <div class="topbar-left">
     <img class="marca" src="marca/fg-logo-horizontal-azul.svg" alt="F&amp;G Seguro Garantia" width="116" height="38" />
     <div class="topbar-divisor" aria-hidden="true"></div>
-    <div>
+    <div class="topbar-txt">
       <div class="topbar-nome" id="nome-parceiro">Carregando...</div>
-      <div class="sub">Portal Imobiliária — F&G Seguro Garantia</div>
+      <div class="sub">Portal da imobiliária · F&amp;G Seguro Garantia</div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);font-weight:500;">
+  <div class="topbar-rt" title="Ao vivo">
     <span id="rt-status" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;transition:background .5s;"></span>
-    Ao vivo
+    <span class="rt-label">Ao vivo</span>
   </div>
   <button class="btn-sair" onclick="sair()">Sair</button>
 </div>
@@ -1514,7 +1546,15 @@
   const session = JSON.parse(localStorage.getItem('parceiro_session') || 'null');
   if (!session || session.partner_type !== 'imobiliaria') window.location.href = 'parceiros-login.html';
 
-  document.getElementById('nome-parceiro').textContent = session?.name || '';
+  (function () {
+    // No celular o prefixo "Imobiliária" some (CSS) para o nome caber numa linha.
+    const el = document.getElementById('nome-parceiro');
+    const nome = session?.name || '';
+    const m = nome.match(/^(Imobili[aá]ria\s+)(.+)$/i);
+    el.title = nome;
+    if (m) { el.innerHTML = ''; const pre = document.createElement('span'); pre.className = 'nome-pref'; pre.textContent = m[1]; el.append(pre, m[2]); }
+    else el.textContent = nome;
+  })();
   const cotacaoParceiro = document.getElementById('cotacao-parceiro');
   if (cotacaoParceiro) cotacaoParceiro.textContent = (session?.name || '').replace('Imobiliária ','') || 'Parceiro';
   const saudacao = document.getElementById('saudacao-parceiro');
@@ -2512,11 +2552,11 @@
     if (!ativos.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Nenhuma parcela em aberto com vencimento em ${mesNome}.</td></tr>`; return; }
     tbody.innerHTML = ativos.map(c => `<tr>
       <td class="nome">${c.inquilino_nome||'—'}</td>
-      <td>${c.seguradora||'—'}</td>
-      <td style="font-family:monospace;font-size:12px">${c.numero_apolice||'—'}</td>
-      <td class="valor">${fmtBRL(c.valor_seguro)}</td>
-      <td><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${c.parcela_atual}/${c.total_parcelas}</span></td>
-      <td style="font-size:12px;color:rgba(255,255,255,.75);">${c.proximo_vencimento ? fmtData(c.proximo_vencimento) : (c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—')}</td>
+      <td data-l="Seguradora">${c.seguradora||'—'}</td>
+      <td data-l="Apólice" class="apol" style="font-family:monospace;font-size:12px">${c.numero_apolice||'—'}</td>
+      <td class="valor dir">${fmtBRL(c.valor_seguro)}</td>
+      <td class="dir"><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${c.parcela_atual}/${c.total_parcelas}</span></td>
+      <td data-l="Vencimento" style="font-size:12px;color:rgba(255,255,255,.75);">${c.proximo_vencimento ? fmtData(c.proximo_vencimento) : (c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—')}</td>
     </tr>`).join('');
   }
 
