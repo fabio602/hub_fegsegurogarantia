@@ -128,6 +128,14 @@ O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in
 
 Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS puro, com os tokens declarados em `:root` dentro de cada arquivo.
 
+## Análise de crédito S8 no portal da imobiliária
+
+Aba "Análise de Crédito" de `public/imobiliaria.html` (página `page-analise`). A imobiliária envia a análise da garantia locatícia e vê a resposta da S8 Garante na mesma tela. O portal **não** fala com a S8 nem lê a tabela: tudo passa pela Edge Function `s8-analise` (`verify_jwt` desligado, confere o token do login como o `parceiro-portal`). A chave da API da S8 é da conta da F&G, no secret `S8_API_KEY`; o plano usado é o Prata (`9354b380-b708-47b5-a79c-54276d40e975`, pode ser trocado pelo secret `S8_PLAN_ID`). Tabela `s8_analises` (migração 142), cron `s8-analises-sync` a cada 2 min. Ações: `criar`, `listar`, `sincronizar`.
+
+- A S8 não documenta a lista de status. A leitura da F&G é: `analysis_completed_at` preenchido e status sem rejeit/reprov/negad/recus = aprovada. `em_negociacao` é o Fábio que marca no painel da S8 depois da aprovação.
+- Limite da S8: 30 requisições por minuto por chave, somando portal e cron. Todo POST leva `Idempotency-Key` (gravada na linha antes do envio).
+- O Fábio recebe e-mail quando a análise é enviada e quando sai a decisão.
+
 ## Portal do parceiro (seguro garantia)
 
 `public/parceiros.html` (consultores de licitação, como Raphael Icaro e Solicita) **não lê o banco com a anon key**: `sales`, `boletos`, `repasses` e `partners` são fechadas para anon (migrações 019 e 128). Tudo passa pela Edge Function `parceiro-portal`, que confere o token assinado devolvido pelo login (`parceiro-auth`; código em `supabase/functions/_shared/tokenParceiro.ts`, chave em `parceiro_portal_segredo`, só service role). Ações: `dados`, `alterar_senha`, `cnpj`, `preparar_upload`, `enviar_demanda`, `cotar_licitante` e `solicitar_emissao`.
