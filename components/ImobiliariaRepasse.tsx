@@ -1023,6 +1023,19 @@ export default function ImobiliariaRepasse() {
 
   useEffect(() => { load(); }, [load]);
 
+  // "Enviar para Repasse" no Registro de Vendas deixa aqui o id do cadastro
+  // criado: a ficha abre sozinha para preencher valor, parcela e vencimento.
+  // Busca pelo id no banco, porque o filtro de imobiliária da tela pode estar
+  // escondendo o cliente da lista.
+  useEffect(() => {
+    let id: string | null = null;
+    try { id = sessionStorage.getItem('repasse-abrir-id'); sessionStorage.removeItem('repasse-abrir-id'); } catch { /* sem storage */ }
+    if (!id) return;
+    supabase.from('imobiliaria_clientes').select('*').eq('id', id).maybeSingle()
+      .then(({ data }) => { if (data) openEditStatus(data as Cliente); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Renovações que a imobiliária já confirmou no portal e que ainda não foram feitas.
   // Sem esse painel a confirmação só chegava por WhatsApp e se perdia — apólices
   // venceram sem ninguém perceber. A baixa é dar a nova vigência: aí o registro

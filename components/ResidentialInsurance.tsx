@@ -3,7 +3,7 @@ import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
-    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail
+    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail, Send
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
@@ -898,6 +898,100 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     const estaNoRepasse = (c: ResidentialClient) =>
         noRepasse.has('n:' + chaveNome(c.nome)) || (chaveCpf(c.cpf).length >= 11 && noRepasse.has('c:' + chaveCpf(c.cpf)));
 
+    // ── Enviar para Repasse ───────────────────────────────────────────────
+    // Cliente lançado só aqui não existe no Repasse Imobiliárias: o sync do
+    // salvar só atualiza um cadastro que já exista. Este botão cria o cadastro
+    // lá, já ligado à imobiliária e marcado como repasse, e abre a ficha para
+    // preencher valor, parcela e vencimento. Sem valor ele cai em "Precisa de
+    // atenção" no Repasse, então não some se ficar pela metade.
+    const [enviandoRepasse, setEnviandoRepasse] = useState(false);
+    const numeroBRL = (v: string | null | undefined): number | null => {
+        const limpo = (v || '').replace(/[^\d.,-]/g, '');
+        if (!limpo) return null;
+        const normal = limpo.includes(',') ? limpo.replace(/\./g, '').replace(',', '.')
+            : /^-?\d{1,3}(\.\d{3})+$/.test(limpo) ? limpo.replace(/\./g, '') : limpo;
+        const n = parseFloat(normal);
+        return isNaN(n) ? null : n;
+    };
+    const enviarParaRepasse = async () => {
+        if (!editingId || !formData.nome?.trim() || !formData.parceiro_nome) return;
+        if (!(await confirmDialog(`Criar o repasse de ${formData.nome.trim()} para ${formData.parceiro_nome}? Depois você preenche o valor da parcela e o vencimento na ficha do Repasse.`))) return;
+        setEnviandoRepasse(true);
+        try {
+            const { data: partner } = await supabase.from('partners').select('id').eq('name', formData.parceiro_nome).maybeSingle();
+            if (!partner) throw new Error('Imobiliária não encontrada no cadastro de parceiros.');
+
+            // Confere de novo no banco antes de criar, para não duplicar.
+            const apolice = (formData.apolice || '').trim();
+            const { data: existentes } = apolice
+                ? await supabase.from('imobiliaria_clientes').select('id').eq('numero_apolice', apolice).limit(1)
+                : await supabase.from('imobiliaria_clientes').select('id').ilike('inquilino_nome', formData.nome.trim()).limit(1);
+            if (existentes?.length) {
+                toast('Este cliente já está no Repasse. Abrindo a ficha.', 'info');
+                try { sessionStorage.setItem('repasse-abrir-id', existentes[0].id); } catch { /* sem storage, só abre a tela */ }
+                onAbrirRepasse?.();
+                return;
+            }
+
+            const produto = formData.produto || '';
+            const tipoSeguro = produto === 'Apenas Garantia Locatícia' ? 'garantia'
+                : produto === 'Garantia Locatícia & Seguro Residencial' ? 'residencial_garantia' : 'residencial';
+            const temGarantia = tipoSeguro !== 'residencial';
+            const temResidencial = tipoSeguro !== 'garantia';
+            const hojeISO = new Date().toISOString().slice(0, 10);
+            const agora = new Date().toISOString();
+
+            const { data: criado, error } = await supabase.from('imobiliaria_clientes').insert({
+                inquilino_nome: formData.nome.trim(),
+                cpf: formData.cpf || null,
+                email_inquilino: formData.email || null,
+                telefone: formData.telefone || null,
+                telefone2: formData.telefone_2 || null,
+                estado_civil: formData.estado_civil || null,
+                cep: formData.cep_imovel || null,
+                endereco_imovel: formData.endereco_imovel || null,
+                numero_imovel: formData.numero_imovel || null,
+                complemento_imovel: formData.complemento_imovel || null,
+                tipo_imovel: formData.tipo_imovel || null,
+                valor_imovel: numeroBRL(formData.valor_imovel),
+                valor_aluguel: numeroBRL(formData.valor_aluguel),
+                valor_iptu: numeroBRL(formData.valor_iptu_condominio),
+                data_primeiro_pag_aluguel: formData.data_primeiro_pag_aluguel || null,
+                numero_apolice: apolice || null,
+                vigencia_fim: formData.fim_vigencia || formData.garantia_fim || null,
+                data_inicio: formData.data_emissao || formData.garantia_inicio || hojeISO,
+                partner_id: partner.id,
+                tipo_seguro: tipoSeguro,
+                intencao: 'contratar',
+                status: 'ativo',
+                status_apolice: 'ativo',
+                status_residencial: temResidencial ? (apolice ? 'emitido' : 'aprovado') : null,
+                status_garantia: temGarantia ? 'aprovado' : null,
+                apolice_residencial_url: (formData as any).apolice_url || null,
+                apolice_garantia_url: formData.apolice_garantia_url || null,
+                // Já é cliente fechado: entra direto na coluna Aprovado.
+                kanban_status: 'aprovado',
+                kanban_status_em: agora,
+                // Repasse ligado; valor e vencimento a Bruna completa na ficha.
+                is_repasse: true,
+                valor_seguro: 0,
+                parcela_atual: 2,
+                total_parcelas: 12,
+                updated_at: agora,
+            }).select('id').single();
+            if (error) throw error;
+
+            toast('Repasse criado. Complete o valor e o vencimento na ficha.', 'success');
+            try { sessionStorage.setItem('repasse-abrir-id', criado.id); } catch { /* sem storage, só abre a tela */ }
+            await fetchClients();
+            onAbrirRepasse?.();
+        } catch (err: any) {
+            toast('Não foi possível criar o repasse: ' + (err?.message || 'erro'), 'error');
+        } finally {
+            setEnviandoRepasse(false);
+        }
+    };
+
     // Resumo do que está no Repasse, com as mesmas regras de lá: sem resposta
     // da imobiliária até 30 dias do fim (ou vencido) e "vai renovar" até 45.
     const resumoRepasse = (() => {
@@ -1450,6 +1544,22 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                     <option value="">— Sem parceiro —</option>
                                     {imobParceiros.map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
+                                {editingId && formData.parceiro_nome && (
+                                    estaNoRepasse(formData as ResidentialClient) ? (
+                                        <p className="text-[11px] font-semibold text-emerald-700 px-1">
+                                            Já está no Repasse Imobiliárias.{' '}
+                                            {onAbrirRepasse && (
+                                                <button type="button" onClick={onAbrirRepasse} className="font-bold underline underline-offset-2">Abrir Repasse</button>
+                                            )}
+                                        </p>
+                                    ) : (
+                                        <button type="button" onClick={enviarParaRepasse} disabled={enviandoRepasse}
+                                            className="w-full flex items-center justify-center gap-2 bg-navy hover:bg-navy-light text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+                                            {enviandoRepasse ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                            {enviandoRepasse ? 'Criando repasse...' : 'Enviar para Repasse'}
+                                        </button>
+                                    )
+                                )}
                             </div>
                             {/* Apólice PDF Upload */}
                             {editingId && (
