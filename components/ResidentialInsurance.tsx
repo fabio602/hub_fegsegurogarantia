@@ -3,7 +3,7 @@ import { useToast } from './Toast.tsx';
 import { createPortal } from 'react-dom';
 import {
     Plus, Download, Edit2, Trash2, Calendar, Search,
-    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail, Send
+    Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail, Send, Upload
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
@@ -12,6 +12,8 @@ import WhatsAppPhoneLink from './WhatsAppPhoneLink';
 import { useAutoSave } from '../hooks/useAutoSave.ts';
 import SaveIndicator from './SaveIndicator.tsx';
 import { buscarEnderecoPorCep } from '../utils/cep';
+import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
+import { ehApoliceTokioResidencial, extrairApoliceTokioResidencial } from '../lib/residencial/extrairApoliceTokio.ts';
 
 interface ResidentialClient {
     id: number;
@@ -395,6 +397,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     };
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+
+    // ── Importar apólice Tokio (leitura por regras, no navegador, sem IA) ──
+    const [importandoApolice, setImportandoApolice] = useState<string | null>(null);
+    const [resultadoImportacao, setResultadoImportacao] = useState<{
+        preenchidos: string[]; faltando: string[]; avisos: string[]; anexaraPdf: boolean;
+    } | null>(null);
+    /** PDF importado num cliente novo: é anexado logo depois que o cadastro é criado. */
+    const apoliceImportadaRef = useRef<File | null>(null);
     const [publicFormCopied, setPublicFormCopied] = useState(false);
 
     const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -774,8 +784,21 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     }
                 }
             } else {
-                const { error } = await supabase.from('residential_clients').insert([payload]);
+                const { data: novo, error } = await supabase.from('residential_clients').insert([payload]).select('id').single();
                 if (error) throw error;
+                // Apólice importada pelo botão: anexa o próprio PDF ao cadastro recém-criado
+                const pdfImportado = apoliceImportadaRef.current;
+                if (pdfImportado && novo?.id && !payload.apolice_url) {
+                    try {
+                        const path = `apolices/residencial/${novo.id}_${Date.now()}.pdf`;
+                        const { error: upErr } = await supabase.storage.from('imobiliaria-docs').upload(path, pdfImportado, { contentType: 'application/pdf', upsert: true });
+                        if (upErr) throw upErr;
+                        const { data: urlData } = supabase.storage.from('imobiliaria-docs').getPublicUrl(path);
+                        await supabase.from('residential_clients').update({ apolice_url: urlData.publicUrl }).eq('id', novo.id);
+                    } catch {
+                        toast('Cliente salvo, mas o PDF da apólice não foi anexado. Anexe pela edição do cliente.', 'error');
+                    }
+                }
             }
             await fetchClients();
             setSaveSuccess(true);
@@ -785,6 +808,84 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             setSaveError(error?.message || 'Erro ao salvar. Tente novamente.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    /** Lê o PDF da apólice residencial da Tokio e preenche o formulário.
+     *  O PDF manda nos campos que ele traz; o que ele não traz fica como estava. */
+    const importarApoliceTokio = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setResultadoImportacao(null);
+        setImportandoApolice('Lendo o PDF…');
+        try {
+            const lido = await lerDocumento(file, msg => setImportandoApolice(msg));
+            if (!ehApoliceTokioResidencial(lido.paginas.join('\n'))) {
+                toast('Esse PDF não parece uma apólice Residencial da Tokio Marine. Nada foi preenchido.', 'error');
+                return;
+            }
+            const a = extrairApoliceTokioResidencial(lido.paginas);
+            const campos: { chave: keyof ResidentialClient; rotulo: string; valor: string }[] = [
+                { chave: 'nome', rotulo: 'Nome', valor: a.nome },
+                { chave: 'cpf', rotulo: 'CPF', valor: a.cpf },
+                { chave: 'telefone', rotulo: 'Telefone', valor: a.telefone ? formatPhone(a.telefone) : '' },
+                { chave: 'email', rotulo: 'E-mail', valor: a.email },
+                { chave: 'apolice', rotulo: 'Nº da apólice', valor: a.apolice },
+                { chave: 'premio_total', rotulo: 'Prêmio total', valor: a.premio_total },
+                { chave: 'data_emissao', rotulo: 'Data de emissão', valor: a.data_emissao },
+                { chave: 'fim_vigencia', rotulo: 'Fim de vigência', valor: a.fim_vigencia },
+                { chave: 'forma_pagamento', rotulo: 'Forma de pagamento', valor: a.forma_pagamento },
+                { chave: 'tipo_imovel', rotulo: 'Tipo de imóvel', valor: a.tipo_imovel },
+                { chave: 'cep_imovel', rotulo: 'CEP do imóvel', valor: a.cep_imovel },
+                { chave: 'endereco_imovel', rotulo: 'Endereço do imóvel', valor: a.endereco_imovel },
+                { chave: 'numero_imovel', rotulo: 'Número do imóvel', valor: a.numero_imovel },
+                { chave: 'complemento_imovel', rotulo: 'Complemento', valor: a.complemento_imovel },
+            ];
+            const preenchidos = campos.filter(c => c.valor).map(c => c.rotulo);
+            // Complemento vazio é normal (casa); não entra como "não encontrado"
+            const faltando = campos.filter(c => !c.valor && c.chave !== 'complemento_imovel').map(c => c.rotulo);
+            const avisos = [...a.avisos];
+            if (lido.origem === 'ocr') avisos.push('O PDF veio escaneado e foi lido por OCR: confira os números com atenção.');
+
+            const atual = formData;
+            const so = (v: unknown) => String(v ?? '').replace(/\D/g, '');
+            if (atual.apolice && a.apolice && so(atual.apolice).replace(/^0+/, '') !== a.apolice) {
+                avisos.push(`A apólice do PDF (${a.apolice}) é diferente da que estava no cadastro (${atual.apolice}). Confira se é o cliente certo.`);
+            }
+            if (atual.cpf && a.cpf && so(atual.cpf) !== so(a.cpf)) {
+                avisos.push(`O CPF do PDF (${a.cpf}) é diferente do que estava no cadastro (${atual.cpf}).`);
+            }
+            if (a.limite_maximo) {
+                avisos.push(`Limite máximo de garantia da apólice: ${a.limite_maximo}. O campo "Valor do imóvel" não foi preenchido, porque o limite não é necessariamente o valor do imóvel.`);
+            }
+
+            let anexaraPdf = false;
+            if (!(atual as any).apolice_url) {
+                if (editingId) {
+                    avisos.push('Para anexar este PDF ao cliente, use o campo "PDF da Apólice" abaixo (ele também avisa a imobiliária).');
+                } else {
+                    apoliceImportadaRef.current = file;
+                    anexaraPdf = true;
+                }
+            }
+
+            setFormData(prev => {
+                const novo: Partial<ResidentialClient> = { ...prev };
+                for (const c of campos) if (c.valor) (novo as any)[c.chave] = c.valor;
+                if (!prev.produto) novo.produto = 'Apenas Seguro Residencial';
+                // Comissão: mesma regra da digitação do prêmio (30%), só se ainda estiver vazia
+                if (a.premio_total && !(prev.comissao || '').trim()) {
+                    novo.comissao = comissaoOuPadrao(a.premio_total, '') || '';
+                }
+                return novo;
+            });
+            setResultadoImportacao({ preenchidos, faltando, avisos, anexaraPdf });
+            toast(`Apólice ${a.apolice || ''} importada: ${preenchidos.length} campos preenchidos. Confira antes de salvar.`, 'success');
+        } catch (err: any) {
+            toast(err?.message || 'Não consegui ler o PDF.', 'error');
+        } finally {
+            setImportandoApolice(null);
         }
     };
 
@@ -798,6 +899,8 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
         setResBoletos([]);
         setResBoletoForm({ parcela: '', vencimento: '', valor: '', file: null });
         setResBoletoEmailSent(new Set());
+        setResultadoImportacao(null);
+        apoliceImportadaRef.current = null;
     };
 
     const handleEdit = (client: ResidentialClient) => {
@@ -1360,10 +1463,40 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                         <div className="w-1.5 h-6 bg-gold rounded-full"></div>
                         {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                     </h3>
-                    {editingId
-                        ? <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarClienteAgora} />
-                        : <span className="text-[11px] font-semibold text-slate-400">Rascunho guardado enquanto você digita</span>}
+                    <div className="flex items-center gap-4 flex-wrap justify-end">
+                        {editingId
+                            ? <SaveIndicator estado={autoSaveState} aoTentarNovamente={salvarClienteAgora} />
+                            : <span className="text-[11px] font-semibold text-slate-400">Rascunho guardado enquanto você digita</span>}
+                        <label
+                            title="Lê o PDF da apólice residencial da Tokio Marine e preenche os campos (no seu navegador, sem IA)"
+                            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${importandoApolice ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-navy text-white hover:bg-navy-light cursor-pointer'}`}
+                        >
+                            <input type="file" accept="application/pdf" className="hidden" onChange={importarApoliceTokio} disabled={!!importandoApolice} />
+                            {importandoApolice ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} className="text-gold" />}
+                            {importandoApolice || 'Importar apólice Tokio'}
+                        </label>
+                    </div>
                 </div>
+
+                {resultadoImportacao && (
+                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 text-xs text-slate-700 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                            <p className="font-bold text-blue-800 text-sm">Apólice importada. Confira os campos antes de salvar.</p>
+                            <button type="button" onClick={() => setResultadoImportacao(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                        </div>
+                        <p><span className="font-bold">Preenchidos pelo PDF:</span> {resultadoImportacao.preenchidos.join(', ') || 'nenhum'}.</p>
+                        {resultadoImportacao.faltando.length > 0 && (
+                            <p className="text-amber-700"><span className="font-bold">Não encontrados no PDF:</span> {resultadoImportacao.faltando.join(', ')}.</p>
+                        )}
+                        <p className="text-slate-500">Estado civil, valor do imóvel, aluguel, IPTU e imobiliária não vêm na apólice: preencha à mão se precisar.</p>
+                        {resultadoImportacao.avisos.map((av, i) => (
+                            <p key={i} className="text-amber-700 flex items-start gap-1.5"><AlertCircle size={13} className="shrink-0 mt-0.5" />{av}</p>
+                        ))}
+                        {resultadoImportacao.anexaraPdf && (
+                            <p className="text-emerald-700 font-semibold flex items-center gap-1.5"><FileText size={13} />O PDF será anexado ao cliente quando você salvar.</p>
+                        )}
+                    </div>
+                )}
 
                 {rascunhoRestaurado && !editingId && (
                     <div className="mb-6 flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl text-xs font-semibold">
