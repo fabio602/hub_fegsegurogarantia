@@ -7,8 +7,9 @@
 -- assinadas dos documentos, e dispara os e-mails (confirmação para o cliente e
 -- aviso para o Fábio).
 --
--- 1) fichas_judiciais: uma linha por ficha. Os campos seguem a ficha da
---    Sudaseg (17 itens), para o HUB gerar o Word dela sem redigitar nada.
+-- 1) fichas_judiciais: uma linha por ficha. Os campos seguem a ficha padrão
+--    de garantia judicial pedida pelas seguradoras (17 itens), para o HUB
+--    gerar o documento para qualquer seguradora sem redigitar nada.
 -- 2) Protocolo no formato GJ-AAMMDD-1001 e updated_at automático.
 -- 3) Bucket privado fichas-judiciais para sentença, cálculo e procuração.
 --
@@ -159,3 +160,5 @@ drop policy if exists "fichas_judiciais_ler_hub" on storage.objects;
 create policy "fichas_judiciais_ler_hub" on storage.objects
   for select to authenticated
   using (bucket_id = 'fichas-judiciais');
+
+-- Aplicada no banco em 24/11/2026 (pelo Fábio, no SQL Editor).
