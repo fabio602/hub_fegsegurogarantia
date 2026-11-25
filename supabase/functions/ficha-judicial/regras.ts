@@ -56,7 +56,7 @@ export const fmtBRL = (n: number) => n.toLocaleString('pt-BR', { minimumFraction
 export const dataBr = (iso: string) => iso.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1');
 
 export const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
-export const RECURSOS = ['Recurso Ordinário', 'Recurso de Revista', 'Agravo de Instrumento', 'Embargos', 'Outro'];
+export const RECURSOS = ['Recurso Ordinário', 'Recurso de Revista', 'Embargos', 'Agravo de Instrumento', 'Recurso Extraordinário', 'Outro'];
 export const PAPEIS = ['advogado', 'empresa'] as const;
 export const CAUCOES = ['nova', 'substituicao', 'adicional'] as const;
 export const EXITOS = ['provavel', 'possivel', 'remota'] as const;

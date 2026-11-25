@@ -97,7 +97,10 @@ botao("Continuar").click();
 // Etapa 4
 ok(texto().includes("Etapa 4 de 5"), "avança para a etapa 4");
 digitar("valorBase", "2000000"); ok(nota("valorBase").includes("Acima do teto") && nota("valorBase").includes("14.411,57"), "valor acima do teto do TST gera aviso");
-digitar("valorBase", "1300000"); ok(nota("valorBase").includes("Referência: teto"), "valor dentro do teto mostra só a referência");
+digitar("valorBase", "1300000"); ok(nota("valorBase").includes("Referência: teto") && nota("valorBase").includes("com os 30% dá R$ 18.735,04"), "valor dentro do teto mostra a referência, já com os 30%");
+digitar("recurso", "Recurso de Revista"); ok(nota("valorBase").includes("28.823,14") && nota("valorBase").includes("37.470,08"), "Recurso de Revista: teto e valor com 30% conferem com a tabela");
+digitar("recurso", "Recurso Extraordinário"); ok(!nota("valorBase").includes("teto"), "Recurso Extraordinário não mostra teto (o ato do TST não traz)");
+digitar("recurso", "Recurso Ordinário");
 ok(texto().includes("R$ 3.900,00") && texto().includes("R$ 16.900,00"), "conta dos 30% aparece na tela");
 digitar("dataBase", "2026-11-02"); digitar("indice", "IPCA-E e SELIC"); digitar("objetivo", "Garantir o juízo.");
 botao("Conferir a ficha").click();
