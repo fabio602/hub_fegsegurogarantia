@@ -135,7 +135,7 @@
     if (f.key === 'valorBase' && TETOS[st.v.recurso]) {
       var teto = TETOS[st.v.recurso];
       if (centavos('valorBase') > teto) return { texto: 'Acima do teto do depósito recursal para ' + st.v.recurso + ' (R$ ' + money(String(teto)) + '). Confira com o advogado se é este o valor.', tipo: 'alerta' };
-      return { texto: 'Referência: teto do depósito recursal para ' + st.v.recurso + ', R$ ' + money(String(teto)) + ' (' + TETO_FONTE + ').', tipo: '' };
+      return { texto: 'Referência: teto do depósito recursal para ' + st.v.recurso + ', R$ ' + money(String(teto)) + ', que com os 30% dá R$ ' + money(String(teto + Math.round(teto * 0.3))) + ' (' + TETO_FONTE + ').', tipo: '' };
     }
     if (f.check === 'cnj') { var c = notaCnj(value); if (c) return c; }
     if (f.key === 'cnpj' && value && !err && consultado.cnpjAchado === value.replace(/[^0-9A-Za-z]/g, '')) {

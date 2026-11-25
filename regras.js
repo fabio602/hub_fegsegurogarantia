@@ -57,7 +57,7 @@ var STEPS = [
     { title: 'Processo', fields: [
       F('numero', 'Número do processo', 3, { mask: 'cnj', check: 'cnj', mode: 'numeric', ph: '0000000-00.0000.5.00.0000' }), F('juizo', 'Vara e cidade', 3, { ph: 'Ex.: 2ª Vara do Trabalho de Sorocaba' }),
       F('valorCausa', 'Valor da causa (R$)', 2, { mask: 'money', check: 'money', mode: 'numeric', ph: '0,00' }), F('dataDist', 'Data de distribuição da ação', 2, { type: 'date', check: 'past' }),
-      F('recurso', 'Recurso que será apresentado', 2, { kind: 'select', options: ['Recurso Ordinário', 'Recurso de Revista', 'Agravo de Instrumento', 'Embargos', 'Outro'] }),
+      F('recurso', 'Recurso que será apresentado', 2, { kind: 'select', options: ['Recurso Ordinário', 'Recurso de Revista', 'Embargos', 'Agravo de Instrumento', 'Recurso Extraordinário', 'Outro'] }),
       F('caucao', 'Esta garantia é', 6, { kind: 'pills', options: ['Nova garantia no processo', 'Substituição de uma garantia já existente', 'Garantia adicional'] }) ] },
     { title: 'Reclamante (quem move a ação contra a empresa)', fields: [
       F('recNome', 'Nome completo do reclamante', 4), F('recDoc', 'CPF do reclamante', 2, { mask: 'doc', check: 'doc', mode: 'numeric', ph: '000.000.000-00', hint: 'Se for sindicato ou empresa, digite o CNPJ.' }),
