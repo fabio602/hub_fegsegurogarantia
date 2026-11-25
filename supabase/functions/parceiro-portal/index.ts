@@ -18,6 +18,10 @@
 //                    Seguros (API da F&G). Não emite nada.
 //   solicitar_emissao  gera a minuta na Junto, lança no Registro de Vendas e
 //                    avisa a F&G, que aprova e emite pelo HUB.
+//   abrir_minuta     { minuta_id } link assinado (10 min) da minuta que a F&G
+//                    mandou para validar (tabela demanda_minutas, migração 146)
+//   responder_minuta { minuta_id, resposta: 'aprovar' | 'ajuste', texto }
+//                    grava a resposta do parceiro e avisa a F&G por e-mail
 //
 // Regras de comissão em _shared/comissaoParceiro.ts (mesmo arquivo do HUB).
 // Cliente da Junto em _shared/junto.ts.
@@ -27,6 +31,10 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { emitirToken, validarToken, type ParceiroDoToken } from "../_shared/tokenParceiro.ts";
 import { comissaoDoParceiro, type RegraParceiro } from "../_shared/comissaoParceiro.ts";
 import * as junto from "../_shared/junto.ts";
+import {
+  BUCKET_MINUTAS, agoraBrasiliaTexto, enviarEmail, linhaEmail, molduraEmail,
+  rodadaParaPortal, type RodadaMinuta,
+} from "../_shared/minutaParceiro.ts";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -144,6 +152,16 @@ async function dados(supabase: SupabaseClient, parceiro: ParceiroDoToken) {
     (cot || []).forEach((c) => { if (c.sale_id) cotacaoPorVenda[c.sale_id] = c.status; });
   }
 
+  // Minutas que a F&G mandou para o parceiro validar, da mais nova para a mais antiga.
+  const minutasPorVenda: Record<string, ReturnType<typeof rodadaParaPortal>[]> = {};
+  if (idsLista.length) {
+    const { data: min } = await supabase
+      .from('demanda_minutas').select('*')
+      .eq('partner_id', parceiro.id).in('sale_id', idsLista)
+      .order('versao', { ascending: false });
+    ((min || []) as RodadaMinuta[]).forEach((r) => { (minutasPorVenda[r.sale_id] ||= []).push(rodadaParaPortal(r)); });
+  }
+
   const regra = parceiro as unknown as RegraParceiro;
   return {
     parceiro: {
@@ -162,6 +180,7 @@ async function dados(supabase: SupabaseClient, parceiro: ParceiroDoToken) {
       _boletos: boletosPorVenda[v.id] || [],
       _comissao_parceiro: comissaoDoParceiro(v.comissao, regra),
       _cotacao_junto: cotacaoPorVenda[v.id] || null,
+      _minutas: minutasPorVenda[v.id] || [],
     })),
     repasses: repasses || [],
   };
@@ -844,6 +863,79 @@ async function registrarPedido(
   return { id: venda.id, minuta: !!minutaUrl, pendencias: !!pendencias };
 }
 
+// ── minuta para validar ────────────────────────────────────────────────────
+//
+// A F&G manda a minuta pelo HUB (Edge Function demanda-minuta). O parceiro só
+// enxerga rodada dele (partner_id do token) e de venda que ainda leva o nome
+// dele: se a F&G trocar o parceiro da venda, a minuta some do portal.
+
+async function minutaDoParceiro(supabase: SupabaseClient, parceiro: ParceiroDoToken, id: unknown) {
+  const n = Number(id);
+  if (!(n > 0)) throw new Erro('Minuta não informada.');
+  const { data: rodada } = await supabase.from('demanda_minutas').select('*')
+    .eq('id', n).eq('partner_id', parceiro.id).maybeSingle();
+  if (!rodada) throw new Erro('Minuta não encontrada.', 404);
+  const { data: venda } = await supabase.from('sales')
+    .select('id, nome, cnpj, tipo, parceiro').eq('id', rodada.sale_id).maybeSingle();
+  if (!venda || venda.parceiro !== parceiro.name) throw new Erro('Minuta não encontrada.', 404);
+  return { rodada: rodada as RodadaMinuta, venda };
+}
+
+async function abrirMinuta(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
+  const { rodada } = await minutaDoParceiro(supabase, parceiro, corpo.minuta_id);
+  const { data, error } = await supabase.storage.from(BUCKET_MINUTAS)
+    .createSignedUrl(rodada.arquivo_path, 600, { download: rodada.arquivo_nome });
+  if (error || !data?.signedUrl) throw new Erro('Não consegui abrir a minuta. Tente de novo ou fale com a F&G.');
+  return { url: data.signedUrl, nome: rodada.arquivo_nome };
+}
+
+async function responderMinuta(supabase: SupabaseClient, parceiro: ParceiroDoToken, corpo: Record<string, unknown>) {
+  const { rodada, venda } = await minutaDoParceiro(supabase, parceiro, corpo.minuta_id);
+  const aprovar = corpo.resposta === 'aprovar';
+  if (!aprovar && corpo.resposta !== 'ajuste') throw new Erro('Escolha aprovar ou pedir ajuste.');
+  const texto = String(corpo.texto ?? '').trim().slice(0, 2000);
+  if (!aprovar && texto.length < 5) throw new Erro('Escreva o que precisa ser ajustado na minuta.');
+
+  const novo = aprovar ? 'aprovada' : 'ajuste_solicitado';
+  if (rodada.status !== 'aguardando') {
+    // Segundo clique na mesma resposta não é erro.
+    if (rodada.status === novo) return { minuta: rodadaParaPortal(rodada), repetida: true };
+    throw new Erro(rodada.status === 'substituida'
+      ? 'A F&G já mandou uma versão mais nova desta minuta. Atualize a página.'
+      : 'Esta minuta já foi respondida.', 409);
+  }
+
+  // O filtro por status garante que só a primeira resposta grava.
+  const { data: gravada } = await supabase.from('demanda_minutas')
+    .update({ status: novo, resposta_parceiro: texto || null, respondida_em: new Date().toISOString() })
+    .eq('id', rodada.id).eq('status', 'aguardando').select('*').maybeSingle();
+  if (!gravada) throw new Erro('Esta minuta já foi respondida. Atualize a página.', 409);
+
+  const html = molduraEmail({
+    titulo: aprovar ? `Minuta aprovada por ${parceiro.name}` : `${parceiro.name} pediu ajuste na minuta`,
+    subtitulo: `Respondida pelo portal do parceiro em ${agoraBrasiliaTexto()}`,
+    linhas: [
+      linhaEmail('Tomador', esc(venda.nome), true),
+      venda.cnpj ? linhaEmail('CNPJ', esc(venda.cnpj)) : '',
+      linhaEmail('Minuta', `${esc(rodada.arquivo_nome)} <span style="color:#94a3b8;font-size:12px;">(versão ${rodada.versao})</span>`),
+      linhaEmail('Resposta', aprovar ? 'Aprovada' : 'Ajuste solicitado', true),
+      texto ? linhaEmail(aprovar ? 'Comentário' : 'O que ajustar', esc(texto).replace(/\n/g, '<br>')) : '',
+    ].join(''),
+    aviso: aprovar
+      ? `O parceiro aprovou a minuta. A cotação segue no Registro de Vendas (nº ${venda.id}) para a emissão.`
+      : `Ajuste a minuta e envie a versão nova pela ficha da demanda no Registro de Vendas (nº ${venda.id}).`,
+    botao: { texto: 'Abrir o HUB', url: HUB_URL },
+  });
+  await enviarEmail(RESEND_KEY, {
+    to: AVISO_PARA,
+    ...(parceiro.email ? { reply_to: parceiro.email } : {}),
+    subject: `${aprovar ? 'Minuta aprovada' : 'Ajuste pedido na minuta'}: ${venda.nome} · ${parceiro.name}`,
+    html,
+  });
+
+  return { minuta: rodadaParaPortal(gravada as RodadaMinuta) };
+}
+
 // ── roteador ───────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -865,6 +957,8 @@ Deno.serve(async (req) => {
       case 'enviar_demanda': return json({ success: true, ...(await enviarDemanda(supabase, parceiro, corpo)) });
       case 'cotar_licitante': return json({ success: true, ...(await cotarLicitante(supabase, parceiro, corpo)) });
       case 'solicitar_emissao': return json({ success: true, ...(await solicitarEmissao(supabase, parceiro, corpo)) });
+      case 'abrir_minuta': return json({ success: true, ...(await abrirMinuta(supabase, parceiro, corpo)) });
+      case 'responder_minuta': return json({ success: true, ...(await responderMinuta(supabase, parceiro, corpo)) });
       default: return json({ success: false, error: 'Ação desconhecida' }, 400);
     }
   } catch (e) {
