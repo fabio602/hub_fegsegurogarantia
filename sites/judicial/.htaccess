@@ -1,0 +1,15 @@
+# Ficha de Garantia Judicial (judicial.fegsegurogarantia.com)
+
+# O HTML nunca fica guardado no navegador: quando o formulário muda, o cliente
+# recebe a versão nova na hora. CSS e JS levam ?v= no nome e podem ficar em cache.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Nada de listar pasta nem servir arquivos internos do git.
+Options -Indexes
+RedirectMatch 404 /\.git

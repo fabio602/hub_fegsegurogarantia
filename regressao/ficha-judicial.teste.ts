@@ -63,11 +63,19 @@ digitar("nome", "Marina Exemplo Duarte"); pilula("papel", "Advogado da causa");
 digitar("email", "marina@exemplo"); ok(nota("email").includes("Confira o e-mail"), "e-mail incompleto é recusado");
 digitar("email", "marina@exemplo.adv.br");
 digitar("tel", "15999990000"); ok(d.getElementById("f-tel").value === "(15) 99999-0000", "máscara do celular");
+// O navegador despejou o endereço pessoal de quem preenche nos campos da empresa (caso real de 24/11/2026).
+digitar("cep", "29850000"); digitar("endereco", "SUELON DIAS DE MENDONCA, 20"); digitar("cidade", "ECOPORANGA"); digitar("uf", "ES");
+await espera();
 digitar("cnpj", "11222333000182"); ok(nota("cnpj").includes("CNPJ inválido"), "CNPJ com dígito errado é recusado na hora");
 digitar("cnpj", "11222333000181"); ok(d.getElementById("f-cnpj").value === "11.222.333/0001-81", "máscara do CNPJ");
 await espera();
 ok(d.getElementById("f-razao").value === "EMPRESA DA RECEITA LTDA" && d.getElementById("f-uf").value === "SP" && d.getElementById("f-cep").value === "18550-000", "CNPJ preenche razão social, CEP, endereço, cidade e UF");
-ok(d.getElementById("f-endereco").value === "RUA DAS ACACIAS, 100, CENTRO", "endereço montado a partir do CNPJ");
+ok(d.getElementById("f-endereco").value === "RUA DAS ACACIAS, 100, CENTRO" && d.getElementById("f-cidade").value === "BOITUVA", "o cadastro do CNPJ entra por cima do que o navegador tinha preenchido errado");
+ok(nota("cnpj").includes("Confira e corrija se precisar"), "aviso de que os dados vieram do cadastro do CNPJ");
+digitar("endereco", "Rua Nova, 50, Centro"); digitar("cidade", "Tatuí");
+await espera();
+ok(d.getElementById("f-endereco").value === "Rua Nova, 50, Centro" && d.getElementById("f-cidade").value === "Tatuí", "o que o cliente corrige depois fica como ele deixou");
+ok(d.getElementById("f-email").getAttribute("autocomplete") === "section-contato email" && d.getElementById("f-cep").getAttribute("autocomplete") === "section-empresa postal-code", "contato e empresa em seções separadas do preenchimento automático");
 // botão i
 const bi = d.querySelector('[aria-controls="f-cnpj-ajuda"]') as any; bi.click();
 ok(!d.getElementById("f-cnpj-ajuda").hasAttribute("hidden") && bi.getAttribute("aria-expanded") === "true", "botão i abre a explicação");
