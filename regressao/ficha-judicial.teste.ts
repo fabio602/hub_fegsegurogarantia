@@ -98,9 +98,11 @@ botao("Continuar").click();
 ok(texto().includes("Etapa 4 de 5"), "avança para a etapa 4");
 digitar("valorBase", "2000000"); ok(nota("valorBase").includes("Acima do teto") && nota("valorBase").includes("14.411,57"), "valor acima do teto do TST gera aviso");
 digitar("valorBase", "1300000"); ok(nota("valorBase").includes("Referência: teto") && nota("valorBase").includes("com os 30% dá R$ 18.735,04"), "valor dentro do teto mostra a referência, já com os 30%");
-digitar("recurso", "Recurso de Revista"); ok(nota("valorBase").includes("28.823,14") && nota("valorBase").includes("37.470,08"), "Recurso de Revista: teto e valor com 30% conferem com a tabela");
-digitar("recurso", "Recurso Extraordinário"); ok(!nota("valorBase").includes("teto"), "Recurso Extraordinário não mostra teto (o ato do TST não traz)");
-digitar("recurso", "Recurso Ordinário");
+// O recurso fica na etapa 2: vai pela lateral, troca e volta para a etapa 4.
+const trocarRecurso = (r: string) => { (d.querySelectorAll("#etapas button")[1] as any).click(); digitar("recurso", r); (d.querySelectorAll("#etapas button")[3] as any).click(); };
+trocarRecurso("Recurso de Revista"); ok(nota("valorBase").includes("28.823,14") && nota("valorBase").includes("37.470,08"), "Recurso de Revista: teto e valor com 30% conferem com a tabela");
+trocarRecurso("Recurso Extraordinário"); ok(!nota("valorBase").includes("teto"), "Recurso Extraordinário não mostra teto (o ato do TST não traz)");
+trocarRecurso("Recurso Ordinário"); ok(d.getElementById("f-valorBase").value === "13.000,00", "ir e voltar pelas etapas mantém o que foi digitado");
 ok(texto().includes("R$ 3.900,00") && texto().includes("R$ 16.900,00"), "conta dos 30% aparece na tela");
 digitar("dataBase", "2026-11-02"); digitar("indice", "IPCA-E e SELIC"); digitar("objetivo", "Garantir o juízo.");
 botao("Conferir a ficha").click();
