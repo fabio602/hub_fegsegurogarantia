@@ -268,6 +268,34 @@
     .st-cotada { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
     .st-emitida { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
     .st-encerrada { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+    .st-validar { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .st-validar::before { background: var(--gold); }
+
+    /* ── MINUTA PARA VALIDAR ── */
+    .minuta-box {
+      grid-column: 1 / -1; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap;
+      padding: 14px 16px; border-radius: var(--r-sm); border: 1px solid var(--line); background: #fbfaf8;
+    }
+    .minuta-box.validar { background: #fef9f0; border-color: rgba(198,156,109,.45); }
+    .minuta-box .mb-texto { flex: 1 1 320px; min-width: 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+    .minuta-box .mb-titulo { display: block; font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+    .minuta-box .mb-fala { margin-top: 6px; color: var(--ink); white-space: pre-line; overflow-wrap: anywhere; }
+    .minuta-box .mb-fala b { font-weight: 600; }
+    .minuta-box .mb-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-min {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; min-height: 38px;
+      border-radius: 999px; border: 1px solid transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .2s var(--ease);
+    }
+    .btn-min .ico { width: 14px; height: 14px; }
+    .btn-min.aprovar { background: var(--navy); color: #fff; }
+    .btn-min.aprovar:hover { background: var(--navy-soft); }
+    .btn-min.ajuste { background: #fff; color: #b45309; border-color: #fde68a; }
+    .btn-min.ajuste:hover { background: #fffbeb; }
+    .btn-min:disabled, .link-acao:disabled { opacity: .5; cursor: default; }
+    .modal .mm-resumo { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+    .modal .mm-resumo strong { color: var(--ink); font-weight: 600; }
+    textarea.field-input { resize: vertical; min-height: 96px; line-height: 1.5; }
 
     .etapas { list-style: none; display: flex; align-items: flex-start; min-width: 0; }
     .etapas li { flex: 1 1 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
@@ -404,6 +432,8 @@
       .dem-valor .rotulo { margin-top: 0; }
       .dem-valor .status { order: -1; }
       .dem-rodape .acoes { margin-left: 0; width: 100%; }
+      .minuta-box .mb-acoes { width: 100%; }
+      .minuta-box .mb-acoes > * { flex: 1 1 auto; }
       .dem-rodape .acoes .link-acao { flex: 1 1 auto; justify-content: center; }
       .etapas .nome { font-size: 10.5px; }
       .extrato-grid { grid-template-columns: 1fr; }
@@ -712,6 +742,24 @@
         <button class="btn-cancelar" onclick="fecharModalSenha()">Cancelar</button>
       </div>
       <div class="modal-msg" id="modal-msg"></div>
+    </div>
+  </div>
+
+  <!-- MODAL RESPOSTA DA MINUTA -->
+  <div class="modal-overlay" id="modal-minuta" role="dialog" aria-modal="true" aria-labelledby="mm-titulo">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="mm-titulo">Aprovar a minuta</h3>
+        <button type="button" class="modal-close" onclick="fecharMinuta()" aria-label="Fechar">×</button>
+      </div>
+      <p class="mm-resumo" id="mm-resumo"></p>
+      <label class="field-label" for="mm-texto" id="mm-rotulo">Comentário (opcional)</label>
+      <textarea class="field-input" id="mm-texto" maxlength="2000" rows="4" oninput="document.getElementById('mm-msg').style.display='none'"></textarea>
+      <div class="modal-btns">
+        <button type="button" class="btn-salvar" id="mm-confirmar" onclick="confirmarMinuta()">Aprovar</button>
+        <button type="button" class="btn-cancelar" onclick="fecharMinuta()">Voltar</button>
+      </div>
+      <div class="modal-msg" id="mm-msg"></div>
     </div>
   </div>
 
@@ -1224,16 +1272,29 @@
       if (v.vendeu === 'Não') return 'encerrada';
       // Cotada na hora pelo portal e com emissão pedida: falta só a F&G emitir.
       if (v._cotacao_junto === 'emissao_solicitada' || v._cotacao_junto === 'em_analise') return 'pedida';
+      // A F&G mandou a minuta para o parceiro validar: vale a resposta da última versão.
+      const m = minutaAtual(v);
+      if (m && m.status === 'aguardando') return 'validar';
+      if (m && m.status === 'ajuste_solicitado') return 'ajuste';
+      if (m && m.status === 'aprovada') return 'aprovada';
       return parseVal(v.premio) > 0 ? 'cotada' : 'analise';
+    }
+    /** Última versão da minuta que a F&G enviou para validar (a lista vem da mais nova para a mais antiga). */
+    function minutaAtual(v) {
+      return Array.isArray(v && v._minutas) && v._minutas.length ? v._minutas[0] : null;
     }
     const STATUS = {
       analise:   { rotulo: 'Com a F&G',      classe: 'st-analise' },
       cotada:    { rotulo: 'Cotada',         classe: 'st-cotada' },
       pedida:    { rotulo: 'Emissão pedida', classe: 'st-cotada' },
+      validar:   { rotulo: 'Minuta para validar', classe: 'st-validar' },
+      ajuste:    { rotulo: 'Ajuste pedido',  classe: 'st-analise' },
+      aprovada:  { rotulo: 'Minuta aprovada', classe: 'st-cotada' },
       emitida:   { rotulo: 'Emitida',        classe: 'st-emitida' },
       encerrada: { rotulo: 'Não avançou',    classe: 'st-encerrada' },
     };
-    const emAndamento = v => { const s = statusDe(v); return s === 'analise' || s === 'cotada' || s === 'pedida'; };
+    const ABERTAS = ['analise', 'cotada', 'pedida', 'validar', 'ajuste', 'aprovada'];
+    const emAndamento = v => ABERTAS.includes(statusDe(v));
     const modalidade = v => v.tipo === 'Performance' ? 'Execução' : (v.tipo || 'Seguro Garantia');
     const statusHtml = s => `<span class="status ${STATUS[s].classe}">${esc(STATUS[s].rotulo)}</span>`;
 
@@ -1294,7 +1355,8 @@
 
     function renderKpis() {
       const andamento = todasVendas.filter(emAndamento);
-      const cotadas = andamento.filter(v => statusDe(v) === 'cotada' || statusDe(v) === 'pedida').length;
+      const cotadas = andamento.filter(v => statusDe(v) !== 'analise').length;
+      const paraValidar = andamento.filter(v => statusDe(v) === 'validar').length;
       const emitidas = todasVendas.filter(v => v.vendeu === 'Sim');
       const premio = emitidas.reduce((s, v) => s + parseVal(v.premio), 0);
       const ex = calcularExtrato();
@@ -1302,7 +1364,8 @@
 
       byId('k-andamento').textContent = andamento.length;
       byId('k-andamento-sub').textContent = andamento.length
-        ? (cotadas ? `${cotadas} já ${cotadas === 1 ? 'cotada' : 'cotadas'}` : 'Em análise pela F&G')
+        ? (paraValidar ? `${paraValidar} com minuta para você validar`
+          : cotadas ? `${cotadas} já ${cotadas === 1 ? 'cotada' : 'cotadas'}` : 'Em análise pela F&G')
         : 'Nenhuma no momento';
       byId('k-emitidas').textContent = emitidas.length;
       byId('k-emitidas-sub').textContent = emitidas.length ? `${moeda(premio)} em prêmios` : 'Ainda sem apólices';
@@ -1323,14 +1386,15 @@
       const qd = q.replace(/\D/g, '');
       const lista = todasVendas.filter(v => {
         const s = statusDe(v);
-        if (UI.status === 'andamento' && !(s === 'analise' || s === 'cotada' || s === 'pedida')) return false;
+        if (UI.status === 'andamento' && !ABERTAS.includes(s)) return false;
         if (UI.status === 'emitidas' && s !== 'emitida') return false;
         if (UI.status === 'encerradas' && s !== 'encerrada') return false;
         if (!q) return true;
         return (v.nome || '').toLowerCase().includes(q) || (qd.length >= 3 && (v.cnpj || '').replace(/\D/g, '').includes(qd));
       });
       // Em "Todas", o que ainda depende de alguém fica em cima; o resto por data.
-      const peso = { analise: 0, cotada: 0, pedida: 0, emitida: 1, encerrada: 2 };
+      // A que espera a resposta do parceiro vem antes de todas.
+      const peso = { validar: -1, analise: 0, cotada: 0, pedida: 0, ajuste: 0, aprovada: 0, emitida: 1, encerrada: 2 };
       return lista.slice().sort((a, b) => {
         if (UI.status === 'todas') {
           const d = peso[statusDe(a)] - peso[statusDe(b)];
@@ -1361,9 +1425,14 @@
       renderDemandas();
     }
 
-    function etapasHtml(s) {
-      const passo = { analise: 1, cotada: 2, pedida: 3, emitida: 3, encerrada: -1 }[s];
-      const nomes = ['Recebida', 'Em análise', 'Cotada', 'Emitida'];
+    function etapasHtml(s, comMinuta) {
+      // Demanda com minuta enviada para validar ganha as etapas da validação.
+      const passo = comMinuta
+        ? { analise: 1, cotada: 1, pedida: 4, validar: 2, ajuste: 2, aprovada: 4, emitida: 4, encerrada: -1 }[s]
+        : { analise: 1, cotada: 2, pedida: 3, emitida: 3, encerrada: -1 }[s];
+      const nomes = comMinuta
+        ? ['Recebida', 'Em análise', 'Minuta', 'Aprovada', 'Emitida']
+        : ['Recebida', 'Em análise', 'Cotada', 'Emitida'];
       return `<ol class="etapas${s === 'encerrada' ? ' encerrada' : ''}" aria-label="Andamento: ${STATUS[s].rotulo}">` +
         nomes.map((nome, i) => {
           let estado = 'pendente';
@@ -1378,7 +1447,7 @@
       if (s === 'emitida') {
         return `<div class="rotulo">Sua comissão</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`;
       }
-      if (s === 'cotada' || s === 'pedida') {
+      if (s === 'cotada' || s === 'pedida' || s === 'validar' || s === 'ajuste' || s === 'aprovada') {
         return comissao > 0
           ? `<div class="rotulo">Comissão prevista</div><div class="numero">${moeda(parte)}<small>${pctParceiro(v)}</small></div>`
           : `<div class="rotulo">Comissão prevista</div><div class="texto">Sai com os valores da cotação</div>`;
@@ -1405,6 +1474,9 @@
       const nota = s === 'analise' ? 'A F&amp;G está cotando com as seguradoras.'
         : s === 'cotada' ? 'Cotação feita. Próximo passo: aceite do cliente e emissão.'
         : s === 'pedida' ? 'Emissão pedida na Junto. A F&amp;G confere a minuta e emite.'
+        : s === 'validar' ? 'A minuta espera a sua resposta. A apólice só é emitida depois da sua aprovação.'
+        : s === 'ajuste' ? 'Ajuste pedido. A F&amp;G manda a minuta ajustada para você validar de novo.'
+        : s === 'aprovada' ? 'Minuta aprovada. Próximo passo: emissão da apólice.'
         : s === 'emitida' ? 'Apólice emitida. A comissão entra conforme o cliente paga.'
         : 'Este negócio não avançou.';
       return `<article class="demanda">
@@ -1413,10 +1485,117 @@
           <div class="dem-meta">${meta}</div>
           ${arquivos}
         </div>
-        ${etapasHtml(s)}
+        ${etapasHtml(s, !!minutaAtual(v))}
         <div class="dem-valor">${statusHtml(s)}${valorDemandaHtml(v, s)}</div>
+        ${minutaHtml(v)}
         <div class="dem-rodape"><span>${nota}</span><div class="acoes">${acoes}</div></div>
       </article>`;
+    }
+
+    // ── MINUTA PARA VALIDAR ──────────────────────────────────
+    function fmtDataHora(iso) {
+      const d = new Date(iso);
+      if (!iso || isNaN(d)) return '';
+      return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    }
+
+    /** Bloco da minuta dentro do cartão da demanda: a versão atual e o que falta fazer. */
+    function minutaHtml(v) {
+      const m = minutaAtual(v);
+      if (!m || v.vendeu === 'Não') return '';
+      const abrir = `<button type="button" class="link-acao" onclick="abrirMinuta(${Number(m.id)}, this)"><svg class="ico"><use href="#i-doc"/></svg> Abrir a minuta</button>`;
+      const versao = m.versao > 1 ? `Versão ${Number(m.versao)} · ` : '';
+      const recado = m.observacao_fg ? `<div class="mb-fala"><b>F&amp;G:</b> ${esc(m.observacao_fg)}</div>` : '';
+      if (m.status === 'aguardando' && v.vendeu !== 'Sim') {
+        return `<div class="minuta-box validar">
+          <div class="mb-texto"><span class="mb-titulo">Minuta para você validar</span>${versao}enviada pela F&amp;G em ${fmtDataHora(m.enviada_em)} · ${esc(m.arquivo_nome)}${recado}</div>
+          <div class="mb-acoes">${abrir}
+            <button type="button" class="btn-min ajuste" onclick="responderMinuta(${Number(m.id)}, 'ajuste')">Pedir ajuste</button>
+            <button type="button" class="btn-min aprovar" onclick="responderMinuta(${Number(m.id)}, 'aprovar')"><svg class="ico"><use href="#i-check"/></svg> Aprovar</button>
+          </div>
+        </div>`;
+      }
+      const titulo = m.status === 'aprovada' ? 'Você aprovou a minuta'
+        : m.status === 'ajuste_solicitado' ? 'Você pediu ajuste na minuta'
+        : 'Minuta enviada pela F&amp;G';
+      const quando = m.respondida_em ? `em ${fmtDataHora(m.respondida_em)}` : `em ${fmtDataHora(m.enviada_em)}`;
+      const fala = m.resposta_parceiro ? `<div class="mb-fala"><b>Você:</b> ${esc(m.resposta_parceiro)}</div>` : '';
+      return `<div class="minuta-box">
+        <div class="mb-texto"><span class="mb-titulo">${titulo}</span>${versao}${quando} · ${esc(m.arquivo_nome)}${fala}</div>
+        <div class="mb-acoes">${abrir}</div>
+      </div>`;
+    }
+
+    /** A aba abre antes da chamada para o navegador não bloquear como pop-up. */
+    async function abrirMinuta(id, botao) {
+      const aba = window.open('', '_blank');
+      if (botao) botao.disabled = true;
+      try {
+        const r = await api('abrir_minuta', { minuta_id: id });
+        if (aba) aba.location.href = r.url; else window.location.href = r.url;
+      } catch (e) {
+        if (aba) aba.close();
+        toast(e.message);
+      } finally {
+        if (botao) botao.disabled = false;
+      }
+    }
+
+    let minutaEmResposta = null;
+
+    function responderMinuta(id, resposta) {
+      const venda = todasVendas.find(v => { const m = minutaAtual(v); return m && m.id === id; });
+      if (!venda) return;
+      const aprovar = resposta === 'aprovar';
+      minutaEmResposta = { id, resposta, saleId: venda.id };
+      byId('mm-titulo').textContent = aprovar ? 'Aprovar a minuta' : 'Pedir ajuste na minuta';
+      byId('mm-resumo').innerHTML = aprovar
+        ? `Você confirma que conferiu a minuta de <strong>${esc(venda.nome || 'seu cliente')}</strong> e que a F&amp;G pode seguir para a emissão da apólice.`
+        : `Diga o que precisa mudar na minuta de <strong>${esc(venda.nome || 'seu cliente')}</strong>. A F&amp;G ajusta e manda a versão nova para você validar.`;
+      byId('mm-rotulo').textContent = aprovar ? 'Comentário (opcional)' : 'O que precisa ser ajustado';
+      byId('mm-texto').value = '';
+      byId('mm-texto').placeholder = aprovar ? '' : 'Ex.: o valor da garantia está diferente do edital; a vigência precisa ir até 30/06.';
+      byId('mm-confirmar').textContent = aprovar ? 'Aprovar' : 'Enviar pedido de ajuste';
+      byId('mm-confirmar').disabled = false;
+      byId('mm-msg').style.display = 'none';
+      byId('modal-minuta').classList.add('open');
+      if (!aprovar) setTimeout(() => byId('mm-texto').focus(), 60);
+    }
+
+    function fecharMinuta() {
+      byId('modal-minuta').classList.remove('open');
+      minutaEmResposta = null;
+    }
+
+    function msgMinuta(texto) {
+      const el = byId('mm-msg');
+      el.className = 'modal-msg erro';
+      el.textContent = texto;
+      el.style.display = 'block';
+    }
+
+    async function confirmarMinuta() {
+      const p = minutaEmResposta;
+      if (!p) return;
+      const texto = byId('mm-texto').value.trim();
+      if (p.resposta === 'ajuste' && texto.length < 5) { msgMinuta('Escreva o que precisa ser ajustado na minuta.'); byId('mm-texto').focus(); return; }
+      const botao = byId('mm-confirmar');
+      botao.disabled = true;
+      botao.textContent = 'Enviando...';
+      try {
+        const r = await api('responder_minuta', { minuta_id: p.id, resposta: p.resposta, texto });
+        const venda = todasVendas.find(v => v.id === p.saleId);
+        if (venda && r.minuta) venda._minutas = [r.minuta].concat((venda._minutas || []).filter(m => m.id !== r.minuta.id));
+        fecharMinuta();
+        renderTudo();
+        toast(p.resposta === 'aprovar' ? 'Minuta aprovada. A F&G foi avisada.' : 'Pedido de ajuste enviado. A F&G foi avisada.');
+      } catch (e) {
+        botao.disabled = false;
+        botao.textContent = p.resposta === 'aprovar' ? 'Aprovar' : 'Enviar pedido de ajuste';
+        msgMinuta(e.message);
+        // Outra versão chegou ou a minuta já foi respondida: a lista é recarregada por baixo.
+        carregar();
+      }
     }
 
     function renderDemandas() {
