@@ -317,7 +317,7 @@ function emailCliente(f: Ficha, protocolo: string, anexos: Anexo[]): Promise<boo
     to: [f.contato_email],
     reply_to: CONTATO_EMAIL,
     subject: `Recebemos sua ficha de garantia judicial (protocolo ${protocolo})`,
-    html: moldura(miolo, 'F&amp;G Corretora de Seguros · CNPJ 56.123.874/0001-90 · SUSEP 242160653<br>Av. Cristal, 107, Água Branca, Boituva/SP'),
+    html: moldura(miolo, 'F&amp;G Corretora de Seguros · CNPJ 56.123.874/0001-90 · SUSEP 242160653'),
   });
 }
 
