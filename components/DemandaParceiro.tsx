@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Paperclip, FileText, Loader2, Handshake, ShieldCheck, RefreshCw, ExternalLink, AlertTriangle, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Paperclip, FileText, Loader2, Handshake, ShieldCheck, RefreshCw, ExternalLink, AlertTriangle, X, Send, CheckCircle2, MessageSquareWarning, Clock, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast.tsx';
 import { formatCurrency } from '../utils/formatters.ts';
@@ -31,13 +31,13 @@ const tamanhoTexto = (b?: number) => {
 };
 
 /** Abre o anexo numa aba nova. A aba abre antes do await para o navegador não bloquear. */
-function useAbrirAnexo() {
+function useAbrirAnexo(bucket: string = BUCKET) {
     const { toast } = useToast();
     const [abrindo, setAbrindo] = useState<string | null>(null);
     const abrir = async (a: AnexoDemanda) => {
         const aba = window.open('', '_blank');
         setAbrindo(a.path);
-        const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(a.path, 600);
+        const { data, error } = await supabase.storage.from(bucket).createSignedUrl(a.path, 600);
         setAbrindo(null);
         if (error || !data?.signedUrl) {
             aba?.close();
@@ -139,11 +139,11 @@ function useStatusPedidoJunto(saleId: number | undefined) {
     return status;
 }
 
-async function chamarEmissao(body: Record<string, unknown>) {
-    const { data, error } = await supabase.functions.invoke('junto-emissao', { body });
+async function chamarFuncao(nome: string, body: Record<string, unknown>, erroPadrao = 'Erro ao falar com o servidor.') {
+    const { data, error } = await supabase.functions.invoke(nome, { body });
     if (error) {
         // A função responde 4xx com a mensagem no corpo; o supabase-js esconde o corpo no context.
-        let msg = error.message || 'Erro ao falar com a Junto.';
+        let msg = error.message || erroPadrao;
         try {
             const corpo = await (error as { context?: Response }).context?.json?.();
             if (corpo?.error) msg = corpo.error;
@@ -153,6 +153,8 @@ async function chamarEmissao(body: Record<string, unknown>) {
     if (!data?.success) throw new Error(data?.error || 'A função recusou o pedido.');
     return data;
 }
+
+const chamarEmissao = (body: Record<string, unknown>) => chamarFuncao('junto-emissao', body, 'Erro ao falar com a Junto.');
 
 const dataBr = (iso?: string | null) => (iso ? String(iso).slice(0, 10).replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1') : '');
 function fimVigencia(inicio: string, dias: number) {
@@ -389,6 +391,225 @@ function PainelCotacaoJunto({ sale, antesDeEmitir, aposEmitir }: {
     );
 }
 
+// ── Minuta devolvida ao parceiro para validação (migração 146) ─────────────
+//
+// A F&G anexa a minuta aqui; o parceiro recebe o e-mail, abre no portal e
+// responde "Aprovar" ou "Pedir ajuste". Cada envio é uma rodada (versão) da
+// tabela demanda_minutas. Quem grava é a Edge Function demanda-minuta; a
+// tela só sobe o arquivo no bucket privado e lê as rodadas.
+
+const BUCKET_MINUTAS = 'demanda-minutas';
+const MINUTA_MAX_BYTES = 30 * 1024 * 1024;
+const MINUTA_EXTENSOES = ['pdf', 'doc', 'docx'];
+
+type StatusMinuta = 'aguardando' | 'aprovada' | 'ajuste_solicitado' | 'substituida';
+
+interface RodadaMinuta {
+    id: number;
+    sale_id: number;
+    versao: number;
+    arquivo_path: string;
+    arquivo_nome: string;
+    arquivo_tamanho: number | null;
+    observacao_fg: string | null;
+    enviada_por: string;
+    enviada_em: string;
+    status: StatusMinuta;
+    resposta_parceiro: string | null;
+    respondida_em: string | null;
+}
+
+const SITUACAO_MINUTA: Record<StatusMinuta, { rotulo: string; curto: string; classe: string }> = {
+    aguardando: { rotulo: 'Aguardando o parceiro', curto: 'Minuta com o parceiro', classe: 'bg-blue-50 text-blue-800 border-blue-200' },
+    aprovada: { rotulo: 'Aprovada pelo parceiro', curto: 'Minuta aprovada', classe: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+    ajuste_solicitado: { rotulo: 'Ajuste solicitado', curto: 'Ajuste pedido', classe: 'bg-amber-50 text-amber-800 border-amber-200' },
+    substituida: { rotulo: 'Substituída por versão nova', curto: 'Substituída', classe: 'bg-slate-50 text-slate-600 border-slate-200' },
+};
+
+const dataHoraBr = (iso?: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
+};
+
+function nomeArquivoSeguro(nome: string): string {
+    const base = nome.normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    return (base || 'minuta').slice(-90);
+}
+
+// Situação da última rodada de cada venda, lida uma vez para as etiquetas da tabela.
+let minutasCache: Promise<Map<number, StatusMinuta>> | null = null;
+const ouvintesMinutas = new Set<() => void>();
+
+function carregarSituacaoMinutas(): Promise<Map<number, StatusMinuta>> {
+    if (!minutasCache) {
+        minutasCache = Promise.resolve(
+            supabase.from('demanda_minutas').select('sale_id, versao, status').neq('status', 'substituida').order('versao', { ascending: true }),
+        ).then(({ data }) => new Map((data || []).map((r: { sale_id: number; status: StatusMinuta }) => [r.sale_id, r.status])))
+            .catch(() => new Map<number, StatusMinuta>());
+    }
+    return minutasCache;
+}
+
+function avisarMudancaMinutas() {
+    minutasCache = null;
+    ouvintesMinutas.forEach((f) => f());
+}
+
+/** Etiqueta curta na tabela: em que pé está a minuta com o parceiro. */
+function SeloMinutaParceiro({ saleId }: { saleId?: number }) {
+    const [status, setStatus] = useState<StatusMinuta | null>(null);
+    useEffect(() => {
+        if (!saleId) return;
+        let vivo = true;
+        const ler = () => { void carregarSituacaoMinutas().then((m) => { if (vivo) setStatus(m.get(saleId) || null); }); };
+        ler();
+        ouvintesMinutas.add(ler);
+        return () => { vivo = false; ouvintesMinutas.delete(ler); };
+    }, [saleId]);
+    if (!status) return null;
+    const sit = SITUACAO_MINUTA[status];
+    return (
+        <span className={`ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-xl border text-[11px] font-bold ${sit.classe}`}
+            title="Minuta enviada ao parceiro pelo portal para validação">
+            <FileText size={11} /> {sit.curto}
+        </span>
+    );
+}
+
+function PainelMinutaParceiro({ sale }: { sale: { id: number; parceiro?: string | null } }) {
+    const { toast } = useToast();
+    const { abrir, abrindo } = useAbrirAnexo(BUCKET_MINUTAS);
+    const [rodadas, setRodadas] = useState<RodadaMinuta[]>([]);
+    const [carregando, setCarregando] = useState(true);
+    const [arquivo, setArquivo] = useState<File | null>(null);
+    const [observacao, setObservacao] = useState('');
+    const [enviando, setEnviando] = useState(false);
+    const campoArquivo = useRef<HTMLInputElement>(null);
+
+    const ler = useCallback(async () => {
+        const { data } = await supabase.from('demanda_minutas').select('*')
+            .eq('sale_id', sale.id).order('versao', { ascending: false });
+        setRodadas((data as RodadaMinuta[]) || []);
+        setCarregando(false);
+    }, [sale.id]);
+
+    useEffect(() => { void ler(); }, [ler]);
+
+    const escolher = (f: File | null) => {
+        if (!f) { setArquivo(null); return; }
+        const ext = (/\.([a-z0-9]+)$/i.exec(f.name)?.[1] || '').toLowerCase();
+        if (!MINUTA_EXTENSOES.includes(ext)) { toast('A minuta precisa ser PDF ou Word.', 'error'); return; }
+        if (f.size > MINUTA_MAX_BYTES) { toast('O arquivo passa de 30 MB.', 'error'); return; }
+        setArquivo(f);
+    };
+
+    const enviar = async () => {
+        if (!arquivo || enviando) return;
+        setEnviando(true);
+        try {
+            const path = `v${sale.id}/${Date.now()}-${nomeArquivoSeguro(arquivo.name)}`;
+            const { error: eUp } = await supabase.storage.from(BUCKET_MINUTAS)
+                .upload(path, arquivo, { contentType: arquivo.type || undefined, upsert: false });
+            if (eUp) throw new Error(`Não consegui subir o arquivo: ${eUp.message}`);
+            const r = await chamarFuncao('demanda-minuta', {
+                acao: 'enviar', sale_id: sale.id,
+                arquivo: { path, nome: arquivo.name, tamanho: arquivo.size },
+                observacao,
+            });
+            setArquivo(null);
+            setObservacao('');
+            if (campoArquivo.current) campoArquivo.current.value = '';
+            avisarMudancaMinutas();
+            await ler();
+            if (r.email_enviado) toast(`Minuta enviada. O parceiro foi avisado em ${r.parceiro_email}.`, 'success', 6000);
+            else if (!r.parceiro_email) toast('Minuta enviada ao portal, mas o parceiro não tem e-mail no cadastro. Avise por outro canal.', 'warning', 8000);
+            else toast('Minuta enviada ao portal, mas o e-mail de aviso falhou. Avise o parceiro por outro canal.', 'warning', 8000);
+        } catch (e) {
+            toast(e instanceof Error ? e.message : String(e), 'error', 7000);
+        } finally { setEnviando(false); }
+    };
+
+    if (carregando) return null;
+    const atual = rodadas[0];
+    const esperando = atual?.status === 'aguardando';
+
+    return (
+        <div className="mt-4 p-4 rounded-2xl border border-linha bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                    <Send size={15} className="text-navy" />
+                    <span className="text-xs font-bold text-navy">Minuta para o parceiro validar</span>
+                </div>
+                {atual && <span className={`px-2.5 py-1 rounded-full border text-[11px] font-bold ${SITUACAO_MINUTA[atual.status].classe}`}>{SITUACAO_MINUTA[atual.status].rotulo}</span>}
+            </div>
+
+            {rodadas.length === 0 && (
+                <p className="text-xs text-slate-500 mb-3">Anexe a minuta da seguradora. O parceiro recebe o e-mail, abre no portal e responde "Aprovar" ou "Pedir ajuste".</p>
+            )}
+
+            {rodadas.length > 0 && (
+                <ol className="flex flex-col gap-2 mb-4">
+                    {rodadas.map((r) => {
+                        const Icone = r.status === 'aprovada' ? CheckCircle2 : r.status === 'ajuste_solicitado' ? MessageSquareWarning : Clock;
+                        return (
+                            <li key={r.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50/60">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[11px] font-bold text-slate-500">Versão {r.versao}</span>
+                                    <button type="button" onClick={() => void abrir({ path: r.arquivo_path, nome: r.arquivo_nome })}
+                                        className="inline-flex items-center gap-1.5 min-w-0 text-xs font-semibold text-navy hover:text-gold-dark">
+                                        {abrindo === r.arquivo_path ? <Loader2 size={13} className="animate-spin shrink-0" /> : <FileText size={13} className="shrink-0 text-gold-dark" />}
+                                        <span className="truncate" title={r.arquivo_nome}>{r.arquivo_nome}</span>
+                                    </button>
+                                    <span className="text-[11px] text-slate-400">enviada em {dataHoraBr(r.enviada_em)} por {r.enviada_por.split('@')[0]}</span>
+                                </div>
+                                {r.observacao_fg && <p className="mt-1.5 text-xs text-slate-600 whitespace-pre-line">F&amp;G: {r.observacao_fg}</p>}
+                                <div className="mt-2 flex items-start gap-1.5 text-xs">
+                                    <Icone size={13} className={`shrink-0 mt-0.5 ${r.status === 'aprovada' ? 'text-emerald-700' : r.status === 'ajuste_solicitado' ? 'text-amber-700' : 'text-slate-400'}`} />
+                                    <div className="min-w-0">
+                                        <span className="font-semibold text-navy">{SITUACAO_MINUTA[r.status].rotulo}</span>
+                                        {r.respondida_em && <span className="text-slate-400"> em {dataHoraBr(r.respondida_em)}</span>}
+                                        {r.resposta_parceiro && <p className="mt-0.5 text-slate-700 whitespace-pre-line break-words">{r.resposta_parceiro}</p>}
+                                    </div>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
+
+            {esperando && (
+                <p className="mb-3 text-[11px] text-slate-500">O parceiro ainda não respondeu. Enviar outra minuta agora substitui a versão {atual.versao}.</p>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <input ref={campoArquivo} type="file" accept=".pdf,.doc,.docx" className="hidden"
+                        onChange={(e) => escolher(e.target.files?.[0] || null)} />
+                    <button type="button" onClick={() => campoArquivo.current?.click()} disabled={enviando}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-slate-300 bg-white text-left text-xs font-semibold text-navy hover:border-gold hover:bg-areia-clara disabled:opacity-40">
+                        <Upload size={14} className="shrink-0 text-gold-dark" />
+                        <span className="truncate flex-1">{arquivo ? arquivo.name : (rodadas.length ? 'Escolher a minuta ajustada (PDF ou Word)' : 'Escolher a minuta (PDF ou Word)')}</span>
+                        {arquivo && <span className="text-[11px] font-medium text-slate-400 shrink-0">{tamanhoTexto(arquivo.size)}</span>}
+                    </button>
+                </div>
+                <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} disabled={enviando} maxLength={1000} rows={2}
+                    placeholder="Recado para o parceiro (opcional)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-navy placeholder:text-slate-400 focus:outline-none focus:border-gold resize-y" />
+            </div>
+            <div className="flex justify-end mt-3">
+                <button type="button" onClick={enviar} disabled={!arquivo || enviando}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy text-white text-xs font-bold hover:bg-navy-light disabled:opacity-40">
+                    {enviando ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {enviando ? 'Enviando...' : rodadas.length ? 'Enviar versão nova ao parceiro' : 'Enviar minuta para validação'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 /** Etiqueta curta na tabela quando a cotação da Junto espera a F&G. */
 function SeloPedidoJunto({ saleId }: { saleId?: number }) {
     const status = useStatusPedidoJunto(saleId);
@@ -423,6 +644,7 @@ export function ChipAnexosParceiro({ sale }: { sale: unknown }) {
                 <Paperclip size={11} /> Portal · {anexos.length} {anexos.length === 1 ? 'anexo' : 'anexos'}
             </button>
             <SeloPedidoJunto saleId={(sale as { id?: number })?.id} />
+            <SeloMinutaParceiro saleId={(sale as { id?: number })?.id} />
             {aberto && (
                 <div className="mt-1.5 max-w-[260px]">
                     <ListaArquivos anexos={anexos} />
@@ -453,6 +675,7 @@ export function PainelDemandaParceiro({ sale, antesDeEmitir, aposEmitir }: {
                 <ListaArquivos anexos={anexos} />
             </div>
             {s.id ? <PainelCotacaoJunto sale={{ id: s.id, parceiro: s.parceiro, nome: s.nome, tipo: s.tipo }} antesDeEmitir={antesDeEmitir} aposEmitir={aposEmitir} /> : null}
+            {s.id && s.parceiro ? <PainelMinutaParceiro sale={{ id: s.id, parceiro: s.parceiro }} /> : null}
         </div>
     );
 }
