@@ -22,6 +22,14 @@
   };
   var CATEGORIA = { docSentenca: 'sentenca', docCalculo: 'calculo', docProcuracao: 'procuracao' };
   var CAMPO_DA_CATEGORIA = { sentenca: 'docSentenca', calculo: 'docCalculo', procuracao: 'docProcuracao' };
+  // Preenchimento automático do navegador. Contato e empresa ficam em seções
+  // separadas: escolher a sugestão do próprio e-mail não despeja o endereço
+  // pessoal de quem preenche nos campos da empresa.
+  var AUTO = {
+    nome: 'section-contato name', email: 'section-contato email', tel: 'section-contato tel-national',
+    razao: 'section-empresa organization', cep: 'section-empresa postal-code', endereco: 'section-empresa street-address',
+    cidade: 'section-empresa address-level2', uf: 'section-empresa address-level1'
+  };
   var EXTENSOES = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
   var MAX_BYTES = 20 * 1024 * 1024;
   var TOTAL = STEPS.length + 1; // etapas do formulário + conferência
@@ -130,6 +138,9 @@
       return { texto: 'Referência: teto do depósito recursal para ' + st.v.recurso + ', R$ ' + money(String(teto)) + ' (' + TETO_FONTE + ').', tipo: '' };
     }
     if (f.check === 'cnj') { var c = notaCnj(value); if (c) return c; }
+    if (f.key === 'cnpj' && value && !err && consultado.cnpjAchado === value.replace(/[^0-9A-Za-z]/g, '')) {
+      return { texto: 'CNPJ válido. Preenchemos a razão social e o endereço pelo cadastro do CNPJ. Confira e corrija se precisar.', tipo: 'ok' };
+    }
     if (f.ok && value && !err) return { texto: f.ok, tipo: 'ok' };
     if (f.kind === 'file' && st.files[f.key]) return { texto: 'Anexado: ' + st.files[f.key].name, tipo: 'ok' };
     if (f.hint) return { texto: f.hint, tipo: '' };
@@ -137,13 +148,14 @@
   }
 
   // ── preenchimento automático (BrasilAPI e ViaCEP, gratuitos) ────────────────
-  var consultado = { cnpj: '', cep: '' };
-  function preencherSeVazio(key, valor) {
-    if (!valor || st.v[key]) return;
+  var consultado = { cnpj: '', cep: '', cnpjAchado: '' };
+  function preencher(key, valor) {
+    if (!valor) return;
     st.v[key] = valor;
     if (refs[key] && refs[key].input) refs[key].input.value = valor;
     atualizarCampo(key);
   }
+  function preencherSeVazio(key, valor) { if (!st.v[key]) preencher(key, valor); }
   function buscar(url) {
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 8000) : null;
@@ -157,13 +169,18 @@
     if (c.length !== 14 || !okCnpj(c) || consultado.cnpj === c || !/^\d+$/.test(c)) return;
     consultado.cnpj = c;
     buscar('https://brasilapi.com.br/api/cnpj/v1/' + c).then(function (d) {
-      if (!d || !d.razao_social) return;
-      preencherSeVazio('razao', d.razao_social);
-      if (d.cep) preencherSeVazio('cep', MASK.cep(String(d.cep)));
+      // Só vale se o CNPJ na tela ainda for o que foi consultado.
+      if (!d || !d.razao_social || (st.v.cnpj || '').replace(/[^0-9A-Za-z]/g, '') !== c) return;
+      // O cadastro do CNPJ entra por cima do que estiver nos campos (inclusive do
+      // preenchimento automático do navegador, que costuma pôr o endereço da pessoa).
+      // Roda uma vez por CNPJ: o que o cliente corrigir depois fica como ele deixou.
+      preencher('razao', d.razao_social);
+      if (d.cep) { preencher('cep', MASK.cep(String(d.cep))); consultado.cep = dg(String(d.cep)); }
       var end = [[d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' '), d.numero, d.bairro].filter(Boolean).join(', ');
-      preencherSeVazio('endereco', end);
-      preencherSeVazio('cidade', d.municipio);
-      if (UFS.indexOf(d.uf) >= 0) preencherSeVazio('uf', d.uf);
+      preencher('endereco', end);
+      preencher('cidade', d.municipio);
+      if (UFS.indexOf(d.uf) >= 0) preencher('uf', d.uf);
+      consultado.cnpjAchado = c;
       salvarRascunho(); atualizarTudo();
     });
   }
@@ -232,7 +249,7 @@
     if (kind === 'input') {
       controle = el('input', {
         id: id, class: 'entrada', type: f.type || 'text', placeholder: f.ph || null, inputmode: f.mode || null,
-        autocomplete: 'off', max: f.type === 'date' ? hojeISO() : null, 'aria-describedby': id + '-nota'
+        autocomplete: AUTO[f.key] || 'off', max: f.type === 'date' ? hojeISO() : null, 'aria-describedby': id + '-nota'
       });
       controle.value = st.v[f.key] || '';
       controle.addEventListener('input', function () {
@@ -246,7 +263,7 @@
       controle.addEventListener('input', function () { mudou(f, controle.value); });
       r.input = controle;
     } else if (kind === 'select') {
-      controle = el('select', { id: id, class: 'entrada', 'aria-describedby': id + '-nota' },
+      controle = el('select', { id: id, class: 'entrada', autocomplete: AUTO[f.key] || 'off', 'aria-describedby': id + '-nota' },
         [el('option', { value: '', text: 'Selecione' })].concat(f.options.map(function (o) { return el('option', { value: o, text: o }); })));
       controle.value = st.v[f.key] || '';
       controle.addEventListener('change', function () { mudou(f, controle.value); });
