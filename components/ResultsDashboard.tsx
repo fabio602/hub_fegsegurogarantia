@@ -85,6 +85,10 @@ const SEGURADORA_OUTRO_CORRETOR = '__outro_corretor__';
 
 /** Campo de dinheiro vazio ou zerado. A máscara devolve "R$ 0,00" em vez de
  *  string vazia, então testar só a ausência deixaria passar prêmio zerado. */
+// Fora do componente para a lista não ser recriada a cada render: recriada, ela
+// reiniciava o cronômetro do salvamento automático a cada redesenho da tela.
+const IGNORAR_NO_AUTOSAVE = ['id', 'created_at'];
+
 const semValor = (v?: string | number | null) => !v || parseNumber(String(v)) <= 0;
 
 /** O que ainda falta preencher no registro de venda.
@@ -632,6 +636,9 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     // PDF Import State
     const [importingPdf, setImportingPdf] = useState(false);
     const [importedFields, setImportedFields] = useState<string[]>([]);
+    // Modalidade que o leitor encontrou no último PDF importado (para avisar se o
+    // Tipo Seguro for trocado para algo diferente do que a apólice diz).
+    const [tipoLidoDoPdf, setTipoLidoDoPdf] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Sale>>({
@@ -1042,6 +1049,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         if (!file) return;
         setImportingPdf(true);
         setImportedFields([]);
+        setTipoLidoDoPdf(null);
         try {
             // Leitura por regras, no navegador: sem IA e sem rede (mesmo leitor do Double Check
             // do Seguro Licitante, lib/minuta). Antes chamava a Edge Function parse-documento-seguro.
@@ -1093,7 +1101,22 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
             if (vi) { updates.vigencia_inicio = vi; updates.vendeu = updates.vendeu || formData.vendeu || 'Em andamento'; filled.push('vigencia_inicio'); }
             if (vf) { updates.vigencia_fim = vf; filled.push('vigencia_fim'); }
 
+            // Tipo de seguro: vem da modalidade escrita na apólice, não da escolha manual.
+            // Antes o leitor identificava a modalidade e a importação jogava fora; o campo
+            // ficava por conta de quem lançava e as garantias de execução entravam como Licitante.
+            const tipoDoPdf = m.modalidade === 'licitante' ? 'Licitante'
+                : m.modalidade === 'contrato' ? 'Performance'
+                : '';
+            if (tipoDoPdf) {
+                updates.tipo = tipoDoPdf;
+                filled.push(`tipo (${tipoDoPdf})`);
+            }
+
             setFormData(prev => ({ ...prev, ...updates }));
+            setTipoLidoDoPdf(tipoDoPdf || null);
+            if (!tipoDoPdf) {
+                toast('Não identifiquei a modalidade neste PDF. Confira o campo Tipo Seguro (Licitante ou Performance) antes de salvar.', 'warning');
+            }
 
             // Completa contato com a carteira: só telefone, e-mail e decisor, e só se vazios.
             // Nome, segurado e valores ficam com o que veio da apólice.
@@ -1434,6 +1457,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
     const resetForm = () => {
         descartarRascunho();
         setEditingId(null);
+        setTipoLidoDoPdf(null);
         vendeuOriginalRef.current = null;
         setLimitesArray([]);
         setCurrentLimit({ seguradora: '', valor: '' });
@@ -1521,6 +1545,10 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         };
         const { error } = await supabase.from('sales').update(payload).eq('id', editingId);
         if (error) throw error;
+        // Reflete na lista o que acabou de ser gravado. Sem isso a tabela e a
+        // reabertura do registro mostravam os valores antigos (parecia que não
+        // tinha salvado) e a edição seguinte regravava o dado velho por cima.
+        setSales(prev => prev.map(s => (s.id === editingId ? normalizeSaleFromDb({ ...s, ...payload }) : s)));
     }, [editingId]);
 
     const {
@@ -1535,7 +1563,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         identidade: editingId,
         salvar: gravarVendaEmEdicao,
         chaveRascunho: 'venda-garantia',
-        ignorar: ['id', 'created_at'],
+        ignorar: IGNORAR_NO_AUTOSAVE,
     });
 
     /**
@@ -1563,7 +1591,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         setRascunhoRestaurado(true);
     }, [rascunhoVenda, editingId, formData.nome, formData.cnpj, formData.premio]);
 
-    const handleEdit = (sale: Sale) => {
+    const handleEdit = async (sale: Sale) => {
+        // Clicar em outra linha com alteração ainda não gravada: grava primeiro.
+        // Antes a troca cancelava o cronômetro e a última alteração se perdia.
+        if (editingId && editingId !== sale.id) await salvarVendaAgora();
+        setTipoLidoDoPdf(null);
         setRascunhoRestaurado(false);
         setEditingId(sale.id);
         // Guarda o `vendeu` que veio do banco, antes de qualquer alteração no formulário.
@@ -1594,7 +1626,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
         const alvo = sales.find(s => s.id === initialEditSaleId);
         if (!alvo) return;
         editInicialAplicadoRef.current = true;
-        handleEdit(alvo);
+        void handleEdit(alvo);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialEditSaleId, sales]);
 
@@ -2594,7 +2626,7 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <div className="text-xs mt-0.5 leading-tight">
                                             {importedFields.length > 0
                                                 ? <span className="text-emerald-600 font-semibold">✓ Preencheu: {importedFields.join(', ')}</span>
-                                                : <span className="text-gray-400">Suba o PDF e os campos são preenchidos automaticamente com IA</span>}
+                                                : <span className="text-gray-400">Suba o PDF e os campos são preenchidos automaticamente, inclusive o Tipo Seguro</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -2738,6 +2770,11 @@ const ResultsDashboard: React.FC<{ initialSection?: Section; hideTabs?: boolean;
                                         <option value="">Selecione...</option>
                                         {LIST_DATA.tipoSeguro.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
+                                    {tipoLidoDoPdf && formData.tipo && formData.tipo !== tipoLidoDoPdf && (
+                                        <p className="text-xs font-semibold text-amber-600 px-1">
+                                            A apólice importada é {tipoLidoDoPdf}. Confira antes de salvar.
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 px-1">IS Garantida</label>
