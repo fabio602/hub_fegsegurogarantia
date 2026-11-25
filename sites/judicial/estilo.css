@@ -1,0 +1,139 @@
+/* Ficha de Garantia Judicial, F&G Seguro Garantia.
+   Tokens iguais aos do HUB (tailwind.config.js): navy, gold, areia, linha.
+   Layout: lateral navy com as etapas + conteúdo ocupando toda a largura. */
+:root {
+  --navy: #1B263B;
+  --navy-claro: #243447;
+  --gold: #C69C6D;
+  --gold-texto: #7A5D33;   /* dourado legível como texto em fundo claro */
+  --bege: #E9CBAB;
+  --areia: #F5F1EA;
+  --linha: #E8E4DC;
+  --borda: #D8D2C6;
+  --texto: #1B263B;
+  --texto-suave: #4A5464;
+  --rotulo: #5B6472;
+  --erro: #BE123C;
+  --alerta: #92400E;
+  --sucesso: #047857;
+  --fonte: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: var(--fonte); background: var(--areia); color: var(--texto); font-size: 15px; line-height: 1.5; }
+a { color: var(--gold-texto); }
+a:hover { color: var(--navy); }
+[hidden] { display: none !important; }
+
+.pagina { display: flex; flex-wrap: wrap; min-height: 100vh; }
+
+/* ── lateral ─────────────────────────────────────────────────────────────── */
+.lateral { flex: 1 1 300px; background: var(--navy); color: var(--areia); padding: 36px 32px; display: flex; flex-direction: column; gap: 32px; }
+.lateral img { width: 190px; max-width: 100%; height: auto; }
+.lateral h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.2; font-weight: 800; text-wrap: balance; }
+.lateral p { margin: 0; font-size: 15px; line-height: 1.55; color: #D9D3C7; }
+.lateral .rodape { margin-top: auto; font-size: 13.5px; }
+.etapas { display: flex; flex-direction: column; gap: 6px; }
+.etapa { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: #B9B3A8; font: 600 15px var(--fonte); text-align: left; cursor: pointer; }
+.etapa:disabled { cursor: default; }
+.etapa .bola { flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; border: 1.5px solid #6B7385; }
+.etapa.atual { background: var(--navy-claro); color: #fff; }
+.etapa.atual .bola { border-color: var(--gold); color: var(--bege); }
+.etapa.feita { color: #fff; }
+.etapa.feita .bola { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+
+/* ── conteúdo ────────────────────────────────────────────────────────────── */
+.conteudo { flex: 999 1 560px; min-width: 0; padding: 44px 56px; display: flex; flex-direction: column; gap: 28px; }
+.cabecalho .contagem { font-size: 13.5px; font-weight: 700; color: var(--gold-texto); }
+.cabecalho h2 { margin: 8px 0; font-size: 28px; line-height: 1.2; font-weight: 800; }
+.cabecalho h2:focus { outline: none; }
+.cabecalho p { margin: 0; font-size: 15.5px; color: var(--texto-suave); max-width: 72ch; }
+
+.cartao { background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: 26px 28px; display: flex; flex-direction: column; gap: 20px; }
+.cartao h3 { margin: 0; font-size: 17px; font-weight: 800; }
+.grade { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px 20px; }
+.campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.campo .topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px; }
+.campo label, .campo .rotulo { font-size: 14px; font-weight: 700; }
+.campo .opcional { font-weight: 500; color: var(--rotulo); }
+
+.entrada { width: 100%; min-height: 46px; padding: 11px 13px; border: 1.5px solid var(--borda); border-radius: 8px; background: #fff; font: 500 15px var(--fonte); color: var(--texto); }
+textarea.entrada { min-height: 96px; resize: vertical; line-height: 1.5; }
+.entrada.com-erro { border-color: var(--erro); }
+input[type="file"].arquivo { width: 100%; padding: 12px; border: 1.5px dashed var(--borda); border-radius: 8px; background: #FBF9F5; font: 500 14px var(--fonte); }
+input[type="file"].arquivo.com-erro { border-color: var(--erro); }
+
+.botao-i { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--navy); background: #fff; color: var(--navy); font: italic 700 16px Georgia, serif; line-height: 1; cursor: pointer; }
+.botao-i[aria-expanded="true"] { background: var(--navy); color: #fff; }
+.ajuda { font-size: 14px; background: var(--areia); border-left: 3px solid var(--gold); border-radius: 6px; padding: 10px 12px; }
+.nota { font-size: 13.5px; line-height: 1.45; font-weight: 600; color: var(--rotulo); }
+.nota.erro { color: var(--erro); }
+.nota.alerta { color: var(--alerta); }
+.nota.ok { color: var(--sucesso); }
+
+.pilulas { display: flex; flex-wrap: wrap; gap: 10px; }
+.pilula { min-height: 46px; padding: 10px 16px; border: 1.5px solid var(--borda); border-radius: 8px; background: #fff; color: var(--navy); font: 700 15px var(--fonte); cursor: pointer; }
+.pilula[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.pilulas.com-erro .pilula:not([aria-pressed="true"]) { border-color: var(--erro); }
+
+.conta { background: var(--navy); color: var(--areia); border-radius: 12px; padding: 24px 28px; display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: flex-end; }
+.conta div { display: flex; flex-direction: column; gap: 4px; }
+.conta span { font-size: 13.5px; color: #D9D3C7; }
+.conta strong { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.conta .total span, .conta .total strong { color: var(--bege); }
+.conta .total strong { font-size: 30px; font-weight: 800; }
+.conta p { margin: 0; flex: 1 1 260px; font-size: 13.5px; color: #D9D3C7; }
+
+.aceite { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; cursor: pointer; }
+.aceite input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--navy); flex: none; }
+
+.acoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.botao { min-height: 46px; padding: 12px 28px; border-radius: 8px; border: 1.5px solid var(--navy); background: var(--navy); color: #fff; font: 700 15px var(--fonte); cursor: pointer; }
+.botao.secundario { background: transparent; color: var(--navy); padding: 12px 22px; }
+.botao:disabled { opacity: .6; cursor: progress; }
+.botao-texto { min-height: 44px; padding: 6px 12px; border: 0; background: transparent; color: var(--gold-texto); font: 700 15px var(--fonte); text-decoration: underline; cursor: pointer; }
+.aviso { font-size: 14.5px; font-weight: 700; color: var(--erro); }
+.faixa { background: #fff; border: 1px solid var(--linha); border-left: 4px solid var(--gold); border-radius: 8px; padding: 12px 16px; font-size: 14.5px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.faixa.erro { border-left-color: var(--erro); color: var(--erro); font-weight: 700; }
+.andamento { font-size: 14.5px; font-weight: 700; color: var(--navy); }
+
+/* ── conferência ─────────────────────────────────────────────────────────── */
+.revisao { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.revisao .cartao { padding: 22px 24px; gap: 14px; }
+.revisao .titulo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.revisao h3 { font-size: 16px; }
+.revisao dl { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.revisao dt { font-size: 13px; color: var(--rotulo); font-weight: 600; }
+.revisao dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; white-space: pre-line; }
+
+/* ── confirmação ─────────────────────────────────────────────────────────── */
+.recebida { background: #fff; border: 1px solid var(--linha); border-radius: 14px; padding: 40px 44px; display: flex; flex-direction: column; gap: 22px; max-width: 880px; }
+.recebida h2 { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800; }
+.recebida h2:focus { outline: none; }
+.recebida p { margin: 0; font-size: 16px; line-height: 1.6; color: #333D4D; max-width: 64ch; }
+.recebida .dados { display: flex; flex-wrap: wrap; gap: 14px 40px; padding: 20px 24px; background: var(--areia); border-radius: 10px; }
+.recebida .dados div { display: flex; flex-direction: column; gap: 2px; }
+.recebida .dados span { font-size: 13px; font-weight: 600; color: var(--rotulo); }
+.recebida .dados strong { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.recebida .dados .protocolo strong { font-size: 22px; font-weight: 800; }
+.recebida h3 { margin: 0 0 10px; font-size: 16px; font-weight: 800; }
+.recebida ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15.5px; color: #333D4D; }
+
+/* Campo isca contra robô: fora da tela, fora da tabulação e escondido de leitor de tela. */
+.isca { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .lateral { padding: 24px 20px; gap: 20px; }
+  .lateral .rodape { margin-top: 0; }
+  .conteudo { padding: 28px 18px; }
+  .grade { grid-template-columns: minmax(0, 1fr); }
+  .grade > .campo { grid-column: auto !important; }
+  .cartao { padding: 20px 18px; }
+  .recebida { padding: 28px 22px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .etapa, .pilula, .botao, .botao-i { transition: background-color .15s, color .15s, border-color .15s; }
+}
