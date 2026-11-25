@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { FileText, Save, Printer, Plus, Copy, FolderOpen, Search } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, Save, Printer, Plus, Copy, FolderOpen, Search, Upload, Loader2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase.ts';
 import { useToast } from './Toast.tsx';
 import { imprimirProposta, type DadosProposta } from '../lib/proposta/template.ts';
+import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
+import { lerProposta, taxaEfetiva, SEGURADORAS_COM_LEITOR, type PropostaLida } from '../lib/proposta/lerProposta.ts';
 import { CLAUSULA_EXEMPLO, MOTIVOS, ordenarMotivos, type MotivoEstruturacao } from '../lib/proposta/estruturacao.ts';
 
 // Gerar Proposta (menu Cotações): Controle Interno fica só na tela; o PDF leva
@@ -63,6 +65,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dec = (n: number | null | undefined, casas = 2) =>
   n == null ? '' : n.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+// Taxa com as casas que a seguradora mostrou (mínimo 2, máximo 4): 0,46 / 0,4633
+const decTaxa = (n: number) => dec(n, Math.min(4, Math.max(2, (String(n).split('.')[1] ?? '').length)));
 const soDigitos = (s: string) => (s || '').replace(/\D/g, '');
 const mascaraCnpj = (s: string) => {
   const d = soDigitos(s).slice(0, 14);
@@ -83,12 +87,13 @@ function calcular(f: Form) {
   let prazo = Math.round(num(f.prazo));
   if (f.ini && f.fim) { const d = diasEntre(f.ini, f.fim); if (d > 0) prazo = d; }
   const pcot = num(f.pcot), pmin = num(f.pmin);
-  let premio = pcot > 0 ? pcot : IS * (num(f.taxa) / 100) * (prazo / 365);
+  const pelaTaxa = r2(IS * (num(f.taxa) / 100) * (prazo / 365));
+  let premio = pcot > 0 ? pcot : pelaTaxa;
   if (pcot <= 0 && pmin > premio) premio = pmin;
   premio = r2(premio);
   const honorarios = r2(IS * (num(f.hon) / 100));
   const comissao = r2(premio * (num(f.com) / 100));
-  return { IS, prazo, premio, honorarios, comissao, total: r2(premio + honorarios), receita: r2(comissao + honorarios) };
+  return { IS, prazo, premio, pelaTaxa, pcot, honorarios, comissao, total: r2(premio + honorarios), receita: r2(comissao + honorarios) };
 }
 
 const Campo: React.FC<{ id: string; rotulo: string; dica?: string; children: React.ReactNode; className?: string }> =
@@ -110,6 +115,43 @@ const PropostaGarantia: React.FC = () => {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
   const [tomadores, setTomadores] = useState<Tomador[]>([]);
+  const [importada, setImportada] = useState<PropostaLida | null>(null);
+  const [importando, setImportando] = useState<string | null>(null);
+  const arquivoRef = useRef<HTMLInputElement>(null);
+
+  // Lê a proposta da seguradora (PDF) por regras e preenche o Controle Interno.
+  const importarProposta = async (arquivo: File | undefined) => {
+    if (!arquivo) return;
+    setImportando('Lendo a proposta…');
+    try {
+      const lido = await lerDocumento(arquivo, setImportando);
+      const r = lerProposta(lido.paginas);
+      if (!r.ok || !r.dados) { toast(r.mensagem ?? 'Não consegui ler essa proposta.', 'warning'); return; }
+      const d = r.dados;
+      setF(prev => ({
+        ...prev,
+        is: d.importanciaSegurada != null ? dec(d.importanciaSegurada) : prev.is,
+        taxa: d.taxaAa != null ? decTaxa(d.taxaAa) : prev.taxa,
+        prazo: d.prazoDias != null ? String(d.prazoDias) : prev.prazo,
+        pcot: d.premioTotal != null ? dec(d.premioTotal) : prev.pcot,
+        pmin: d.premioTotal != null ? '' : prev.pmin,
+        com: d.comissaoPerc != null ? dec(d.comissaoPerc) : prev.com,
+        empresa: d.tomadorNome ?? prev.empresa,
+        cnpj: d.tomadorCnpj ? mascaraCnpj(d.tomadorCnpj) : prev.cnpj,
+        resp: prev.resp || tomadores.find(t => t.nome.toUpperCase() === (d.tomadorNome ?? '').toUpperCase())?.responsavel || '',
+        ini: d.vigenciaInicio ?? prev.ini,
+        fim: d.vigenciaFim ?? prev.fim,
+      }));
+      setImportada(d);
+      if (r.faltando.length) toast(`Proposta ${d.seguradora} lida, mas não achei: ${r.faltando.join(', ')}. Preencha à mão.`, 'warning');
+      else toast(`Proposta ${d.seguradora}${d.numeroProposta ? ` nº ${d.numeroProposta}` : ''} importada. Confira os valores.`, 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Não consegui ler o PDF.', 'error');
+    } finally {
+      setImportando(null);
+      if (arquivoRef.current) arquivoRef.current.value = '';
+    }
+  };
 
   const c = useMemo(() => calcular(f), [f]);
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -150,7 +192,7 @@ const PropostaGarantia: React.FC = () => {
 
   const linhaParaForm = (p: Proposta, duplicar = false): Form => ({
     id: duplicar ? null : p.id, numero: duplicar ? null : p.numero,
-    is: dec(p.importancia_segurada), taxa: dec(p.taxa_aa), prazo: p.prazo_dias != null ? String(p.prazo_dias) : '',
+    is: dec(p.importancia_segurada), taxa: p.taxa_aa != null ? decTaxa(Number(p.taxa_aa)) : '', prazo: p.prazo_dias != null ? String(p.prazo_dias) : '',
     pmin: p.premio_minimo ? dec(p.premio_minimo) : '', pcot: p.premio_cotado ? dec(p.premio_cotado) : '',
     com: dec(p.comissao_perc), hon: dec(p.honorario_perc, p.honorario_perc != null && !Number.isInteger(r2(p.honorario_perc * 100)) ? 3 : 2),
     empresa: p.tomador_nome, cnpj: p.tomador_cnpj ?? '', resp: p.responsavel ?? '',
@@ -228,8 +270,29 @@ const PropostaGarantia: React.FC = () => {
         <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-lg font-black text-navy">Controle Interno</h2>
           <span className="text-[10px] font-bold bg-gold text-white rounded-full px-3 py-1">não aparece no PDF</span>
-          {f.numero && <span className="ml-auto text-sm font-semibold text-navy">Editando {f.numero}</span>}
+          {f.numero && <span className="text-sm font-semibold text-navy">Editando {f.numero}</span>}
+          <div className="ml-auto flex items-center gap-2">
+            <input ref={arquivoRef} type="file" accept="application/pdf,.pdf" className="hidden" aria-hidden="true"
+              onChange={e => importarProposta(e.target.files?.[0])} />
+            <button type="button" disabled={!!importando} onClick={() => arquivoRef.current?.click()}
+              title={`Lê a proposta em PDF e preenche IS, taxa, prazo, prêmio, comissão, tomador e vigência. Seguradoras com leitor: ${SEGURADORAS_COM_LEITOR.join(', ')}`}
+              className="inline-flex items-center gap-2 bg-navy hover:bg-navy-light text-white text-sm font-bold rounded-lg px-4 py-2 disabled:opacity-60">
+              {importando ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+              {importando ?? 'Importar proposta da seguradora (PDF)'}
+            </button>
+          </div>
         </div>
+        {importada && (
+          <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 text-xs">
+            <span className="min-w-0">
+              Lido da proposta <strong>{importada.seguradora}{importada.numeroProposta ? ` nº ${importada.numeroProposta}` : ''}</strong>
+              {importada.premioTotal != null && <>: prêmio total {brl(importada.premioTotal)}
+                {importada.premioLiquido != null && <> (líquido {brl(importada.premioLiquido)}{importada.iof != null ? ` + IOF ${brl(importada.iof)}` : ''})</>}</>}
+              . Os campos abaixo foram preenchidos com esses dados.
+            </span>
+            <button type="button" aria-label="Fechar aviso" onClick={() => setImportada(null)} className="ml-auto shrink-0 hover:text-blue-950"><X size={14} /></button>
+          </div>
+        )}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4 xl:grid-cols-7">
           <Campo id="pg-is" rotulo="Importância Segurada (R$)">
             <input id="pg-is" inputMode="decimal" className={inputCls} value={f.is} onChange={set('is')} onBlur={formataMoeda('is')} placeholder="0,00" />
@@ -243,7 +306,7 @@ const PropostaGarantia: React.FC = () => {
           <Campo id="pg-pmin" rotulo="Prêmio mínimo (R$)">
             <input id="pg-pmin" inputMode="decimal" className={inputCls} value={f.pmin} onChange={set('pmin')} onBlur={formataMoeda('pmin')} placeholder="opcional" />
           </Campo>
-          <Campo id="pg-pcot" rotulo="Prêmio cotado (R$)" dica="Substitui o cálculo pela taxa">
+          <Campo id="pg-pcot" rotulo="Prêmio da seguradora (R$)" dica="Prêmio total da proposta; substitui a conta pela taxa">
             <input id="pg-pcot" inputMode="decimal" className={inputCls} value={f.pcot} onChange={set('pcot')} onBlur={formataMoeda('pcot')} placeholder="opcional" />
           </Campo>
           <Campo id="pg-com" rotulo="Comissão (%)">
@@ -264,6 +327,26 @@ const PropostaGarantia: React.FC = () => {
             </div>
           ))}
         </div>
+        {(() => {
+          if (c.pcot <= 0) return null;
+          const ef = taxaEfetiva(c.pcot, c.IS, c.prazo);
+          const dif = c.pelaTaxa > 0 ? (c.pcot - c.pelaTaxa) / c.pelaTaxa : 0;
+          return (
+            <div className="space-y-2">
+              {ef && (
+                <p className="text-xs text-slate-600">
+                  Taxa efetiva do prêmio da seguradora: <strong className="text-navy">{dec(ef.anual, 4)}% a.a.</strong> ({dec(ef.periodo, 4)}% no período de {c.prazo} dias)
+                </p>
+              )}
+              {c.pelaTaxa > 0 && Math.abs(dif) > 0.02 && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  O prêmio da seguradora está {dif > 0 ? 'acima' : 'abaixo'} {dec(Math.abs(dif) * 100, 1)}% do calculado pela taxa ({brl(c.pelaTaxa)}).
+                  Confira se o valor foi digitado certo, ou se a seguradora cobra prêmio mínimo ou custo de apólice. Vale o prêmio da seguradora.
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* O que vai para o PDF */}
@@ -345,7 +428,7 @@ const PropostaGarantia: React.FC = () => {
             className="inline-flex items-center gap-2 bg-navy hover:bg-navy-light text-white font-bold rounded-lg px-5 py-2.5 disabled:opacity-60">
             <Save size={16} /> Salvar
           </button>
-          <button type="button" onClick={() => setF(FORM_VAZIO)}
+          <button type="button" onClick={() => { setF(FORM_VAZIO); setImportada(null); }}
             className="inline-flex items-center gap-2 border border-navy text-navy font-bold rounded-lg px-5 py-2.5 hover:bg-areia">
             <Plus size={16} /> Nova proposta
           </button>
