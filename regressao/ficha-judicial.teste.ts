@@ -1,11 +1,11 @@
 // Simula um cliente preenchendo o formulário do início ao fim (jsdom), com um
 // servidor de mentira que usa as regras de verdade da Edge Function.
-// Rodar: deno run -A --node-modules-dir=auto sites/judicial.teste.ts
+// Rodar: deno run -A --node-modules-dir=auto regressao/ficha-judicial.teste.ts
 
 import { JSDOM } from "npm:jsdom";
 import { lerFicha, lerArquivos } from "../supabase/functions/ficha-judicial/regras.ts";
 
-const DIR = new URL("./judicial/", import.meta.url).pathname;
+const DIR = new URL("../sites/judicial/", import.meta.url).pathname;
 const html = await Deno.readTextFile(DIR + "index.html");
 const chamadas: Array<{ url: string; method: string; body: any }> = [];
 let falharEnviarUmaVez = false;

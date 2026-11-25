@@ -51,6 +51,7 @@ import { CommandCenter } from './components/CommandCenter.tsx';
 const Calculator = lazy(() => import('./components/Calculator'));
 const MeuDia = lazy(() => import('./components/MeuDia.tsx'));
 const PropostaGarantia = lazy(() => import('./components/PropostaGarantia.tsx'));
+const FichasJudiciais = lazy(() => import('./components/FichasJudiciais.tsx'));
 const NominationLetter = lazy(() => import('./components/NominationLetter'));
 const InsuranceDirectory = lazy(() => import('./components/InsuranceDirectory'));
 const BanksDirectory = lazy(() => import('./components/BanksDirectory'));
@@ -99,7 +100,7 @@ type View =
   | 'meu-dia'
   // Seguro Garantia
   | 'goals' | 'directory' | 'banks' | 'letter' | 'calculator' | 'endosso-allseg' | 'formularios'
-  | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'radar-advogados' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato' | 'seg-proposta'
+  | 'carteira' | 'posvenda' | 'prospeccao' | 'radar' | 'radar-advogados' | 'prospeccao-email' | 'email-trilhas' | 'pncp-prospeccao' | 'pncp-auto' | 'garimpo' | 'pnpc' | 'seg-licitante' | 'seg-contrato' | 'seg-proposta' | 'fichas-judiciais'
   // Seguro AUTO
   | 'auto' | 'auto-seguradoras'
   // Seguro Residencial
@@ -113,11 +114,11 @@ type View =
   // Outros
   | 'manual' | 'agenda' | 'parceiros' | 'usuarios' | 'sureties' | 'whatsapp' | 'whatsapp-blast' | 'email-followup' | 'imobiliaria-repasse' | 'garantia-locaticia';
 
-const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato', 'seg-proposta'];
+const GARANTIA_VIEWS: View[] = ['goals', 'directory', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'carteira', 'posvenda', 'prospeccao', 'radar', 'radar-advogados', 'prospeccao-email', 'email-trilhas', 'pncp-prospeccao', 'pncp-auto', 'garimpo', 'pnpc', 'seg-licitante', 'seg-contrato', 'seg-proposta', 'fichas-judiciais'];
 // Telas do subgrupo Prospecção que aparecem no menu. `pncp-prospeccao` e `pnpc`
 // continuam no código, mas saíram do menu (ver docs/menu/MENU-PROSPECCAO.md).
 const PROSPECCAO_VIEWS: View[] = ['prospeccao', 'pncp-auto', 'radar', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email'];
-const COTACOES_VIEWS: View[] = ['seg-licitante', 'seg-contrato', 'seg-proposta'];
+const COTACOES_VIEWS: View[] = ['seg-licitante', 'seg-contrato', 'seg-proposta', 'fichas-judiciais'];
 // Telas de apoio, reunidas no grupo "Ferramentas" do menu (menu curto de 10/11/2026).
 const FERRAMENTAS_VIEWS: View[] = ['pncp-auto', 'radar-advogados', 'garimpo', 'email-trilhas', 'prospeccao-email', 'banks', 'letter', 'calculator', 'endosso-allseg', 'formularios', 'whatsapp', 'whatsapp-blast', 'email-followup', 'manual', 'usuarios'];
 const AUTO_VIEWS: View[] = ['auto', 'auto-seguradoras'];
@@ -153,6 +154,7 @@ const VIEW_TITLES: Record<View, string> = {
   'seg-licitante': 'Seguro Licitante',
   'seg-contrato': 'Seguro de Contrato',
   'seg-proposta': 'Gerar Proposta',
+  'fichas-judiciais': 'Fichas Judiciais',
   auto: 'Seguro AUTO',
   'auto-seguradoras': 'Seguradoras AUTO',
   residential: 'Seguro Residencial / Locatícia',
@@ -597,6 +599,7 @@ const App: React.FC = () => {
                   <NavSubItem view="seg-licitante" label="Seguro Licitante" />
                   <NavSubItem view="seg-contrato" label="Seguro de Contrato" />
                   <NavSubItem view="seg-proposta" label="Gerar Proposta" />
+                  <NavSubItem view="fichas-judiciais" label="Fichas Judiciais" />
                 </NavGroup>
                 {/* Seguradoras subiu de Ferramentas em 10/11/2026: quem cota usa todo dia. */}
                 <NavItem view="directory" icon={<Shield size={16} />} label="Seguradoras" />
@@ -884,6 +887,7 @@ const App: React.FC = () => {
               {vista === 'letter' && <NominationLetter />}
               {vista === 'calculator' && <Calculator />}
               {vista === 'seg-proposta' && <PropostaGarantia />}
+              {vista === 'fichas-judiciais' && <FichasJudiciais />}
               {vista === 'endosso-allseg' && <EndossoAllseg />}
               {vista === 'formularios' && <Formularios />}
 
