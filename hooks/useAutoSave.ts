@@ -57,6 +57,15 @@ export interface RetornoAutoSave<T> {
 }
 
 const PREFIXO_RASCUNHO = 'fg-rascunho:';
+/**
+ * Hora em que o rascunho foi guardado, numa chave à parte para o conteúdo
+ * continuar no formato de sempre. Rascunho com mais de um dia é descartado: em
+ * 27/11/2026 o formulário de cliente novo do Residencial abriu com o nome de
+ * uma cliente que já tinha ficha havia nove dias, resto de um atalho aberto e
+ * abandonado. Rascunho sem hora é de antes desta regra e também sai.
+ */
+const PREFIXO_RASCUNHO_HORA = 'fg-rascunho-em:';
+const VALIDADE_RASCUNHO_MS = 24 * 60 * 60 * 1000;
 
 function normalizar<T>(dados: T, ignorar?: string[]): string {
   if (!ignorar || ignorar.length === 0) return JSON.stringify(dados ?? null);
@@ -113,7 +122,14 @@ export function useAutoSave<T>({
     if (!chaveRascunho) return;
     try {
       const bruto = localStorage.getItem(PREFIXO_RASCUNHO + chaveRascunho);
-      if (bruto) setRascunho(JSON.parse(bruto) as T);
+      if (!bruto) return;
+      const guardadoEm = Number(localStorage.getItem(PREFIXO_RASCUNHO_HORA + chaveRascunho));
+      if (!guardadoEm || Date.now() - guardadoEm > VALIDADE_RASCUNHO_MS) {
+        localStorage.removeItem(PREFIXO_RASCUNHO + chaveRascunho);
+        localStorage.removeItem(PREFIXO_RASCUNHO_HORA + chaveRascunho);
+        return;
+      }
+      setRascunho(JSON.parse(bruto) as T);
     } catch {
       // Rascunho corrompido não pode quebrar a tela: simplesmente ignora.
     }
@@ -123,6 +139,7 @@ export function useAutoSave<T>({
     if (!chaveRascunho) return;
     try {
       localStorage.removeItem(PREFIXO_RASCUNHO + chaveRascunho);
+      localStorage.removeItem(PREFIXO_RASCUNHO_HORA + chaveRascunho);
     } catch {
       /* armazenamento indisponível (aba anônima, cota cheia) — segue sem rascunho */
     }
@@ -188,7 +205,13 @@ export function useAutoSave<T>({
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
           try {
+            // A hora só anda quando o conteúdo muda de verdade. Repor o
+            // rascunho ao abrir a tela regrava o mesmo texto, e se isso
+            // renovasse a hora ele nunca venceria.
+            const guardado = localStorage.getItem(PREFIXO_RASCUNHO + chaveRascunho);
+            if (guardado === atual && localStorage.getItem(PREFIXO_RASCUNHO_HORA + chaveRascunho)) return;
             localStorage.setItem(PREFIXO_RASCUNHO + chaveRascunho, atual);
+            localStorage.setItem(PREFIXO_RASCUNHO_HORA + chaveRascunho, String(Date.now()));
           } catch {
             /* sem espaço ou sem permissão — o formulário continua funcionando */
           }

@@ -6,6 +6,7 @@ import {
     Loader2, Save, X, AlertCircle, CheckCircle2, Clock, Home, Copy, ExternalLink, FileText, Mail, Send, Upload
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { enviarApoliceParaImobiliaria, rotuloEnvio, type TipoApolice } from '../lib/envioApoliceImobiliaria.ts';
 import { getPublicResidentialFormPath, getPublicResidentialFormUrl } from '../utils/publicUrls';
 import { FeatureTip } from './FeatureTip.tsx';
 import WhatsAppPhoneLink from './WhatsAppPhoneLink';
@@ -47,6 +48,8 @@ interface ResidentialClient {
     garantia_valor?: string;
     apolice_garantia_url?: string | null;
     contrato_locacao_url?: string | null;
+    /** Contrato de fiança (condições gerais) emitido pela garantidora. */
+    contrato_fianca_url?: string | null;
     created_at?: string;
     /** true = formulário público (RLS anon); legado: obs com marcador */
     origem_publica?: boolean | null;
@@ -54,6 +57,16 @@ interface ResidentialClient {
     parceiro_nome?: string | null;
     nao_renovar?: boolean | null;
 }
+
+/**
+ * Lê uma data 'AAAA-MM-DD' como meia-noite local. `new Date('2027-11-27')` é
+ * meia-noite em UTC, que no Brasil ainda é dia 26 às 21h: a lista mostrava o
+ * fim da vigência um dia antes e a conta de dias saía com um a menos.
+ */
+const dataLocal = (v: string | null | undefined): Date => {
+    const t = String(v || '').slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? new Date(t + 'T00:00:00') : new Date(v || 0);
+};
 
 const EMPTY_FORM: Partial<ResidentialClient> = {
     nome: '', cpf: '', telefone: '', telefone_2: '', email: '',
@@ -259,12 +272,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     const [sendingResBoletoEmail, setSendingResBoletoEmail] = useState<number|null>(null);
     const [resBoletoEmailSent, setResBoletoEmailSent] = useState<Set<number>>(new Set());
 
-    const handleGarantiaDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'apolice_garantia_url' | 'contrato_locacao_url') => {
+    type CampoDocGarantia = 'apolice_garantia_url' | 'contrato_locacao_url' | 'contrato_fianca_url';
+    const handleGarantiaDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: CampoDocGarantia) => {
         const file = e.target.files?.[0];
         if (!file || !editingId) return;
         setUploadingGarantiaDoc(field);
         try {
-            const label = field === 'apolice_garantia_url' ? 'apolice-garantia' : 'contrato-locacao';
+            const label = field === 'apolice_garantia_url' ? 'apolice-garantia'
+                : field === 'contrato_fianca_url' ? 'contrato-fianca' : 'contrato-locacao';
             // O contrato de locação costuma chegar em Word, então guardamos a
             // extensão e o tipo reais. Forçar .pdf salvava um arquivo que não
             // abria depois.
@@ -275,31 +290,42 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             const url = urlData.publicUrl;
             await supabase.from('residential_clients').update({ [field]: url }).eq('id', editingId);
             setFormData(prev => ({ ...prev, [field]: url }));
-            toast('Documento enviado com sucesso!', 'success');
 
             // Espelha no cadastro do Repasse. Sem isso, o documento existia só
             // aqui: o portal da imobiliária continuava mostrando a pendência e o
-            // e-mail abaixo não teria o que anexar.
+            // e-mail não teria o que anexar.
             // termo_clausula_url, e não doc_contrato_url: aquele é o contrato
             // assinado que a imobiliária manda pelo portal, e escrever nele
             // apagaria a pendência dela sem nada ter chegado.
-            const campoRepasse = field === 'apolice_garantia_url' ? 'apolice_garantia_url' : 'termo_clausula_url';
+            const campoRepasse = field === 'contrato_locacao_url' ? 'termo_clausula_url' : field;
             const repasseId = await sincronizarComRepasse({ [campoRepasse]: url });
+            if (repasseId) setRepasseEnvio(prev => prev?.id === repasseId ? prev : { id: repasseId, garantia: null, residencial: null });
 
-            // Só a apólice avisa a imobiliária. O contrato de locação normalmente
-            // vem dela para nós, então devolver por e-mail seria ruído.
-            if (repasseId && field === 'apolice_garantia_url') {
-                const { data: envio, error: envioErr } = await supabase.functions.invoke('imobiliaria-envia-apolice', {
-                    body: { client_id: repasseId, tipo: 'garantia' },
-                });
-                if (envioErr || (envio as any)?.error) {
-                    toast(`Documento salvo, mas o e-mail para a imobiliária não saiu: ${(envio as any)?.error || envioErr?.message || ''}`, 'error');
-                } else {
-                    toast('Apólice da garantia enviada por e-mail para a imobiliária.', 'success');
-                }
-            }
+            // Anexar não envia mais e-mail (27/11/2026): o envio é o botão
+            // "Enviar para a imobiliária", que mostra o que vai sair. Antes o
+            // e-mail saía aqui e de novo no Repasse, em dobro.
+            toast(repasseId && field === 'apolice_garantia_url'
+                ? 'Apólice anexada. Quando os documentos estiverem completos, clique em "Enviar para a imobiliária".'
+                : 'Documento anexado.', 'success');
         } catch (err: any) { toast('Erro ao enviar: ' + err.message, 'error'); }
         finally { setUploadingGarantiaDoc(null); e.target.value = ''; }
+    };
+
+    // ── Envio da apólice para a imobiliária ──────────────────────────────
+    // Cadastro deste cliente no Repasse e a hora em que cada e-mail saiu.
+    const [repasseEnvio, setRepasseEnvio] = useState<{ id: string; garantia: string | null; residencial: string | null; garantiaEmitida?: boolean; residencialEmitida?: boolean } | null>(null);
+    const [enviandoApolice, setEnviandoApolice] = useState<TipoApolice | null>(null);
+
+    const enviarApolice = async (tipo: TipoApolice) => {
+        if (!repasseEnvio) return;
+        setEnviandoApolice(tipo);
+        try {
+            // Grava o que está na tela antes: a função lê os dados do banco.
+            await salvarClienteAgora();
+            const r = await enviarApoliceParaImobiliaria(repasseEnvio.id, tipo, confirmDialog);
+            if (r.mensagem) toast(r.mensagem, r.erro ? 'error' : r.enviado ? 'success' : 'info');
+            if (r.enviadoEm) setRepasseEnvio(prev => prev ? { ...prev, [tipo]: r.enviadoEm! } : prev);
+        } finally { setEnviandoApolice(null); }
     };
 
     /**
@@ -319,6 +345,34 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             .update(payload).ilike('inquilino_nome', formData.nome.trim()).select('id');
         return data?.[0]?.id ?? null;
     };
+    // Ao abrir uma ficha, acha o cadastro dela no Repasse (mesma regra do
+    // espelho: nº da apólice primeiro, depois o nome) e a hora dos envios.
+    // select('*') de propósito: as colunas de envio vieram na migração 146 e
+    // pedir pelo nome uma coluna que ainda não existe derruba a consulta.
+    useEffect(() => {
+        setRepasseEnvio(null);
+        if (!editingId) return;
+        let cancelado = false;
+        const nome = (formData.nome || '').trim();
+        const apolice = (formData.apolice || '').trim();
+        (async () => {
+            let linha: any = null;
+            if (apolice) {
+                const { data } = await supabase.from('imobiliaria_clientes').select('*').eq('numero_apolice', apolice).limit(1);
+                linha = data?.[0] || null;
+            }
+            if (!linha && nome) {
+                const { data } = await supabase.from('imobiliaria_clientes').select('*').ilike('inquilino_nome', nome).limit(1);
+                linha = data?.[0] || null;
+            }
+            if (cancelado || !linha) return;
+            setRepasseEnvio({ id: linha.id, garantia: linha.apolice_garantia_enviada_em || null, residencial: linha.apolice_residencial_enviada_em || null, garantiaEmitida: linha.status_garantia === 'emitido', residencialEmitida: linha.status_residencial === 'emitido' });
+        })();
+        return () => { cancelado = true; };
+        // Só ao trocar de ficha: nome e apólice são lidos no momento da abertura.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editingId]);
+
     useEffect(() => {
         supabase.from('partners').select('name').eq('partner_type', 'imobiliaria').order('name')
             .then(({ data }) => setImobParceiros((data || []).map((p: any) => p.name)));
@@ -344,22 +398,11 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                 numero_apolice: formData.apolice || undefined,
             });
             setFormData(prev => ({ ...prev, apolice_url: url } as any));
-            toast('PDF da apólice enviado com sucesso!', 'success');
+            toast(repasseId ? 'PDF anexado. Clique em "Enviar para a imobiliária" para mandar o e-mail.' : 'PDF da apólice anexado.', 'success');
 
-            // Apólice anexada por aqui também avisa a imobiliária, com o PDF em anexo.
-            // Antes esse e-mail só existia no modal do Repasse, e como o espelho acima
-            // já gravava a URL lá, a comparação "apólice nova" nunca era verdadeira:
-            // na prática o parceiro não recebia nada.
-            if (repasseId) {
-                const { data: envio, error: envioErr } = await supabase.functions.invoke('imobiliaria-envia-apolice', {
-                    body: { client_id: repasseId, tipo: 'residencial' },
-                });
-                if (envioErr || (envio as any)?.error) {
-                    toast(`PDF salvo, mas o e-mail para a imobiliária não saiu: ${(envio as any)?.error || envioErr?.message || ''}`, 'error');
-                } else {
-                    toast('Apólice enviada por e-mail para a imobiliária.', 'success');
-                }
-            }
+            // Anexar não envia mais e-mail (27/11/2026): o aviso à imobiliária
+            // sai pelo botão "Enviar para a imobiliária", com conferência antes.
+            if (repasseId) setRepasseEnvio(prev => prev?.id === repasseId ? prev : { id: repasseId, garantia: null, residencial: null });
         } catch (err: any) { toast('Erro ao enviar PDF: ' + err.message, 'error'); }
         finally { setUploadingApolice(false); e.target.value = ''; }
     };
@@ -518,6 +561,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
             apolice_garantia_url: (formData as any).apolice_garantia_url || null,
             contrato_locacao_url: (formData as any).contrato_locacao_url || null,
+            contrato_fianca_url: (formData as any).contrato_fianca_url || null,
             origem_publica: !!formData.origem_publica,
             parceiro_nome: formData.parceiro_nome?.trim() || null,
             apolice_url: (formData as any).apolice_url || null,
@@ -724,6 +768,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             garantia_valor: formData.tem_garantia === 'Sim' ? (formData.garantia_valor || null) : null,
             apolice_garantia_url: (formData as any).apolice_garantia_url || null,
             contrato_locacao_url: (formData as any).contrato_locacao_url || null,
+            contrato_fianca_url: (formData as any).contrato_fianca_url || null,
             origem_publica: !!formData.origem_publica,
             parceiro_nome: formData.parceiro_nome?.trim() || null,
             apolice_url: (formData as any).apolice_url || null,
@@ -1018,7 +1063,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     };
     const enviarParaRepasse = async () => {
         if (!editingId || !formData.nome?.trim() || !formData.parceiro_nome) return;
-        if (!(await confirmDialog(`Criar o repasse de ${formData.nome.trim()} para ${formData.parceiro_nome}? Depois você preenche o valor da parcela e o vencimento na ficha do Repasse.`))) return;
+        if (!(await confirmDialog(`Criar o cadastro de ${formData.nome.trim()} no Repasse de ${formData.parceiro_nome}? Se houver cobrança junto com o aluguel, você preenche o valor da parcela e o vencimento na ficha do Repasse.`))) return;
         setEnviandoRepasse(true);
         try {
             const { data: partner } = await supabase.from('partners').select('id').eq('name', formData.parceiro_nome).maybeSingle();
@@ -1043,6 +1088,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             const temResidencial = tipoSeguro !== 'garantia';
             const hojeISO = new Date().toISOString().slice(0, 10);
             const agora = new Date().toISOString();
+            // Contrato da S8 Garante começa com "S8G-". Nesse caso a garantidora
+            // já vai preenchida e, sendo só garantia, o repasse mensal fica
+            // desligado: a S8 cobra o inquilino direto, a imobiliária não cobra
+            // nada junto com o aluguel. Com residencial junto o repasse segue
+            // ligado, porque o seguro residencial pode ser cobrado no aluguel.
+            const ehS8 = /^S8G-/i.test(apolice);
+            const cobraNoAluguel = !(ehS8 && tipoSeguro === 'garantia');
 
             const { data: criado, error } = await supabase.from('imobiliaria_clientes').insert({
                 inquilino_nome: formData.nome.trim(),
@@ -1072,11 +1124,14 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                 status_garantia: temGarantia ? 'aprovado' : null,
                 apolice_residencial_url: (formData as any).apolice_url || null,
                 apolice_garantia_url: formData.apolice_garantia_url || null,
+                termo_clausula_url: temGarantia ? ((formData as any).contrato_locacao_url || null) : null,
+                contrato_fianca_url: temGarantia ? ((formData as any).contrato_fianca_url || null) : null,
+                seguradora: ehS8 && tipoSeguro === 'garantia' ? 'S8 Garante' : null,
                 // Já é cliente fechado: entra direto na coluna Aprovado.
                 kanban_status: 'aprovado',
                 kanban_status_em: agora,
                 // Repasse ligado; valor e vencimento a Bruna completa na ficha.
-                is_repasse: true,
+                is_repasse: cobraNoAluguel,
                 valor_seguro: 0,
                 parcela_atual: 2,
                 total_parcelas: 12,
@@ -1084,7 +1139,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             }).select('id').single();
             if (error) throw error;
 
-            toast('Repasse criado. Complete o valor e o vencimento na ficha.', 'success');
+            toast(cobraNoAluguel
+                ? 'Repasse criado. Complete o valor e o vencimento na ficha.'
+                : 'Cadastro criado no Repasse, sem cobrança no aluguel: a S8 cobra o inquilino direto.', 'success');
             try { sessionStorage.setItem('repasse-abrir-id', criado.id); } catch { /* sem storage, só abre a tela */ }
             await fetchClients();
             onAbrirRepasse?.();
@@ -1118,9 +1175,9 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
             if (!c.fim_vigencia) return false;
             if (c.nao_renovar) return false;
             if (estaNoRepasse(c)) return false;
-            const fim = new Date(c.fim_vigencia);
+            const fim = dataLocal(c.fim_vigencia);
             return fim >= today && fim <= in30 && c.situacao === 'Ativo';
-        }).sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
+        }).sort((a, b) => dataLocal(a.fim_vigencia).getTime() - dataLocal(b.fim_vigencia).getTime());
     };
 
     const exportCSV = () => {
@@ -1194,7 +1251,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
     // vira Ativo em Vencido todo dia; aqui e so a lista para agir.
     const vencidasSemDecisao = clients
         .filter(c => c.situacao === 'Vencido' && !c.nao_renovar && c.fim_vigencia && !estaNoRepasse(c))
-        .sort((a, b) => new Date(a.fim_vigencia).getTime() - new Date(b.fim_vigencia).getTime());
+        .sort((a, b) => dataLocal(a.fim_vigencia).getTime() - dataLocal(b.fim_vigencia).getTime());
 
     if (loading) {
         return (
@@ -1259,7 +1316,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     </div>
                     <div className="space-y-2">
                         {expiringAlerts.map(c => {
-                            const fim = new Date(c.fim_vigencia);
+                            const fim = dataLocal(c.fim_vigencia);
                             const today = new Date(); today.setHours(0, 0, 0, 0);
                             const daysLeft = Math.ceil((fim.getTime() - today.getTime()) / 86400000);
                             return (
@@ -1299,7 +1356,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     </div>
                     <div className="space-y-2">
                         {vencidasSemDecisao.map(c => {
-                            const fim = new Date(c.fim_vigencia);
+                            const fim = dataLocal(c.fim_vigencia);
                             const today = new Date(); today.setHours(0, 0, 0, 0);
                             const dias = Math.max(0, Math.floor((today.getTime() - fim.getTime()) / 86400000));
                             return (
@@ -1699,7 +1756,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                               <FeatureTip
                                 id="apolice-pdf-sync-2026"
                                 title="PDF sincroniza com o portal"
-                                description="Ao anexar o PDF da apólice, ele aparece automaticamente no portal da imobiliária para o parceiro baixar."
+                                description="Ao anexar o PDF da apólice, ele aparece no portal da imobiliária para o parceiro baixar. O e-mail só sai quando você clicar em Enviar para a imobiliária."
                                 position="top"
                               >
                               <div className="space-y-2 col-span-2">
@@ -1709,6 +1766,13 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                     <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                                     <a href={(formData as any).apolice_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-700 hover:underline flex-1 truncate">PDF anexado — clique para ver</a>
                                     <button onClick={() => setFormData(prev => ({ ...prev, apolice_url: null } as any))} className="text-slate-400 hover:text-rose-400 transition-colors"><X size={14} /></button>
+                                    {repasseEnvio && (
+                                      <button type="button" onClick={() => enviarApolice('residencial')} disabled={!!enviandoApolice}
+                                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-60 shrink-0 ${repasseEnvio.residencial || repasseEnvio.residencialEmitida ? 'bg-white border border-slate-200 text-slate-600 hover:border-navy' : 'bg-navy text-white hover:bg-navy-light'}`}>
+                                        {enviandoApolice === 'residencial' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                                        {enviandoApolice === 'residencial' ? 'Preparando...' : rotuloEnvio(repasseEnvio.residencial, repasseEnvio.residencialEmitida)}
+                                      </button>
+                                    )}
                                   </div>
                                 ) : (
                                   <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingApolice ? 'border-slate-200 bg-slate-50' : 'border-gold/40 hover:border-gold hover:bg-gold/5'}`}>
@@ -1728,7 +1792,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                     <FeatureTip
                       id="garantia-docs-2026"
                       title="Documentos da garantia"
-                      description="Com garantia ativa, você pode anexar a apólice e o contrato de locação. Eles aparecem na carteira da imobiliária."
+                      description="Com garantia ativa, você anexa a apólice ou resumo, o contrato de fiança e o termo da cláusula. O e-mail para a imobiliária sai pelo botão Enviar para a imobiliária."
                       position="top"
                     >
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
@@ -1763,10 +1827,10 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                             </div>
                             {/* Documentos da Garantia — só aparecem ao editar */}
                             {editingId && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-200">
                                     {/* Apólice da Garantia */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 px-1">📄 Apólice da Garantia Locatícia</label>
+                                        <label className="text-[10px] font-bold text-slate-400 px-1">📄 Apólice ou resumo da garantia</label>
                                         {(formData as any).apolice_garantia_url ? (
                                             <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                                                 <FileText size={15} className="text-emerald-600 shrink-0" />
@@ -1783,21 +1847,57 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                     </div>
                                     {/* Contrato de Locação */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 px-1">📝 Termo de Contrato de Locação</label>
+                                        <label className="text-[10px] font-bold text-slate-400 px-1">📝 Termo da cláusula (vai no contrato de locação)</label>
                                         {(formData as any).contrato_locacao_url ? (
                                             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
                                                 <FileText size={15} className="text-blue-600 shrink-0" />
-                                                <a href={(formData as any).contrato_locacao_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-700 hover:underline flex-1 truncate">Ver contrato anexado</a>
+                                                <a href={(formData as any).contrato_locacao_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-700 hover:underline flex-1 truncate">Ver termo anexado</a>
                                                 <button type="button" onClick={() => setFormData(prev => ({ ...prev, contrato_locacao_url: null }))} className="text-slate-400 hover:text-rose-400"><X size={14} /></button>
                                             </div>
                                         ) : (
                                             <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'contrato_locacao_url' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
                                                 <input type="file" accept={ACEITA_DOC} className="hidden" onChange={e => handleGarantiaDocUpload(e, 'contrato_locacao_url')} disabled={!!uploadingGarantiaDoc} />
                                                 {uploadingGarantiaDoc === 'contrato_locacao_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-blue-600" />}
-                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_locacao_url' ? 'Enviando...' : 'Anexar contrato (PDF ou Word)'}</span>
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_locacao_url' ? 'Enviando...' : 'Anexar termo (PDF ou Word)'}</span>
                                             </label>
                                         )}
                                     </div>
+                                    {/* Contrato de fiança: a S8 Garante manda três documentos
+                                        (resumo, contrato de fiança e cláusula). Sem este campo
+                                        dois deles tinham de ser juntados num PDF só. */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-400 px-1">📑 Contrato de fiança (garantidora)</label>
+                                        {(formData as any).contrato_fianca_url ? (
+                                            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                                                <FileText size={15} className="text-blue-600 shrink-0" />
+                                                <a href={(formData as any).contrato_fianca_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-700 hover:underline flex-1 truncate">Ver contrato de fiança</a>
+                                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, contrato_fianca_url: null }))} className="text-slate-400 hover:text-rose-400"><X size={14} /></button>
+                                            </div>
+                                        ) : (
+                                            <label className={`flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploadingGarantiaDoc === 'contrato_fianca_url' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/30'}`}>
+                                                <input type="file" accept={ACEITA_DOC} className="hidden" onChange={e => handleGarantiaDocUpload(e, 'contrato_fianca_url')} disabled={!!uploadingGarantiaDoc} />
+                                                {uploadingGarantiaDoc === 'contrato_fianca_url' ? <Loader2 size={15} className="animate-spin text-slate-400" /> : <FileText size={15} className="text-blue-600" />}
+                                                <span className="text-sm font-bold text-slate-600">{uploadingGarantiaDoc === 'contrato_fianca_url' ? 'Enviando...' : 'Anexar contrato de fiança'}</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                    {/* Envio para a imobiliária: só por este botão, com conferência. */}
+                                    {(formData as any).apolice_garantia_url && (
+                                        <div className="md:col-span-3 flex flex-wrap items-center gap-3">
+                                            {repasseEnvio ? (
+                                                <button type="button" onClick={() => enviarApolice('garantia')} disabled={!!enviandoApolice}
+                                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-60 ${repasseEnvio.garantia || repasseEnvio.garantiaEmitida ? 'bg-white border border-slate-200 text-slate-600 hover:border-navy' : 'bg-navy text-white hover:bg-navy-light'}`}>
+                                                    {enviandoApolice === 'garantia' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                                                    {enviandoApolice === 'garantia' ? 'Preparando...' : rotuloEnvio(repasseEnvio.garantia, repasseEnvio.garantiaEmitida)}
+                                                </button>
+                                            ) : (
+                                                <span className="text-xs font-semibold text-amber-700">Para enviar à imobiliária, primeiro clique em "Enviar para Repasse".</span>
+                                            )}
+                                            {repasseEnvio && !repasseEnvio.garantia && !repasseEnvio.garantiaEmitida && (
+                                                <span className="text-xs font-semibold text-slate-500">Anexar não envia e-mail. A imobiliária só recebe quando você clicar aqui.</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             </>
@@ -2147,7 +2247,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                 </tr>
                             ) : filtered.map(c => {
                                 const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-                                const fim = c.fim_vigencia ? new Date(c.fim_vigencia) : null;
+                                const fim = c.fim_vigencia ? dataLocal(c.fim_vigencia) : null;
                                 const dias = fim ? Math.ceil((fim.getTime() - hoje.getTime()) / 86400000) : null;
                                 const nearExpiry = dias !== null && dias <= 30 && dias >= 0 && c.situacao === 'Ativo';
                                 return (
@@ -2224,7 +2324,7 @@ const ResidentialInsurance: React.FC<ResidentialInsuranceProps> = ({ embedded, p
                                         <td className="px-6 py-5 text-sm font-bold text-gold whitespace-nowrap">{c.comissao ? (c.comissao.includes('R$') ? c.comissao : formatCurrency(c.comissao)) : '-'}</td>
                                         <td className="px-6 py-5 text-sm">
                                             <span className={nearExpiry ? 'text-amber-600 font-bold' : 'text-slate-600'}>
-                                                {c.fim_vigencia ? new Date(c.fim_vigencia).toLocaleDateString('pt-BR') : '-'}
+                                                {c.fim_vigencia ? dataLocal(c.fim_vigencia).toLocaleDateString('pt-BR') : '-'}
                                                 {nearExpiry && <span className="ml-2 text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-xl font-bold">{dias}d</span>}
                                             </span>
                                         </td>

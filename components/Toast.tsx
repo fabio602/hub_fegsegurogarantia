@@ -46,7 +46,7 @@ function ConfirmDialog({ message, onYes, onNo }: { message: string; onYes: () =>
           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <AlertTriangle size={18} style={{ color: '#dc2626' }} />
           </div>
-          <p style={{ fontSize: '14px', color: '#1B263B', lineHeight: 1.6, margin: 0, fontWeight: 600 }}>{message}</p>
+          <p style={{ fontSize: '14px', color: '#1B263B', lineHeight: 1.6, margin: 0, fontWeight: 600, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>{message}</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button onClick={onNo} style={{ padding: '9px 20px', background: '#f4f1ec', border: '1.5px solid #e8e4dc', borderRadius: '12px', fontSize: '13px', fontWeight: 700, color: '#78716c', cursor: 'pointer' }}>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { whatsappUrlFromPhone } from '../utils/whatsapp';
 import { supabase } from '../lib/supabase';
+import { enviarApoliceParaImobiliaria, rotuloEnvio, type TipoApolice } from '../lib/envioApoliceImobiliaria.ts';
 import ResidentialInsurance from './ResidentialInsurance.tsx';
 
 interface Cliente {
@@ -26,6 +27,11 @@ interface Cliente {
   status_garantia?: string | null;
   apolice_residencial_url?: string | null;
   apolice_garantia_url?: string | null;
+  /** Contrato de fiança da garantidora (migração 146). */
+  contrato_fianca_url?: string | null;
+  /** Hora em que o e-mail de cada apólice saiu para a imobiliária (migração 146). */
+  apolice_garantia_enviada_em?: string | null;
+  apolice_residencial_enviada_em?: string | null;
   observacoes?: string;
   created_at: string;
   dia_vencimento_aluguel?: number | null;
@@ -545,7 +551,7 @@ export default function ImobiliariaRepasse() {
   // a tela nunca desmonta (antes o atalho navegava para outra view e perdia tudo).
   const [vendaModal, setVendaModal] = useState<{ nome: string; telefone: string } | null>(null);
   const [editingStatus, setEditingStatus] = useState<Cliente | null>(null);
-  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', termo_clausula_url: '', proximo_vencimento: '' });
+  const [editStatusForm, setEditStatusForm] = useState({ inquilino_nome: '', status_residencial: '', status_garantia: '', apolice_residencial_url: '', apolice_garantia_url: '', vigencia_fim: '', status_apolice: 'ativo', kanban_status: 'solicitado', seguradora: '', numero_apolice: '', dia_vencimento_aluguel: '', valor_seguro: '', observacao_imobiliaria: '', recado_precisa_retorno: false, is_repasse: false, parcela_atual: '', total_parcelas: '', termo_clausula_url: '', contrato_fianca_url: '', proximo_vencimento: '' });
 
   // O cadastro como estava ao abrir o modal. O autosave já regravou o registro
   // do banco, então é daqui que sai o "antes" usado pelos avisos de fechamento.
@@ -596,7 +602,7 @@ export default function ImobiliariaRepasse() {
   };
 
   const openEditStatus = (c: Cliente) => {
-    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', termo_clausula_url: (c as any).termo_clausula_url || '', proximo_vencimento: (c.proximo_vencimento || '').slice(0, 10) };
+    const inicial = { inquilino_nome: c.inquilino_nome || '', status_residencial: c.status_residencial || 'aguardando_cotacao', status_garantia: c.status_garantia || 'aguardando_cotacao', apolice_residencial_url: c.apolice_residencial_url || '', apolice_garantia_url: c.apolice_garantia_url || '', vigencia_fim: (c as any).vigencia_fim || '', status_apolice: (c as any).status_apolice || 'ativo', kanban_status: (c as any).kanban_status || 'solicitado', seguradora: c.seguradora || '', numero_apolice: c.numero_apolice || '', dia_vencimento_aluguel: c.dia_vencimento_aluguel?.toString() || '', valor_seguro: Number(c.valor_seguro) > 0 ? String(c.valor_seguro) : '', observacao_imobiliaria: (c as any).observacao_imobiliaria || '', recado_precisa_retorno: Boolean((c as any).recado_precisa_retorno), is_repasse: Boolean((c as any).is_repasse), parcela_atual: c.parcela_atual?.toString() || '1', total_parcelas: c.total_parcelas?.toString() || '12', termo_clausula_url: (c as any).termo_clausula_url || '', contrato_fianca_url: (c as any).contrato_fianca_url || '', proximo_vencimento: (c.proximo_vencimento || '').slice(0, 10) };
     setEditingStatus(c);
     setEditStatusForm(inicial);
     // Retrato do cadastro como estava ao abrir. Os efeitos de fechamento
@@ -740,6 +746,7 @@ export default function ImobiliariaRepasse() {
       // Mesmo campo que a imobiliária preenche pelo portal. Aqui ele existe para
       // quando o contrato chega direto na sua mão e não pelo parceiro.
       termo_clausula_url: form.termo_clausula_url || null,
+      contrato_fianca_url: temGarantia(editingStatus) ? form.contrato_fianca_url || null : null,
       vigencia_fim: form.vigencia_fim || null,
       status_apolice: form.status_apolice || 'ativo',
       status: encerrandoAgora
@@ -845,9 +852,47 @@ export default function ImobiliariaRepasse() {
     salvar: gravarStatus,
   });
 
+  // ── Envio da apólice para a imobiliária ─────────────────────────
+  const [enviandoApolice, setEnviandoApolice] = useState<TipoApolice | null>(null);
+  const enviarApolice = async (tipo: TipoApolice) => {
+    if (!editingStatus) return;
+    setEnviandoApolice(tipo);
+    try {
+      // A função lê do banco: o que está na tela precisa estar gravado antes.
+      await salvarStatusAgora();
+      if (bloqueioRef.current) { alert(bloqueioRef.current); return; }
+      const r = await enviarApoliceParaImobiliaria(editingStatus.id, tipo, m => confirm(m));
+      if (r.mensagem) alert(r.mensagem);
+      if (!r.enviadoEm) return;
+      const colEnviada = tipo === 'garantia' ? 'apolice_garantia_enviada_em' : 'apolice_residencial_enviada_em';
+      const colStatus = tipo === 'garantia' ? 'status_garantia' : 'status_residencial';
+      const marca: Record<string, string> = { [colEnviada]: r.enviadoEm };
+      // A função já gravou "emitido" no banco. O formulário acompanha, senão o
+      // próximo salvamento automático devolveria o status antigo.
+      if (r.enviado) {
+        marca[colStatus] = 'emitido';
+        setEditStatusForm(f => ({ ...f, [colStatus]: 'emitido' }));
+        mudouAlgoRef.current = true;
+      }
+      setEditingStatus(prev => prev ? { ...prev, ...marca } as any : prev);
+      setClientes(prev => prev.map(c => c.id === editingStatus.id ? { ...c, ...marca } as any : c));
+    } finally { setEnviandoApolice(null); }
+  };
+  const botaoEnvio = (tipo: TipoApolice) => {
+    const enviadoEm = tipo === 'garantia' ? editingStatus?.apolice_garantia_enviada_em : editingStatus?.apolice_residencial_enviada_em;
+    const jaEmitida = (tipo === 'garantia' ? editingStatus?.status_garantia : editingStatus?.status_residencial) === 'emitido';
+    return (
+      <button type="button" onClick={() => enviarApolice(tipo)} disabled={!!enviandoApolice}
+        className={`mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-60 ${enviadoEm || jaEmitida ? 'bg-white border border-slate-200 text-slate-600 hover:border-navy' : 'bg-navy text-white hover:bg-navy-light'}`}>
+        {enviandoApolice === tipo ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+        {enviandoApolice === tipo ? 'Preparando...' : rotuloEnvio(enviadoEm, jaEmitida)}
+      </button>
+    );
+  };
+
   /**
    * O que só faz sentido quando a edição termina: espelhar no Residencial,
-   * avisar a imobiliária da apólice nova e mandar o recado que pede retorno.
+   * espelhar os anexos da garantia e mandar o recado que pede retorno.
    * Fora do autosave de propósito — a cada tecla digitada sairia um e-mail.
    */
   const efeitosDoStatus = async () => {
@@ -938,19 +983,39 @@ export default function ImobiliariaRepasse() {
       }
     }
 
-    // Email para imobiliária quando apólice é adicionada. As duas coberturas
-    // avisam, cada uma com o seu anexo: são apólices diferentes e a imobiliária
-    // precisa das duas em mãos.
-    if ((original as any).partner_id) {
-      const novas: ('residencial' | 'garantia')[] = [];
-      if (editStatusForm.apolice_residencial_url && editStatusForm.apolice_residencial_url !== (original.apolice_residencial_url || '')) novas.push('residencial');
-      if (editStatusForm.apolice_garantia_url && editStatusForm.apolice_garantia_url !== (original.apolice_garantia_url || '')) novas.push('garantia');
-      for (const tipo of novas) {
-        supabase.functions.invoke('imobiliaria-envia-apolice', {
-          body: { client_id: original.id, tipo },
-        }).catch(e => console.warn(`Email apólice ${tipo}:`, e));
+    // ── Anexos da garantia de volta para o Registro de Vendas ─────
+    // O caminho contrário já existia (anexar na ficha gravava aqui). Anexado
+    // por este modal, o documento não aparecia na ficha do cliente, e quem
+    // abria a ficha anexava de novo. Mesma regra do completarComRegistro: só
+    // espelha quando há exatamente um cliente com aquele nome.
+    if (temGarantia(original)) {
+      const pares: [keyof typeof editStatusForm, string][] = [
+        ['apolice_garantia_url', 'apolice_garantia_url'],
+        ['termo_clausula_url', 'contrato_locacao_url'],
+        ['contrato_fianca_url', 'contrato_fianca_url'],
+      ];
+      const docs: Record<string, string> = {};
+      for (const [aqui, la] of pares) {
+        const novo = String(editStatusForm[aqui] || '');
+        if (novo && novo !== String((original as any)[aqui] || '')) docs[la] = novo;
+      }
+      if (Object.keys(docs).length) {
+        const { data: rcDocs } = await supabase
+          .from('residential_clients')
+          .select('id')
+          .ilike('nome', (nomeAntigo || nomeEditado).replace(/[%_\\]/g, m => '\\' + m))
+          .limit(2);
+        if (rcDocs && rcDocs.length === 1) {
+          const { error: docsErr } = await supabase.from('residential_clients').update(docs).eq('id', rcDocs[0].id);
+          if (docsErr) console.warn('[repasse] Anexos da garantia não espelhados no Registro de Vendas:', docsErr.message);
+        }
       }
     }
+
+    // O e-mail da apólice NÃO sai mais daqui (27/11/2026). Antes, fechar o
+    // modal com um PDF novo avisava a imobiliária sozinho, e anexar depois na
+    // ficha do Registro de Vendas avisava de novo. Agora só o botão "Enviar
+    // para a imobiliária" envia, e a função recusa repetição sem confirmação.
 
     // Recado: decide se a imobiliária precisa ser avisada por e-mail.
     // Só dispara quando o corretor marcou "preciso de retorno" e o aviso ainda
@@ -2644,11 +2709,12 @@ export default function ImobiliariaRepasse() {
                   {editStatusForm.apolice_residencial_url
                     ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                        <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado, clique para ver</a>
+                        <a href={editStatusForm.apolice_residencial_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF anexado, clique para ver</a>
                         <button onClick={() => setEditStatusForm(f => ({...f, apolice_residencial_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
                       </div>
                     : <ApoliceUpload clienteId={editingStatus.id} field="apolice_residencial_url"
                         onUploaded={(url) => setEditStatusForm(f => ({...f, apolice_residencial_url: url}))} />}
+                  {editStatusForm.apolice_residencial_url && botaoEnvio('residencial')}
                 </div>
               </section>
             )}
@@ -2688,11 +2754,11 @@ export default function ImobiliariaRepasse() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">PDF da apólice</label>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Apólice ou resumo da garantia</label>
                     {editStatusForm.apolice_garantia_url
                       ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
                           <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                          <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF enviado, clique para ver</a>
+                          <a href={editStatusForm.apolice_garantia_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">PDF anexado, clique para ver</a>
                           <button onClick={() => setEditStatusForm(f => ({...f, apolice_garantia_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
                         </div>
                       : <ApoliceUpload clienteId={editingStatus.id} field="apolice_garantia_url"
@@ -2711,7 +2777,28 @@ export default function ImobiliariaRepasse() {
                       : <ApoliceUpload clienteId={editingStatus.id} field="termo_clausula_url" rotulo="Clique para anexar o termo (PDF ou Word)"
                           onUploaded={(url) => setEditStatusForm(f => ({...f, termo_clausula_url: url}))} />}
                   </div>
+                  {/* Contrato de fiança da garantidora. A S8 Garante manda três
+                      documentos; sem este campo dois iam juntos num PDF só. */}
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Contrato de fiança (garantidora)</label>
+                    {editStatusForm.contrato_fianca_url
+                      ? <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                          <a href={editStatusForm.contrato_fianca_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-700 hover:underline flex-1 truncate">Contrato anexado, clique para ver</a>
+                          <button onClick={() => setEditStatusForm(f => ({...f, contrato_fianca_url: ''}))} title="Remover" className="text-slate-400 hover:text-rose-400"><X size={13} /></button>
+                        </div>
+                      : <ApoliceUpload clienteId={editingStatus.id} field="contrato_fianca_url" rotulo="Clique para anexar o contrato de fiança"
+                          onUploaded={(url) => setEditStatusForm(f => ({...f, contrato_fianca_url: url}))} />}
+                  </div>
                 </div>
+                {editStatusForm.apolice_garantia_url && (
+                  <div>
+                    {botaoEnvio('garantia')}
+                    {!editingStatus.apolice_garantia_enviada_em && editingStatus.status_garantia !== 'emitido' && (
+                      <p className="text-[11px] font-semibold text-slate-500 mt-1.5">Anexar não envia e-mail. A imobiliária só recebe quando você clicar no botão.</p>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
