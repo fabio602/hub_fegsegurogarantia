@@ -166,3 +166,12 @@ Formulário em `https://judicial.fegsegurogarantia.com` para o cliente (empresa 
 - **HUB**: view `fichas-judiciais` (menu Cotações), `components/FichasJudiciais.tsx`. O PDF da ficha sai de `lib/fichaJudicial/template.ts`, impresso em iframe como a proposta.
 - **Tetos do depósito recursal**: `TETOS` e `TETO_FONTE` em `sites/judicial/regras.js` (TST, Ato SEGJUD.GP nº 381/2026, em vigor desde 1º/8/2026). O TST costuma atualizar em agosto: conferir a página "Depósitos Recursais, Valores Vigentes" e trocar os dois.
 - **Testes**: `deno test supabase/functions/ficha-judicial/regras_test.ts` (regras do servidor) e `deno run -A --node-modules-dir=auto regressao/ficha-judicial.teste.ts` (cliente simulado do começo ao fim, com as regras reais do servidor). Rodar os dois a cada mudança no formulário ou na function.
+
+## Apólice para a imobiliária: envio único e por botão
+
+Anexar a apólice (Registro de Vendas ou cadastro do Repasse) **não envia e-mail**. O envio é o botão "Enviar para a imobiliária", que passa por `lib/envioApoliceImobiliaria.ts`: pede a prévia à Edge Function `imobiliaria-envia-apolice` (`previa: true`, não envia nada), mostra destinatários, anexos e dados, e só então envia. A função guarda a hora em `apolice_garantia_enviada_em` / `apolice_residencial_enviada_em` (migração 146) e, com a hora preenchida, **só reenvia com `reenviar: true`**, que a tela manda depois de o corretor confirmar. Ao enviar, a função grava o status da cobertura como `emitido`. Não volte a chamar a função direto de um upload: foi isso que mandou o mesmo e-mail duas vezes para a imobiliária em 27/11/2026.
+
+- A garantia tem três anexos: apólice ou resumo (`apolice_garantia_url`), contrato de fiança da garantidora (`contrato_fianca_url`) e termo da cláusula (`termo_clausula_url` no Repasse, `contrato_locacao_url` no Registro de Vendas). Os três espelham nos dois sentidos entre `imobiliaria_clientes` e `residential_clients`.
+- "Enviar para Repasse" com produto "Apenas Garantia Locatícia" e contrato começando por `S8G-` cria o cadastro com garantidora S8 Garante e `is_repasse = false`: a S8 cobra o inquilino direto.
+- Rascunho de formulário novo (`useAutoSave`, `chaveRascunho`) vence em 24 horas, contadas da última alteração.
+- Data `AAAA-MM-DD` na tela: use `dataLocal()` do `ResidentialInsurance.tsx`, nunca `new Date('AAAA-MM-DD')`, que é UTC e mostra o dia anterior no Brasil.
