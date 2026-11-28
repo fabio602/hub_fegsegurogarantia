@@ -62,6 +62,8 @@ interface Props {
   parceiros: { id: number; name: string }[];
   /** A baixa mexe no cadastro: a tela do Repasse recarrega. */
   onMudou: () => void;
+  /** Baixa de comprovante que chegou por fora do portal (a tela-mãe confirma e dá a baixa). */
+  onRecebiPorFora?: (c: RepasseEmAberto) => void;
   /** Quantos itens pedem ação (para conferir + a pagar), para o número da aba. */
   onContagem?: (n: number) => void;
 }
@@ -107,7 +109,7 @@ const Vazio: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="px-4 py-5 border border-dashed border-slate-200 rounded-xl text-xs text-slate-400 text-center">{children}</div>
 );
 
-const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, onContagem }) => {
+const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, onContagem, onRecebiPorFora }) => {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [concluidos, setConcluidos] = useState<Pagamento[]>([]);
   const mesAtual = hojeISO().slice(0, 7);
@@ -311,8 +313,8 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         <Coluna titulo="Aguardando a imobiliária" qtd={aguardando.length} borda="border-slate-100" selo="bg-amber-100 text-amber-800"
           ajuda={mes === mesAtual
-            ? `Parcelas de ${soMes(mes)} e as atrasadas de antes, ainda sem comprovante. Só acompanhar.`
-            : `Parcelas que vencem em ${soMes(mes)}, ainda sem comprovante. Só acompanhar.`}>
+            ? `Parcelas de ${soMes(mes)} e as atrasadas de antes, ainda sem comprovante no portal.`
+            : `Parcelas que vencem em ${soMes(mes)}, ainda sem comprovante no portal.`}>
           {aguardando.length === 0 && <Vazio>Nenhuma parcela esperando comprovante em {soMes(mes)}.</Vazio>}
           {aguardando.map(c => {
             const atrasado = !!c.proximo_vencimento && c.proximo_vencimento.slice(0, 10) < hoje;
@@ -327,7 +329,18 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
                   {nomeParceiro(c.partner_id)} · parcela {c.parcela_atual}/{c.total_parcelas}
                   {c.proximo_vencimento ? ` · ${atrasado ? 'venceu' : 'vence'} ${fmtData(c.proximo_vencimento)}` : ''}
                 </div>
-                {atrasado && <div className="text-xs font-bold text-rose-700 mt-1.5">Atrasado há {dias} {dias === 1 ? 'dia' : 'dias'}</div>}
+                <div className="flex items-center justify-between gap-2 mt-1.5">
+                  {atrasado
+                    ? <span className="text-xs font-bold text-rose-700">Atrasado há {dias} {dias === 1 ? 'dia' : 'dias'}</span>
+                    : <span />}
+                  {onRecebiPorFora && (
+                    <button type="button" onClick={() => onRecebiPorFora(c)}
+                      title="O comprovante chegou por fora do portal e você já conferiu no banco"
+                      className="text-xs font-bold text-slate-500 hover:text-navy underline-offset-2 hover:underline">
+                      Já recebi por fora
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}

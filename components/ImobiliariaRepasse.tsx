@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { enviarApoliceParaImobiliaria, rotuloEnvio, type TipoApolice } from '../lib/envioApoliceImobiliaria.ts';
 import ResidentialInsurance from './ResidentialInsurance.tsx';
 import RepasseComprovantes from './RepasseComprovantes.tsx';
+import RepassesAtivosTabela from './RepassesAtivosTabela.tsx';
 
 interface Cliente {
   id: string;
@@ -1353,6 +1354,17 @@ export default function ImobiliariaRepasse() {
     load();
   };
 
+  // Baixa de comprovante que chegou por fora do portal (WhatsApp, por exemplo).
+  // Usada pelo menu "⋯" dos Repasses ativos e pelo "Já recebi por fora" da aba
+  // Comprovantes. Sempre com confirmação: a baixa normal é pela conferência.
+  const baixaSemComprovante = (c: Cliente) => {
+    if (!confirm(
+      `Dar baixa na parcela ${c.parcela_atual}/${c.total_parcelas} de ${c.inquilino_nome} (${fmtBRL(Number(c.valor_seguro))}) sem comprovante no portal?\n\n` +
+      `Use só quando o comprovante chegou por fora e você já conferiu o recebimento no banco. O valor vai para "A pagar para a seguradora".`
+    )) return;
+    avancarParcela(c);
+  };
+
   // Empurra a parcela em aberto para o mês seguinte, sem dar baixa. A conta da
   // data fica na RPC, pelo mesmo motivo do Avançar Parcela.
   const adiarVencimento = async (c: Cliente) => {
@@ -1939,22 +1951,6 @@ export default function ImobiliariaRepasse() {
       </>)}
 
       {aba === 'repasses' && (<>
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-navy rounded-2xl p-5 text-white">
-          <p className="text-white/50 text-xs font-bold mb-1">Total Mensal</p>
-          <p className="text-2xl font-black text-gold">{fmtBRL(totalMensal)}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold mb-1">Clientes Ativos</p>
-          <p className="text-2xl font-black text-slate-800">{ativos.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-slate-400 text-xs font-bold mb-1">Envio Automático</p>
-          <p className="text-2xl font-black text-slate-800">Todo dia 10</p>
-        </div>
-      </div>
-
       {/* Form */}
       {showForm && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-7">
@@ -2015,174 +2011,27 @@ export default function ImobiliariaRepasse() {
         </div>
       )}
 
-      {/* Active clients table */}
+      {/* Clientes ativos: uma linha por cliente, agrupados por imobiliária
+          (layout de 28/11/2026). A baixa do repasse é feita na aba Comprovantes;
+          aqui ela só existe no menu "⋯", para comprovante que chegou por fora. */}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 size={24} className="text-gold animate-spin" /></div>
-      ) : ativos.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
-          <User size={32} className="text-slate-300 mx-auto mb-3" />
-          <p className="font-bold text-slate-400">Nenhum cliente ativo</p>
-          <p className="text-slate-300 text-sm mt-1">Clique em "Novo Cliente" para começar</p>
-        </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-7 py-4 border-b border-slate-100 flex items-center justify-between">
-            <p className="font-bold text-slate-800 text-sm">{ativos.length} cliente(s) ativo(s)</p>
-            <p className="text-xs font-bold text-slate-400">Recebeu o pagamento? Clique em "Avançar Parcela" (ou "Quitar Repasse", na última) para dar a baixa</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Inquilino</th>
-                  {!filterParceiro && <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Parceiro</th>}
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Seguradora</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Nº Apólice</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Seg. Residencial</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Garantia / Docs</th>
-                  <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400">Valor</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold text-slate-400">Venc.</th>
-                  <th className="text-center px-5 py-3 text-[10px] font-bold text-slate-400">Parcela</th>
-                  <th className="px-5 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {ativos.map(c => (
-                  <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4">
-                      {/* O nome abre a edição: é onde a mão vai primeiro quando
-                          se quer mexer numa linha. O botão "Status" no fim da
-                          linha continua ali para quem já se acostumou com ele. */}
-                      <button
-                        type="button"
-                        onClick={() => openEditStatus(c)}
-                        className="group flex items-center gap-2 text-left"
-                        title="Clique para editar este cliente"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center shrink-0">
-                          <User size={13} className="text-gold" />
-                        </div>
-                        <span className="font-bold text-slate-800 text-sm group-hover:text-gold transition-colors">
-                          {c.inquilino_nome}
-                        </span>
-                        <Pencil size={12} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                      </button>
-                    </td>
-                    {!filterParceiro && (
-                      <td className="px-5 py-4">
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-xl bg-slate-100 text-slate-600">
-                          {parceiros.find(p => p.id === (c as any).partner_id)?.name?.replace('Imobiliária ', '') || '—'}
-                        </span>
-                      </td>
-                    )}
-                    <td className="px-5 py-4 text-sm font-bold text-slate-700">{c.seguradora && c.seguradora !== 'Importado' ? c.seguradora : <span className="text-slate-300">—</span>}</td>
-                    <td className="px-5 py-4 text-sm font-mono text-slate-500">{c.numero_apolice || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-5 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-xl ${STATUS_COLORS[c.status_residencial || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
-                        {getStatusLabel(c.status_residencial || 'aguardando_cotacao', (c as any).status_apolice)}
-                      </span>
-                      {c.apolice_residencial_url && <a href={c.apolice_residencial_url} target="_blank" rel="noreferrer" className="block mt-1 text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
-                    </td>
-                    <td className="px-5 py-4">
-                      {temGarantia(c) ? (
-                        <div className="space-y-1">
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-xl ${STATUS_COLORS[c.status_garantia || 'aguardando_cotacao'] || 'bg-slate-50 text-slate-500'}`}>
-                            {STATUS_LABELS[c.status_garantia || 'aguardando_cotacao']}
-                          </span>
-                          {c.apolice_garantia_url && <a href={c.apolice_garantia_url} target="_blank" rel="noreferrer" className="block text-[10px] font-bold text-emerald-600 hover:underline">⬇ Apólice</a>}
-                          {/* Documentos */}
-                          <div className="flex flex-col gap-0.5 mt-1">
-                            {[['doc_contrato_url','Contrato'],['doc_termo_vistoria_url','Vistoria'],['doc_fotos_vistoria_url','Fotos']].map(([key, label]) => (
-                              (c as any)[key]
-                                ? <a key={key} href={(c as any)[key]} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-blue-600 hover:underline">📎 {label}</a>
-                                : <span key={key} className="text-[10px] text-slate-300">📎 {label} pendente</span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : <span className="text-slate-300 text-xs">—</span>}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmtBRL(Number(c.valor_seguro))}</td>
-                    <td className="px-5 py-4 text-center">
-                      {c.proximo_vencimento ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          {fmtDataISO(c.proximo_vencimento)}
-                        </span>
-                      ) : c.dia_vencimento_aluguel ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Sem data completa calculada; mostrando só o dia">
-                          dia {c.dia_vencimento_aluguel}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-bold ${
-                        c.parcela_atual === c.total_parcelas
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-emerald-50 text-emerald-700'
-                      }`}>
-                        {c.parcela_atual}/{c.total_parcelas}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2 justify-end flex-wrap">
-                        <button onClick={() => openEditStatus(c)}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors"
-                          title="Atualizar status e apólice">
-                          <Pencil size={12} className="inline mr-1" /> Status
-                        </button>
-                        {(c as any).is_repasse && c.proximo_vencimento && (
-                          <button
-                            onClick={() => adiarVencimento(c)}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-colors"
-                            title="Passa o vencimento desta parcela para o mês seguinte, sem dar baixa"
-                          >
-                            Adiar 1 mês
-                          </button>
-                        )}
-                        {c.repasse_baixa_anterior && (
-                          <button
-                            onClick={() => desfazerBaixa(c)}
-                            className="px-3 py-1.5 bg-white border border-slate-200 hover:border-amber-400 hover:text-amber-700 text-slate-500 text-xs font-bold rounded-xl transition-colors"
-                            title="Volta para a parcela e o vencimento de antes da última baixa"
-                          >
-                            Desfazer baixa
-                          </button>
-                        )}
-                        {(c as any).is_repasse && (
-                          <button
-                            onClick={() => avancarParcela(c)}
-                            className="px-3 py-1.5 bg-gold/15 hover:bg-gold/30 text-gold text-xs font-bold rounded-xl transition-colors"
-                            title={c.parcela_atual === c.total_parcelas ? 'Dar baixa na última parcela. A apólice continua ativa.' : 'Dar baixa nesta parcela e avançar para a próxima'}
-                          >
-                            {c.parcela_atual === c.total_parcelas ? 'Quitar Repasse' : 'Avançar Parcela'}
-                          </button>
-                        )}
-                        {confirmDelete === c.id ? (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => deletar(c.id)} className="text-rose-500 text-xs font-bold hover:text-rose-700">Confirmar</button>
-                            <button onClick={() => setConfirmDelete(null)} className="text-slate-400 text-xs hover:text-slate-600">Cancelar</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-navy">
-                  <td colSpan={3} className="px-5 py-3 text-white font-bold text-sm">TOTAL MENSAL</td>
-                  <td className="px-5 py-3 text-gold font-bold text-sm">{fmtBRL(totalMensal)}</td>
-                  <td colSpan={2}></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
+        <RepassesAtivosTabela
+          clientes={ativos as any}
+          parceiros={parceiros}
+          totalMensal={totalMensal}
+          rotuloResidencial={(c) => getStatusLabel(c.status_residencial || 'aguardando_cotacao', (c as any).status_apolice)}
+          rotuloGarantia={(c) => STATUS_LABELS[c.status_garantia || 'aguardando_cotacao'] || ''}
+          onEditar={(c) => openEditStatus(c as any)}
+          onAdiar={(c) => adiarVencimento(c as any)}
+          onBaixaSemComprovante={(c) => baixaSemComprovante(c as any)}
+          onDesfazerBaixa={(c) => desfazerBaixa(c as any)}
+          onExcluir={(c) => {
+            if (confirm(`Excluir o cadastro de ${c.inquilino_nome}?\n\nIsso apaga o cliente do Repasse e não pode ser desfeito.`)) deletar(c.id);
+          }}
+          onAbrirComprovantes={() => mudarAba('comprovantes')}
+        />
       )}
 
       </>)}
@@ -2196,6 +2045,7 @@ export default function ImobiliariaRepasse() {
           parceiros={parceiros}
           onMudou={load}
           onContagem={setQtdComprovantes}
+          onRecebiPorFora={(c) => baixaSemComprovante(c as any)}
         />
       </div>
 
