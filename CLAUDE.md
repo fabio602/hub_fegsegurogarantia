@@ -128,6 +128,14 @@ O plugin `tailwindcss-animate` fornece `animate-in`, `slide-in-from-*`, `zoom-in
 
 Os portais públicos em `public/*.html` **não usam Tailwind**. São HTML e CSS puro, com os tokens declarados em `:root` dentro de cada arquivo.
 
+## Comprovante de repasse da imobiliária
+
+Aba "Fatura Mensal" de `public/imobiliaria.html`. A imobiliária anexa o comprovante do PIX em cada cliente (um PIX por cliente) e vê a situação da parcela: falta comprovante, atrasado, enviado em conferência, pago. **A baixa nunca é automática:** todo repasse espera o clique do Fábio em "Confirmar recebimento" no HUB (decisão de 28/11/2026). Depois de recebido, o valor fica em "A pagar para a seguradora", lista que só existe no HUB.
+
+- **Banco** (migração 147): tabela `imobiliaria_repasse_pagamentos`, uma linha por cliente e parcela, com retrato da parcela no envio. Situações: `enviado`, `recusado`, `recebido`, `pago_seguradora`. Bucket privado `repasse-comprovantes`. Funções do HUB: `confirmar_recebimento_repasse`, `desfazer_recebimento_repasse`, `recusar_comprovante_repasse`, `marcar_repasse_pago_seguradora`, `desmarcar_repasse_pago_seguradora` e `registrar_recebimento_manual_repasse` (baixa sem comprovante no portal). A confirmação chama `avancar_parcela_repasse` (migração 104), que continua sendo o único lugar que avança parcela.
+- **Edge Function `imobiliaria-repasse-comprovante`** (`verify_jwt` desligado, confere o token do login como a `s8-analise`): ações `listar`, `preparar` (URL de upload assinada) e `enviar` (grava pelo RPC `repasse_registrar_comprovante`, só service role). O portal **não** lê a tabela nem o bucket. Para a imobiliária, `recebido` e `pago_seguradora` aparecem iguais, como "pago".
+- **Portal**: a lista do mês é montada por `repMontarLinhas` (função pura): parcelas em aberto vêm do cadastro, parcelas pagas vêm dos pagamentos (a parcela já avançou no cadastro). Se a function não responder, a aba volta ao que era antes, sem situação e sem botão.
+
 ## Análise de crédito S8 no portal da imobiliária
 
 Aba "Análise de Crédito" de `public/imobiliaria.html` (página `page-analise`). A imobiliária envia a análise da garantia locatícia e vê a resposta da S8 Garante na mesma tela. O portal **não** fala com a S8 nem lê a tabela: tudo passa pela Edge Function `s8-analise` (`verify_jwt` desligado, confere o token do login como o `parceiro-portal`). A chave da API da S8 é da conta da F&G, no secret `S8_API_KEY`; o plano usado é o Prata (`9354b380-b708-47b5-a79c-54276d40e975`, pode ser trocado pelo secret `S8_PLAN_ID`). Tabela `s8_analises` (migração 142), cron `s8-analises-sync` a cada 2 min. Ações: `criar`, `listar`, `contratar`, `sincronizar`.
