@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, AlertTriangle, FileText, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, FileText, Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { lerDocumento } from '../lib/pdf/lerDocumento.ts';
 import { lerComprovantePix, conferirComprovante, type LeituraComprovante, type ConferenciaComprovante } from '../lib/repasse/lerComprovantePix.ts';
@@ -15,6 +15,11 @@ import { lerComprovantePix, conferirComprovante, type LeituraComprovante, type C
  * 28/11/2026). A leitura do comprovante (valor, pagador, recebedor) é só ajuda
  * para essa conferência: roda no navegador, por regras, com o OCR local.
  * As colunas da seguradora existem só no HUB; a imobiliária vê "pago".
+ *
+ * Mês: o seletor do topo vale para as duas colunas das pontas (aguardando e
+ * concluído), que senão cresceriam sem fim: quem recebe baixa volta para
+ * "aguardando" já com a parcela do mês seguinte. As duas colunas do meio pedem
+ * ação e mostram sempre tudo o que está pendente, de qualquer mês.
  */
 
 const BUCKET = 'repasse-comprovantes';
@@ -70,6 +75,18 @@ const fmtQuando = (iso: string | null | undefined) =>
 const hojeISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const diaBrasilia = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso));
 
+/** 'AAAA-MM' deslocado em n meses. */
+const somarMes = (mes: string, n: number) => {
+  const [a, m] = mes.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+const nomeMes = (mes: string) => {
+  const [a, m] = mes.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, 1)).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+};
+const soMes = (mes: string) => nomeMes(mes).split(' de ')[0];
+
 const TIPO_POR_EXT: Record<string, string> = {
   pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
 };
@@ -92,6 +109,9 @@ const Vazio: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, onContagem }) => {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [concluidos, setConcluidos] = useState<Pagamento[]>([]);
+  const mesAtual = hojeISO().slice(0, 7);
+  const [mes, setMes] = useState(mesAtual);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -104,31 +124,39 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
   );
 
   const carregar = useCallback(async () => {
-    // Vivos (enviado, recebido) sempre; concluídos e recusados, só os recentes.
-    const desde = new Date(Date.now() - 62 * 86400000).toISOString();
-    const { data, error } = await supabase
-      .from('imobiliaria_repasse_pagamentos')
-      .select('*')
-      .or(`status.in.(enviado,recebido),created_at.gte.${desde}`)
-      .order('created_at', { ascending: true });
+    // Pendentes (enviado, recebido): sempre todos. Concluídos: só os do mês escolhido.
+    const [vivos, feitos] = await Promise.all([
+      supabase.from('imobiliaria_repasse_pagamentos').select('*')
+        .in('status', ['enviado', 'recebido']).order('created_at', { ascending: true }),
+      supabase.from('imobiliaria_repasse_pagamentos').select('*')
+        .eq('status', 'pago_seguradora')
+        .gte('pago_seguradora_em', `${mes}-01`).lt('pago_seguradora_em', `${somarMes(mes, 1)}-01`)
+        .order('pago_seguradora_em', { ascending: false }).order('inquilino_nome', { ascending: true }),
+    ]);
+    const error = vivos.error || feitos.error;
     if (error) { setErro(error.message); setCarregando(false); return; }
     setErro(null);
-    setPagamentos((data || []) as Pagamento[]);
+    setPagamentos((vivos.data || []) as Pagamento[]);
+    setConcluidos((feitos.data || []) as Pagamento[]);
     setCarregando(false);
-  }, []);
+  }, [mes]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
   const paraConferir = pagamentos.filter(p => p.status === 'enviado');
   const aPagar = pagamentos.filter(p => p.status === 'recebido');
-  const mes = hojeISO().slice(0, 7);
-  const concluidos = pagamentos
-    .filter(p => p.status === 'pago_seguradora' && (p.pago_seguradora_em || '').slice(0, 7) === mes)
-    .sort((a, b) => String(b.pago_seguradora_em).localeCompare(String(a.pago_seguradora_em)));
+  const totalConcluido = concluidos.reduce((s, p) => s + Number(p.valor_esperado || 0), 0);
   const comComprovante = new Set(paraConferir.map(p => `${p.client_id}|${p.parcela}`));
   const hoje = hojeISO();
   const aguardando = emAberto
     .filter(c => Number(c.valor_seguro) > 0 && !comComprovante.has(`${c.id}|${c.parcela_atual}`))
+    .filter(c => {
+      const venc = c.proximo_vencimento ? c.proximo_vencimento.slice(0, 7) : null;
+      // No mês atual entram também as atrasadas de meses anteriores e as sem
+      // data, para nada sumir da vista.
+      if (mes === mesAtual) return !venc || venc <= mesAtual;
+      return venc === mes;
+    })
     .sort((a, b) => String(a.proximo_vencimento || '9999').localeCompare(String(b.proximo_vencimento || '9999')));
   const totalAPagar = aPagar.reduce((s, p) => s + Number(p.valor_esperado || 0), 0);
 
@@ -260,15 +288,32 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
         <p className="text-sm text-slate-500">
           O repasse anda da esquerda para a direita: a imobiliária envia, você confirma no banco, você paga a seguradora.
         </p>
-        <button type="button" onClick={carregar} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 text-xs font-bold rounded-xl transition-colors">
-          <RefreshCw size={12} /> Atualizar
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl">
+            <button type="button" onClick={() => setMes(m => somarMes(m, -1))} aria-label="Mês anterior"
+              className="p-2 text-slate-500 hover:text-navy transition-colors"><ChevronLeft size={15} /></button>
+            <span className="min-w-[130px] text-center text-sm font-bold text-slate-800">{nomeMes(mes).charAt(0).toUpperCase() + nomeMes(mes).slice(1)}</span>
+            <button type="button" onClick={() => setMes(m => somarMes(m, 1))} aria-label="Próximo mês"
+              className="p-2 text-slate-500 hover:text-navy transition-colors"><ChevronRight size={15} /></button>
+          </div>
+          {mes !== mesAtual && (
+            <button type="button" onClick={() => setMes(mesAtual)}
+              className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors">
+              Voltar para este mês
+            </button>
+          )}
+          <button type="button" onClick={carregar} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 text-xs font-bold rounded-xl transition-colors">
+            <RefreshCw size={12} /> Atualizar
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         <Coluna titulo="Aguardando a imobiliária" qtd={aguardando.length} borda="border-slate-100" selo="bg-amber-100 text-amber-800"
-          ajuda="Parcela em aberto, ainda sem comprovante. Nada a fazer aqui, só acompanhar.">
-          {aguardando.length === 0 && <Vazio>Nenhuma parcela esperando comprovante.</Vazio>}
+          ajuda={mes === mesAtual
+            ? `Parcelas de ${soMes(mes)} e as atrasadas de antes, ainda sem comprovante. Só acompanhar.`
+            : `Parcelas que vencem em ${soMes(mes)}, ainda sem comprovante. Só acompanhar.`}>
+          {aguardando.length === 0 && <Vazio>Nenhuma parcela esperando comprovante em {soMes(mes)}.</Vazio>}
           {aguardando.map(c => {
             const atrasado = !!c.proximo_vencimento && c.proximo_vencimento.slice(0, 10) < hoje;
             const dias = atrasado ? Math.round((new Date(hoje + 'T00:00:00').getTime() - new Date(c.proximo_vencimento!.slice(0, 10) + 'T00:00:00').getTime()) / 86400000) : 0;
@@ -289,7 +334,7 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
         </Coluna>
 
         <Coluna titulo="Para conferir" qtd={paraConferir.length} borda="border-blue-200" selo="bg-blue-100 text-blue-700"
-          ajuda="Comprovante recebido pelo portal. Confira no extrato do banco e confirme.">
+          ajuda="Comprovante recebido pelo portal, de qualquer mês. Confira no extrato do banco e confirme.">
           {paraConferir.length === 0 && <Vazio>Nenhum comprovante esperando conferência.</Vazio>}
           {paraConferir.map(p => (
             <div key={p.id} className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
@@ -321,7 +366,7 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
         </Coluna>
 
         <Coluna titulo="A pagar para a seguradora" qtd={aPagar.length} borda="border-slate-100" selo="bg-navy text-white"
-          ajuda={<>Você já recebeu e ainda não repassou. Total: <strong className="text-slate-800">{fmtBRL(totalAPagar)}</strong></>}>
+          ajuda={<>Você já recebeu e ainda não repassou, de qualquer mês. Total: <strong className="text-slate-800">{fmtBRL(totalAPagar)}</strong></>}>
           {aPagar.length === 0 && <Vazio>Nada pendente com seguradora.</Vazio>}
           {aPagar.map(p => (
             <div key={p.id} className="border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
@@ -356,24 +401,33 @@ const RepasseComprovantes: React.FC<Props> = ({ emAberto, parceiros, onMudou, on
           ))}
         </Coluna>
 
-        <Coluna titulo="Concluído no mês" qtd={concluidos.length} borda="border-emerald-200" selo="bg-emerald-100 text-emerald-700"
-          ajuda="Recebido da imobiliária e pago à seguradora.">
-          {concluidos.length === 0 && <Vazio>Nenhum repasse concluído neste mês.</Vazio>}
-          {concluidos.map(p => (
-            <div key={p.id} className="border border-emerald-100 bg-emerald-50/50 rounded-xl px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-bold text-sm text-slate-800 truncate">{p.inquilino_nome}</span>
-                <span className="font-bold text-sm text-slate-700 shrink-0">{fmtBRL(p.valor_esperado)}</span>
+        <Coluna titulo={`Concluído em ${soMes(mes)}`} qtd={concluidos.length} borda="border-emerald-200" selo="bg-emerald-100 text-emerald-700"
+          ajuda="Recebido da imobiliária e pago à seguradora neste mês.">
+          {concluidos.length === 0 && <Vazio>Nenhum repasse concluído em {soMes(mes)}.</Vazio>}
+          {concluidos.length > 0 && (
+            <div className="border border-emerald-100 rounded-xl overflow-hidden">
+              {concluidos.map(p => (
+                <div key={p.id} className="group flex items-center gap-2 px-3 py-2 border-b border-emerald-50 last:border-b-0 hover:bg-emerald-50/50">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800 truncate" title={p.inquilino_nome || ''}>{p.inquilino_nome}</div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {p.seguradora || 'Seguradora'} · {p.parcela}/{p.total_parcelas ?? '?'} · pago {fmtData(p.pago_seguradora_em).slice(0, 5)}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 shrink-0">{fmtBRL(p.valor_esperado)}</span>
+                  <button type="button" disabled={ocupado === p.id} onClick={() => desmarcarSeguradora(p)}
+                    title="Desmarcar o pagamento à seguradora"
+                    className="shrink-0 text-xs font-bold text-slate-400 hover:text-amber-700">
+                    Desmarcar
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 text-sm font-bold text-emerald-800">
+                <span>Total de {soMes(mes)}</span>
+                <span>{fmtBRL(totalConcluido)}</span>
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                {p.seguradora || 'Seguradora'} · pago em {fmtData(p.pago_seguradora_em)}
-              </div>
-              <button type="button" disabled={ocupado === p.id} onClick={() => desmarcarSeguradora(p)}
-                className="mt-1.5 text-xs font-bold text-slate-400 hover:text-amber-700">
-                Desmarcar pagamento
-              </button>
             </div>
-          ))}
+          )}
         </Coluna>
       </div>
     </div>
