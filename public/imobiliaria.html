@@ -387,6 +387,39 @@
     .rep-table td { padding: 13px 14px; color: rgba(255,255,255,.8); vertical-align: middle; }
     .rep-table .nome { font-weight: 500; color: #fff; }
     .rep-table .valor { font-weight: 600; color: var(--gold); }
+    /* Comprovante de repasse (migração 147): situação da parcela e anexo */
+    .rep-sit { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .rep-sit-falta    { background: #fff3d1; color: #7a4a00; }
+    .rep-sit-atrasado { background: #ffe1e6; color: #9a1239; }
+    .rep-sit-enviado  { background: #dcebff; color: #124a9c; }
+    .rep-sit-pago     { background: #d6f2e3; color: #14603f; }
+    .rep-motivo { font-size: 12px; color: #ffd9df; margin-top: 6px; max-width: 320px; line-height: 1.45; }
+    .rep-table td.comp { text-align: right; white-space: nowrap; }
+    .rep-btn {
+      min-height: 40px; padding: 0 18px; border-radius: 999px; border: none; background: var(--gold); color: var(--navy);
+      font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform .24s var(--ease), background .24s var(--ease);
+    }
+    .rep-btn:hover { background: var(--gold-soft); transform: translateY(-1px); }
+    .rep-btn:disabled { opacity: .6; transform: none; cursor: default; }
+    .rep-link { color: var(--gold-soft); font-size: 13px; font-weight: 500; text-decoration: none; background: none; border: none; font-family: inherit; cursor: pointer; padding: 8px 4px; }
+    .rep-link:hover { color: #fff; }
+    .rep-espera { font-size: 12.5px; color: rgba(255,255,255,.75); }
+    .rep-contadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .rep-cont {
+      text-align: left; padding: 15px 18px; border-radius: var(--r); border: 1px solid var(--line); background: #fff;
+      font: inherit; cursor: pointer; transition: transform .24s var(--ease), box-shadow .24s var(--ease);
+    }
+    .rep-cont:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .rep-cont.on { box-shadow: 0 0 0 2px var(--navy); }
+    .rep-cont b { display: block; font-size: 25px; font-weight: 700; line-height: 1.1; color: var(--ink); }
+    .rep-cont span { display: block; font-size: 12.5px; margin-top: 3px; color: var(--muted); }
+    .rep-cont-falta   { background: #fff8e8; border-color: #f0c36d; } .rep-cont-falta b, .rep-cont-falta span { color: #7a4a00; }
+    .rep-cont-enviado { background: #eef5ff; border-color: #a9c8f5; } .rep-cont-enviado b, .rep-cont-enviado span { color: #124a9c; }
+    .rep-cont-pago    { background: #edf8f2; border-color: #a8d8c0; } .rep-cont-pago b, .rep-cont-pago span { color: #14603f; }
+    .rep-aviso[hidden], .rep-contadores[hidden] { display: none; }
+    /* Function fora do ar ou sessão antiga: a tabela volta a ter as 6 colunas de antes */
+    .rep-table.sem-comp th:nth-last-child(-n+2), .rep-table.sem-comp td.sit, .rep-table.sem-comp td.comp { display: none; }
+    .rep-aviso { background: #fff8e8; border: 1px solid #f0c36d; color: #7a4a00; border-radius: var(--r); padding: 14px 18px; font-size: 13.5px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     /* Celular: cada parcela vira um bloco (nome em cima, dados em duas colunas),
        em vez de uma tabela de 6 colunas que estourava a largura da tela. */
     @media (max-width: 640px) {
@@ -405,6 +438,9 @@
       .rep-table td.apol { order: 1; }  /* desce para a linha de baixo, ao lado da parcela */
       .rep-table td.dir:has(.sb-parc) { order: 2; }
       .rep-table td[data-l="Vencimento"] { order: 3; }
+      .rep-table td.sit { order: 4; grid-column: 1 / -1; }
+      .rep-table td.comp { order: 5; grid-column: 1 / -1; text-align: left; white-space: normal; }
+      .rep-btn { width: 100%; min-height: 44px; }
     }
 
     /* Histórico de repasses */
@@ -1420,6 +1456,12 @@
     </select>
     <span style="font-size:12px;color:#94a3b8">Selecione para ver o próximo mês ou meses anteriores</span>
   </div>
+  <div class="rep-aviso" id="rep-sem-token" hidden>
+    <span>Para anexar os comprovantes de repasse, entre de novo no portal. Sua sessão é antiga e precisa ser renovada.</span>
+    <button class="btn-upload" type="button" onclick="sair()">Entrar de novo</button>
+  </div>
+  <div class="rep-contadores" id="rep-contadores" hidden></div>
+  <input type="file" id="rep-arquivo" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,.pdf,.jpg,.jpeg,.png,.webp,.heic" style="display:none" onchange="repArquivoEscolhido(this)"/>
   <div class="repasse-hero">
     <div class="repasse-hero-top">
       <div>
@@ -1433,9 +1475,9 @@
         <div class="pix-sub" id="r-banco">F&G Seguro Garantia · BTG</div>
       </div>
     </div>
-    <table class="rep-table">
-      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th><th>Vencimento</th></tr></thead>
-      <tbody id="repasse-body"><tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
+    <table class="rep-table sem-comp" id="rep-tabela">
+      <thead><tr><th>Inquilino</th><th>Seguradora</th><th>Apólice</th><th>Valor Seguro</th><th>Parcela</th><th>Vencimento</th><th>Situação</th><th style="text-align:right">Comprovante</th></tr></thead>
+      <tbody id="repasse-body"><tr><td colspan="8" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Carregando...</td></tr></tbody>
     </table>
   </div>
   <!-- Histórico -->
@@ -1800,6 +1842,7 @@
     renderRepasse(todosClientes);
     renderDocsPendentes(todosClientes);
     carregarHistorico();
+    repCarregarPagamentos();
   }
 
   async function carregarHistorico() {
@@ -2549,15 +2592,195 @@
     if (session?.pix_key) document.getElementById('r-pix').textContent = `PIX: ${session.pix_key}`;
     if (session?.banco_nome) document.getElementById('r-banco').textContent = `F&G Seguro Garantia · ${session.banco_nome}`;
     const tbody = document.getElementById('repasse-body');
-    if (!ativos.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">Nenhuma parcela em aberto com vencimento em ${mesNome}.</td></tr>`; return; }
-    tbody.innerHTML = ativos.map(c => `<tr>
-      <td class="nome">${c.inquilino_nome||'—'}</td>
-      <td data-l="Seguradora">${c.seguradora||'—'}</td>
-      <td data-l="Apólice" class="apol" style="font-family:monospace;font-size:12px">${c.numero_apolice||'—'}</td>
-      <td class="valor dir">${fmtBRL(c.valor_seguro)}</td>
-      <td class="dir"><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${c.parcela_atual}/${c.total_parcelas}</span></td>
-      <td data-l="Vencimento" style="font-size:12px;color:rgba(255,255,255,.75);">${c.proximo_vencimento ? fmtData(c.proximo_vencimento) : (c.dia_vencimento_aluguel ? 'Dia ' + c.dia_vencimento_aluguel : '—')}</td>
+    const hoje = repHojeISO();
+    const todas = repMontarLinhas(ativos, repPagamentos, chaveMes, mesAtual, hoje);
+    repContadores(todas);
+    document.getElementById('rep-tabela').classList.toggle('sem-comp', !repAtivo);
+    if (repAtivo) {
+      // Com os comprovantes ligados, o total é só o que ainda falta enviar:
+      // parcela com comprovante em conferência não é mais cobrada da imobiliária.
+      const falta = todas.filter(l => l.grupo === 'falta').reduce((s, l) => s + Number(l.valor || 0), 0);
+      document.getElementById('r-total').textContent = falta > 0 ? fmtBRL(falta) : (todas.length ? fmtBRL(0) : '—');
+      document.getElementById('r-mes').textContent = `Parcelas de ${mesNome} que ainda faltam enviar o comprovante`;
+    }
+    const linhas = todas.filter(l => repFiltro === 'todos' || l.grupo === repFiltro);
+    if (!linhas.length) {
+      const msg = todas.length ? 'Nenhum cliente nesta situação.' : `Nenhuma parcela em aberto com vencimento em ${mesNome}.`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:rgba(255,255,255,.4)">${msg}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = linhas.map(l => `<tr>
+      <td class="nome">${repEsc(l.nome)||'—'}</td>
+      <td data-l="Seguradora">${repEsc(l.seguradora)||'—'}</td>
+      <td data-l="Apólice" class="apol" style="font-family:monospace;font-size:12px">${repEsc(l.apolice)||'—'}</td>
+      <td class="valor dir">${fmtBRL(l.valor)}</td>
+      <td class="dir"><span class="sb sb-parc" style="background:rgba(198,156,109,.2);color:#C69C6D">${l.parcela}/${l.total}</span></td>
+      <td data-l="Vencimento" style="font-size:12px;color:rgba(255,255,255,.75);">${l.vencimento ? fmtData(l.vencimento) : (l.diaVenc ? 'Dia ' + l.diaVenc : '—')}</td>
+      <td class="sit">${repSituacaoHtml(l)}</td>
+      <td class="comp">${repAcaoHtml(l)}</td>
     </tr>`).join('');
+  }
+
+  // ── COMPROVANTE DE REPASSE (Edge Function imobiliaria-repasse-comprovante, migração 147) ──
+  // A imobiliária anexa o comprovante do PIX em cada cliente; a F&G confere e
+  // confirma no HUB. O portal não lê a tabela nem o bucket (privado): tudo
+  // passa pela function, com o token do login. Se a function não responder, a
+  // aba continua funcionando como antes, só sem a situação e o botão.
+  // (var, e não let/const: renderRepasse pode rodar antes desta linha.)
+  var REP_URL = `${SUPABASE_URL}/functions/v1/imobiliaria-repasse-comprovante`;
+  var REP_EXT = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic'];
+  var REP_MAX = 10 * 1024 * 1024;
+  var repPagamentos = [];
+  var repAtivo = false;       // a function respondeu: mostra situação e botão
+  var repFiltro = 'todos';
+  var repClienteAlvo = null;  // cliente do botão clicado
+  var repEnviando = null;     // cliente com upload em andamento
+
+  function repEsc(v) {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function repHojeISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  async function repChamar(corpo) {
+    const res = await fetch(REP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ ...corpo, token: session?.token }),
+    });
+    const json = await res.json().catch(() => ({ success: false, error: 'Resposta inválida do servidor.' }));
+    if (json.sessao_expirada) repSemToken();
+    return json;
+  }
+
+  function repSemToken() {
+    repAtivo = false;
+    document.getElementById('rep-sem-token').hidden = false;
+  }
+
+  async function repCarregarPagamentos() {
+    if (!session?.token) { repSemToken(); renderRepasse(todosClientes); return; }
+    try {
+      const r = await repChamar({ acao: 'listar' });
+      if (r.success) { repPagamentos = r.pagamentos || []; repAtivo = true; }
+    } catch (e) { console.error('[comprovantes de repasse]', e); }
+    renderRepasse(todosClientes);
+  }
+
+  // Junta as parcelas em aberto (cadastro) com os pagamentos já registrados.
+  // Função pura: recebe tudo por parâmetro, para poder ser testada sozinha.
+  //   grupo 'falta'   = falta enviar (em dia, atrasado ou comprovante recusado)
+  //   grupo 'enviado' = comprovante enviado, a F&G ainda não confirmou
+  //   grupo 'pago'    = a F&G confirmou o recebimento
+  function repMontarLinhas(ativos, pagamentos, chaveMes, mesAtual, hoje) {
+    const chave = (clientId, parcela, venc) => clientId + '|' + parcela + '|' + (venc ? String(venc).slice(0, 10) : '');
+    const vivos = {}, recusados = {};
+    (pagamentos || []).forEach(p => {
+      const k = chave(p.client_id, p.parcela, p.vencimento);
+      if (p.situacao === 'recusado') {
+        if (!recusados[k] || String(p.recusado_em || '') > String(recusados[k].recusado_em || '')) recusados[k] = p;
+      } else if (p.situacao === 'enviado') vivos[k] = p;
+    });
+
+    const linhas = ativos.map(c => {
+      const k = chave(c.id, c.parcela_atual, c.proximo_vencimento);
+      const base = {
+        clientId: c.id, nome: c.inquilino_nome, seguradora: c.seguradora, apolice: c.numero_apolice,
+        valor: c.valor_seguro, parcela: c.parcela_atual, total: c.total_parcelas,
+        vencimento: c.proximo_vencimento || null, diaVenc: c.dia_vencimento_aluguel || null,
+      };
+      if (vivos[k]) return { ...base, grupo: 'enviado', situacao: 'enviado', url: vivos[k].comprovante_url, enviadoEm: vivos[k].enviado_em };
+      const atrasado = !!c.proximo_vencimento && String(c.proximo_vencimento).slice(0, 10) < hoje;
+      const dias = atrasado ? Math.round((new Date(hoje + 'T00:00:00') - new Date(String(c.proximo_vencimento).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
+      return { ...base, grupo: 'falta', situacao: atrasado ? 'atrasado' : 'falta', diasAtraso: dias, motivoRecusa: recusados[k] ? recusados[k].recusa_motivo : null };
+    });
+
+    // Pagos: saem do cadastro (a parcela avançou), então vêm dos pagamentos.
+    // Pertencem ao mês do vencimento; sem vencimento, ao mês em que foram pagos.
+    (pagamentos || []).filter(p => p.situacao === 'pago').forEach(p => {
+      const ref = String(p.vencimento || p.pago_em || '').slice(0, 7);
+      if (ref !== chaveMes) return;
+      linhas.push({
+        clientId: p.client_id, nome: p.inquilino_nome, seguradora: p.seguradora, apolice: p.numero_apolice,
+        valor: p.valor, parcela: p.parcela, total: p.total_parcelas, vencimento: p.vencimento || null, diaVenc: null,
+        grupo: 'pago', situacao: 'pago', url: p.comprovante_url, pagoEm: p.pago_em,
+      });
+    });
+
+    const ordem = { falta: 0, enviado: 1, pago: 2 };
+    return linhas.sort((a, b) => ordem[a.grupo] - ordem[b.grupo] ||
+      String(a.vencimento || '9999').localeCompare(String(b.vencimento || '9999')) ||
+      String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+  }
+
+  function repContadores(todas) {
+    const el = document.getElementById('rep-contadores');
+    if (!repAtivo) { el.hidden = true; return; }
+    const n = g => todas.filter(l => l.grupo === g).length;
+    const item = (id, classe, qtd, texto) =>
+      `<button type="button" class="rep-cont ${classe} ${repFiltro === id ? 'on' : ''}" onclick="repFiltrar('${id}')"><b>${qtd}</b><span>${texto}</span></button>`;
+    el.hidden = false;
+    el.innerHTML =
+      item('todos', '', todas.length, 'Todos os clientes do mês') +
+      item('falta', 'rep-cont-falta', n('falta'), 'Falta enviar o comprovante') +
+      item('enviado', 'rep-cont-enviado', n('enviado'), 'Enviado, em conferência') +
+      item('pago', 'rep-cont-pago', n('pago'), 'Pago e confirmado');
+  }
+
+  function repFiltrar(id) { repFiltro = id; renderRepasse(todosClientes); }
+
+  function repSituacaoHtml(l) {
+    if (!repAtivo) return '';
+    if (l.situacao === 'pago') return `<span class="rep-sit rep-sit-pago">Pago${l.pagoEm ? ' em ' + fmtData(l.pagoEm) : ''}</span>`;
+    if (l.situacao === 'enviado') return '<span class="rep-sit rep-sit-enviado">Enviado, em conferência</span>';
+    const motivo = l.motivoRecusa ? `<div class="rep-motivo">Comprovante devolvido pela F&amp;G: ${repEsc(l.motivoRecusa)}</div>` : '';
+    if (l.situacao === 'atrasado') return `<span class="rep-sit rep-sit-atrasado">Atrasado · ${l.diasAtraso} ${l.diasAtraso === 1 ? 'dia' : 'dias'}</span>${motivo}`;
+    return `<span class="rep-sit rep-sit-falta">Falta comprovante</span>${motivo}`;
+  }
+
+  function repAcaoHtml(l) {
+    if (!repAtivo) return '';
+    const ver = l.url ? `<a class="rep-link" href="${repEsc(l.url)}" target="_blank" rel="noopener">Ver comprovante</a>` : '';
+    if (l.situacao === 'pago') return ver;
+    if (repEnviando === l.clientId) return '<span class="rep-espera">Enviando...</span>';
+    if (l.situacao === 'enviado') return `${ver} <button type="button" class="rep-link" onclick="repAnexar('${l.clientId}')">Trocar arquivo</button>`;
+    return `<button type="button" class="rep-btn" onclick="repAnexar('${l.clientId}')">Anexar comprovante</button>`;
+  }
+
+  function repAnexar(clientId) {
+    if (repEnviando) return;
+    repClienteAlvo = clientId;
+    const input = document.getElementById('rep-arquivo');
+    input.value = '';
+    input.click();
+  }
+
+  async function repArquivoEscolhido(input) {
+    const file = input.files[0];
+    const clientId = repClienteAlvo;
+    if (!file || !clientId) return;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!REP_EXT.includes(ext)) { alert('Envie o comprovante em PDF ou imagem (JPG, PNG).'); return; }
+    if (file.size > REP_MAX) { alert('O arquivo passa de 10 MB.'); return; }
+
+    repEnviando = clientId;
+    renderRepasse(todosClientes);
+    try {
+      const prep = await repChamar({ acao: 'preparar', client_id: clientId, nome: file.name, tamanho: file.size });
+      if (!prep.success) throw new Error(prep.error || 'Não foi possível preparar o envio.');
+      const { error: upErr } = await client.storage.from(prep.bucket)
+        .uploadToSignedUrl(prep.path, prep.token, file, { contentType: prep.tipo, upsert: false });
+      if (upErr) throw upErr;
+      const env = await repChamar({ acao: 'enviar', client_id: clientId, path: prep.path, nome: file.name });
+      if (!env.success) throw new Error(env.error || 'Não foi possível registrar o comprovante.');
+    } catch (e) {
+      alert('Não deu para enviar o comprovante: ' + (e.message || e));
+    }
+    repEnviando = null;
+    repClienteAlvo = null;
+    await repCarregarPagamentos();
   }
 
   function renderDocsPendentes(cs) {
