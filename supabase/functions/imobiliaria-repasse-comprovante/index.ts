@@ -18,6 +18,12 @@
 //       confere se o arquivo chegou e grava pelo RPC repasse_registrar_comprovante
 //       (retrato da parcela; reenvio antes da conferência troca o arquivo).
 //
+// Depois de gravar, avisa o Fábio por e-mail, com o comprovante anexo. O aviso
+// sai uma vez por envio (carimbo aviso_fg_enviado_em, reservado antes do
+// Resend); se a imobiliária trocar o arquivo, sai de novo. A leitura do
+// comprovante (valor, pagador) não é feita aqui: muitos comprovantes são foto
+// ou PDF só com imagem e precisam de OCR, que roda no HUB, no navegador.
+//
 // A baixa NÃO acontece aqui. Decisão do Fábio (28/11/2026): todo repasse espera
 // o clique dele em "Confirmar recebimento" no HUB.
 
@@ -26,6 +32,10 @@ import { validarToken, type ParceiroDoToken } from '../_shared/tokenParceiro.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
+const FABIO_EMAIL = 'fabio@fegsegurogarantia.com.br';
+const HUB_URL = 'https://hub.fegsegurogarantia.com';
 
 const BUCKET = 'repasse-comprovantes';
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -49,6 +59,11 @@ const json = (body: unknown, status = 200) =>
 class Erro extends Error {
   constructor(msg: string, public status = 400) { super(msg); }
 }
+
+const esc = (s: unknown) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const brl = (n: unknown) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dataBR = (iso: string | null) => (iso ? iso.slice(0, 10).split('-').reverse().join('/') : 'sem data');
 
 const extensao = (nome: string) => (nome.split('.').pop() || '').toLowerCase();
 
@@ -176,7 +191,70 @@ async function enviar(sb: SupabaseClient, parceiro: ParceiroDoToken, corpo: Reco
     await sb.storage.from(BUCKET).remove([anterior.comprovante_path]);
   }
 
+  await avisarFabio(sb, String(id), parceiro.name);
+
   return { id };
+}
+
+// ── aviso ao Fábio ───────────────────────────────────────────────────────────
+// Nunca derruba o envio: se o e-mail falhar, o comprovante já está gravado e
+// aparece no HUB do mesmo jeito. O carimbo é desfeito para a próxima tentativa.
+async function avisarFabio(sb: SupabaseClient, id: string, imobiliaria: string) {
+  if (!RESEND_KEY) return;
+  const { data: p } = await sb.from('imobiliaria_repasse_pagamentos')
+    .update({ aviso_fg_enviado_em: new Date().toISOString() })
+    .eq('id', id).eq('status', 'enviado').is('aviso_fg_enviado_em', null)
+    .select('id, inquilino_nome, numero_apolice, seguradora, parcela, total_parcelas, vencimento, valor_esperado, comprovante_path, comprovante_nome')
+    .maybeSingle();
+  if (!p) return;
+
+  try {
+    const { data: link } = await sb.storage.from(BUCKET).createSignedUrl(p.comprovante_path, 7 * 86400);
+    const linha = (rotulo: string, valor: string, forte = false) =>
+      `<tr><td style="padding:8px 0;font-size:12px;color:#5B6472;width:130px;">${rotulo}</td>` +
+      `<td style="padding:8px 0;font-size:14px;color:#1B263B;${forte ? 'font-weight:700;' : ''}">${valor}</td></tr>`;
+    const html = `
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e8e4dc;border-radius:16px;overflow:hidden;">
+        <div style="background:#1B263B;padding:24px 32px;">
+          <img src="${HUB_URL}/marca/fg-logo-horizontal-bege.png" width="150" height="49" alt="F&amp;G Seguro Garantia" style="display:block;border:0;margin:0 0 12px;" />
+          <h1 style="color:#fff;font-size:17px;font-weight:700;margin:0;">Comprovante de repasse recebido</h1>
+          <p style="color:rgba(255,255,255,.7);font-size:12px;margin:4px 0 0;">Enviado por ${esc(imobiliaria)} pelo portal</p>
+        </div>
+        <div style="padding:24px 32px;background:#fff;">
+          <table style="width:100%;border-collapse:collapse;">
+            ${linha('Inquilino', esc(p.inquilino_nome || 'sem nome'), true)}
+            ${linha('Valor da parcela', brl(p.valor_esperado), true)}
+            ${linha('Parcela', `${p.parcela} de ${p.total_parcelas ?? '?'}`)}
+            ${linha('Vencimento', dataBR(p.vencimento))}
+            ${linha('Seguradora', esc(p.seguradora || 'não informada'))}
+            ${linha('Apólice', esc(p.numero_apolice || 'não informada'))}
+          </table>
+          <div style="margin-top:20px;padding:16px 18px;background:#f8f5f0;border:1px solid #e8e4dc;border-radius:12px;">
+            <p style="margin:0;font-size:13px;color:#1B263B;line-height:1.6;">
+              O comprovante vai anexo. Ele prova o envio do PIX: confira a entrada no extrato do banco e depois confirme no HUB, em
+              <strong>Repasse Imobiliárias, aba Comprovantes</strong>. A parcela só recebe baixa com a sua confirmação.
+            </p>
+            <p style="margin:12px 0 0;font-size:13px;"><a href="${HUB_URL}" style="color:#7A5D33;font-weight:700;">Abrir o HUB</a></p>
+          </div>
+        </div>
+      </div>`;
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_KEY}` },
+      body: JSON.stringify({
+        from: 'F&G Seguro Garantia <contato@fegsegurogarantia.com.br>',
+        to: [FABIO_EMAIL],
+        subject: `Comprovante de repasse: ${p.inquilino_nome || 'cliente'} · ${brl(p.valor_esperado)} · ${imobiliaria}`,
+        html,
+        ...(link?.signedUrl ? { attachments: [{ filename: p.comprovante_nome || 'comprovante', path: link.signedUrl }] } : {}),
+      }),
+    });
+    if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+  } catch (e) {
+    console.error('[imobiliaria-repasse-comprovante] aviso', e instanceof Error ? e.message : String(e));
+    await sb.from('imobiliaria_repasse_pagamentos').update({ aviso_fg_enviado_em: null }).eq('id', id);
+  }
 }
 
 // ── roteador ─────────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import { whatsappUrlFromPhone } from '../utils/whatsapp';
 import { supabase } from '../lib/supabase';
 import { enviarApoliceParaImobiliaria, rotuloEnvio, type TipoApolice } from '../lib/envioApoliceImobiliaria.ts';
 import ResidentialInsurance from './ResidentialInsurance.tsx';
+import RepasseComprovantes from './RepasseComprovantes.tsx';
 
 interface Cliente {
   id: string;
@@ -110,7 +111,7 @@ const dataParaISO = (v: unknown): string => {
 const ETAPAS_EM_ANDAMENTO = ['solicitado', 'atendimento_iniciado', 'aguardando_seguradora', 'aguardando_cliente'];
 
 // Abas da tela: pipeline das solicitações, tabela de repasses e o histórico.
-type AbaRepasse = 'pipeline' | 'repasses' | 'encerrados';
+type AbaRepasse = 'pipeline' | 'repasses' | 'comprovantes' | 'encerrados';
 const CHAVE_ABA_REPASSE = 'hub.imobiliaria-repasse.aba';
 
 // "Apenas Garantia Locatícia" é a primeira opção do formulário do portal e grava
@@ -396,10 +397,14 @@ export default function ImobiliariaRepasse() {
   const [aba, setAba] = useState<AbaRepasse>(() => {
     try {
       const salva = localStorage.getItem(CHAVE_ABA_REPASSE);
-      if (salva === 'pipeline' || salva === 'repasses' || salva === 'encerrados') return salva;
+      if (salva === 'pipeline' || salva === 'repasses' || salva === 'comprovantes' || salva === 'encerrados') return salva;
     } catch { /* navegador sem storage: segue com a padrão */ }
     return 'pipeline';
   });
+  // Comprovantes de repasse que pedem ação (para conferir + a pagar à seguradora).
+  const [qtdComprovantes, setQtdComprovantes] = useState(0);
+  // Muda quando a baixa é dada fora da aba Comprovantes, para ela recarregar.
+  const [recarregarComprovantes, setRecarregarComprovantes] = useState(0);
   const abasTopoRef = useRef<HTMLDivElement>(null);
   const abasBarraRef = useRef<HTMLDivElement>(null);
   const mudarAba = (nova: AbaRepasse) => {
@@ -1329,13 +1334,22 @@ export default function ImobiliariaRepasse() {
   // A regra de avançar (parcela + 1, próximo vencimento um mês à frente,
   // desligar o repasse ao quitar a última) vive na RPC avancar_parcela_repasse,
   // no banco. Quitar o repasse não encerra o cadastro: a apólice segue vigente. Assim hub e portal não divergem e a data nunca é calculada aqui.
+  //
+  // Desde a migração 147 a baixa dada aqui (sem comprovante no portal) passa por
+  // registrar_recebimento_manual_repasse, que chama a mesma RPC e deixa o
+  // registro do recebimento: assim o valor entra em "A pagar para a seguradora"
+  // na aba Comprovantes. Cadastro sem imobiliária continua no caminho antigo.
   const avancarParcela = async (c: Cliente) => {
-    const { data, error } = await supabase.rpc('avancar_parcela_repasse', { p_id: c.id });
-    if (error) { alert(`Erro ao avançar a parcela: ${error.message}`); return; }
-    const r = data as { parcela_atual: number; total_parcelas: number; proximo_vencimento: string | null; encerrado: boolean } | null;
-    if (r?.encerrado) {
-      alert(`Repasse de ${c.inquilino_nome} quitado: as ${r.total_parcelas} parcelas foram repassadas. Ele sai da lista de cobrança e a apólice continua ativa na carteira.`);
+    const ultima = c.parcela_atual === c.total_parcelas;
+    const temImobiliaria = Boolean((c as any).partner_id);
+    const { error } = temImobiliaria
+      ? await supabase.rpc('registrar_recebimento_manual_repasse', { p_client_id: c.id })
+      : await supabase.rpc('avancar_parcela_repasse', { p_id: c.id });
+    if (error) { alert(`Não foi possível dar a baixa: ${error.message}`); return; }
+    if (ultima) {
+      alert(`Repasse de ${c.inquilino_nome} quitado: as ${c.total_parcelas} parcelas foram repassadas. Ele sai da lista de cobrança e a apólice continua ativa na carteira.`);
     }
+    setRecarregarComprovantes(n => n + 1);
     load();
   };
 
@@ -1363,8 +1377,18 @@ export default function ImobiliariaRepasse() {
       (ant.proximo_vencimento ? `, com vencimento em ${fmtDataISO(ant.proximo_vencimento)}` : '') +
       `, e essa parcela volta a aparecer como em aberto para a imobiliária.`
     )) return;
-    const { error } = await supabase.rpc('desfazer_baixa_repasse', { p_id: c.id });
-    if (error) { alert(`Erro ao desfazer a baixa: ${error.message}`); return; }
+    // Baixa com registro de recebimento (migração 147) é desfeita pelo registro,
+    // para o comprovante voltar à conferência junto com a parcela.
+    const { data: pag } = await supabase.from('imobiliaria_repasse_pagamentos')
+      .select('id, status')
+      .eq('client_id', c.id).eq('parcela', ant.parcela_atual)
+      .in('status', ['recebido', 'pago_seguradora'])
+      .order('recebido_em', { ascending: false }).limit(1).maybeSingle();
+    const { error } = pag
+      ? await supabase.rpc('desfazer_recebimento_repasse', { p_id: pag.id })
+      : await supabase.rpc('desfazer_baixa_repasse', { p_id: c.id });
+    if (error) { alert(`Não foi possível desfazer a baixa: ${error.message}`); return; }
+    setRecarregarComprovantes(n => n + 1);
     load();
   };
 
@@ -1707,6 +1731,7 @@ export default function ImobiliariaRepasse() {
           {([
             { key: 'pipeline', label: 'Pipeline', qtd: pipelineEmAndamento },
             { key: 'repasses', label: 'Repasses ativos', qtd: ativos.length },
+            { key: 'comprovantes', label: 'Comprovantes', qtd: qtdComprovantes },
             { key: 'encerrados', label: 'Quitados e encerrados', qtd: quitados.length + encerrados.length },
           ] as { key: AbaRepasse; label: string; qtd: number }[]).map(a => (
             <button
@@ -2161,6 +2186,18 @@ export default function ImobiliariaRepasse() {
       )}
 
       </>)}
+
+      {/* Fica montada (só escondida) fora da aba, para o número da aba valer
+          desde que a tela abre e a leitura dos comprovantes não recomeçar. */}
+      <div className={aba === 'comprovantes' ? '' : 'hidden'}>
+        <RepasseComprovantes
+          key={recarregarComprovantes}
+          emAberto={ativos as any}
+          parceiros={parceiros}
+          onMudou={load}
+          onContagem={setQtdComprovantes}
+        />
+      </div>
 
       {aba === 'encerrados' && (<>
       {/* Repasses quitados com baixa ainda reversível */}
